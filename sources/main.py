@@ -15,7 +15,6 @@ sys.path.append('sources')
 
 from ui import main
 from config import config
-import data
 from plot_1d_app import Plot1dApp
 from plot_2d_app import Plot2dApp
 
@@ -46,17 +45,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.setupUi(self)
 
         
-
-        # SMB connection object
-        # self.conn = conn
-
         # Connect UI
-        # self.btnBrowse.clicked.connect(self.folderClicked)
-        # self.pushButtonUp.clicked.connect(self.goParentFolder)
-        # self.pushButtonUp.setEnabled(False)
         self.listWidgetFolder.clicked.connect(self.itemClicked)
-        # self.listWidgetFolder.currentItemChanged.connect(self.itemClicked)
-        # self.listWidgetFolder.itemDoubleClicked.connect(self.itemDoubleClicked)
         
         # Resize the cell to the column content automatically
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
@@ -65,19 +55,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # Connect event
         self.tableWidgetDataBase.clicked.connect(self.runClicked)
 
-
-
-        # # Resize the cell to the column content automatically
-        # self.tableWidgetParameters.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        # # Select row instead of cell
-        # self.tableWidgetParameters.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        # # Connect event
-        # self.tableWidgetParameters.clicked.connect(self.parameterClicked)
+        self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
 
 
         self.statusBar.showMessage('Ready')
 
-        # Default folder is the data vault on varys except if we are on test mode
+        # Default folder is the dataserver except if we are on test mode
         if 'test' in os.listdir('.'):
             self.currentPath = os.path.abspath(os.path.curdir)
             config['path'] = self.currentPath
@@ -314,6 +297,19 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             cb.toggled.connect(lambda cb=cb,
                                       row=rowPosition,
                                       plotRef=self.getPlotTitle(): self.parameterClicked(cb, row, plotRef))
+
+
+
+    def parameterCellClicked(self, row, column):
+        """
+        Handle event when user click on the cell containing the checkbox.
+        """
+        
+        # If user clicks on the cell containing the checkbox
+        if column==0:
+            cb = self.tableWidgetParameters.cellWidget(row, 0)
+            cb.toggle()
+            self.parameterClicked()
 
 
 
