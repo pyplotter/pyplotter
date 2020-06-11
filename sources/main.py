@@ -269,6 +269,27 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         tableWidgetPtableWidgetParameters
         """
 
+        # When we fill the table, we need to check if there is already
+        # a plotWindow of that file opened.
+        # If it is the case, we need to checked the checkBox which are plotted
+        # in the plotWindow.
+        # Our aim is then to get the list of the checkBox which has to be checked.
+        checkedDependents = []
+        # If a plotWindow is already open
+        if len(self._refs) > 0:
+            # We iterate over all plotWindow
+            for val in list(self._refs.values()):
+                if val['plotType'] == '1d':
+                    if self.currentDatabase == val['plot'].windowTitle:
+                        if self.getRunId() == val['plot'].runId:
+                            checkedDependents = list(val['plot'].curves.keys())
+                else:
+                    for subval in list(val['plots'].values()):
+                        if self.currentItem == subval.windowTitle:
+                            if self.getRunId() == val['plot'].runId:
+                                checkedDependents.append(list(subval.curves.keys()[0]))
+            
+
         # Update label
         self.labelCurrentRun.setText(self.getRunId())
 
@@ -288,6 +309,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             self.tableWidgetParameters.insertRow(rowPosition)
 
             cb = QtWidgets.QCheckBox()
+
+            # We check if that parameter is already plotted
+            if param.name+' ['+param.unit+']' in checkedDependents:
+                cb.setChecked(True)
 
             self.tableWidgetParameters.setCellWidget(rowPosition, 0, cb)
             self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(param.name))
@@ -309,7 +334,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         if column==0:
             cb = self.tableWidgetParameters.cellWidget(row, 0)
             cb.toggle()
-            self.parameterClicked()
+            self.parameterClicked(cb, row, self.getPlotTitle())
 
 
 
