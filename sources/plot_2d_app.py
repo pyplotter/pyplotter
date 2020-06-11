@@ -27,6 +27,11 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         super(Plot2dApp, self).__init__(parent)
 
         self.setupUi(self)
+        
+        # Allow resize of the plot window
+        self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
+                            QtCore.Qt.WindowMaximizeButtonHint|
+                            QtCore.Qt.WindowCloseButtonHint)
 
         self.plotType = '2d'
 

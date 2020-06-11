@@ -23,6 +23,11 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         super(Plot1dApp, self).__init__(parent)
 
         self.setupUi(self)
+        
+        # Allow resize of the plot window
+        self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
+                            QtCore.Qt.WindowMaximizeButtonHint|
+                            QtCore.Qt.WindowCloseButtonHint)
 
         self.plotType      = '1d'
         self.curves        = {}
