@@ -245,6 +245,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         which will then contain all runs
         """
 
+        # Update label
+        self.labelCurrentDataBase.setText(self.currentDatabase)
+
         # Get database
         path_db = os.path.join(self.currentPath, self.currentDatabase)
         db = qc.initialise_or_create_database_at(path_db)
@@ -282,6 +285,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         When clicked display the measured dependent parameters in the 
         tableWidgetPtableWidgetParameters
         """
+
+        # Update label
+        self.labelCurrentRun.setText(self.getRunId())
+
+        # Update label
+        self.labelCurrentMetadata.setText(self.getRunId())
 
         # Get parameters list without the independent parameters
         params = qc.load_by_id(self.getRunId()).get_parameters()[self.getNbIndependentParameters():]
