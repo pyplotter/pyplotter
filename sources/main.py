@@ -2,7 +2,6 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 import numpy as np
-# import ConfigParser
 import pyqtgraph as pg
 from matplotlib.pyplot import colormaps
 from matplotlib import cm as plt_cm
