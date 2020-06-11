@@ -18,16 +18,17 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
     """
 
 
-    def __init__(self, x, y, title, xLabel, yLabel, windowTitle, cleanCheckBox,
+    def __init__(self, x, y, title, xLabel, yLabel, windowTitle, runId, cleanCheckBox,
                 linkedTo2dPlot=False, curveId=None, curveLegend=None, parent=None):
         super(Plot1dApp, self).__init__(parent)
 
         self.setupUi(self)
-        
+
         self.plotType      = '1d'
         self.curves        = {}
         self.legend        = None
         self.windowTitle   = windowTitle
+        self.runId         = runId
         self.cleanCheckBox = cleanCheckBox
 
         # Is that's 1d plot linked to a 2d plot (slice of a 2d plot)
@@ -43,6 +44,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
         # Add fitting function to the GUI
         self.initFitGUI()
+
         # Reference to QDialog which will contains fit info
         self.fitWindow = None
 
@@ -104,7 +106,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         We propagate that event to the mainWindow
         """
 
-        self.cleanCheckBox(windowTitle=self.windowTitle)
+        self.cleanCheckBox(windowTitle=self.windowTitle, runId=self.runId)
         if self.fitWindow is not None:
             self.fitWindow.close()
         if len(self.fftwindow)>0:
@@ -125,8 +127,8 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         the colors in config files
         """
 
-        colors = [curve.colorIndex for curve in self.curves.itervalues()]
-        for i in xrange(50):
+        colors = [curve.colorIndex for curve in self.curves.values()]
+        for i in range(50):
             if i not in colors:
                 colorIndex = i
                 color = config['plot1dColors'][i]
@@ -211,7 +213,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         if not self.linkedTo2dPlot:
             # If there is more than one plotDataItem
             # We chekc of the share the same label
-            if len(np.unique(np.array([curve.curveLabel for curve in self.curves.itervalues()])))>1:
+            if len(np.unique(np.array([curve.curveLabel for curve in self.curves.values()])))>1:
                 self.plotItem.setLabel('left',
                                         '[a.u]',
                                         color=config['pyqtgraphyLabelTextColor'])
@@ -219,7 +221,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
             # If there is only one plotDataItem or if the plotDataItems share the same label
             else:
                 self.plotItem.setLabel('left',
-                                       self.curves[self.curves.keys()[0]].curveLabel,
+                                       self.curves[list(self.curves.keys())[0]].curveLabel,
                                        color=config['pyqtgraphyLabelTextColor'])
 
 
@@ -258,7 +260,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         
         # If there is a displayed legendItem, we need to manually enter the info
         if self.legend is not None:
-            for curve in self.curves.itervalues():
+            for curve in self.curves.values():
                 if curve.showInLegend:
                     self.legend.addItem(curve, curve.curveLegend)
 
@@ -300,7 +302,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         
         if self.checkBoxSymbol.isChecked():
             
-            for i, (key, curve) in enumerate(self.curves.iteritems()):
+            for i, (key, curve) in enumerate(list(self.curves.items())):
                 if key != 'fit':
                     curve.setSymbol(config['plot1dSymbol'][i%len(config['plot1dSymbol'])])
         else:
@@ -394,7 +396,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         self.selectedX, self.selectedY = self.getSelectedData(curveId)
 
         # If a fit curve is already displayed, we update it
-        if 'fit' in self.curves.keys():
+        if 'fit' in list(self.curves.keys()):
             self.radioButtonFitState()
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
@@ -478,12 +480,12 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         Use to indicate which plotDataItem is used for the fit
         """
 
-        curveIdToRemove = [i for i in self.curves.keys() if 'selection' in i]
+        curveIdToRemove = [i for i in list(self.curves.keys()) if 'selection' in i]
         if len(curveIdToRemove)>0:
             self.removePlotDataItem(curveIdToRemove[0])
 
         # By default we put back the default style to all plotDataItem
-        for curve in self.curves.itervalues():
+        for curve in self.curves.values():
             
             # Create new style
             lineStyle = QtCore.Qt.SolidLine 
@@ -527,14 +529,13 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         The method will prepare the fit byt placing some data in memory and
         dispay to user which plotDataItem will be used for the fit.
         """
-
         radioButton = self.plotDataItemButtonGroup.checkedButton()
 
         # When user click None, we unselect everything
         if radioButton.curveId is None:
 
             # Remove fit curve if plotted
-            if 'fit' in self.curves.keys():
+            if 'fit' in list(self.curves.keys()):
                 self.removePlotDataItem('fit')
                 self.fitWindow.close()
 
@@ -595,7 +596,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         """
     
         # Get list of fit model
-        listClasses = [m[0] for m in inspect.getmembers(fit, inspect.isclass) if 'get_initial_params' in m[1].__dict__.keys()]
+        listClasses = [m[0] for m in inspect.getmembers(fit, inspect.isclass) if 'get_initial_params' in [*m[1].__dict__.keys()]]
         # Add a radio button for each model of the list
         self.fitModelButtonGroup = QtWidgets.QButtonGroup()
         for i, j in enumerate(listClasses):
@@ -624,7 +625,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
         # If a fit curve is already plotted, we remove it before plotting a new
         # one
-        if 'fit' in self.curves.keys():
+        if 'fit' in list(self.curves.keys()):
                 self.removePlotDataItem('fit')
                 self.fitWindow.close()
         

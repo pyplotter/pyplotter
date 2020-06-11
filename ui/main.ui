@@ -34,20 +34,92 @@
         <widget class="QWidget" name="layoutWidget">
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QPushButton" name="pushButtonUp">
-            <property name="text">
-             <string>Go up</string>
+           <widget class="QSplitter" name="splitter_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
             </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QListWidget" name="listWidget"/>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btnBrowse">
-            <property name="text">
-             <string>Pick up a folder</string>
-            </property>
+            <widget class="QWidget" name="layoutWidget_2">
+             <layout class="QVBoxLayout" name="verticalLayout_5">
+              <item>
+               <widget class="QLabel" name="labelFolder">
+                <property name="text">
+                 <string>Browse folder:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QListWidget" name="listWidgetFolder"/>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="layoutWidget_3">
+             <layout class="QVBoxLayout" name="verticalLayout_11">
+              <item>
+               <widget class="QLabel" name="labelDataBase">
+                <property name="text">
+                 <string>Browse dataBase:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QTableWidget" name="tableWidgetDataBase">
+                <property name="sortingEnabled">
+                 <bool>true</bool>
+                </property>
+                <property name="columnCount">
+                 <number>7</number>
+                </property>
+                <attribute name="horizontalHeaderDefaultSectionSize">
+                 <number>80</number>
+                </attribute>
+                <attribute name="horizontalHeaderMinimumSectionSize">
+                 <number>32</number>
+                </attribute>
+                <attribute name="horizontalHeaderStretchLastSection">
+                 <bool>false</bool>
+                </attribute>
+                <attribute name="verticalHeaderVisible">
+                 <bool>false</bool>
+                </attribute>
+                <column>
+                 <property name="text">
+                  <string>run id</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>experiment</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>sample</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>name</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>started</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>completed</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>records</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+             </layout>
+            </widget>
            </widget>
           </item>
          </layout>
@@ -55,74 +127,51 @@
         <widget class="QWidget" name="layoutWidget">
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
-           <widget class="QScrollArea" name="scrollArea">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>1</verstretch>
-             </sizepolicy>
+           <widget class="QSplitter" name="splitter_3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
             </property>
-            <property name="minimumSize">
-             <size>
-              <width>200</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="verticalScrollBarPolicy">
-             <enum>Qt::ScrollBarAlwaysOn</enum>
-            </property>
-            <property name="widgetResizable">
-             <bool>true</bool>
-            </property>
-            <widget class="QWidget" name="scrollAreaWidgetContents">
-             <property name="geometry">
-              <rect>
-               <x>0</x>
-               <y>0</y>
-               <width>411</width>
-               <height>85</height>
-              </rect>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_10">
+            <widget class="QWidget" name="verticalLayoutWidget">
+             <layout class="QVBoxLayout" name="verticalLayout_6">
               <item>
-               <layout class="QVBoxLayout" name="verticalLayoutDependent"/>
+               <widget class="QLabel" name="labelParameter">
+                <property name="text">
+                 <string>Browse parameters:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QTableWidget" name="tableWidgetParameters">
+                <column>
+                 <property name="text">
+                  <string>plotted</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>axis</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>unit</string>
+                 </property>
+                </column>
+               </widget>
               </item>
              </layout>
             </widget>
-           </widget>
-          </item>
-          <item>
-           <widget class="QScrollArea" name="scrollArea_2">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>3</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>200</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="verticalScrollBarPolicy">
-             <enum>Qt::ScrollBarAlwaysOn</enum>
-            </property>
-            <property name="widgetResizable">
-             <bool>true</bool>
-            </property>
-            <widget class="QWidget" name="scrollAreaWidgetContents_2">
-             <property name="geometry">
-              <rect>
-               <x>0</x>
-               <y>0</y>
-               <width>411</width>
-               <height>257</height>
-              </rect>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_8">
+            <widget class="QWidget" name="verticalLayoutWidget_2">
+             <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
-               <layout class="QVBoxLayout" name="verticalLayout_7"/>
+               <widget class="QLabel" name="labelMetadata">
+                <property name="text">
+                 <string>Browse metadata:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QListWidget" name="listWidgetMetadata"/>
               </item>
              </layout>
             </widget>

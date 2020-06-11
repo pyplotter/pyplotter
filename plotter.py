@@ -5,7 +5,7 @@ import os
 
 import qdarkstyle
 
-from sources.login_app import LoginApp
+# from sources.login_app import LoginApp
 from sources.main import MainApp
 
 def main():
@@ -14,14 +14,12 @@ def main():
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
 
     # First we launch the login app to ask ids
-    login = LoginApp()
-    if login.exec_() == QtWidgets.QDialog.Accepted:
-
-        # We open the main app with the open connection object
-        form = MainApp(login.conn)
-        form.show()
-
-        app.exec_()
+    # login = LoginApp()
+    # if login.exec_() == QtWidgets.QDialog.Accepted:
+    # We open the main app with the open connection object
+    main_app = MainApp()
+    main_app.show()
+    app.exec_()
 
 
 if __name__ == '__main__':

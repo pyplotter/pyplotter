@@ -5,7 +5,7 @@ import os
 import time
 import numpy as np
 import pandas as pd
-import ConfigParser
+# import ConfigParser
 import tempfile
 
 
@@ -13,7 +13,7 @@ from config import config
 
 def trap_exc_during_debug(*args):
     # when app raises uncaught exception, print info
-    print args
+    print(args)
 
 
 # install exception hook: without this, uncaught exception would cause application to exit
@@ -64,15 +64,12 @@ class ImportDataThread(QtCore.QObject):
     sigUpdateProgressBar = QtCore.pyqtSignal(int) 
 
 
-    def __init__(self, conn, share_name, filePath, fileSize, nbDependent):
+    def __init__(self, filePath, nbDependent):
 
         super(QtCore.QObject, self).__init__()
 
         self.__abort     = False
-        self.conn        = conn
-        self.share_name  = share_name
         self.filePath    = filePath
-        self.fileSize    = fileSize
         self.nbDependent = nbDependent
         self._threads    = []
 
@@ -81,16 +78,18 @@ class ImportDataThread(QtCore.QObject):
     @QtCore.pyqtSlot()
     def work(self):
         
-        # Get data metadata
-        conf = ConfigParser.ConfigParser()
-        conf.readfp(self.getFile(self.filePath[:-4]+'.ini'))
-        conf.get('General', 'created')
+        # # Get data metadata
+        # conf = ConfigParser.ConfigParser()
+        # conf.readfp(self.getFile(self.filePath[:-4]+'.ini'))
+        # conf.get('General', 'created')
 
-        # Number of independent parameter in the dataset
-        nbIndependent = 0
-        for section in conf.sections():
-            if section[:11] == 'Independent':
-                nbIndependent += 1
+        # # Number of independent parameter in the dataset
+        # nbIndependent = 0
+        # for section in conf.sections():
+        #     if section[:11] == 'Independent':
+        #         nbIndependent += 1
+
+        nbIndependent = 1
 
         # Labels
         xLabel = conf.get('Independent 1', 'label')+' ['+conf.get('Independent 1', 'units')+']'

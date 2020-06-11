@@ -3,12 +3,13 @@
 # This file create a python dict containing all personalized parameters
 config = {
 
-# Data server information for the samba connection
-'share_name'          : '',
-'local_machine_name'  : '',
-'server_machine_name' : '',
-'server_ip'           : '',
-'path' : ['', ''],
+# Do not put "/" after ":" in the two following paths
+# The soft will not allowed to go above that path
+'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
+# Default display path
+'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
+'authorized_setup' : ['bluelagoon'],
+'authorized_extension' : ['db'],
 
 # Layout parameters
 'dialogWindowSize' : (1.618*500, 500),

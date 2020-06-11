@@ -23,7 +23,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
     """
 
     def __init__(self, x, y, z, title, xLabel, yLabel, zLabel, windowTitle,
-                cleanCheckBox, parent=None):
+                runId, cleanCheckBox, parent=None):
         super(Plot2dApp, self).__init__(parent)
 
         self.setupUi(self)
@@ -38,6 +38,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.zLabel        = zLabel
         self.title         = title
         self.windowTitle   = windowTitle
+        self.runId         = runId
         self.cleanCheckBox = cleanCheckBox
 
         # Store references to infiniteLines
@@ -118,7 +119,6 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.checkBoxMaximum.stateChanged.connect(self.checkBoxExtractionState)
         self.checkBoxMinimum.stateChanged.connect(self.checkBoxExtractionState)
 
-
         # Add fitting function to the GUI
         self.initFitGUI()
         # Reference to QDialog which will contains fit info
@@ -149,8 +149,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         We propagate that event to the mainWindow
         """
 
-
-        self.cleanCheckBox(windowTitle=self.windowTitle, dependent=self.zLabel)
+        self.cleanCheckBox(windowTitle=self.windowTitle, runId=self.runId, dependent=self.zLabel)
 
         # If user created data slice, we close the linked 1d plot
         if self.linked1dPlots['vertical'] is not None:
@@ -257,7 +256,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-    def cleanInfiniteLine(self, windowTitle):
+    def cleanInfiniteLine(self, windowTitle, runId):
         """
         Called when a linked 1dPlot is closed
         """
@@ -272,7 +271,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
         # We remove all the associated infiniteLine
         keyToRemove = []
-        for key, val in self.infiniteLines.iteritems():
+        for key, val in list(self.infiniteLines.items()):
             if val.angle == searchedAngle:
                 keyToRemove.append(key)
         
@@ -319,16 +318,17 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                     xLabel = self.xLabel
 
                 curveId = self.getCurveId()
-                p  = Plot1dApp(x           = sliceX,
-                               y           = sliceY,
-                               title       = self.title,
-                               xLabel      = xLabel,
-                               yLabel      = self.zLabel,
-                               windowTitle = self.windowTitle+' - '+self.sliceOrientation+' slice',
-                               cleanCheckBox  = self.cleanInfiniteLine,
-                               curveId = curveId,
-                               linkedTo2dPlot = True,
-                               curveLegend = sliceLegend)
+                p = Plot1dApp(x              = sliceX,
+                              y              = sliceY,
+                              title          = self.title,
+                              xLabel         = xLabel,
+                              yLabel         = self.zLabel,
+                              windowTitle    = self.windowTitle+' - '+self.sliceOrientation+' slice',
+                              runId          = self.runId,
+                              cleanCheckBox  = self.cleanInfiniteLine,
+                              curveId        = curveId,
+                              linkedTo2dPlot = True,
+                              curveLegend    = sliceLegend)
                 p.show()
                 self.linked1dPlots[self.sliceOrientation] = p
 
@@ -338,11 +338,9 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                 
                 # We check if user double click on an infiniteLine
                 clickedCurveId = None
-                print self.linked1dPlots[self.sliceOrientation].curves
-                for curveId, curve in self.linked1dPlots[self.sliceOrientation].curves.iteritems():
+                for curveId, curve in list(self.linked1dPlots[self.sliceOrientation].curves.items()):
                     if curve.curveLegend == sliceLegend:
                         clickedCurveId = k
-                print 'sss'
 
                 # If the user add a new infiniteLine
                 if clickedCurveId is None:
@@ -395,7 +393,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
         cm = plt_cm.__dict__[cm]
         colormap = cmapToColormap(cm)
-        pos, rgba_colors = zip(*colormap[::len(colormap)/(config['2dMapNbColorPoints']-1)])
+        pos, rgba_colors = zip(*colormap[::int(len(colormap)/(config['2dMapNbColorPoints']-1))])
         # Set the colormap
         pgColormap =  pg.ColorMap(pos, rgba_colors)
         self.histWidget.item.gradient.setColorMap(pgColormap)
@@ -470,7 +468,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-    def cleanCheckBoxExtraction(self, windowTitle):
+    def cleanCheckBoxExtraction(self, windowTitle, runId):
 
         self.checkBoxMaximum.setChecked(False)
         self.checkBoxMinimum.setChecked(False)
@@ -509,6 +507,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                                                xLabel         = self.xLabel,
                                                yLabel         = self.yLabel,
                                                windowTitle    = self.windowTitle+' - Extraction',
+                                               runId          = self.runId,
                                                cleanCheckBox  = self.cleanCheckBoxExtraction,
                                                curveId        = labels[0],
                                                linkedTo2dPlot = False,
@@ -516,7 +515,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
             self.extractionWindow.show()
         elif len(self.extractionWindow.curves) == 1:
             
-            if labels[0] != self.extractionWindow.curves.keys()[0]:
+            if labels[0] != list(self.extractionWindow.curves.keys())[0]:
                 
                 self.extractionWindow.addPlotDataItem(x           = self.x,
                                                     y           = ys[0],
@@ -548,7 +547,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-    def cleanCheckBoxFit(self, windowTitle):
+    def cleanCheckBoxFit(self, windowTitle, runId):
 
         pass
 
@@ -563,7 +562,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         """
     
         # Get list of fit model
-        listClasses = [m[0] for m in inspect.getmembers(fit, inspect.isclass) if 'get_initial_params' in m[1].__dict__.keys()]
+        listClasses = [m[0] for m in inspect.getmembers(fit, inspect.isclass) if 'get_initial_params' in [*m[1].__dict__.keys()]]
 
         # Add a radio button for each model of the list
         self.fitModelButtonGroup = QtWidgets.QButtonGroup()
@@ -592,9 +591,6 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
         # If a fit curve is already plotted, we remove it before plotting a new
         # one
-        # if 'fit' in self.curves.keys():
-                # self.removePlotDataItem('fit')
-                # self.fitWindow.close()
         
         radioButton = self.fitModelButtonGroup.checkedButton()
 

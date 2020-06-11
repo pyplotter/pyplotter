@@ -137,7 +137,7 @@ class PlotApp(object):
 
 
         # If we are hovering at least one inifiteLine, the cursor is modified
-        for line in self.infiniteLines.itervalues():
+        for line in list(self.infiniteLines.values()):
             if line.mouseHovering:
                 defaultCursor = QtCore.Qt.PointingHandCursor
 
@@ -154,7 +154,7 @@ class PlotApp(object):
         # if the plot is a 2dplot, there is a possibility that the user mouse is
         # above an infiniteLine, if so, we remove the crosshair
         if self.plotType == '2d':
-            for line in self.infiniteLines.itervalues():
+            for line in list(self.infiniteLines.values()):
                 if line.mouseHovering:
                     remove = True
 
