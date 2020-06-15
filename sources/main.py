@@ -190,14 +190,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         if not self.folderUpdating and self.guiInitialized:
             
             QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-            self.statusBar.showMessage('Update')
 
             # Get current item
             self.currentDatabase = self.listWidgetFolder.currentItem().text()
 
             nextPath = os.path.join(self.currentPath, self.currentDatabase)
             if os.path.isdir(nextPath):
+                self.statusBar.showMessage('Update')
                 self.folderClicked(e=False, directory=nextPath)
+                self.statusBar.showMessage('Ready')
             else:
                 self.dataBaseClicked()
                 # # We check of the user double click ir single click
@@ -205,7 +206,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
             # Job done, we restor the usual cursor 
             QtGui.QApplication.restoreOverrideCursor()
-            self.statusBar.showMessage('Ready')
         
         # When the signal has been called at least once
         if not self.guiInitialized:
@@ -231,10 +231,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # Update label
         self.labelCurrentDataBase.setText(self.currentDatabase)
 
+
         # Get database
         path_db = os.path.join(self.currentPath, self.currentDatabase)
+        self.statusBar.showMessage('Load database')
         db = qc.initialise_or_create_database_at(path_db)
 
+        self.statusBar.showMessage('Get database information')
         datasets = sorted(
             chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
             key=attrgetter('run_id')
@@ -243,6 +246,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         overview = {ds.run_id: self.get_ds_info(ds, get_structure=False)
                 for ds in datasets}
 
+        self.statusBar.showMessage('Display database information')
 
         self.tableWidgetDataBase.setSortingEnabled(False)
         self.tableWidgetDataBase.setRowCount(0)
@@ -261,6 +265,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(val['completed date']+' '+val['completed time']))
             self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(str(val['records'])))
 
+        self.statusBar.showMessage('Ready')
+
 
 
     def runClicked(self):
@@ -268,6 +274,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         When clicked display the measured dependent parameters in the 
         tableWidgetPtableWidgetParameters
         """
+
+
+        self.statusBar.showMessage('Load run parameters')
 
         # When we fill the table, we need to check if there is already
         # a plotWindow of that file opened.
@@ -322,7 +331,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             cb.toggled.connect(lambda cb=cb,
                                       row=rowPosition,
                                       plotRef=self.getPlotTitle(): self.parameterClicked(cb, row, plotRef))
-
+        
+        self.statusBar.showMessage('Ready')
 
 
     def parameterCellClicked(self, row, column):
@@ -344,17 +354,18 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         Basically launch a plot
         """
         
-
+        
         # If the checkbutton is checked, we downlad and plot the data
         params = qc.load_by_id(self.getRunId()).get_parameters()
         if cb:
-
-            # Get parameters
+            
 
             # When the user click to plot we disable the gui
+            self.statusBar.showMessage('Load run data')
             QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-            self.statusBar.showMessage('Plotting')
             self.centralwidget.setEnabled(False)
+            # Get parameters
+
 
             # Get data
             nbIndependent = self.getNbIndependentParameters()
@@ -363,6 +374,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
             if nbIndependent==1:
 
+                self.statusBar.showMessage('Launch 1D plot')
                 data = np.vstack((d[params[0].name], d[params[row+1].name])).T
 
                 xLabel = params[0].name+' ['+params[0].unit+']'
@@ -370,6 +382,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 zLabel = None
             elif nbIndependent==2:
 
+                self.statusBar.showMessage('Launch 2D plot')
                 data = np.vstack((d[params[0].name], d[params[1].name], d[params[row+2].name])).T
 
                 xLabel = params[0].name+' ['+params[0].unit+']'
