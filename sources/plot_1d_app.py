@@ -78,6 +78,9 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
         self.plotItem.setTitle(title=str(title), color=config['pyqtgraphTitleTextColor'])
 
+        # To make the GUI faster
+        self.plotItem.disableAutoRange()
+
         if config['plot1dGrid']:
             self.plotItem.showGrid(x=True, y=True)
 
@@ -99,6 +102,9 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                              curveId = curveId,
                              curveLabel = yLabel,
                              curveLegend = curveLegend)
+
+        # AutoRange only after the first data item is added
+        self.plotItem.autoRange()
 
         # Should be initialize last
         PlotApp.__init__(self)

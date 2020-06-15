@@ -11,6 +11,9 @@ config = {
 'authorized_setup' : ['bluelagoon'],
 'authorized_extension' : ['db'],
 
+# Authorized OpenGL
+'pyqtgraphOpenGL' : True,
+
 # Layout parameters
 'dialogWindowSize' : (1.618*500, 500),
 'dialogBackgroundColor'    : '#272822',

@@ -19,6 +19,7 @@ from plot_1d_app import Plot1dApp
 from plot_2d_app import Plot2dApp
 
 pg.setConfigOption('background', config['pyqtgraphBackgroundColor'])
+pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
 
 
 class MyTableWidgetItem(QtWidgets.QTableWidgetItem):
