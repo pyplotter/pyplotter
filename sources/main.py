@@ -345,7 +345,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         if column==0:
             cb = self.tableWidgetParameters.cellWidget(row, 0)
             cb.toggle()
-            self.parameterClicked(cb, row, self.getPlotTitle())
 
 
 
@@ -583,7 +582,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         Methods called once the data are downloaded by the data thread.
 
         """
-        
+
         self.centralwidget.setEnabled(True)
 
         nbIndependent = self.getNbIndependentParameters()
