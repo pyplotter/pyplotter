@@ -158,7 +158,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # Display the current dir content
         self.listWidgetFolder.clear()
         for file in sorted(os.listdir(self.currentPath), reverse=True): 
-            # if file[-4:] == '.dir' or file[-4:] == '.csv':
             
             abs_filename = os.path.join(self.currentPath, file)
             file_extension = os.path.splitext(abs_filename)[-1][1:]
@@ -171,8 +170,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 self.listWidgetFolder.addItem(item)
             else:
                 if file_extension in config['authorized_extension']:
-                    item =  QtGui.QListWidgetItem(file)
-                    item.setIcon(QtGui.QIcon('ui/pictures/file.png'))
+
+                    # We look if the file is already opened by someone else
+                    already_opened = False
+                    for subfile in os.listdir(self.currentPath): 
+                        if subfile==file[:-2]+'db-wal':
+                            already_opened = True
+
+                    if already_opened:
+                        item =  QtGui.QListWidgetItem(file[:-2]+' (opened somewhere)')
+                        item.setIcon(QtGui.QIcon('ui/pictures/fileOpened.png'))
+                        item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
+                    else:
+                        item =  QtGui.QListWidgetItem(file)
+                        item.setIcon(QtGui.QIcon('ui/pictures/file.png'))
                     self.listWidgetFolder.addItem(item)
                 
 
@@ -202,6 +213,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 self.folderClicked(e=False, directory=nextPath)
                 self.statusBar.showMessage('Ready')
             else:
+                
                 self.dataBaseClicked()
                 # # We check of the user double click ir single click
                 #                         self._itemClicked)
@@ -233,41 +245,49 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # Update label
         self.labelCurrentDataBase.setText(self.currentDatabase)
 
-
-        # Get database
-        path_db = os.path.join(self.currentPath, self.currentDatabase)
-        self.statusBar.showMessage('Load database')
-        db = qc.initialise_or_create_database_at(path_db)
-
-        self.statusBar.showMessage('Get database information')
-        datasets = sorted(
-            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-            key=attrgetter('run_id')
-        )
-
-        overview = {ds.run_id: self.get_ds_info(ds, get_structure=False)
-                for ds in datasets}
-
-        self.statusBar.showMessage('Display database information')
-
+        # Remove all previous row in the table
         self.tableWidgetDataBase.setSortingEnabled(False)
         self.tableWidgetDataBase.setRowCount(0)
         self.tableWidgetDataBase.setSortingEnabled(True)
-        for key, val in overview.items(): 
-            rowPosition = self.tableWidgetDataBase.rowCount()
 
-            self.tableWidgetDataBase.insertRow(rowPosition)
+        # If the database is already opened, we do not try to open it
+        if ' (opened somewhere)' in self.currentDatabase:
+            
+            self.statusBar.showMessage('Database already opened somewhere')
+        else:
+                        
+            # Get database
+            path_db = os.path.join(self.currentPath, self.currentDatabase)
+            self.statusBar.showMessage('Load database')
+            db = qc.initialise_or_create_database_at(path_db)
+
+            self.statusBar.showMessage('Get database information')
+            datasets = sorted(
+                chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
+                key=attrgetter('run_id')
+            )
+
+            overview = {ds.run_id: self.get_ds_info(ds, get_structure=False)
+                    for ds in datasets}
+
+            self.statusBar.showMessage('Display database information')
+
+            # Fill table with new information
+            for key, val in overview.items(): 
+                rowPosition = self.tableWidgetDataBase.rowCount()
+
+                self.tableWidgetDataBase.insertRow(rowPosition)
 
 
-            self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(str(key)))
-            self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(val['experiment']))
-            self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(val['sample']))
-            self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(val['name']))
-            self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(val['started date']+' '+val['started time']))
-            self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(val['completed date']+' '+val['completed time']))
-            self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(str(val['records'])))
+                self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(str(key)))
+                self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(val['experiment']))
+                self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(val['sample']))
+                self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(val['name']))
+                self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(val['started date']+' '+val['started time']))
+                self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(val['completed date']+' '+val['completed time']))
+                self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(str(val['records'])))
 
-        self.statusBar.showMessage('Ready')
+            self.statusBar.showMessage('Ready')
 
 
 
