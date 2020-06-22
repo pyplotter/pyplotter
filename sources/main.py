@@ -415,7 +415,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 zLabel = params[row+2].name+' ['+params[row+2].unit+']'
             else:
                 self.statusBar.showMessage('Plotter does not handle data whose dim>2')
-                raise ValueError('Plotter does not handle data whose dim>2')
             
             
             # Reference
