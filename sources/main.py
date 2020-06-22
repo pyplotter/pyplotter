@@ -20,6 +20,7 @@ from plot_2d_app import Plot2dApp
 
 pg.setConfigOption('background', config['pyqtgraphBackgroundColor'])
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
+pg.setConfigOption('antialias', config['plot1dAntialias'])
 
 
 class MyTableWidgetItem(QtWidgets.QTableWidgetItem):

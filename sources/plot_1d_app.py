@@ -173,7 +173,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         colorIndex, mkpen = self.getLineColor()
 
         # Create plotDataItem and save its reference
-        self.curves[curveId] = self.plotItem.plot(x, y, pen=mkpen, antialias=config['plot1dAntialias'])
+        self.curves[curveId] = self.plotItem.plot(x, y, pen=mkpen)
 
         # Create attribute usefull
         self.curves[curveId].colorIndex   = colorIndex

@@ -42,7 +42,7 @@ git clone https://gitlab.com/edumur/plotter
 You need QCodes to be installed and also the following libraries:
 
 ```
-conda install pyqtgraph pandas matplotlib lmfit
+conda install pyqtgraph pandas matplotlib lmfit pyopengl
 ```
 
 ## Authors
