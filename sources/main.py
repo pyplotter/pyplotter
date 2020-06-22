@@ -257,9 +257,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         else:
                         
             # Get database
-            path_db = os.path.join(self.currentPath, self.currentDatabase)
             self.statusBar.showMessage('Load database')
-            db = qc.initialise_or_create_database_at(path_db)
+            qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
 
             self.statusBar.showMessage('Get database information')
             datasets = sorted(
@@ -327,8 +326,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # Update label
         self.labelCurrentMetadata.setText(self.getRunId())
 
+        # Quick fix to show plot dimension
+        self.listWidgetMetadata.clear()
+        self.listWidgetMetadata.addItem(QtGui.QListWidgetItem('Plot dimension: '+str(self.getNbIndependentParameters())))
+
         # Get parameters list without the independent parameters
-        params = qc.load_by_id(self.getRunId()).get_parameters()[self.getNbIndependentParameters():]
+        params = qc.load_by_id(int(self.getRunId())).get_parameters()[self.getNbIndependentParameters():]
 
         self.tableWidgetParameters.setSortingEnabled(False)
         self.tableWidgetParameters.setRowCount(0)
@@ -357,6 +360,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.statusBar.showMessage('Ready')
 
 
+
     def parameterCellClicked(self, row, column):
         """
         Handle event when user click on the cell containing the checkbox.
@@ -377,7 +381,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         
         
         # If the checkbutton is checked, we downlad and plot the data
-        params = qc.load_by_id(self.getRunId()).get_parameters()
+        params = qc.load_by_id(int(self.getRunId())).get_parameters()
         if cb:
             
 
@@ -390,7 +394,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
             # Get data
             nbIndependent = self.getNbIndependentParameters()
-            ds = qc.load_by_run_spec(captured_run_id=int(self.getRunId()))
+            ds = qc.load_by_id(int(self.getRunId()))
             d = ds.get_parameter_data(params[row+nbIndependent].name)[params[row+nbIndependent].name]
 
             if nbIndependent==1:
@@ -543,15 +547,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
     def getNbDependentParameters(self):
-
-        ds = qc.load_by_run_spec(captured_run_id=int(self.getRunId()))
+        
+        ds = qc.load_by_id(int(self.getRunId()))
         return len(ds.dependent_parameters)
 
 
 
     def getNbIndependentParameters(self):
 
-        ds = qc.load_by_run_spec(captured_run_id=int(self.getRunId()))
+        ds = qc.load_by_id(int(self.getRunId()))
         return len(ds.paramspecs) - len(ds.dependent_parameters)
 
 
