@@ -9,6 +9,7 @@ import tempfile
 import sys 
 import qcodes as qc
 from itertools import chain
+from typing import Dict, List, Set, Union, TYPE_CHECKING
 from operator import attrgetter
 sys.path.append('ui')
 sys.path.append('sources')
@@ -505,6 +506,56 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     #
     #
     ###########################################################################
+
+
+
+    # From plottr
+    def _get_names_of_standalone_parameters(self, paramspecs: List['ParamSpec']
+                                            ) -> Set[str]:
+        all_independents = set(spec.name
+                            for spec in paramspecs
+                            if len(spec.depends_on_) == 0)
+        used_independents = set(d for spec in paramspecs for d in spec.depends_on_)
+        standalones = all_independents.difference(used_independents)
+        return standalones
+
+
+
+    # From plottr
+    def get_ds_structure(self, ds: 'DataSet'):
+        """
+        Return the structure of the dataset, i.e., a dictionary in the form
+            {
+                'dependent_parameter_name': {
+                    'unit': unit,
+                    'axes': list of names of independent parameters,
+                    'values': []
+                },
+                'independent_parameter_name': {
+                    'unit': unit,
+                    'values': []
+                },
+                ...
+            }
+        Note that standalone parameters (those which don't depend on any other
+        parameter and no other parameter depends on them) are not included
+        in the returned structure.
+        """
+
+        structure = {}
+
+        paramspecs = ds.get_parameters()
+
+        standalones = self._get_names_of_standalone_parameters(paramspecs)
+
+        for spec in paramspecs:
+            if spec.name not in standalones:
+                structure[spec.name] = {'unit': spec.unit, 'values': []}
+                if len(spec.depends_on_) > 0:
+                    structure[spec.name]['axes'] = list(spec.depends_on_)
+
+        return structure
+
 
 
     # From plottr
