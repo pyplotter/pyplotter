@@ -59,6 +59,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.tableWidgetDataBase.clicked.connect(self.runClicked)
 
         self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
+        
+        self.checkBoxLivePlot.toggled.connect(self.toggleLivePlot)
+        self.spinBoxLivePlot.setValue(int(config['livePlotTimer']))
 
 
         self.statusBar.showMessage('Ready')
@@ -81,6 +84,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         # By default, we browse the root folder
         self.folderClicked(e=False, directory=self.currentPath)
+
+        self.currentDatabase  = None
+        self.oldTotalRun      = None
 
 
 
@@ -596,6 +602,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
+    def getTotalRun(self):
+        """
+        Return the total number of run in current database
+        """
+
+        return len(qc.experiments())
+
+
+
     def getNbDependentParameters(self):
         
         ds = qc.load_by_id(int(self.getRunId()))
@@ -617,7 +632,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
-    def getRunExperience(self):
+    def getRunExperiment(self):
+        """
+        Return the experiment of the current selected run
+        """
 
         currentRow = self.tableWidgetDataBase.currentIndex().row()
         return self.tableWidgetDataBase.model().index(currentRow, 1).data()
@@ -637,8 +655,60 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
 
         title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
-        title = '/'.join(title)+'<br>'+self.getRunId()+' - '+self.getRunExperience()
+        title = '/'.join(title)+'<br>'+self.getRunId()+' - '+self.getRunExperiment()
         return title
+
+
+
+    ###########################################################################
+    #
+    #
+    #                           Live plotting
+    #
+    #
+    ###########################################################################
+    
+
+
+    def update(self):
+        
+        # If user selected database
+        if self.currentDatabase is not None:
+            # Check if database has one more run
+            if self.oldTotalRun is not None:
+                
+                # if there is a new run, we launch a plot
+                if self.oldTotalRun != self.getTotalRun():
+                    
+
+                    self.dataBaseClicked()
+
+                    datasets = sorted(chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
+                                        key=attrgetter('run_id'))
+
+                    overview = {ds.run_id: self.get_ds_info(ds, get_structure=False) for ds in datasets}
+
+                    title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
+                    title = '/'.join(title)+'<br>'+self.getTotalRun()+' - '+overview[len(overview)-1]['experiment'
+                    self.parameterClicked(self, cb=True, row=1, plotRef=self.getPlotTitle())
+
+                    self.oldTotalRun = self.getTotalRun()
+
+            else:
+                self.oldTotalRun = self.getTotalRun()
+
+
+
+    def toggleLivePlot(self):
+
+        if self.checkBoxLivePlot.isChecked():
+            self.timer = QtCore.QTimer()
+            self.timer.timeout.connect(self.update)
+            self.timer.setInterval(1000)
+            self.timer.start()
+        else:
+            self.timer.stop()
+            self.timer.deleteLater()
 
 
 

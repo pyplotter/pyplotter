@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'main.ui'
+# Form implementation generated from reading ui file '.\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.2
 #
@@ -18,9 +18,28 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.TopHorizontalLayout = QtWidgets.QHBoxLayout()
+        self.TopHorizontalLayout.setObjectName("TopHorizontalLayout")
         self.labelPath = QtWidgets.QHBoxLayout()
         self.labelPath.setObjectName("labelPath")
-        self.verticalLayout_3.addLayout(self.labelPath)
+        self.TopHorizontalLayout.addLayout(self.labelPath)
+        self.LivePlot = QtWidgets.QHBoxLayout()
+        self.LivePlot.setSpacing(6)
+        self.LivePlot.setObjectName("LivePlot")
+        self.checkBoxLivePlot = QtWidgets.QCheckBox(self.centralwidget)
+        self.checkBoxLivePlot.setMaximumSize(QtCore.QSize(100, 30))
+        self.checkBoxLivePlot.setObjectName("checkBoxLivePlot")
+        self.LivePlot.addWidget(self.checkBoxLivePlot)
+        self.spinBoxLivePlot = QtWidgets.QSpinBox(self.centralwidget)
+        self.spinBoxLivePlot.setMaximumSize(QtCore.QSize(25, 30))
+        self.spinBoxLivePlot.setObjectName("spinBoxLivePlot")
+        self.LivePlot.addWidget(self.spinBoxLivePlot)
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setMaximumSize(QtCore.QSize(10, 30))
+        self.label.setObjectName("label")
+        self.LivePlot.addWidget(self.label)
+        self.TopHorizontalLayout.addLayout(self.LivePlot)
+        self.verticalLayout_3.addLayout(self.TopHorizontalLayout)
         self.splitter = QtWidgets.QSplitter(self.centralwidget)
         self.splitter.setMinimumSize(QtCore.QSize(1000, 0))
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
@@ -165,6 +184,8 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Plotter"))
+        self.checkBoxLivePlot.setText(_translate("MainWindow", "LivePlot, every:"))
+        self.label.setText(_translate("MainWindow", "s"))
         self.labelFolder.setText(_translate("MainWindow", "Browse folder:"))
         self.labelDataBase.setText(_translate("MainWindow", "Browse database:"))
         self.tableWidgetDataBase.setSortingEnabled(True)
