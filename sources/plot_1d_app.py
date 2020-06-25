@@ -152,15 +152,20 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def updatePlotDataItem(self, x, y, curveId, curveLegend):
+    def updatePlotDataItem(self, x, y, curveId, curveLegend=None, autoRange=False):
         """
         Method called by a plot2d when use drag a sliceLine.
         Updating an existing plotDataItem and the plot legendItem
         """
 
         self.curves[curveId].setData(x=x, y=y)
-        self.curves[curveId].curveLegend = curveLegend
-        self.updateLegend()
+
+        if curveLegend is not None:
+            self.curves[curveId].curveLegend = curveLegend
+            self.updateLegend()
+
+        if autoRange:
+            self.plotItem.vb.autoRange()
 
 
 

@@ -60,8 +60,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
         
-        self.checkBoxLivePlot.toggled.connect(self.toggleLivePlot)
+        self.checkBoxLivePlot.toggled.connect(self.livePlotToggle)
         self.spinBoxLivePlot.setValue(int(config['livePlotTimer']))
+        self.spinBoxLivePlot.valueChanged.connect(self.livePlotSpinBoxChanged)
 
 
         self.statusBar.showMessage('Ready')
@@ -87,7 +88,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         self.currentDatabase  = None
         self.oldTotalRun      = None
-
+        self.livePlotMode     = False
+        self.livePlotFetchData      = False
+        self.livePlotTimer = None
 
 
     ###########################################################################
@@ -185,7 +188,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                             already_opened = True
 
                     if already_opened:
-                        item =  QtGui.QListWidgetItem(file[:-2]+' (opened somewhere)')
+                        item =  QtGui.QListWidgetItem(file)
                         item.setIcon(QtGui.QIcon('ui/pictures/fileOpened.png'))
                         item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
                     else:
@@ -193,6 +196,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                         item.setIcon(QtGui.QIcon('ui/pictures/file.png'))
                     self.listWidgetFolder.addItem(item)
                 
+
+        # Disable live plot
+        self.checkBoxLivePlot.setEnabled(False)
+        self.spinBoxLivePlot.setEnabled(False)
+        self.labelLivePlot.setEnabled(False)
+        self.labelLivePlot2.setEnabled(False)
+        self.labelLivePlotDataBase.setEnabled(False)
+        self.labelLivePlotDataBase.setText('')
 
         # Allow item event again
         self.folderUpdating = False
@@ -250,7 +261,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
 
         # Update label
-        self.labelCurrentDataBase.setText(self.currentDatabase)
+        self.labelCurrentDataBase.setText(self.currentDatabase[:-3])
 
         # Remove all previous row in the table
         self.tableWidgetDataBase.setSortingEnabled(False)
@@ -258,42 +269,45 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.tableWidgetDataBase.setSortingEnabled(True)
 
         # If the database is already opened, we do not try to open it
-        if ' (opened somewhere)' in self.currentDatabase:
-            
-            self.statusBar.showMessage('Database already opened somewhere')
-        else:
-                        
-            # Get database
-            self.statusBar.showMessage('Load database')
-            qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
+        # Get database
+        self.statusBar.showMessage('Load database')
+        qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
 
-            self.statusBar.showMessage('Get database information')
-            datasets = sorted(
-                chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-                key=attrgetter('run_id')
-            )
+        self.statusBar.showMessage('Get database information')
+        datasets = sorted(
+            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
+            key=attrgetter('run_id'))
 
-            overview = {ds.run_id: self.get_ds_info(ds, get_structure=False)
-                    for ds in datasets}
+        self.overview = {ds.run_id: self.get_ds_info(ds, get_structure=False)
+                for ds in datasets}
 
-            self.statusBar.showMessage('Display database information')
+        self.statusBar.showMessage('Display database information')
 
-            # Fill table with new information
-            for key, val in overview.items(): 
-                rowPosition = self.tableWidgetDataBase.rowCount()
+        # Fill table with new information
+        for key, val in self.overview.items(): 
+            rowPosition = self.tableWidgetDataBase.rowCount()
 
-                self.tableWidgetDataBase.insertRow(rowPosition)
+            self.tableWidgetDataBase.insertRow(rowPosition)
+
+            self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(str(key)))
+            self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(val['experiment']))
+            self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(val['sample']))
+            self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(val['name']))
+            self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(val['started date']+' '+val['started time']))
+            self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(val['completed date']+' '+val['completed time']))
+            self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(str(val['records'])))
 
 
-                self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(str(key)))
-                self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(val['experiment']))
-                self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(val['sample']))
-                self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(val['name']))
-                self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(val['started date']+' '+val['started time']))
-                self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(val['completed date']+' '+val['completed time']))
-                self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(str(val['records'])))
+        # Enable live plot
+        self.checkBoxLivePlot.setEnabled(True)
+        self.spinBoxLivePlot.setEnabled(True)
+        self.labelLivePlot.setEnabled(True)
+        self.labelLivePlot2.setEnabled(True)
+        self.labelLivePlotDataBase.setEnabled(True)
+        self.labelLivePlotDataBase.setText(self.currentDatabase[:-3])
 
-            self.statusBar.showMessage('Ready')
+
+        self.statusBar.showMessage('Ready')
 
 
 
@@ -328,10 +342,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             
 
         # Update label
-        self.labelCurrentRun.setText(self.getRunId())
+        self.labelCurrentRun.setText(str(self.getRunId()))
 
         # Update label
-        self.labelCurrentMetadata.setText(self.getRunId())
+        self.labelCurrentMetadata.setText(str(self.getRunId()))
 
         # Quick fix to show plot dimension
         self.listWidgetMetadata.clear()
@@ -407,7 +421,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             if nbIndependent==1:
 
                 self.statusBar.showMessage('Launch 1D plot')
-                data = np.vstack((d[params[0].name], d[params[row+1].name])).T
+
+                data = self.getData1d(row)
 
                 xLabel = params[0].name+' ['+params[0].unit+']'
                 yLabel = params[row+1].name+' ['+params[row+1].unit+']'
@@ -445,7 +460,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             yLabel = params[row+2].name+' ['+params[row+2].unit+']'
             self._refs[plotRef]['plots'][yLabel].o()
             del(self._refs[plotRef]['plots'][yLabel])
-
 
 
     ###########################################################################
@@ -602,12 +616,21 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
-    def getTotalRun(self):
+    def getTotalRun(self, refresh_db=False):
         """
         Return the total number of run in current database
         """
 
-        return len(qc.experiments())
+        if refresh_db:
+            qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
+            datasets = sorted(
+            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
+            key=attrgetter('run_id'))
+
+            self.overview = {ds.run_id: self.get_ds_info(ds, get_structure=False)
+                    for ds in datasets}
+
+        return len(self.overview)
 
 
 
@@ -626,9 +649,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
     def getRunId(self):
+        """
+        Return the current selectec run id.
+        """
 
-        currentRow = self.tableWidgetDataBase.currentIndex().row()
-        return self.tableWidgetDataBase.model().index(currentRow, 0).data()
+        
+        if self.LivePlot:
+            return self.getTotalRun()
+        else:
+            currentRow = self.tableWidgetDataBase.currentIndex().row()
+            return self.tableWidgetDataBase.model().index(currentRow, 0).data()
 
 
 
@@ -636,13 +666,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
         Return the experiment of the current selected run
         """
-
-        currentRow = self.tableWidgetDataBase.currentIndex().row()
-        return self.tableWidgetDataBase.model().index(currentRow, 1).data()
+        
+        
+        if self.LivePlot:
+            return self.overview[self.getTotalRun()]['experiment']
+        else:
+            currentRow = self.tableWidgetDataBase.currentIndex().row()
+            return self.tableWidgetDataBase.model().index(currentRow, 1).data()
 
 
 
     def getWindowTitle(self):
+        """
+        Return a title which will be used as a plot window title.
+        """
 
         return self.currentDatabase
 
@@ -655,8 +692,34 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
 
         title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
-        title = '/'.join(title)+'<br>'+self.getRunId()+' - '+self.getRunExperiment()
+        title = '/'.join(title)+'<br>'+str(self.getRunId())+' - '+self.getRunExperiment()
         return title
+
+
+
+    def getCompleted(self):
+        """
+        Return the completed date and time of a run.
+        Empty string when the run is not done.
+        """
+
+        if self.LivePlot:
+            return self.overview[self.getTotalRun()]['completed date']+' '+self.overview[self.getTotalRun()]['completed date']
+        else:
+            currentRow = self.tableWidgetDataBase.currentIndex().row()
+            return self.tableWidgetDataBase.model().index(currentRow, 5).data()
+
+
+
+    def isRunCompleted(self):
+        """
+        Return True when run is done, false otherwise
+        """
+
+        if len(self.getCompleted())==1:
+            return False
+        else:
+            return True
 
 
 
@@ -670,45 +733,98 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     
 
 
-    def update(self):
-        
+    def livePlotUpdate(self):
+
         # If user selected database
         if self.currentDatabase is not None:
-            # Check if database has one more run
-            if self.oldTotalRun is not None:
-                
-                # if there is a new run, we launch a plot
-                if self.oldTotalRun != self.getTotalRun():
-                    
 
+            # Check if database has one more run
+            # if there is a new run, we launch a plot
+            if self.oldTotalRun is not None:
+                if self.oldTotalRun != self.getTotalRun(True):
+                    
+                    # We refresh the database display
                     self.dataBaseClicked()
 
-                    datasets = sorted(chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-                                        key=attrgetter('run_id'))
+                    # We refresh the run display
+                    self.runClicked()
 
-                    overview = {ds.run_id: self.get_ds_info(ds, get_structure=False) for ds in datasets}
+                    # We click on the first parameter, which will launch a plot
+                    self.parameterCellClicked(0,0)
 
-                    title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
-                    title = '/'.join(title)+'<br>'+self.getTotalRun()+' - '+overview[len(overview)-1]['experiment'
-                    self.parameterClicked(self, cb=True, row=1, plotRef=self.getPlotTitle())
-
+                    # We update the total number of run
                     self.oldTotalRun = self.getTotalRun()
 
+                    # We save the fact that we have to update an existing live plot
+                    self.livePlotFetchData = True
+
             else:
-                self.oldTotalRun = self.getTotalRun()
+                self.oldTotalRun = self.getTotalRun(True)
+
+        
+        # If we have to update the data of a livePlot
+        if self.livePlotFetchData:
+            data = self.getData1d(0)
+            self.livePlotPlot.updatePlotDataItem(data[:,0], data[:,1],
+                                                 curveId=self.livePlotCurveId,
+                                                 curveLegend=None,
+                                                 autoRange=True)
+
+            # If the run is done, we cancel the need to update the plot
+            if self.isRunCompleted():
+                self.livePlotFetchData = False
 
 
 
-    def toggleLivePlot(self):
+    def livePlotToggle(self):
+        """
+        When the user click the checkbox launching the liveplot mode
+        """
 
         if self.checkBoxLivePlot.isChecked():
-            self.timer = QtCore.QTimer()
-            self.timer.timeout.connect(self.update)
-            self.timer.setInterval(1000)
-            self.timer.start()
+            
+            # Launch the liveplot mode
+            self.livePlotMode = True
+            
+            # Disable browsing
+            self.listWidgetFolder.setEnabled(False)
+            widgets = (self.labelPath.itemAt(i).widget() for i in range(self.labelPath.count())) 
+            for widget in widgets:
+                widget.setEnabled(False)
+
+            # Launch a Qt timer which will periodically check if a new run is
+            # launched
+            self.livePlotTimer = QtCore.QTimer()
+            self.livePlotTimer.timeout.connect(self.livePlotUpdate)
+            self.livePlotTimer.setInterval(self.spinBoxLivePlot.value()*1000)
+            self.livePlotTimer.start()
         else:
-            self.timer.stop()
-            self.timer.deleteLater()
+            
+            # Stop live plot mode
+            self.livePlotMode = False
+
+            # Enable browsing again
+            self.listWidgetFolder.setEnabled(True)
+            widgets = (self.labelPath.itemAt(i).widget() for i in range(self.labelPath.count())) 
+            for widget in widgets:
+                widget.setEnabled(True)
+
+            # Stop the Q1 timer
+            self.livePlotTimer.stop()
+            self.livePlotTimer.deleteLater()
+            self.livePlotTimer = None
+
+
+
+    def livePlotSpinBoxChanged(self, val):
+        """
+        When user modify the the spin box associated to the live plot timer
+        """
+
+        # If a Qt timer is running, we modify it following the user input.
+        if self.livePlotTimer is not None:
+            
+            self.livePlotTimer.setInterval(self.spinBoxLivePlot.value()*1000)
 
 
 
@@ -748,6 +864,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 self._refs[plotRef]['plotType'] = '1d'
                 self._refs[plotRef]['plot'] = p
                 self._refs[plotRef]['plot'].show()
+
+                if self.livePlotMode:
+                    self.livePlotCurveId = yLabel
+                    self.livePlotPlot = self._refs[plotRef]['plot']
             else:
                 self._refs[plotRef]['plot'].addPlotDataItem(x      = data[:, 0],
                                                              y      = data[:, 1],
@@ -783,6 +903,46 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # Plot is done, we unable the gui
         QtGui.QApplication.restoreOverrideCursor()
         self.statusBar.showMessage('Ready')
+
+
+
+    ###########################################################################
+    #
+    #
+    #                           Data 
+    #
+    #
+    ###########################################################################
+
+
+
+    def getData1d(self, row):
+        """
+        Return a 2d np array containing the x and y axis to be plotted.
+
+        Paramters
+        ---------
+
+        row : int
+            Row in the parameter table associated with the dependent parameter
+            to plot
+        """
+
+        # Get data
+        params = qc.load_by_id(int(self.getRunId())).get_parameters()
+        nbIndependent = self.getNbIndependentParameters()
+        ds = qc.load_by_id(int(self.getRunId()))
+        d = ds.get_parameter_data(params[row+nbIndependent].name)[params[row+nbIndependent].name]
+
+
+        # We try to load data
+        # if there is none, we return an empty array
+        try:
+            data = np.vstack((d[params[0].name], d[params[row+1].name])).T
+        except:
+            data = np.array([[np.nan, np.nan]])
+
+        return data
 
 
 

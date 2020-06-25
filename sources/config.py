@@ -15,7 +15,7 @@ config = {
 'pyqtgraphOpenGL' : True,
 
 # Live plot
-'livePlotTimer' : 2, # In second
+'livePlotTimer' : 1, # In second
 
 # Layout parameters
 'dialogWindowSize' : (1.618*500, 500),

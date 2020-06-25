@@ -29,19 +29,57 @@
           </property>
           <item>
            <widget class="QCheckBox" name="checkBoxLivePlot">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="maximumSize">
              <size>
-              <width>100</width>
+              <width>65</width>
               <height>30</height>
              </size>
             </property>
             <property name="text">
-             <string>LivePlot, every:</string>
+             <string>LivePlot:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="labelLivePlotDataBase">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="labelLivePlot2">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="text">
+             <string> every</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QSpinBox" name="spinBoxLivePlot">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="maximumSize">
              <size>
               <width>25</width>
@@ -51,7 +89,10 @@
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label">
+           <widget class="QLabel" name="labelLivePlot">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="maximumSize">
              <size>
               <width>10</width>
