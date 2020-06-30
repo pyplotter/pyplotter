@@ -9,7 +9,8 @@ import tempfile
 import sys 
 import qcodes as qc
 from itertools import chain
-from typing import Dict, List, Set, Union, TYPE_CHECKING
+from pprint import pformat 
+from typing import Dict, List, Set
 from operator import attrgetter
 sys.path.append('ui')
 sys.path.append('sources')
@@ -242,6 +243,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             self.guiInitialized = True
 
 
+
     ###########################################################################
     #
     #
@@ -318,6 +320,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         self.statusBar.showMessage('Load run parameters')
 
+        ## Update label
+        self.labelCurrentRun.setText(str(self.getRunId()))
+        self.labelCurrentMetadata.setText(str(self.getRunId()))
+        self.labelPlotTypeCurrent.setText(str(self.getNbIndependentParameters())+'d')
+
+
+
+        ## Fill the tableWidgetParameters with the run parameters
+
         # When we fill the table, we need to check if there is already
         # a plotWindow of that file opened.
         # If it is the case, we need to checked the checkBox which are plotted
@@ -340,15 +351,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                             if self.getRunId() == plot2d.runId:
                                 checkedDependents.append(plot2d.zLabel)
             
-
-        # Update label
-        self.labelCurrentRun.setText(str(self.getRunId()))
-        self.labelCurrentMetadata.setText(str(self.getRunId()))
-        self.labelPlotTypeCurrent.setText(str(self.getNbIndependentParameters())+'d')
-
-        # Quick fix to show plot dimension
-        self.listWidgetMetadata.clear()
-        self.listWidgetMetadata.addItem(QtGui.QListWidgetItem('Plot dimension: '+str(self.getNbIndependentParameters())))
 
         # Get parameters list without the independent parameters
         params = qc.load_by_id(int(self.getRunId())).get_parameters()[self.getNbIndependentParameters():]
@@ -377,6 +379,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                       row=rowPosition,
                                       plotRef=self.getPlotTitle(): self.parameterClicked(cb, row, plotRef))
         
+
+
+        ## Fill the listWidgetMetada with the station snapshot
+        self.textEditMetadata.clear()
+        ds = qc.load_by_id(int(self.getRunId()))
+        self.textEditMetadata.setText(pformat(ds.snapshot).replace('{', '').replace('}', '').replace("'", ''))
+
+
+
         self.statusBar.showMessage('Ready')
 
 
@@ -468,7 +479,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 else:
                     self._refs[plotRef]['plot'].o()
                     del(self._refs[plotRef])
-        
+
+
 
     ###########################################################################
     #
