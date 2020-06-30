@@ -54,7 +54,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # Resize the cell to the column content automatically
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         # Connect event
-        self.tableWidgetDataBase.clicked.connect(self.runClicked)
+        self.tableWidgetDataBase.currentCellChanged.connect(self.runClicked)
 
         self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
         
