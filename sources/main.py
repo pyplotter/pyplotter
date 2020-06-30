@@ -316,7 +316,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         When clicked display the measured dependent parameters in the 
         tableWidgetPtableWidgetParameters
         """
-
+        
+        # When the user click on another database while having already clicked
+        # on a run, the runClicked event is happened even if no run have been clicked
+        # This is due to the "currentCellChanged" event handler.
+        # We catch that false event and return nothing
+        if self.getRunId() is None:
+            return
 
         self.statusBar.showMessage('Load run parameters')
 
