@@ -5,7 +5,16 @@ A data browser and vizualizer for QCoDes database.
 
 ## Getting Started
 
-Simply launch the plotter.py file to launch the software:
+Before launching the software, open the config.py file. You should see the wollowing lines:
+
+```python
+'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
+'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
+```
+
+Theses lines are used as default path. However it could happen that the data server is not mount on the S disk of your computer. If so, modify these lines so that it matches your current network.
+
+Once this is done, open a conda terminal and go to the repository folder. Then simply launch the plotter.py file to launch the software:
 
 ```
 python plotter.py
