@@ -328,15 +328,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         if len(self._refs) > 0:
             # We iterate over all plotWindow
             for key, val in self._refs.items():
+                # For 1d plot window
                 if self.getPlotWindowType(key) == '1d':
                     if self.currentDatabase == val['plot'].windowTitle:
                         if self.getRunId() == val['plot'].runId:
                             checkedDependents = list(val['plot'].curves.keys())
+                # For 2d plot window
                 else:
-                    for subval in list(val['plot'].values()):
-                        if self.currentItem == subval.windowTitle:
-                            if self.getRunId() == val['plot'].runId:
-                                checkedDependents.append(list(subval.curves.keys()[0]))
+                    for plot2d in val['plot'].values():
+                        if self.currentDatabase == plot2d.windowTitle:
+                            if self.getRunId() == plot2d.runId:
+                                checkedDependents.append(plot2d.zLabel)
             
 
         # Update label
@@ -1094,15 +1096,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     def shapeData2d(self, x, y, z):
         """
         Shape the data for a 2d plot but mainly handled all kind of data error/missing/...
+
+        Return x and y as a 1d array, ready to be used for the 2d plot
+        and z as a 2d array.
+        In case of non regular grid, the y axis is approximated.
         """
         
-        # If we are stil measuring the first sweep
-        if len(np.unique(x)) == len(x):
-            
-            z = np.reshape(z, (len(x), len(y)))
-
-            return x, y, z
-
         # Nb points in the 1st dimension
         xn = len(np.unique(x))
 
@@ -1153,21 +1152,28 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             xx = x[:,0]
             # Create a bigger array containing sorted data in the same bases
             # New y axis containing all the previous y axes
-            yy = np.arange(y[~np.isnan(y)].min(), y[~np.isnan(y)].max()+y[0][1]-y[0][0], y[0][1]-y[0][0])
+            yd = np.gradient(np.sort(y[0])).min()
+            yy = np.arange(y[~np.isnan(y)].min(), y[~np.isnan(y)].max()+yd*2, yd)
+
 
             # For each z scan we create a new z array
             zz = np.array([])
-            for i, j in zip(y, z):
-
-                p = np.abs(yy-i[0]).argmin()
+            for y_current, z_current in zip(y, z):
                 
+                # Find the index of the current y axis on the global y axis
+                p = np.abs(yy-y_current[0]).argmin()
+                
+                # Find the number of nan to insert at the beginning
                 v  = np.full(p, np.nan)
-                vv = np.full(len(yy)-p-len(i), np.nan)
 
-                zz = np.append(zz, np.concatenate((v, j, vv)))
+                # Find the number of nan to insert at the end
+                vv = np.full(len(yy)-p-len(y_current), np.nan)
 
-            zz = zz.reshape(len(zz)/len(yy), len(yy))
+                # Build the new z axis
+                zz = np.append(zz, np.concatenate((v, z_current, vv)))
 
+            zz = zz.reshape(int(len(zz)/len(yy)), len(yy))
+        
         return xx, yy, zz
 
 
