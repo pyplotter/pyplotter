@@ -53,8 +53,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         
         # Resize the cell to the column content automatically
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        # Select row instead of cell
-        self.tableWidgetDataBase.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         # Connect event
         self.tableWidgetDataBase.clicked.connect(self.runClicked)
 
@@ -86,11 +84,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # By default, we browse the root folder
         self.folderClicked(e=False, directory=self.currentPath)
 
-        self.currentDatabase  = None
-        self.oldTotalRun      = None
-        self.livePlotMode     = False
-        self.livePlotFetchData      = False
-        self.livePlotTimer = None
+        self.currentDatabase    = None
+        self.oldTotalRun        = None
+        self.livePlotMode       = False
+        self.livePlotFetchData  = False
+        self.livePlotTimer      = None
 
 
     ###########################################################################
@@ -329,13 +327,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # If a plotWindow is already open
         if len(self._refs) > 0:
             # We iterate over all plotWindow
-            for val in list(self._refs.values()):
-                if val['plotType'] == '1d':
+            for key, val in self._refs.items():
+                if self.getPlotWindowType(key) == '1d':
                     if self.currentDatabase == val['plot'].windowTitle:
                         if self.getRunId() == val['plot'].runId:
                             checkedDependents = list(val['plot'].curves.keys())
                 else:
-                    for subval in list(val['plots'].values()):
+                    for subval in list(val['plot'].values()):
                         if self.currentItem == subval.windowTitle:
                             if self.getRunId() == val['plot'].runId:
                                 checkedDependents.append(list(subval.curves.keys()[0]))
@@ -343,9 +341,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         # Update label
         self.labelCurrentRun.setText(str(self.getRunId()))
-
-        # Update label
         self.labelCurrentMetadata.setText(str(self.getRunId()))
+        self.labelPlotTypeCurrent.setText(str(self.getNbIndependentParameters())+'d')
 
         # Quick fix to show plot dimension
         self.listWidgetMetadata.clear()
@@ -373,7 +370,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(param.name))
             self.tableWidgetParameters.setItem(rowPosition, 2, QtGui.QTableWidgetItem(param.unit))
 
-            # Each checbox at its own event attached to eat
+            # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda cb=cb,
                                       row=rowPosition,
                                       plotRef=self.getPlotTitle(): self.parameterClicked(cb, row, plotRef))
@@ -385,6 +382,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     def parameterCellClicked(self, row, column):
         """
         Handle event when user click on the cell containing the checkbox.
+        Basically toggle the checkbox and launch the event associated to the
+        checkbox
         """
         
         # If user clicks on the cell containing the checkbox
@@ -417,7 +416,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             nbIndependent = self.getNbIndependentParameters()
             ds = qc.load_by_id(int(self.getRunId()))
             d = ds.get_parameter_data(params[row+nbIndependent].name)[params[row+nbIndependent].name]
-
+            
             if nbIndependent==1:
 
                 self.statusBar.showMessage('Launch 1D plot')
@@ -430,7 +429,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             elif nbIndependent==2:
 
                 self.statusBar.showMessage('Launch 2D plot')
-                data = np.vstack((d[params[0].name], d[params[1].name], d[params[row+2].name])).T
+
+                data = self.getData2d(row)
 
                 xLabel = params[0].name+' ['+params[0].unit+']'
                 yLabel = params[1].name+' ['+params[1].unit+']'
@@ -446,21 +446,27 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 self._refs[plotRef] = {'nbCurve': 1}
         
             self.startPlotting(plotRef, data, xLabel, yLabel, zLabel)
-        # We remove the curve if the curve is a 1d plot, 
-        elif self._refs[plotRef]['plotType'] == '1d':
-            # If there is more than one curve, we remove one curve
-            if self._refs[plotRef]['nbCurve'] > 1:
-                yLabel = params[row+1].name+' ['+params[row+1].unit+']'
-                self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
-                self._refs[plotRef]['nbCurve'] -= 1
-            else:
-                self._refs[plotRef]['plot'].o()
-                del(self._refs[plotRef])
-        else:
-            yLabel = params[row+2].name+' ['+params[row+2].unit+']'
-            self._refs[plotRef]['plots'][yLabel].o()
-            del(self._refs[plotRef]['plots'][yLabel])
 
+        # If the checkbox is unchecked
+        else:
+            # We we are dealing with 2d plot
+            if self.getPlotWindowType(plotRef) == '2d':
+                zLabel = params[row+2].name+' ['+params[row+2].unit+']'
+                self._refs[plotRef]['plot'][zLabel].o()
+                del(self._refs[plotRef]['plot'][zLabel])
+
+            # We we are dealing with 1d plot
+            else:
+                # If there is more than one curve, we remove one curve
+                if self._refs[plotRef]['nbCurve'] > 1:
+                    yLabel = params[row+1].name+' ['+params[row+1].unit+']'
+                    self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
+                    self._refs[plotRef]['nbCurve'] -= 1
+                # If there is one curve we close the plot window
+                else:
+                    self._refs[plotRef]['plot'].o()
+                    del(self._refs[plotRef])
+        
 
     ###########################################################################
     #
@@ -496,12 +502,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
         
         for key in self._refs.keys():
-            if self._refs[key]['plotType']=='1d':
-                self._refs[key]['plot'].o()
+            # For 2d plot
+            if self.getPlotWindowType(key) == '2d':
+                keyToDelete = list(self._refs[key]['plot'].keys())
+                for subkey in keyToDelete:
+                    self._refs[key]['plot'][subkey].o()
+            # For 1d plot
             else:
-                for subkey in self._refs[key]['plots'].keys():
-                    self._refs[key]['plots'][subkey].o()
-
+                self._refs[key]['plot'].o()
+    
 
 
     def cleanCheckBox(self, windowTitle, runId, dependent=None):
@@ -509,14 +518,23 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         Method called by the QDialog plot when the user close the plot window.
         We propagate that event to the mainWindow to uncheck the checkbox.
         """
-        # If the current displayed parameters correspond to the one which has
-        # been closed, we uncheck all the checkbox listed in the table
-        if self.currentDatabase == windowTitle and self.getRunId() == runId:
-            
-            for row in range(self.tableWidgetParameters.rowCount()):
-                widget = self.tableWidgetParameters.cellWidget(row, 0)
-                widget.setChecked(False)
 
+        if self.currentDatabase == windowTitle and self.getRunId() == runId:
+            # If 1d plot
+            if dependent is None:
+                # If the current displayed parameters correspond to the one which has
+                # been closed, we uncheck all the checkbox listed in the table
+                for row in range(self.tableWidgetParameters.rowCount()):
+                    widget = self.tableWidgetParameters.cellWidget(row, 0)
+                    widget.setChecked(False)
+            # If 2d plot
+            else:
+                # We uncheck only the plotted parameter
+                targetedZaxis = dependent.split('[')[0][:-1]
+                for row in range(self.tableWidgetParameters.rowCount()):
+                    if targetedZaxis == self.tableWidgetParameters.item(row, 1).text():
+                        widget = self.tableWidgetParameters.cellWidget(row, 0)
+                        widget.setChecked(False)
 
 
     ###########################################################################
@@ -653,8 +671,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         Return the current selectec run id.
         """
 
-        
-        if self.LivePlot:
+        if self.livePlotMode:
             return self.getTotalRun()
         else:
             currentRow = self.tableWidgetDataBase.currentIndex().row()
@@ -668,7 +685,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
         
         
-        if self.LivePlot:
+        if self.livePlotMode:
             return self.overview[self.getTotalRun()]['experiment']
         else:
             currentRow = self.tableWidgetDataBase.currentIndex().row()
@@ -703,7 +720,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         Empty string when the run is not done.
         """
 
-        if self.LivePlot:
+        if self.livePlotMode:
             return self.overview[self.getTotalRun()]['completed date']+' '+self.overview[self.getTotalRun()]['completed date']
         else:
             currentRow = self.tableWidgetDataBase.currentIndex().row()
@@ -730,7 +747,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     #
     #
     ###########################################################################
-    
+
+
+
+    def getLivePlotRef(self):
+        
+        
+        returnKey = None
+        # We get which open plot window is the liveplot one
+        for key, val in self._refs.items():
+            if val['livePlot']:
+                returnKey = key
+
+        return returnKey
+
 
 
     def livePlotUpdate(self):
@@ -761,19 +791,90 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             else:
                 self.oldTotalRun = self.getTotalRun(True)
 
-        
+
         # If we have to update the data of a livePlot
         if self.livePlotFetchData:
-            data = self.getData1d(0)
-            self.livePlotPlot.updatePlotDataItem(data[:,0], data[:,1],
-                                                 curveId=self.livePlotCurveId,
-                                                 curveLegend=None,
-                                                 autoRange=True)
+            
+            self.statusBar.showMessage('Fetching data')
 
-            # If the run is done, we cancel the need to update the plot
+            # We get which open plot window is the liveplot one
+            livePlotRef = self.getLivePlotRef()
+            
+            if self.getPlotWindowType(livePlotRef) == '1d':
+                
+                # We get which parameters has to be updated
+                for row in range(self.tableWidgetParameters.rowCount()):
+                    widget = self.tableWidgetParameters.cellWidget(row, 0)
+                    
+                    # For every checked parameter, we update the data
+                    if widget.isChecked():
+                        data = self.getData1d(row)
+
+                        params = qc.load_by_id(int(self.getRunId())).get_parameters()
+                        yLabel = params[row+1].name+' ['+params[row+1].unit+']'
+
+                        self._refs[livePlotRef]['plot'].updatePlotDataItem(data[0], data[1],
+                                                        curveId=yLabel,
+                                                        curveLegend=None,
+                                                        autoRange=True)
+
+            else:
+                # We get which parameters has to be updated
+                for row in range(self.tableWidgetParameters.rowCount()):
+                    widget = self.tableWidgetParameters.cellWidget(row, 0)
+                    
+                    # For every checked parameter, we update the data
+                    if widget.isChecked():
+
+                        # We get the 2d plot reference only the plotted parameter
+                        zLabel = self.tableWidgetParameters.item(row, 1).text()+ ' ['+\
+                                 self.tableWidgetParameters.item(row, 2).text()+ ']'
+
+                        # We get the colormap data
+                        x, y, z = self.getData2d(row)
+
+                        # We update the 2d plot data
+                        self._refs[livePlotRef]['plot'][zLabel].updateImageItem(x, y, z)
+
+                        # If there are slices, we update them as well
+                        if len(self._refs[livePlotRef]['plot'][zLabel].infiniteLines)>0:
+                            for curveId, lineItem in self._refs[livePlotRef]['plot'][zLabel].infiniteLines.items():
+                                
+                                # We need the data of the slice
+                                sliceX, sliceY, sliceLegend = self._refs[livePlotRef]['plot'][zLabel].getDataSlice(lineItem)
+
+                                # We find its orientation
+                                if lineItem.angle == 90:
+                                    sliceOrientation = 'vertical'
+                                else:
+                                    sliceOrientation = 'horizontal'
+
+                                # We update the slice data
+                                self._refs[livePlotRef]['plot'][zLabel]\
+                                .linked1dPlots[sliceOrientation]\
+                                .updatePlotDataItem(x           = sliceX,
+                                                    y           = sliceY,
+                                                    curveId     = curveId,
+                                                    curveLegend = sliceLegend,
+                                                    autoRange   = True)
+
+
+            self.statusBar.showMessage('Plot updated')
+
+            # If the run is done
             if self.isRunCompleted():
+
+                self.statusBar.showMessage('Run done')
+
+                # We remove the livePlotFlag attached to the plot window
+                livePlotRef = self.getLivePlotRef()
+                self._refs[livePlotRef]['livePlot'] = False
+
+                # We cancel the need to update the plot
                 self.livePlotFetchData = False
 
+                # We update the database to display the completed and records info
+                self.dataBaseClicked()
 
 
     def livePlotToggle(self):
@@ -788,6 +889,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             
             # Disable browsing
             self.listWidgetFolder.setEnabled(False)
+            self.tableWidgetDataBase.setEnabled(False)
             widgets = (self.labelPath.itemAt(i).widget() for i in range(self.labelPath.count())) 
             for widget in widgets:
                 widget.setEnabled(False)
@@ -805,6 +907,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
             # Enable browsing again
             self.listWidgetFolder.setEnabled(True)
+            self.tableWidgetDataBase.setEnabled(True)
             widgets = (self.labelPath.itemAt(i).widget() for i in range(self.labelPath.count())) 
             for widget in widgets:
                 widget.setEnabled(True)
@@ -838,6 +941,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
+    def getPlotWindowType(self, ref):
+
+        if isinstance(self._refs[ref]['plot'], dict):
+            return '2d'
+        else:
+            return '1d'
+        
+
+
+
     def startPlotting(self, plotRef, data, xLabel, yLabel, zLabel):
         """
         Methods called once the data are downloaded by the data thread.
@@ -846,44 +959,41 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         self.centralwidget.setEnabled(True)
 
-        nbIndependent = self.getNbIndependentParameters()
-        # try:
-        if nbIndependent == 1:
+        # 1D plot
+        if len(data) == 2:
             
             # If nbCurve is 1, we create the plot QDialog
             if self._refs[plotRef]['nbCurve'] == 1:
-                p  = Plot1dApp(x           = data[:,0],
-                               y           = data[:,1],
-                               title       = self.getPlotTitle(),
-                               xLabel      = xLabel,
-                               yLabel      = yLabel,
-                               windowTitle = self.getWindowTitle(),
-                               runId = self.getRunId(),
-                               cleanCheckBox  = self.cleanCheckBox,
-                               curveId=yLabel)
-                self._refs[plotRef]['plotType'] = '1d'
-                self._refs[plotRef]['plot'] = p
+                p = Plot1dApp(x              = data[0],
+                              y              = data[1],
+                              title          = self.getPlotTitle(),
+                              xLabel         = xLabel,
+                              yLabel         = yLabel,
+                              windowTitle    = self.getWindowTitle(),
+                              runId          = self.getRunId(),
+                              cleanCheckBox  = self.cleanCheckBox,
+                              curveId        = yLabel)
+
+                self._refs[plotRef]['plot']     = p
+                self._refs[plotRef]['livePlot'] = self.livePlotMode
                 self._refs[plotRef]['plot'].show()
 
-                if self.livePlotMode:
-                    self.livePlotCurveId = yLabel
-                    self.livePlotPlot = self._refs[plotRef]['plot']
+            # If the QDialog already exists, we add a curve to it
             else:
-                self._refs[plotRef]['plot'].addPlotDataItem(x      = data[:, 0],
-                                                             y      = data[:, 1],
-                                                             curveId= yLabel,
-                                                             curveLabel=yLabel,
-                                                             curveLegend=yLabel)
+                self._refs[plotRef]['plot'].addPlotDataItem(x            = data[0],
+                                                            y            = data[1],
+                                                            curveId      = yLabel,
+                                                            curveLabel   = yLabel,
+                                                            curveLegend  = yLabel)
             
 
 
-        elif nbIndependent==2:
-
-            x, y, z = self.shapeData2d(data)
+        # 2D plot
+        elif len(data) == 3:
             
-            p = Plot2dApp(x              = x,
-                          y              = y,
-                          z              = z,
+            p = Plot2dApp(x              = data[0],
+                          y              = data[1],
+                          z              = data[2],
                           title          = self.getPlotTitle(),
                           xLabel         = xLabel,
                           yLabel         = yLabel,
@@ -891,14 +1001,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                           windowTitle    = self.getWindowTitle(),
                           runId          = self.getRunId(),
                           cleanCheckBox  = self.cleanCheckBox)
-            self._refs[plotRef]['plotType'] = '2d'
-            
-            if self._refs[plotRef]['nbCurve'] == 1:
-                self._refs[plotRef]['plots'] = {zLabel : p}
-            else:
-                self._refs[plotRef]['plots'][zLabel] = p
 
-            self._refs[plotRef]['plots'][zLabel].show()
+            self._refs[plotRef]['livePlot'] = self.livePlotMode
+
+            # If user wants to plot more than one parameter we launch one plot
+            # window per parameter
+            if self._refs[plotRef]['nbCurve'] == 1:
+                self._refs[plotRef]['plot'] = {zLabel : p}
+            else:
+                self._refs[plotRef]['plot'][zLabel] = p
+
+            self._refs[plotRef]['plot'][zLabel].show()
         
         # Plot is done, we unable the gui
         QtGui.QApplication.restoreOverrideCursor()
@@ -920,8 +1033,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
         Return a 2d np array containing the x and y axis to be plotted.
 
-        Paramters
-        ---------
+        Parameters
+        ----------
 
         row : int
             Row in the parameter table associated with the dependent parameter
@@ -938,23 +1051,57 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # We try to load data
         # if there is none, we return an empty array
         try:
-            data = np.vstack((d[params[0].name], d[params[row+1].name])).T
+            # data = np.vstack((d[params[0].name], d[params[row+1].name])).T
+            data = d[params[0].name], d[params[row+1].name]
         except:
-            data = np.array([[np.nan, np.nan]])
+            data = np.array([np.nan]), np.array([np.nan])
 
         return data
 
 
 
-    def shapeData2d(self, d):
+    def getData2d(self, row):
+        """
+        Return a 2d np array containing the x and y z axis to be plotted.
+
+        Parameters
+        ----------
+
+        row : int
+            Row in the parameter table associated with the dependent parameter
+            to plot
+        """
+
+        # Get data
+        params = qc.load_by_id(int(self.getRunId())).get_parameters()
+        nbIndependent = self.getNbIndependentParameters()
+        ds = qc.load_by_id(int(self.getRunId()))
+        d = ds.get_parameter_data(params[row+nbIndependent].name)[params[row+nbIndependent].name]
+
+
+        # We try to load data
+        # if there is none, we return an empty array
+        try:
+            data = self.shapeData2d(d[params[0].name], d[params[1].name], d[params[row+2].name])
+        except:
+            # We have to send [0,1] for the z axis when no data to avoid bug with the histogram
+            data = np.array([0, 1]), np.array([0, 1]), np.array([[0, 1],[0, 1]])
+
+        return data
+
+
+
+    def shapeData2d(self, x, y, z):
         """
         Shape the data for a 2d plot but mainly handled all kind of data error/missing/...
         """
+        
+        # If we are stil measuring the first sweep
+        if len(np.unique(x)) == len(x):
+            
+            z = np.reshape(z, (len(x), len(y)))
 
-        # get axis
-        x = d[:,0]
-        y = d[:,1]
-        z = d[:,2]
+            return x, y, z
 
         # Nb points in the 1st dimension
         xn = len(np.unique(x))

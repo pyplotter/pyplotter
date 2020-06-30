@@ -143,6 +143,14 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.radioButtonSliceHorizontal.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceVertical.toggled.connect(self.radioBoxSliceChanged)
 
+
+        # We enable slices only in direction where there is more than one point
+        # print(z.shape)
+        # if z.shape[0]<2:
+        #     self.radioButtonSliceHorizontal.setDisabled()
+        # if z.shape[1]<2:
+        #     self.radioButtonSliceVertical.setDisabled()
+
         # Should be initialize last
         PlotApp.__init__(self)
 
@@ -173,6 +181,24 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
     def o(self):
         self.close()
+
+
+
+    def updateImageItem(self, x, y, z):
+        """
+        Update the displayed colormap
+        """
+
+        self.x  = x
+        self.y  = y
+        self.z  = z
+
+        # Set the image view
+        xscale = (x[-1]-x[0])/len(x) if (x[-1]-x[0])/len(x) else 1.
+        yscale = (y[-1]-y[0])/len(y)
+        self.imageView.setImage(z, pos=[x[0], y[0]], scale=[xscale, yscale])
+        self.histWidget.item.setLevels(mn=z[~np.isnan(z)].min(), mx=z[~np.isnan(z)].max())
+        self.imageView.autoRange()
 
 
 
@@ -255,7 +281,6 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
     def removeInifiteLine(self, curveId):
-
         self.plotItem.removeItem(self.infiniteLines[curveId])
         del self.infiniteLines[curveId]
 
@@ -265,7 +290,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         """
         Called when a linked 1dPlot is closed
         """
-
+        
         # We clean the reference of the linked 1d plot
         if 'vertical' in windowTitle:
             self.linked1dPlots['vertical'] = None
@@ -284,19 +309,34 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-    def getDataSlice(self):
+    def getDataSlice(self, lineItem=None):
         """
         Return a vertical or horizontal data slice
         """
-    
 
-        if self.sliceOrientation == 'vertical':
-            n = np.abs(self.x-self.mousePos[0]).argmin()
+        xSlice = None
+        ySlice = None
+
+        # When lineItem is None, we dataSlice is done by the user
+        if lineItem is None:
+            if self.sliceOrientation == 'vertical':
+                xSlice = self.mousePos[0]
+            else:
+                ySlice = self.mousePos[1]
+        else:
+            if lineItem.angle == 90:
+                xSlice = lineItem.value()
+            else:
+                ySlice = lineItem.value()
+
+
+        if ySlice is None:
+            n = np.abs(self.x-xSlice).argmin()
             sliceX      = self.y
             sliceY      = self.z[n]
             sliceLegend = self.x[n]
         else:
-            n = np.abs(self.y-self.mousePos[1]).argmin()
+            n = np.abs(self.y-ySlice).argmin()
             sliceX      = self.x
             sliceY      = self.z[:,n]
             sliceLegend = self.y[n]
@@ -343,9 +383,9 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                 
                 # We check if user double click on an infiniteLine
                 clickedCurveId = None
-                for curveId, curve in list(self.linked1dPlots[self.sliceOrientation].curves.items()):
+                for curveId, curve in self.linked1dPlots[self.sliceOrientation].curves.items():
                     if curve.curveLegend == sliceLegend:
-                        clickedCurveId = k
+                        clickedCurveId = curveId
 
                 # If the user add a new infiniteLine
                 if clickedCurveId is None:
@@ -357,10 +397,23 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                                                                               curveLegend = sliceLegend)
                     t = self.addInifiteLine(curveId)
 
-                # We remove an slice
+                # We remove a slice
                 else:
-                    self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
-                    self.removeInifiteLine(clickedCurveId)
+                    # If there is more than one slice, we remove it and the associated curve
+                    if len(self.infiniteLines)>1:
+                        self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
+                        self.removeInifiteLine(clickedCurveId)
+                    # If there is only one slice, we close the linked 1d plot
+                    # which will remove the associated infiniteLine
+                    else:
+                        self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
+
+
+####################################
+#
+#           Colormap
+#
+####################################
 
 
 
@@ -402,6 +455,14 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         # Set the colormap
         pgColormap =  pg.ColorMap(pos, rgba_colors)
         self.histWidget.item.gradient.setColorMap(pgColormap)
+
+
+
+####################################
+#
+#           Isocurve
+#
+####################################
 
 
 
