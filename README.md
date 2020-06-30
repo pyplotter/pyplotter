@@ -56,8 +56,17 @@ conda install pyqtgraph pandas matplotlib lmfit pyopengl
 
 ## Authors
 
-* **Etienne Dumur**
+* **Etienne Dumur**  etienne.dumur@gmail.com
 
+## TODO
+
+* Add plotting capability of BluFors log file (temperature and pression)
+* Add plotting capability of s2p file, or ascci file of VNA
+* Add 3d plots
+* Add metadata display
+* Add posibility to compare 1d plot of different run
+* Implement none blocking liveplot mode
+* Chose licence
 
 ## License
 
