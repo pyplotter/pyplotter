@@ -2,6 +2,7 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 import numpy as np
+import pandas as pd
 import pyqtgraph as pg
 from matplotlib.pyplot import colormaps
 from matplotlib import cm as plt_cm
@@ -101,7 +102,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     ###########################################################################
 
 
-
     def goParentFolder(self, e, directory=None):
         """
         Handle event when user click on the go up button.
@@ -173,10 +173,21 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
             # Only display folder and Qcodes database
             # Add icon depending of the item type
+
+            # If folder
             if os.path.isdir(abs_filename):
-                item =  QtGui.QListWidgetItem(file)
-                item.setIcon(QtGui.QIcon('ui/pictures/folder.png'))
-                self.listWidgetFolder.addItem(item)
+                
+                # If looks like a BlueFors log folder
+                if self.isBlueForsFolder(file):
+                    item =  QtGui.QListWidgetItem(file)
+                    item.setIcon(QtGui.QIcon('ui/pictures/bluefors.png'))
+                    self.listWidgetFolder.addItem(item)
+                # Other folders
+                else:
+                    item =  QtGui.QListWidgetItem(file)
+                    item.setIcon(QtGui.QIcon('ui/pictures/folder.png'))
+                    self.listWidgetFolder.addItem(item)
+            # If files
             else:
                 if file_extension in config['authorized_extension']:
 
@@ -225,10 +236,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             self.currentDatabase = self.listWidgetFolder.currentItem().text()
 
             nextPath = os.path.join(self.currentPath, self.currentDatabase)
-            if os.path.isdir(nextPath):
+
+            # If the folder is a BlueFors folder
+            if self.isBlueForsFolder(self.currentDatabase):
+                
+                self.blueForsFolderClicked(directory=nextPath)
+            # If the folder is a regulat folder
+            elif os.path.isdir(nextPath):
                 self.statusBar.showMessage('Update')
                 self.folderClicked(e=False, directory=nextPath)
                 self.statusBar.showMessage('Ready')
+            # If it is a database
             else:
                 
                 self.dataBaseClicked()
@@ -241,6 +259,144 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # When the signal has been called at least once
         if not self.guiInitialized:
             self.guiInitialized = True
+
+
+
+    ###########################################################################
+    #
+    #
+    #                           BlueFors log browsing
+    #
+    #
+    ###########################################################################
+
+
+
+    @staticmethod
+    def isBlueForsFolder(folderName:str) -> bool:
+        """
+        Return True if a string follow blueFors log folder name pattern.
+        """
+    
+        return len(folderName.split('-'))==3 and all([len(i)==2 for i in folderName.split('-')]) == True
+
+
+
+    def blueForsFolderClicked(self, directory):
+        """
+        When user click on a BlueFors folder while browsing files
+        """
+        
+        self.statusBar.showMessage('Load BlueFors log')
+
+        # Get the BF folder name
+        bfName = os.path.basename(os.path.normpath(directory))
+
+        ## Update label
+        self.labelCurrentRun.setText('BF log folder: '+bfName)
+        self.labelPlotTypeCurrent.setText('1d')
+
+
+        ## Fill the tableWidgetParameters with the run parameters
+
+        # When we fill the table, we need to check if there is already
+        # a plotWindow of that file opened.
+        # If it is the case, we need to checked the checkBox which are plotted
+        # in the plotWindow.
+        # Our aim is then to get the list of the checkBox which has to be checked.
+        checkedDependents = []
+        # If a plotWindow is already open
+        if len(self._refs) > 0:
+            # We iterate over all plotWindow
+            for key, val in self._refs.items():
+                # For 1d plot window
+                if self.getPlotWindowType(key) == '1d':
+                    if self.currentDatabase == val['plot'].windowTitle:
+                        checkedDependents = val['plot'].curves.keys()
+
+
+        # Clean GUI
+        self.tableWidgetDataBase.setSortingEnabled(False)
+        self.tableWidgetDataBase.setRowCount(0)
+        self.tableWidgetDataBase.setSortingEnabled(True)
+
+        self.tableWidgetParameters.setSortingEnabled(False)
+        self.tableWidgetParameters.setRowCount(0)
+        self.tableWidgetParameters.setSortingEnabled(True)
+        
+        self.textEditMetadata.clear()
+
+
+        for file in sorted(os.listdir(directory)):
+            
+            fileName = file[:-13]
+            
+            # We only show file handled by the plotter
+            if fileName in config.keys():
+                rowPosition = self.tableWidgetParameters.rowCount()
+                self.tableWidgetParameters.insertRow(rowPosition)
+
+                cb = QtWidgets.QCheckBox()
+
+                # We check if that parameter is already plotted
+                if config[fileName] in checkedDependents:
+                    cb.setChecked(True)
+
+                self.tableWidgetParameters.setCellWidget(rowPosition, 0, cb)
+                self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(fileName))
+
+                # Each checkbox at its own event attached to it
+                cb.toggled.connect(lambda cb=cb,
+                                        filePath=os.path.join(directory, file),
+                                        plotRef=self.getPlotTitle(): self.blueForsLogClicked(cb, filePath, plotRef))
+            
+
+
+        self.statusBar.showMessage('Ready')
+
+
+
+    def blueForsLogClicked(self, cb, filePath, plotRef):
+        """
+        When user clicked on BF log file.
+        Basically, launch a 1d plot window.
+        """
+
+        self.statusBar.showMessage('Load BlueFors data')
+
+        fileName = os.path.basename(os.path.normpath(filePath))[:-13]
+        if cb:
+
+            df = pd.read_csv(filePath,
+                            delimiter=',',
+                            names=['date', 'time', 'y'],
+                            header=None)
+
+            df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
+            df = df.drop(columns=['date', 'time'])
+
+
+            # Reference
+            if plotRef in self._refs:
+                self._refs[plotRef]['nbCurve'] += 1
+            else:
+                self._refs[plotRef] = {'nbCurve': 1}
+
+
+            self.startPlotting(plotRef, (df['y'].index.astype(np.int64).values//1e9, df['y']), 'Time', config[fileName], '')
+
+
+        else:
+
+            # If there is more than one curve, we remove one curve
+            if self._refs[plotRef]['nbCurve'] > 1:
+                yLabel = config[fileName]
+                self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
+                self._refs[plotRef]['nbCurve'] -= 1
+            # If there is one curve we close the plot window
+            else:
+                self._refs[plotRef]['plot'].o()
+                del(self._refs[plotRef])
 
 
 
@@ -468,13 +624,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         # If the checkbox is unchecked
         else:
-            # We we are dealing with 2d plot
+            # We are dealing with 2d plot
             if self.getPlotWindowType(plotRef) == '2d':
                 zLabel = params[row+2].name+' ['+params[row+2].unit+']'
                 self._refs[plotRef]['plot'][zLabel].o()
                 del(self._refs[plotRef]['plot'][zLabel])
 
-            # We we are dealing with 1d plot
+            # We are dealing with 1d plot
             else:
                 # If there is more than one curve, we remove one curve
                 if self._refs[plotRef]['nbCurve'] > 1:
@@ -728,9 +884,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         file name.
         """
 
-        title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
-        title = '/'.join(title)+'<br>'+str(self.getRunId())+' - '+self.getRunExperiment()
-        return title
+        # If BlueFors log files
+        if self.isBlueForsFolder(self.currentDatabase):
+            return self.currentDatabase
+        else:
+            title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
+            title = '/'.join(title)+'<br>'+str(self.getRunId())+' - '+self.getRunExperiment()
+            return title
 
 
 
@@ -984,6 +1144,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             
             # If nbCurve is 1, we create the plot QDialog
             if self._refs[plotRef]['nbCurve'] == 1:
+
                 p = Plot1dApp(x              = data[0],
                               y              = data[1],
                               title          = self.getPlotTitle(),
@@ -992,7 +1153,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                               windowTitle    = self.getWindowTitle(),
                               runId          = self.getRunId(),
                               cleanCheckBox  = self.cleanCheckBox,
-                              curveId        = yLabel)
+                              curveId        = yLabel,
+                              timestampXAxis=self.isBlueForsFolder(self.currentDatabase))
 
                 self._refs[plotRef]['plot']     = p
                 self._refs[plotRef]['livePlot'] = self.livePlotMode

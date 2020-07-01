@@ -11,6 +11,9 @@ import plot1d
 from config import config
 from plot_app import PlotApp
 import fit
+from DateAxisItem import DateAxisItem
+
+
 
 class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
     """
@@ -19,7 +22,8 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
     def __init__(self, x, y, title, xLabel, yLabel, windowTitle, runId, cleanCheckBox,
-                linkedTo2dPlot=False, curveId=None, curveLegend=None, parent=None):
+                linkedTo2dPlot=False, curveId=None, curveLegend=None,
+                timestampXAxis=False, parent=None):
         super(Plot1dApp, self).__init__(parent)
 
         self.setupUi(self)
@@ -29,12 +33,13 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                             QtCore.Qt.WindowMaximizeButtonHint|
                             QtCore.Qt.WindowCloseButtonHint)
 
-        self.plotType      = '1d'
-        self.curves        = {}
-        self.legend        = None
-        self.windowTitle   = windowTitle
-        self.runId         = runId
-        self.cleanCheckBox = cleanCheckBox
+        self.plotType       = '1d'
+        self.curves         = {}
+        self.legend         = None
+        self.windowTitle    = windowTitle
+        self.runId          = runId
+        self.cleanCheckBox  = cleanCheckBox
+        self.timestampXAxis = timestampXAxis
 
         # Is that's 1d plot linked to a 2d plot (slice of a 2d plot)
         self.linkedTo2dPlot = linkedTo2dPlot
@@ -94,9 +99,15 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         self.setStyleSheet("color: "+str(config['dialogTextColor'])+";")
 
 
+        # If the xaxis used timestamp, we use a dedicated axisItem
+        if self.timestampXAxis:
+            # This utc offset is unclear to me...
+            self.plotItem.setAxisItems({'bottom' : DateAxisItem(utcOffset=0.)})
+
         # Display initial data curve
         if curveLegend is None:
             curveLegend = yLabel
+
         self.addPlotDataItem(x = x,
                              y = y,
                              curveId = curveId,
@@ -228,7 +239,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         # The label is changed only of we are not display slices of a 2d plot
         if not self.linkedTo2dPlot:
             # If there is more than one plotDataItem
-            # We chekc of the share the same label
+            # We check of the share the same label
             if len(np.unique(np.array([curve.curveLabel for curve in self.curves.values()])))>1:
                 self.plotItem.setLabel('left',
                                         '[a.u]',
@@ -282,11 +293,11 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-####################################
-#
-#           Method to related to display
-#
-####################################
+    ####################################
+    #
+    #           Method to related to display
+    #
+    ####################################
 
 
 
@@ -327,11 +338,11 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-####################################
-#
-#           Method to related to FFT
-#
-####################################
+    ####################################
+    #
+    #           Method to related to FFT
+    #
+    ####################################
 
 
 
@@ -376,11 +387,12 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-####################################
-#
-#           Method to related to fit
-#
-####################################
+    ####################################
+    #
+    #           Method to related to fit
+    #
+    ####################################
+
 
 
     def getSelectedData(self, curveId):
@@ -577,7 +589,6 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
             self.updateSelectionInifiteLine(radioButton.curveId)
             self.updatePlotDataItemStyle(radioButton.curveId)
             self.enableWhenPlotDataItemSelected(True)
-            
 
 
 

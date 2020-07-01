@@ -16,8 +16,6 @@ from plot_1d_app import Plot1dApp
 from config import config
 import fit
 
-import pyqtgraph.functions as fn
-import pyqtgraph.debug as debug
 
 
 class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
@@ -404,11 +402,11 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                         self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
 
 
-####################################
-#
-#           Colormap
-#
-####################################
+    ####################################
+    #
+    #           Colormap
+    #
+    ####################################
 
 
 
@@ -453,11 +451,11 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-####################################
-#
-#           Isocurve
-#
-####################################
+    ####################################
+    #
+    #           Isocurve
+    #
+    ####################################
 
 
 
@@ -521,11 +519,11 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.isoCurve.setLevel(self.isoLine.value())
 
 
-####################################
-#
-#           Method to related to extraction
-#
-####################################
+    ####################################
+    #
+    #           Method to related to extraction
+    #
+    ####################################
 
 
 
@@ -600,11 +598,11 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-####################################
-#
-#           Method to related to fit
-#
-####################################
+    ####################################
+    #
+    #           Method to related to fit
+    #
+    ####################################
 
 
 
@@ -754,178 +752,3 @@ def cmapToColormap(cmap, nTicks=16):
     
     # Convert the RGB float values to RGBA integer values
     return list([(pos, (int(r), int(g), int(b), 255)) for pos, (r, g, b) in rgb_list])
-
-
-
-
-# Replace current pyqtgraph function by a future release of pyqtgraph to 
-# allow transparent pixel in the 2d plot. Usefull for non regular grid data
-# https://github.com/pyqtgraph/pyqtgraph/pull/406/commits/70b76cd367eff01f70d8bb242b3daafaccba229d
-def makeARGB(data, lut=None, levels=None, scale=None, useRGBA=False): 
-    """ 
-    Convert an array of values into an ARGB array suitable for building QImages,
-    OpenGL textures, etc.
-    
-    Returns the ARGB array (unsigned byte) and a boolean indicating whether
-    there is alpha channel data. This is a two stage process:
-    
-        1) Rescale the data based on the values in the *levels* argument (min, max).
-        2) Determine the final output by passing the rescaled values through a
-           lookup table.
-   
-    Both stages are optional.
-    
-    ============== ==================================================================================
-    **Arguments:**
-    data           numpy array of int/float types. If 
-    levels         List [min, max]; optionally rescale data before converting through the
-                   lookup table. The data is rescaled such that min->0 and max->*scale*::
-                   
-                      rescaled = (clip(data, min, max) - min) * (*scale* / (max - min))
-                   
-                   It is also possible to use a 2D (N,2) array of values for levels. In this case,
-                   it is assumed that each pair of min,max values in the levels array should be 
-                   applied to a different subset of the input data (for example, the input data may 
-                   already have RGB values and the levels are used to independently scale each 
-                   channel). The use of this feature requires that levels.shape[0] == data.shape[-1].
-    scale          The maximum value to which data will be rescaled before being passed through the 
-                   lookup table (or returned if there is no lookup table). By default this will
-                   be set to the length of the lookup table, or 255 if no lookup table is provided.
-    lut            Optional lookup table (array with dtype=ubyte).
-                   Values in data will be converted to color by indexing directly from lut.
-                   The output data shape will be input.shape + lut.shape[1:].
-                   Lookup tables can be built using ColorMap or GradientWidget.
-    useRGBA        If True, the data is returned in RGBA order (useful for building OpenGL textures). 
-                   The default is False, which returns in ARGB order for use with QImage 
-                   (Note that 'ARGB' is a term used by the Qt documentation; the *actual* order 
-                   is BGRA).
-    ============== ==================================================================================
-    """
-    profile = debug.Profiler()
-    if data.ndim not in (2, 3):
-        raise TypeError("data must be 2D or 3D")
-    if data.ndim == 3 and data.shape[2] > 4:
-        raise TypeError("data.shape[2] must be <= 4")
-    
-    if lut is not None and not isinstance(lut, np.ndarray):
-        lut = np.array(lut)
-    
-    if levels is None:
-        # automatically decide levels based on data dtype
-        if data.dtype.kind == 'u':
-            levels = np.array([0, 2**(data.itemsize*8)-1])
-        elif data.dtype.kind == 'i':
-            s = 2**(data.itemsize*8 - 1)
-            levels = np.array([-s, s-1])
-        elif data.dtype.kind == 'b':
-            levels = np.array([0,1])
-        else:
-            raise Exception('levels argument is required for float input types')
-    if not isinstance(levels, np.ndarray):
-        levels = np.array(levels)
-    if levels.ndim == 1:
-        if levels.shape[0] != 2:
-            raise Exception('levels argument must have length 2')
-    elif levels.ndim == 2:
-        if lut is not None and lut.ndim > 1:
-            raise Exception('Cannot make ARGB data when both levels and lut have ndim > 2')
-        if levels.shape != (data.shape[-1], 2):
-            raise Exception('levels must have shape (data.shape[-1], 2)')
-    else:
-        raise Exception("levels argument must be 1D or 2D (got shape=%s)." % repr(levels.shape))
-
-    profile()
-
-    # Decide on maximum scaled value
-    if scale is None:
-        if lut is not None:
-            scale = lut.shape[0] - 1
-        else:
-            scale = 255.
-
-    # Decide on the dtype we want after scaling
-    if lut is None:
-        dtype = np.ubyte
-    else:
-        dtype = np.min_scalar_type(lut.shape[0]-1)
-
-    # awkward, but fastest numpy native nan evaluation
-    nanMask = None
-    if data.dtype.kind == 'f' and np.isnan(data.min()):
-        nanMask = np.isnan(data)
-    # Apply levels if given
-    if levels is not None:
-        if isinstance(levels, np.ndarray) and levels.ndim == 2:
-            # we are going to rescale each channel independently
-            if levels.shape[0] != data.shape[-1]:
-                raise Exception("When rescaling multi-channel data, there must be the same number of levels as channels (data.shape[-1] == levels.shape[0])")
-            newData = np.empty(data.shape, dtype=int)
-            for i in range(data.shape[-1]):
-                minVal, maxVal = levels[i]
-                if minVal == maxVal:
-                    maxVal += 1e-16
-                newData[...,i] = fn.rescaleData(data[...,i], scale/(maxVal-minVal), minVal, dtype=dtype)
-            data = newData
-        else:
-            # Apply level scaling unless it would have no effect on the data
-            minVal, maxVal = levels
-            if minVal != 0 or maxVal != scale:
-                if minVal == maxVal:
-                    maxVal += 1e-16
-                data = fn.rescaleData(data, scale/(maxVal-minVal), minVal, dtype=dtype)
-
-    profile()
-    # apply LUT if given
-    if lut is not None:
-        data = fn.applyLookupTable(data, lut)
-    else:
-        if data.dtype is not np.ubyte:
-            data = np.clip(data, 0, 255).astype(np.ubyte)
-
-    profile()
-
-    # this will be the final image array
-    imgData = np.empty(data.shape[:2]+(4,), dtype=np.ubyte)
-
-    profile()
-
-    # decide channel order
-    if useRGBA:
-        order = [0,1,2,3] # array comes out RGBA
-    else:
-        order = [2,1,0,3] # for some reason, the colors line up as BGR in the final image.
-        
-    # copy data into image array
-    if data.ndim == 2:
-        # This is tempting:
-        #   imgData[..., :3] = data[..., np.newaxis]
-        # ..but it turns out this is faster:
-        for i in range(3):
-            imgData[..., i] = data
-    elif data.shape[2] == 1:
-        for i in range(3):
-            imgData[..., i] = data[..., 0]
-    else:
-        for i in range(0, data.shape[2]):
-            imgData[..., i] = data[..., order[i]] 
-        
-    profile()
-    
-    # add opaque alpha channel if needed
-    if data.ndim == 2 or data.shape[2] == 3:
-        alpha = False
-        imgData[..., 3] = 255
-    else:
-        alpha = True
-
-    # apply nan mask through alpha channel
-    if nanMask is not None:
-        alpha = True
-        imgData[nanMask, 3] = 0
-
-    profile()
-    return imgData, alpha
-
-
-fn.makeARGB = makeARGB
-

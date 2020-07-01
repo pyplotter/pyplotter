@@ -17,6 +17,27 @@ config = {
 # Live plot
 'livePlotTimer' : 1, # In second
 
+
+## BlueFors
+# Linked file name to plot y axis (x axis being a timestamp)
+'CH1 P' :  'Power channel 1 [W]',
+'CH1 R' : u'Resistance channel 1 [Ω]',
+'CH1 T' :  'Temperature channel 1 [K]',
+'CH2 P' :  'Power channel 2 [W]',
+'CH2 R' : u'Resistance channel 2 [Ω]',
+'CH2 T' :  'Temperature channel 2 [K]',
+'CH3 P' :  'Power channel 3 [W]',
+'CH3 R' : u'Resistance channel 3 [Ω]',
+'CH3 T' :  'Temperature channel 3 [K]',
+'CH5 P' :  'Power channel 5 [W]',
+'CH5 R' : u'Resistance channel 5 [Ω]',
+'CH5 T' :  'Temperature channel 5 [K]',
+'CH6 P' :  'Power channel 6 [W]',
+'CH6 R' : u'Resistance channel 6 [Ω]',
+'CH6 T' :  'Temperature channel 6 [K]',
+'Flowmeter' : 'Flow of mixture [??]',
+
+
 # Layout parameters
 'dialogWindowSize' : (1.618*500, 500),
 'dialogBackgroundColor'    : '#272822',
