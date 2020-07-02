@@ -80,6 +80,13 @@
         </layout>
        </item>
        <item>
+        <widget class="QCheckBox" name="checkBoxSwapxy">
+         <property name="text">
+          <string>Invert x/y</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QCheckBox" name="checkBoxInvert">
          <property name="text">
           <string>Invert colormap</string>

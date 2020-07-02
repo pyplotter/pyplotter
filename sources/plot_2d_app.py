@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import QtWidgets, QtGui, QtCore, QtTest
 import numpy as np
 import pyqtgraph as pg
 import inspect
@@ -75,15 +75,15 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
         # Create a Image item to host the image view
-        imageItem = pg.ImageItem()
-        self.imageView = pg.ImageView(imageItem=imageItem)
+        self.imageItem = pg.ImageItem()
+        self.imageView = pg.ImageView(imageItem=self.imageItem)
 
         # Embed the plot item in the graphics layout
-        self.plotItem.vb.addItem(imageItem)
+        self.plotItem.vb.addItem(self.imageItem)
 
 
         # Create a hostogram item linked to the imageitem
-        self.histWidget.setImageItem(imageItem)
+        self.histWidget.setImageItem(self.imageItem)
         self.histWidget.item.setLevels(mn=z[~np.isnan(z)].min(), mx=z[~np.isnan(z)].max())
 
 
@@ -124,6 +124,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.checkBoxInvert.stateChanged.connect(lambda : self.cbcmInvert(self.checkBoxInvert))
         self.checkBoxMaximum.stateChanged.connect(self.checkBoxExtractionState)
         self.checkBoxMinimum.stateChanged.connect(self.checkBoxExtractionState)
+        self.checkBoxSwapxy.stateChanged.connect(self.checkBoxSwapxyState)
 
         # Add fitting function to the GUI
         self.initFitGUI()
@@ -144,6 +145,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.radioButtonSliceHorizontal.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceVertical.toggled.connect(self.radioBoxSliceChanged)
 
+        self.swap = False
         # Should be initialize last
         PlotApp.__init__(self)
 
@@ -192,6 +194,24 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.imageView.setImage(z, pos=[x[0], y[0]], scale=[xscale, yscale])
         self.histWidget.item.setLevels(mn=z[~np.isnan(z)].min(), mx=z[~np.isnan(z)].max())
         self.imageView.autoRange()
+
+
+
+    def checkBoxSwapxyState(self, b):
+        """
+        When user want to swap the x and y axis
+        """
+
+        t = self.xLabel
+        self.xLabel = self.yLabel
+        self.yLabel = t
+        
+        # A bug happens when labels contain scientific notation, i.e. 1e9
+        # That number does not follow the label, I didn't succeed to solve it
+        self.plotItem.setLabel('bottom', self.xLabel, color=config['pyqtgraphxLabelTextColor'])
+        self.plotItem.setLabel('left', self.yLabel, color=config['pyqtgraphyLabelTextColor'])
+
+        self.updateImageItem(self.y, self.x, self.z.T)
 
 
 
@@ -463,9 +483,6 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         """
         Hande the event of the user clicking the inverted button for the colorbar.
         """
-
-        # cw = self.getCurrentWindow()
-        # hist = self.getCurrentHistogramLUTItemItem()
 
         # If the user uncheck the box, we hide the items
         if b == 0:
