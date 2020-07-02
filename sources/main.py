@@ -482,31 +482,40 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # If the database is already opened, we do not try to open it
         # Get database
         self.statusBar.showMessage('Load database')
-        qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
+        
+        # Catch error at the open of a db
+        try:
+            qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
+        except:
+            self.statusBar.showMessage("Can't load database")
+            return
+
 
         self.statusBar.showMessage('Get database information')
         datasets = sorted(
             chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
             key=attrgetter('run_id'))
 
-        self.overview = {ds.run_id: self.get_ds_info(ds, get_structure=False)
-                for ds in datasets}
-
-        self.statusBar.showMessage('Display database information')
 
         # Fill table with new information
-        for key, val in self.overview.items(): 
+        totalRun = self.getTotalRun()
+        for ds in datasets: 
             rowPosition = self.tableWidgetDataBase.rowCount()
+
+            
+            self.statusBar.showMessage('Get database information: run '+str(ds.run_id)+'/'+str(totalRun))
 
             self.tableWidgetDataBase.insertRow(rowPosition)
 
-            self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(str(key)))
-            self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(val['experiment']))
-            self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(val['sample']))
-            self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(val['name']))
-            self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(val['started date']+' '+val['started time']))
-            self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(val['completed date']+' '+val['completed time']))
-            self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(str(val['records'])))
+            info = self.get_ds_info(ds, get_structure=False)
+            
+            self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(str(ds.run_id)))
+            self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(info['experiment']))
+            self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(info['sample']))
+            self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(info['name']))
+            self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(info['started date']+' '+info['started time']))
+            self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(info['completed date']+' '+info['completed time']))
+            self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(str(info['records'])))
 
 
         # Enable live plot
@@ -872,14 +881,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         if refresh_db:
             qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
-            datasets = sorted(
-            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-            key=attrgetter('run_id'))
+        datasets = sorted(
+        chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
+        key=attrgetter('run_id'))
 
-            self.overview = {ds.run_id: self.get_ds_info(ds, get_structure=False)
-                    for ds in datasets}
-
-        return len(self.overview)
+        return len(datasets)
 
 
 
