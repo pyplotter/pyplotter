@@ -6,13 +6,13 @@ A data browser and vizualizer for QCoDes database and BlueFors logging files.
 
 The easiest way is to clone the repository
 
-```
+```bash
 git clone https://codev-tuleap.intra.cea.fr/plugins/git/qusi/plotter
 ```
 
 You need QCodes to be installed and also the following libraries:
 
-```
+```bash
 conda install pyqtgraph pandas matplotlib lmfit pyopengl
 ```
 
@@ -29,7 +29,7 @@ Theses lines are used as default path. However it could happen that the data ser
 
 Once this is done, open a conda terminal and go to the repository folder. Then simply launch the plotter.py file to launch the software:
 
-```
+```bash
 python plotter.py
 ```
 
