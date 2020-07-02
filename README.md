@@ -1,25 +1,11 @@
 # Plotter
 
-A data browser and vizualizer for QCoDes database and BlueFors logging files.
-
-## Installation
-
-The easiest way is to clone the repository
-
-```
-git clone https://codev-tuleap.intra.cea.fr/plugins/git/qusi/plotter
-```
-
-You need QCodes to be installed and also the following libraries:
-
-```
-conda install pyqtgraph pandas matplotlib lmfit pyopengl
-```
+A data browser and vizualizer for QCoDes database.
 
 
 ## Getting Started
 
-Before launching the software, open the config.py file located in `plotter/sources/config.py`. You should see the wollowing lines:
+Before launching the software, open the config.py file. You should see the wollowing lines:
 
 ```python
 'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
@@ -33,10 +19,6 @@ Once this is done, open a conda terminal and go to the repository folder. Then s
 ```
 python plotter.py
 ```
-
-## Use
-
-> **To open folders, databases, ... : use one click, no double click**
 
 Once the software is launched, you access the main window:
 
@@ -58,6 +40,20 @@ or a 2D one
 Plot windows allow live interaction.
 
 
+## Installing
+
+The easiest way is to clone the repository
+
+```
+git clone https://gitlab.com/edumur/plotter
+```
+
+You need QCodes to be installed and also the following libraries:
+
+```
+conda install pyqtgraph pandas matplotlib lmfit pyopengl
+```
+
 ## Authors
 
 * **Etienne Dumur**  etienne.dumur@gmail.com
@@ -67,6 +63,7 @@ Plot windows allow live interaction.
 * Add plotting capability of BluFors log file (temperature and pression)
 * Add plotting capability of s2p file, or ascci file of VNA
 * Add 3d plots
+* Add metadata display
 * Add posibility to compare 1d plot of different run
 * Implement none blocking liveplot mode
 * Chose licence
