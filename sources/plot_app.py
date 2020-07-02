@@ -123,16 +123,16 @@ class PlotApp(object):
 
                 if self.timestampXAxis:
                     x = datetime.datetime.utcfromtimestamp(self.mousePos[0]).strftime('%Y-%m-%d %H:%M:%S')
-                    self.labelCoordinate.setText('x : {:}, y : {:.3f}'.format(x, self.mousePos[1]))
+                    self.labelCoordinate.setText('x : {:}, y : {:.3e}'.format(x, self.mousePos[1]))
                 else:
-                    self.labelCoordinate.setText('x : {:.3f}, y : {:.3f}'.format(self.mousePos[0], self.mousePos[1]))
+                    self.labelCoordinate.setText('x : {:.3e}, y : {:.3e}'.format(self.mousePos[0], self.mousePos[1]))
             elif self.plotType == '2d':
 
                 n = np.abs(self.x-self.mousePos[0]).argmin()
                 m = np.abs(self.y-self.mousePos[1]).argmin()
                 z = self.z[n,m]
 
-                self.labelCoordinate.setText('x : {:.3f}, y : {:.3f}, z : {:.3f}'.format(self.mousePos[0], self.mousePos[1], z))
+                self.labelCoordinate.setText('x : {:.3e}, y : {:.3e}, z : {:.3e}'.format(self.mousePos[0], self.mousePos[1], z))
             else:
                 raise ValueError('plotType unknown')
 
