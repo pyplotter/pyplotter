@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
 import os
 import numpy as np
 import pandas as pd
@@ -362,28 +362,74 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         Basically, launch a 1d plot window.
         """
 
-        self.statusBar.showMessage('Load BlueFors data')
 
         fileName = os.path.basename(os.path.normpath(filePath))[:-13]
         if cb:
+            self.statusBar.showMessage('Load BlueFors data')
+            
+            # Maxigauges file (all pressure gauges)
+            if fileName == 'maxigauge':
 
-            df = pd.read_csv(filePath,
-                            delimiter=',',
-                            names=['date', 'time', 'y'],
-                            header=None)
+                df = pd.read_csv(filePath,
+                                delimiter=',',
+                                names=['date', 'time',
+                                    'ch1_name', 'ch1_void1', 'ch1_status', 'ch1_pressure', 'ch1_void2', 'ch1_void3',
+                                    'ch2_name', 'ch2_void1', 'ch2_status', 'ch2_pressure', 'ch2_void2', 'ch2_void3',
+                                    'ch3_name', 'ch3_void1', 'ch3_status', 'ch3_pressure', 'ch3_void2', 'ch3_void3',
+                                    'ch4_name', 'ch4_void1', 'ch4_status', 'ch4_pressure', 'ch4_void2', 'ch4_void3',
+                                    'ch5_name', 'ch5_void1', 'ch5_status', 'ch5_pressure', 'ch5_void2', 'ch5_void3',
+                                    'ch6_name', 'ch6_void1', 'ch6_status', 'ch6_pressure', 'ch6_void2', 'ch6_void3',
+                                    'void'],
+                                header=None)
 
-            df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
-            df = df.drop(columns=['date', 'time'])
+                df.index = pd.to_datetime(df['date']+'-'+df['time'], format='%d-%m-%y-%H:%M:%S')
+                
+                for i in range(1, 7):
+                    
+                    # Reference
+                    if plotRef in self._refs:
+                        self._refs[plotRef]['nbCurve'] += 1
+                    else:
+                        self._refs[plotRef] = {'nbCurve': 1}
 
+                    name = 'ch'+str(i)+'_pressure'
+                    
+                    self.statusBar.showMessage('Launch 1D plot')
+                    self.startPlotting(plotRef=plotRef,
+                                       data=(df[name].index.astype(np.int64).values//1e9, df[name]),
+                                       xLabel='Time',
+                                       yLabel=config[fileName][name[:3]])
+                
+                # Once all is plotting we autorange
+                self._refs[plotRef]['plot'].plotItem.vb.autoRange()
 
-            # Reference
-            if plotRef in self._refs:
-                self._refs[plotRef]['nbCurve'] += 1
+                # and we set y log mode True
+                QtTest.QTest.qWait(100) # To avoid an overflow error
+                self._refs[plotRef]['plot'].checkBoxLogY.toggle()
+
+            # Thermometers files
             else:
-                self._refs[plotRef] = {'nbCurve': 1}
+                df = pd.read_csv(filePath,
+                                delimiter=',',
+                                names=['date', 'time', 'y'],
+                                header=None)
+
+                # There is a space before the day
+                df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
 
 
-            self.startPlotting(plotRef, (df['y'].index.astype(np.int64).values//1e9, df['y']), 'Time', config[fileName], '')
+                # Reference
+                if plotRef in self._refs:
+                    self._refs[plotRef]['nbCurve'] += 1
+                else:
+                    self._refs[plotRef] = {'nbCurve': 1}
+
+
+                self.statusBar.showMessage('Launch 1D plot')
+                self.startPlotting(plotRef=plotRef,
+                                   data=(df['y'].index.astype(np.int64).values//1e9, df['y']),
+                                   xLabel='Time',
+                                   yLabel=config[fileName])
 
 
         else:
@@ -391,8 +437,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             # If there is more than one curve, we remove one curve
             if self._refs[plotRef]['nbCurve'] > 1:
                 yLabel = config[fileName]
-                self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
-                self._refs[plotRef]['nbCurve'] -= 1
+
+                # If maxigauge file, we have to remove all the curves at once
+                if yLabel == config['maxigauge']:
+                    for i in range(1, 7):
+                        
+                        curveId = config[fileName]['ch'+str(i)]
+                        self._refs[plotRef]['plot'].removePlotDataItem(curveId=curveId)
+                        self._refs[plotRef]['nbCurve'] -= 1
+                else:
+                    self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
+                    self._refs[plotRef]['nbCurve'] -= 1
             # If there is one curve we close the plot window
             else:
                 self._refs[plotRef]['plot'].o()
@@ -1131,7 +1186,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
-    def startPlotting(self, plotRef, data, xLabel, yLabel, zLabel):
+    def startPlotting(self, plotRef, data, xLabel, yLabel, zLabel=None):
         """
         Methods called once the data are downloaded by the data thread.
 

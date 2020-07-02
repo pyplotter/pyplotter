@@ -152,8 +152,8 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         colors = [curve.colorIndex for curve in self.curves.values()]
         for i in range(50):
             if i not in colors:
-                colorIndex = i
-                color = config['plot1dColors'][i]
+                colorIndex = i%len(config['plot1dColors'])
+                color = config['plot1dColors'][i%len(config['plot1dColors'])]
                 break
 
 
@@ -238,12 +238,20 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         
         # The label is changed only of we are not display slices of a 2d plot
         if not self.linkedTo2dPlot:
+            
             # If there is more than one plotDataItem
+            # We check of the share the same unit
+            if len(self.curves)>1 and len(np.unique(np.array([curve.curveLabel[:-1].split('[')[-1] for curve in self.curves.values()])))==1:
+                self.plotItem.setLabel('left',
+                                        '['+self.curves[list(self.curves.keys())[0]].curveLabel[:-1].split('[')[-1]+']',
+                                        color=config['pyqtgraphyLabelTextColor'])
+            
             # We check of the share the same label
-            if len(np.unique(np.array([curve.curveLabel for curve in self.curves.values()])))>1:
+            elif len(np.unique(np.array([curve.curveLabel for curve in self.curves.values()])))>1:
                 self.plotItem.setLabel('left',
                                         '[a.u]',
                                         color=config['pyqtgraphyLabelTextColor'])
+                                        
 
             # If there is only one plotDataItem or if the plotDataItems share the same label
             else:
