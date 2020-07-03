@@ -923,7 +923,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         
         
         if self.livePlotMode:
-            return self.overview[self.getTotalRun()]['experiment']
+
+            datasets = sorted(
+            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
+            key=attrgetter('run_id'))
+            
+            info = self.get_ds_info(datasets[-1], get_structure=False)
+            return info['experiment']
         else:
             currentRow = self.tableWidgetDataBase.currentIndex().row()
             return self.tableWidgetDataBase.model().index(currentRow, 1).data()
@@ -962,7 +968,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
 
         if self.livePlotMode:
-            return self.overview[self.getTotalRun()]['completed date']+' '+self.overview[self.getTotalRun()]['completed date']
+
+            datasets = sorted(
+            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
+            key=attrgetter('run_id'))
+            
+            info = self.get_ds_info(datasets[-1], get_structure=False)
+            return info['completed date']+' '+info['completed date']
         else:
             currentRow = self.tableWidgetDataBase.currentIndex().row()
             return self.tableWidgetDataBase.model().index(currentRow, 5).data()
