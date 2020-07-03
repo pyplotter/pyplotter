@@ -3,7 +3,6 @@ from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
 import os
 import numpy as np
 import pandas as pd
-import pyqtgraph as pg
 from matplotlib.pyplot import colormaps
 from matplotlib import cm as plt_cm
 import tempfile
@@ -15,6 +14,14 @@ from typing import Dict, List, Set
 from operator import attrgetter
 sys.path.append('ui')
 sys.path.append('sources')
+
+# Correct bug with pyqtgraph and python3.8 by replacing function name
+try:
+    import pyqtgraph as pg
+except AttributeError:
+    import time
+    time.clock = time.process_clock
+
 
 from ui import main
 from config import config
