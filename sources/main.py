@@ -749,7 +749,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         Close every 1d and 2d plot opened.
         """
         
-        for key in self._refs.keys():
+        for key in list(self._refs.keys()):
             # For 2d plot
             if self.getPlotWindowType(key) == '2d':
                 keyToDelete = list(self._refs[key]['plot'].keys())
