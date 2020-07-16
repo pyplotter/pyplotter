@@ -6,7 +6,7 @@ config = {
 # Do not put "/" after ":" in the two following paths
 # The soft will not allowed to go above that path
 'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
-# Default display path
+# Default display path, should be at least the root
 'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
 'authorized_setup' : ['bluelagoon'],
 'authorized_extension' : ['db'],

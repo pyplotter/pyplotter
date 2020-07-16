@@ -20,6 +20,11 @@ class Ui_MainWindow(object):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.TopHorizontalLayout = QtWidgets.QHBoxLayout()
         self.TopHorizontalLayout.setObjectName("TopHorizontalLayout")
+        self.pushButtonOpenFolder = QtWidgets.QPushButton(self.centralwidget)
+        self.pushButtonOpenFolder.setMinimumSize(QtCore.QSize(0, 0))
+        self.pushButtonOpenFolder.setMaximumSize(QtCore.QSize(80, 16777215))
+        self.pushButtonOpenFolder.setObjectName("pushButtonOpenFolder")
+        self.TopHorizontalLayout.addWidget(self.pushButtonOpenFolder)
         self.labelPath = QtWidgets.QHBoxLayout()
         self.labelPath.setObjectName("labelPath")
         self.TopHorizontalLayout.addLayout(self.labelPath)
@@ -55,7 +60,7 @@ class Ui_MainWindow(object):
         self.TopHorizontalLayout.addLayout(self.LivePlot)
         self.verticalLayout_3.addLayout(self.TopHorizontalLayout)
         self.splitter = QtWidgets.QSplitter(self.centralwidget)
-        self.splitter.setMinimumSize(QtCore.QSize(1000, 0))
+        self.splitter.setMinimumSize(QtCore.QSize(1000, 690))
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
         self.splitter.setObjectName("splitter")
         self.layoutWidget = QtWidgets.QWidget(self.splitter)
@@ -216,6 +221,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Plotter"))
+        self.pushButtonOpenFolder.setText(_translate("MainWindow", "Open folder"))
         self.checkBoxLivePlot.setText(_translate("MainWindow", "LivePlot:"))
         self.labelLivePlot2.setText(_translate("MainWindow", " every"))
         self.labelLivePlot.setText(_translate("MainWindow", "s"))

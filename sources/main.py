@@ -59,6 +59,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         
         # Connect UI
         self.listWidgetFolder.clicked.connect(self.itemClicked)
+        self.pushButtonOpenFolder.clicked.connect(self.openFolderClicked)
         
         # Resize the cell to the column content automatically
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
@@ -76,9 +77,22 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         # Default folder is the dataserver except if we are on test mode
         if 'test' in os.listdir('.'):
+
             self.currentPath = os.path.abspath(os.path.curdir)
             config['path'] = self.currentPath
             config['root'] = self.currentPath
+        # If we are unable to detect the config folder, we switch in local mode
+        elif not os.path.isdir(os.path.normpath(config['path'])):
+            
+            # Ask user to chose a path
+            self.currentPath = QtWidgets.QFileDialog.getExistingDirectory(self,
+                                                                          caption='Open folder',
+                                                                          directory=os.getcwd(),
+                                                                          options=QtWidgets.QFileDialog.ReadOnly|QtWidgets.QFileDialog.ShowDirsOnly)
+
+            # Set config parameter accordingly
+            config['path'] = os.path.abspath(self.currentPath)
+            config['root'] = os.path.splitdrive(self.currentPath)[0]
         else:
             
             self.currentPath = os.path.normpath(config['path'])
@@ -91,7 +105,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.guiInitialized = True # To avoid calling the signal when starting the GUI
 
         # By default, we browse the root folder
-        self.folderClicked(e=False, directory=self.currentPath)
+        self.folderClicked(directory=self.currentPath)
 
         self.currentDatabase    = None
         self.oldTotalRun        = None
@@ -109,14 +123,24 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     ###########################################################################
 
 
-    def goParentFolder(self, e, directory=None):
+
+    def openFolderClicked(self):
         """
-        Handle event when user click on the go up button.
-        Change the current folder by the parent one.
-        Stop when arrive in the root folder.
+        Call when user click on the 'Open folder' button.
+        Allow user to chose any available folder in his computer.
         """
 
-        self.folderClicked(False, directory=os.path.join(*os.path.split(self.currentPath)[:-1]))
+        # Ask user to chose a path
+        self.currentPath = QtWidgets.QFileDialog.getExistingDirectory(self,
+                                                                    caption='Open folder',
+                                                                    directory=os.getcwd(),
+                                                                    options=QtWidgets.QFileDialog.ReadOnly|QtWidgets.QFileDialog.ShowDirsOnly)
+
+        # Set config parameter accordingly
+        config['path'] = os.path.abspath(self.currentPath)
+        config['root'] = os.path.splitdrive(self.currentPath)[0]
+
+        self.folderClicked(directory=self.currentPath)
 
 
 
@@ -148,24 +172,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 width = bu.fontMetrics().boundingRect(bu_text).width() + 15
                 bu.setMaximumWidth(width)
                 d = os.path.join(path[0], os.sep, *path[1:i+1])
-                bu.clicked.connect(lambda e=False, directory=d : self.folderClicked(e, directory))
+                bu.clicked.connect(lambda bu, directory=d : self.folderClicked(directory))
                 self.labelPath.addWidget(bu)
 
         self.labelPath.setAlignment(QtCore.Qt.AlignLeft)
 
 
 
-    def folderClicked(self, e, directory=None):
+    def folderClicked(self, directory=None):
         """
         Basically display folder and csv file of the current folder.
         """
         
         # When signal the updating of the folder to prevent unwanted item events
         self.folderUpdating = True
-
-        if directory is None:
-            directory = QtGui.QFileDialog.getExistingDirectory(self, 'Pick a folder')
-
         self.currentPath = directory
 
         self.updateLabelPath()
@@ -251,7 +271,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
                 self.statusBar.showMessage('Update')
-                self.folderClicked(e=False, directory=nextPath)
+                self.folderClicked(directory=nextPath)
                 self.statusBar.showMessage('Ready')
             # If it is a database
             else:
