@@ -20,6 +20,25 @@
       <item>
        <layout class="QHBoxLayout" name="TopHorizontalLayout">
         <item>
+         <widget class="QPushButton" name="pushButtonOpenFolder">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>80</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Open folder</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <layout class="QHBoxLayout" name="labelPath"/>
         </item>
         <item>
@@ -113,7 +132,7 @@
         <property name="minimumSize">
          <size>
           <width>1000</width>
-          <height>0</height>
+          <height>690</height>
          </size>
         </property>
         <property name="orientation">

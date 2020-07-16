@@ -23,6 +23,8 @@ except AttributeError:
     time.clock = time.process_clock
 
 
+from MyTableWidgetItem import MyTableWidgetItem
+from importDatabase import ImportDatabaseThread
 from ui import main
 from config import config
 from plot_1d_app import Plot1dApp
@@ -31,19 +33,6 @@ from plot_2d_app import Plot2dApp
 pg.setConfigOption('background', config['pyqtgraphBackgroundColor'])
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
 pg.setConfigOption('antialias', config['plot1dAntialias'])
-
-
-class MyTableWidgetItem(QtWidgets.QTableWidgetItem):
-    """
-    Custom class to be able to sort numerical table column
-    """
-
-    def __lt__(self, other):
-        if isinstance(other, QtWidgets.QTableWidgetItem):
-
-            return int(self.data(QtCore.Qt.EditRole)) < int(other.data(QtCore.Qt.EditRole))
-
-        return super(MyTableWidgetItem, self).__lt__(other)
 
 
 
@@ -98,6 +87,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.livePlotMode       = False
         self.livePlotFetchData  = False
         self.livePlotTimer      = None
+
+
+        self.threadpool = QtCore.QThreadPool()
 
 
     ###########################################################################
@@ -474,8 +466,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
     def dataBaseClicked(self):
         """
-        Display the content of the clicked dataBase into a tableWidgetTable
-        which will then contain all runs
+        Display the content of the clicked dataBase into the database table
+        which will then contain all runs.
+
         """
 
         # Update label
@@ -486,44 +479,57 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.tableWidgetDataBase.setRowCount(0)
         self.tableWidgetDataBase.setSortingEnabled(True)
 
-        # If the database is already opened, we do not try to open it
-        # Get database
-        self.setStatusBarMessage('Loading database')
+        # Add a progress bar in the statusbar
+        self.progressBar = QtWidgets.QProgressBar(self)
+        self.progressBar.setVisible(True)
+        self.progressBar.setAlignment(QtCore.Qt.AlignCenter)
+        self.progressBar.setValue(0)
+        self.progressBar.setTextVisible(True)
+        self.statusBar.setSizeGripEnabled(False)
+        self.statusBar.addPermanentWidget(self.progressBar)
+
+        # Create a thread which will read the database
+        worker = ImportDatabaseThread(self.getTotalRun(True), self.currentPath, self.currentDatabase, self.get_ds_info)
+
+        # Connect signals
+        worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
+        worker.signals.addRow.connect(self.dataBaseClickedAddRow)
+        worker.signals.done.connect(self.dataBaseClickedDone)
+
+        # Execute the thread
+        self.threadpool.start(worker)
+
+
+
+    def dataBaseClickedAddRow(self, runId, info, nbTotalRun):
+        """
+        Called by another thread to fill the database table.
+        Each call add one line in the table.
+        """
         
-        # Catch error at the open of a db
-        try:
-            qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
-        except:
-            self.setStatusBarMessage("Can't load database", error=True)
-            return
+        rowPosition = self.tableWidgetDataBase.rowCount()
+
+        if rowPosition==0:
+            self.statusBar.clearMessage()
+
+        self.progressBar.setFormat('Get database information: run '+runId+'/'+str(nbTotalRun))
+        self.progressBar.setValue(int(int(runId)/int(nbTotalRun)*100))
+
+        self.tableWidgetDataBase.insertRow(rowPosition)
+        self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(runId))
+        self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(info['experiment']))
+        self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(info['sample']))
+        self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(info['name']))
+        self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(info['started date']+' '+info['started time']))
+        self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(info['completed date']+' '+info['completed time']))
+        self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(info['records']))
 
 
-        self.setStatusBarMessage('Get database information')
-        datasets = sorted(
-            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-            key=attrgetter('run_id'))
 
-
-        # Fill table with new information
-        totalRun = self.getTotalRun()
-        for ds in datasets: 
-            rowPosition = self.tableWidgetDataBase.rowCount()
-
-            
-            self.setStatusBarMessage('Get database information: run '+str(ds.run_id)+'/'+str(totalRun))
-
-            self.tableWidgetDataBase.insertRow(rowPosition)
-
-            info = self.get_ds_info(ds, get_structure=False)
-            
-            self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(str(ds.run_id)))
-            self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(info['experiment']))
-            self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(info['sample']))
-            self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(info['name']))
-            self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(info['started date']+' '+info['started time']))
-            self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(info['completed date']+' '+info['completed time']))
-            self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(str(info['records'])))
-
+    def dataBaseClickedDone(self):
+        """
+        Called when the database table has been filled
+        """
 
         # Enable live plot
         self.checkBoxLivePlot.setEnabled(True)
@@ -533,7 +539,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.labelLivePlotDataBase.setEnabled(True)
         self.labelLivePlotDataBase.setText(self.currentDatabase[:-3])
 
-
+        self.statusBar.removeWidget(self.progressBar)
         self.setStatusBarMessage('Ready')
 
 
@@ -743,7 +749,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
     def updateProgressBar(self, val):
-        self.progressBar.setValue(val)
+        self.progressBarBar.setValue(val)
 
 
     @staticmethod
