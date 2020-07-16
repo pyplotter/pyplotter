@@ -250,8 +250,8 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         """
         Return the orientation of the infinityLine depending of its angle.
         """
-
-        if lineItem.angle/90==0:
+        
+        if int(lineItem.angle%180)==0:
             lineOrientation = 'horizontal'
         else:
             lineOrientation = 'vertical'
