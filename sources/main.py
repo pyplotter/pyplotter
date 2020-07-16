@@ -660,8 +660,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
             # Get data
             nbIndependent = self.getNbIndependentParameters()
-            ds = qc.load_by_id(int(self.getRunId()))
-            d = ds.get_parameter_data(params[row+nbIndependent].name)[params[row+nbIndependent].name]
             
             if nbIndependent==1:
 
@@ -1366,7 +1364,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             data = self.shapeData2d(d[params[0].name], d[params[1].name], d[params[row+2].name])
         except:
             # We have to send [0,1] for the z axis when no data to avoid bug with the histogram
-            data = np.array([0, 1]), np.array([0, 1]), np.array([[0, 1],[0, 1]])
+            data = np.array([0, 1]), np.array([0, 1]), np.array([[np.nan, np.nan],[np.nan, np.nan]])
 
         return data
 
