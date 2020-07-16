@@ -72,7 +72,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.spinBoxLivePlot.valueChanged.connect(self.livePlotSpinBoxChanged)
 
 
-        self.statusBar.showMessage('Ready')
+        self.setStatusBarMessage('Ready')
 
         # Default folder is the dataserver except if we are on test mode
         if 'test' in os.listdir('.'):
@@ -250,9 +250,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 self.blueForsFolderClicked(directory=nextPath)
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
-                self.statusBar.showMessage('Update')
+                self.setStatusBarMessage('Update')
                 self.folderClicked(e=False, directory=nextPath)
-                self.statusBar.showMessage('Ready')
+                self.setStatusBarMessage('Ready')
             # If it is a database
             else:
                 
@@ -294,7 +294,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         When user click on a BlueFors folder while browsing files
         """
         
-        self.statusBar.showMessage('Load BlueFors log')
+        self.setStatusBarMessage('Loading BlueFors log')
 
         # Get the BF folder name
         bfName = os.path.basename(os.path.normpath(directory))
@@ -359,7 +359,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             
 
 
-        self.statusBar.showMessage('Ready')
+        self.setStatusBarMessage('Ready')
 
 
 
@@ -372,7 +372,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         fileName = os.path.basename(os.path.normpath(filePath))[:-13]
         if cb:
-            self.statusBar.showMessage('Load BlueFors data')
+            self.setStatusBarMessage('Loading BlueFors data')
             
             # Maxigauges file (all pressure gauges)
             if fileName == 'maxigauge':
@@ -401,7 +401,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
                     name = 'ch'+str(i)+'_pressure'
                     
-                    self.statusBar.showMessage('Launch 1D plot')
+                    self.setStatusBarMessage('Launching 1D plot')
                     self.startPlotting(plotRef=plotRef,
                                        data=(df[name].index.astype(np.int64).values//1e9, df[name]),
                                        xLabel='Time',
@@ -432,7 +432,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                     self._refs[plotRef] = {'nbCurve': 1}
 
 
-                self.statusBar.showMessage('Launch 1D plot')
+                self.setStatusBarMessage('Launching 1D plot')
                 self.startPlotting(plotRef=plotRef,
                                    data=(df['y'].index.astype(np.int64).values//1e9, df['y']),
                                    xLabel='Time',
@@ -488,17 +488,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         # If the database is already opened, we do not try to open it
         # Get database
-        self.statusBar.showMessage('Load database')
+        self.setStatusBarMessage('Loading database')
         
         # Catch error at the open of a db
         try:
             qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
         except:
-            self.statusBar.showMessage("Can't load database")
+            self.setStatusBarMessage("Can't load database", error=True)
             return
 
 
-        self.statusBar.showMessage('Get database information')
+        self.setStatusBarMessage('Get database information')
         datasets = sorted(
             chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
             key=attrgetter('run_id'))
@@ -510,7 +510,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             rowPosition = self.tableWidgetDataBase.rowCount()
 
             
-            self.statusBar.showMessage('Get database information: run '+str(ds.run_id)+'/'+str(totalRun))
+            self.setStatusBarMessage('Get database information: run '+str(ds.run_id)+'/'+str(totalRun))
 
             self.tableWidgetDataBase.insertRow(rowPosition)
 
@@ -534,7 +534,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.labelLivePlotDataBase.setText(self.currentDatabase[:-3])
 
 
-        self.statusBar.showMessage('Ready')
+        self.setStatusBarMessage('Ready')
 
 
 
@@ -551,7 +551,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         if self.getRunId() is None:
             return
 
-        self.statusBar.showMessage('Load run parameters')
+        self.setStatusBarMessage('Loading run parameters')
 
         ## Update label
         self.labelCurrentRun.setText(str(self.getRunId()))
@@ -621,7 +621,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
-        self.statusBar.showMessage('Ready')
+        self.setStatusBarMessage('Ready')
 
 
 
@@ -652,7 +652,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             
 
             # When the user click to plot we disable the gui
-            self.statusBar.showMessage('Load run data')
+            self.setStatusBarMessage('Loading run data')
             QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             self.centralwidget.setEnabled(False)
             # Get parameters
@@ -665,7 +665,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             
             if nbIndependent==1:
 
-                self.statusBar.showMessage('Launch 1D plot')
+                self.setStatusBarMessage('Launching 1D plot')
 
                 data = self.getData1d(row)
 
@@ -674,7 +674,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 zLabel = None
             elif nbIndependent==2:
 
-                self.statusBar.showMessage('Launch 2D plot')
+                self.setStatusBarMessage('Launching 2D plot')
 
                 data = self.getData2d(row)
 
@@ -682,7 +682,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 yLabel = params[1].name+' ['+params[1].unit+']'
                 zLabel = params[row+2].name+' ['+params[row+2].unit+']'
             else:
-                self.statusBar.showMessage('Plotter does not handle data whose dim>2')
+                self.setStatusBarMessage('Plotter does not handle data whose dim>2', error=True)
+
+                # Plot will not be done, we unable the gui
+                QtGui.QApplication.restoreOverrideCursor()
+                self.centralwidget.setEnabled(True)
+
+                return
             
             
             # Reference
@@ -725,12 +731,25 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
+    def setStatusBarMessage(self, text, error=False):
+        
+        if error:
+            self.statusBar.setStyleSheet('color: red; font-weight: bold;')
+        elif text=='Ready':
+            self.statusBar.setStyleSheet('color: green; font-weight: bold;')
+        else:
+            self.statusBar.setStyleSheet('color: '+config['dialogTextColor']+'; font-weight: normal;')
+
+        self.statusBar.showMessage(text)
+
+
+
     def updateProgressBar(self, val):
         self.progressBar.setValue(val)
 
 
-
-    def clearLayout(self, layout):
+    @staticmethod
+    def clearLayout(layout):
         """
         Clear a pyqt layout, from:
         https://stackoverflow.com/questions/4528347/clear-all-widgets-in-a-layout-in-pyqt
@@ -1055,7 +1074,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # If we have to update the data of a livePlot
         if self.livePlotFetchData:
             
-            self.statusBar.showMessage('Fetching data')
+            self.setStatusBarMessage('Fetching data')
 
             # We get which open plot window is the liveplot one
             livePlotRef = self.getLivePlotRef()
@@ -1119,12 +1138,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                                     autoRange   = True)
 
 
-            self.statusBar.showMessage('Plot updated')
+            self.setStatusBarMessage('Plot updated')
 
             # If the run is done
             if self.isRunCompleted():
 
-                self.statusBar.showMessage('Run done')
+                self.setStatusBarMessage('Run done')
 
                 # We remove the livePlotFlag attached to the plot window
                 livePlotRef = self.getLivePlotRef()
@@ -1277,7 +1296,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         
         # Plot is done, we unable the gui
         QtGui.QApplication.restoreOverrideCursor()
-        self.statusBar.showMessage('Ready')
+        self.setStatusBarMessage('Ready')
 
 
 
