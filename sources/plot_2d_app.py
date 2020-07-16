@@ -84,7 +84,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
         # Create a hostogram item linked to the imageitem
         self.histWidget.setImageItem(self.imageItem)
-        self.histWidget.item.setLevels(mn=z[~np.isnan(z)].min(), mx=z[~np.isnan(z)].max())
+        self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
 
 
         # Set the image view
@@ -192,7 +192,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         xscale = (x[-1]-x[0])/len(x) if (x[-1]-x[0])/len(x) else 1.
         yscale = (y[-1]-y[0])/len(y)
         self.imageView.setImage(z, pos=[x[0], y[0]], scale=[xscale, yscale])
-        self.histWidget.item.setLevels(mn=z[~np.isnan(z)].min(), mx=z[~np.isnan(z)].max())
+        self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
         self.imageView.autoRange()
 
 
