@@ -546,7 +546,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(info['name']))
         self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(info['started date']+' '+info['started time']))
         self.tableWidgetDataBase.setItem(rowPosition, 6, QtGui.QTableWidgetItem(info['completed date']+' '+info['completed time']))
-        self.tableWidgetDataBase.setItem(rowPosition, 7, MyTableWidgetItem(info['records']))
+        self.tableWidgetDataBase.setItem(rowPosition, 7, MyTableWidgetItem(str(info['records'])))
 
 
 
