@@ -385,7 +385,7 @@ class ResonancePeakdB(Fit1d):
 
 
     def checkBoxLabel(self):
-        return 'Purcell filter (dB)'
+        return 'Resonance peak (dB)'
 
 
 
@@ -477,6 +477,66 @@ class ResonanceDipdB(Fit1d):
 
         return 'f0='+str(round(p['f0'].value, 5))+', qi='+str(int(np.ceil(p['qi'].value)))+', qc='+str(int(np.ceil(p['qc'].value)))
 
+
+
+
+
+
+
+
+
+
+
+class LorentzianPeak(Fit1d):
+
+
+
+    def __init__(self, parent, x_data, y_data):
+
+
+        self.fitType = '1d'
+        Fit1d.__init__(self, parent, x_data, y_data)
+
+
+
+    def checkBoxLabel(self):
+        return 'Lorentzian peak'
+
+
+
+    def get_initial_params(self):
+
+        # Guess initial value
+        background  = np.mean(np.sort(self.y_data)[-10:])
+        center      = self.x_data[np.argmax(self.y_data)]
+        height      = np.mean(np.sort(self.y_data)[-2:])
+        c1          = np.abs(self.y_data[:int(len(self.y_data)/2)]-height/2).argmin()
+        c2          = np.abs(self.y_data[int(len(self.y_data)/2+1):]-height/2).argmin()+int(len(self.y_data)/2+1)
+        fwhm        = self.x_data[c2]-self.x_data[c1]
+
+        params = lmfit.Parameters()
+        # add with tuples: (NAME VALUE VARY MIN  MAX  EXPR  BRUTE_STEP)
+        params.add('background', background, True, None, None)
+        params.add('center', center, True, None, None)
+        params.add('fwhm', fwhm, True, None, None)
+        params.add('height', height, True, None, None)
+
+        return params
+
+
+
+    def func(self, p, x):
+
+        dx = (x - p['center'])/p['fwhm']/2.
+        y = p['height']/(1. + dx**2.)
+
+        return y+p['background']
+
+
+
+    def legend2display(self, p):
+
+        return 'center={:.3e}<br />fwhm={:.3e}<br />height={:.3e}'.format(p['center'].value, p['fwhm'].value, p['height'].value)
 
 
 ####################################
