@@ -512,7 +512,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.statusBar.addPermanentWidget(self.progressBar)
 
         # Create a thread which will read the database
-        worker = ImportDatabaseThread(self.getTotalRun(True), self.currentPath, self.currentDatabase, self.get_ds_info)
+        worker = ImportDatabaseThread(self.getNbTotalRun(True), self.currentPath, self.currentDatabase, self.get_ds_info)
 
         # Connect signals
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
@@ -524,7 +524,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
-    def dataBaseClickedAddRow(self, runId, info, nbTotalRun):
+    def dataBaseClickedAddRow(self, runId, nbIndependentParameter, info, nbTotalRun):
         """
         Called by another thread to fill the database table.
         Each call add one line in the table.
@@ -540,12 +540,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         self.tableWidgetDataBase.insertRow(rowPosition)
         self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(runId))
-        self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(info['experiment']))
-        self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(info['sample']))
-        self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(info['name']))
-        self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(info['started date']+' '+info['started time']))
-        self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(info['completed date']+' '+info['completed time']))
-        self.tableWidgetDataBase.setItem(rowPosition, 6, MyTableWidgetItem(info['records']))
+        self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(nbIndependentParameter+'d'))
+        self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(info['experiment']))
+        self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(info['sample']))
+        self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(info['name']))
+        self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(info['started date']+' '+info['started time']))
+        self.tableWidgetDataBase.setItem(rowPosition, 6, QtGui.QTableWidgetItem(info['completed date']+' '+info['completed time']))
+        self.tableWidgetDataBase.setItem(rowPosition, 7, MyTableWidgetItem(info['records']))
 
 
 
@@ -688,7 +689,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
             # Get data
-            nbIndependent = self.getNbIndependentParameters()
+            nbIndependent = int(self.labelPlotTypeCurrent.text()[0])
             
             if nbIndependent==1:
 
@@ -927,7 +928,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
-    def getTotalRun(self, refresh_db=False):
+    def getNbTotalRun(self, refresh_db=False):
         """
         Return the total number of run in current database
         """
@@ -942,17 +943,24 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
-    def getNbDependentParameters(self):
-        
-        ds = qc.load_by_id(int(self.getRunId()))
-        return len(ds.dependent_parameters)
+    def getNbIndependentParameters(self, dataset=None):
+        """
+        Return the number of independent parameter of a run.
+        if dataset is not None, return the number of independent parameter of the
+        current dataset.
+        If dataset is None, return the number of independent parameter of the run
+        being currently highlighted in the database table.
 
+        Parameters
+        ----------
+        dataset : QCoDeS dataset
+        """
 
-
-    def getNbIndependentParameters(self):
-
-        ds = qc.load_by_id(int(self.getRunId()))
-        return len(ds.paramspecs) - len(ds.dependent_parameters)
+        if dataset is None:
+            currentRow = self.tableWidgetDataBase.currentIndex().row()
+            return int(self.tableWidgetDataBase.model().index(currentRow, 1).data()[0])
+        else:
+            return len(dataset.get_parameters()) - len(dataset.dependent_parameters)
 
 
 
@@ -962,7 +970,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
 
         if self.livePlotMode:
-            return self.getTotalRun()
+            return self.getNbTotalRun()
         else:
             currentRow = self.tableWidgetDataBase.currentIndex().row()
             return self.tableWidgetDataBase.model().index(currentRow, 0).data()
@@ -1077,7 +1085,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             # Check if database has one more run
             # if there is a new run, we launch a plot
             if self.oldTotalRun is not None:
-                if self.oldTotalRun != self.getTotalRun(True):
+                if self.oldTotalRun != self.getNbTotalRun(True):
                     
                     # We refresh the database display
                     self.dataBaseClicked()
@@ -1089,13 +1097,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                     self.parameterCellClicked(0,0)
 
                     # We update the total number of run
-                    self.oldTotalRun = self.getTotalRun()
+                    self.oldTotalRun = self.getNbTotalRun()
 
                     # We save the fact that we have to update an existing live plot
                     self.livePlotFetchData = True
 
             else:
-                self.oldTotalRun = self.getTotalRun(True)
+                self.oldTotalRun = self.getNbTotalRun(True)
 
 
         # If we have to update the data of a livePlot
@@ -1351,8 +1359,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         # Get data
         params = qc.load_by_id(int(self.getRunId())).get_parameters()
-        nbIndependent = self.getNbIndependentParameters()
         ds = qc.load_by_id(int(self.getRunId()))
+        nbIndependent = self.getNbIndependentParameters(ds)
         d = ds.get_parameter_data(params[row+nbIndependent].name)[params[row+nbIndependent].name]
 
 
@@ -1382,8 +1390,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         # Get data
         params = qc.load_by_id(int(self.getRunId())).get_parameters()
-        nbIndependent = self.getNbIndependentParameters()
         ds = qc.load_by_id(int(self.getRunId()))
+        nbIndependent = self.getNbIndependentParameters(ds)
         d = ds.get_parameter_data(params[row+nbIndependent].name)[params[row+nbIndependent].name]
 
 

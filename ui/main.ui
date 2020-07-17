@@ -200,7 +200,7 @@
                  <bool>true</bool>
                 </property>
                 <property name="columnCount">
-                 <number>7</number>
+                 <number>8</number>
                 </property>
                 <attribute name="horizontalHeaderDefaultSectionSize">
                  <number>80</number>
@@ -217,6 +217,11 @@
                 <column>
                  <property name="text">
                   <string>run id</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>dim</string>
                  </property>
                 </column>
                 <column>
