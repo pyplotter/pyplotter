@@ -491,6 +491,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         """
 
+        # Get database
+        self.setStatusBarMessage('Loading database')
+
         # Update label
         self.labelCurrentDataBase.setText(self.currentDatabase[:-3])
 
@@ -1390,13 +1393,31 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             data = self.shapeData2d(d[params[0].name], d[params[1].name], d[params[row+2].name])
         except:
             # We have to send [0,1] for the z axis when no data to avoid bug with the histogram
-            data = np.array([0, 1]), np.array([0, 1]), np.array([[np.nan, np.nan],[np.nan, np.nan]])
+            data = np.array([0, 1]), np.array([0, 1]), np.array([[0, 1],[0, 1]])
 
         return data
 
 
 
     def shapeData2d(self, x, y, z):
+        """
+        Intermediate method to catch "error" when user is inverting the x and y
+        axis compare to what the algo is expecting.
+        """
+        
+        try:
+            x, y, z = self.shapeData2dSub(x, y, z)
+        except ValueError:
+            x, y, z = self.shapeData2dSub(y, x, z)
+            t = y
+            y = x
+            x = t
+            z = z.T
+
+        return x, y, z
+
+
+    def shapeData2dSub(self, x, y, z):
         """
         Shape the data for a 2d plot but mainly handled all kind of data error/missing/...
 
@@ -1477,6 +1498,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
             zz = zz.reshape(int(len(zz)/len(yy)), len(yy))
         
+        # If there is only one point in x or we artificialy create more
+        if len(xx)==1:
+            xx = np.array([xx*0.9, xx*1.1])
+        if len(yy)==1:
+            yy = np.array([yy*0.9, yy*1.1])
+
         return xx, yy, zz
 
 

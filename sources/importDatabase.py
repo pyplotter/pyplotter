@@ -75,9 +75,6 @@ class ImportDatabaseThread(QtCore.QRunnable):
         table displaying all the info of each run.
         """
         
-        # Get database
-        self.signals.setStatusBarMessage.emit('Loading database', False)
-        
         # Catch error at the open of a db
         try:
             qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
