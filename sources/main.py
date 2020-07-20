@@ -3,8 +3,6 @@ from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
 import os
 import numpy as np
 import pandas as pd
-from matplotlib.pyplot import colormaps
-from matplotlib import cm as plt_cm
 import tempfile
 import sys 
 import qcodes as qc

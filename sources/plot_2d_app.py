@@ -5,8 +5,7 @@ import pyqtgraph as pg
 import inspect
 import uuid
 import collections
-from matplotlib.pyplot import colormaps
-from matplotlib import cm as plt_cm
+import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
 import sys
 sys.path.append('../ui')
 
@@ -94,10 +93,6 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.imageView.view.invertY(False)
         self.imageView.view.setAspectLocked(False)
 
-
-        # Set the colormap
-        self.setColorMap(config['plot2dcm'])
-
         # Axes label
         self.plotItem.setTitle(title=title, color=config['pyqtgraphTitleTextColor'])
         self.plotItem.showGrid(x=True, y=True)
@@ -131,21 +126,28 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         # Reference to QDialog which will contains fit info
         self.fitWindow = None
 
+
+        ## Colormap initialization
+
         # Build the colormap comboBox, the default one being from the config file
-        index = -1
-        for cm in [i for i in colormaps() if i[-2:] !='_r']:
-            if cm in config['colormaps']:
-                self.comboBoxcm.addItem(cm)
-                index += 1
+        index = 0
+        indexViridis = 0
+        for cm in [i for i in palettes.all_palettes.keys() if i[-2:] !='_r']:
+            self.comboBoxcm.addItem(cm)
+            if cm == config['plot2dcm']:
+                indexViridis = index
+            
+            index += 1
         
-        self.comboBoxcm.setCurrentIndex(index)
+        self.colorMapInversed = False
+        self.setColorMap(config['plot2dcm'])
+        self.comboBoxcm.setCurrentIndex(indexViridis)
         self.comboBoxcm.currentIndexChanged.connect(self.comboBoxcmChanged)
 
         self.plotItem.scene().sigMouseClicked.connect(self.plotItemDoubleClicked)
         self.radioButtonSliceHorizontal.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceVertical.toggled.connect(self.radioBoxSliceChanged)
 
-        self.swap = False
         # Should be initialize last
         PlotApp.__init__(self)
 
@@ -517,27 +519,28 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         Handle the event of the user clicking the inverted button for the colorbar.
         """
         
-        currentcm = self.comboBoxcm.currentText()
-
         if b.isChecked():
-            cm = currentcm+'_r' 
+            self.colorMapInversed = True
         else: 
-            cm = currentcm 
+            self.colorMapInversed = False
  
-        self.setColorMap(cm)
+        self.setColorMap(self.comboBoxcm.currentText())
 
 
 
     def setColorMap(self, cm):
         """
-        Set the colormap of the imageItem from the matplotlib name
+        Set the colormap of the imageItem from the colormap name
         cm : str
             colormap name
         """
 
-        cm = plt_cm.__dict__[cm]
-        colormap = cmapToColormap(cm)
-        pos, rgba_colors = zip(*colormap[::int(len(colormap)/(config['2dMapNbColorPoints']-1))])
+        rgba_colors = [hex_to_rgba(i) for i in palettes.all_palettes[cm][config['2dMapNbColorPoints']]]
+
+        if self.colorMapInversed:
+            rgba_colors = [i for i in reversed(rgba_colors)]
+
+        pos = np.linspace(0, 1, config['2dMapNbColorPoints'])
         # Set the colormap
         pgColormap =  pg.ColorMap(pos, rgba_colors)
         self.histWidget.item.gradient.setColorMap(pgColormap)
@@ -768,77 +771,12 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-
-
-# From https://github.com/pyqtgraph/pyqtgraph/issues/561
-def cmapToColormap(cmap, nTicks=16):
+def hex_to_rgba(value):
     """
-    Converts a Matplotlib cmap to pyqtgraphs colormaps. No dependency on matplotlib.
-
-    Parameters:
-    *cmap*: Cmap object. Imported from matplotlib.cm.*
-    *nTicks*: Number of ticks to create when dict of functions is used. Otherwise unused.
+    Convert hex color to rgba color
+    From: https://stackoverflow.com/questions/29643352/converting-hex-to-rgb-value-in-python/29643643
     """
-
-    # Case #1: a dictionary with 'red'/'green'/'blue' values as list of ranges (e.g. 'jet')
-    # The parameter 'cmap' is a 'matplotlib.colors.LinearSegmentedColormap' instance ...
-    if hasattr(cmap, '_segmentdata'):
-        colordata = getattr(cmap, '_segmentdata')
-        if ('red' in colordata) and isinstance(colordata['red'], collections.Sequence):
-
-            # collect the color ranges from all channels into one dict to get unique indices
-            posDict = {}
-            for idx, channel in enumerate(('red', 'green', 'blue')):
-                for colorRange in colordata[channel]:
-                    posDict.setdefault(colorRange[0], [-1, -1, -1])[idx] = colorRange[2]
-
-            indexList = list(posDict.keys())
-            indexList.sort()
-            # interpolate missing values (== -1)
-            for channel in range(3):  # R,G,B
-                startIdx = indexList[0]
-                emptyIdx = []
-                for curIdx in indexList:
-                    if posDict[curIdx][channel] == -1:
-                        emptyIdx.append(curIdx)
-                    elif curIdx != indexList[0]:
-                        for eIdx in emptyIdx:
-                            rPos = (eIdx - startIdx) / (curIdx - startIdx)
-                            vStart = posDict[startIdx][channel]
-                            vRange = (posDict[curIdx][channel] - posDict[startIdx][channel])
-                            posDict[eIdx][channel] = rPos * vRange + vStart
-                        startIdx = curIdx
-                        del emptyIdx[:]
-            for channel in range(3):  # R,G,B
-                for curIdx in indexList:
-                    posDict[curIdx][channel] *= 255
-
-            rgb_list = [[i, posDict[i]] for i in indexList]
-
-        # Case #2: a dictionary with 'red'/'green'/'blue' values as functions (e.g. 'gnuplot')
-        elif ('red' in colordata) and isinstance(colordata['red'], collections.Callable):
-            indices = np.linspace(0., 1., nTicks)
-            luts = [np.clip(np.array(colordata[rgb](indices), dtype=np.float), 0, 1) * 255 \
-                    for rgb in ('red', 'green', 'blue')]
-            rgb_list = zip(indices, list(zip(*luts)))
-
-    # If the parameter 'cmap' is a 'matplotlib.colors.ListedColormap' instance, with the attributes 'colors' and 'N'
-    elif hasattr(cmap, 'colors') and hasattr(cmap, 'N'):
-        colordata = getattr(cmap, 'colors')
-        # Case #3: a list with RGB values (e.g. 'seismic')
-        if len(colordata[0]) == 3:
-            indices = np.linspace(0., 1., len(colordata))
-            scaledRgbTuples = [(rgbTuple[0] * 255, rgbTuple[1] * 255, rgbTuple[2] * 255) for rgbTuple in colordata]
-            rgb_list = zip(indices, scaledRgbTuples)
-
-        # Case #4: a list of tuples with positions and RGB-values (e.g. 'terrain')
-        # -> this section is probably not needed anymore!?
-        elif len(colordata[0]) == 2:
-            rgb_list = [(idx, (vals[0] * 255, vals[1] * 255, vals[2] * 255)) for idx, vals in colordata]
-
-    # Case #X: unknown format or datatype was the wrong object type
-    else:
-        raise ValueError("[cmapToColormap] Unknown cmap format or not a cmap!")
-    
-    # Convert the RGB float values to RGBA integer values
-    return list([(pos, (int(r), int(g), int(b), 255)) for pos, (r, g, b) in rgb_list])
+    value = value.lstrip('#')
+    lv = len(value)
+    r, g, b = [int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3)]
+    return r, g, b, 255

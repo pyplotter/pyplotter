@@ -13,7 +13,7 @@ git clone https://codev-tuleap.intra.cea.fr/plugins/git/qusi/plotter
 You need QCodes to be installed and also the following libraries:
 
 ```bash
-conda install pyqtgraph pandas matplotlib pyopengl
+conda install pyqtgraph pandas pyopengl
 pip install lmfit
 ```
 

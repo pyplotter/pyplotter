@@ -15,7 +15,7 @@ def trap_exc_during_debug(*args):
 
 
 # install exception hook: without this, uncaught exception would cause application to exit
-sys.excepthook = trap_exc_during_debug
+# sys.excepthook = trap_exc_during_debug
 
 
 

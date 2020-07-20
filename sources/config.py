@@ -62,21 +62,13 @@ config = {
 # Plot parameters
 # To avoid heavy calculations and consequently lag, we limit the colormap to a
 # certain number of points and realize a linear interpolation between those points
-# The default is 10.
-'2dMapNbColorPoints' : 10,
+# The default is 8 (above 8 will make some colormap crash)
+'2dMapNbColorPoints' : 8,
 'plotShrinkActiveArea' : 2, # In percentage
 'plot1dGrid' : True,
 'plot1dSymbol' : ['o', 's', 't', 'd', '+'],
 'plot1dAntialias' : False,
-'plot2dcm' : 'viridis',
-'colormaps' : ['viridis','tab20c','tab20b','tab10','rainbow','prism','plasma',
-               'pink','ocean','nipy_spectral','magma','jet','inferno','hsv',
-               'gnuplot2','gnuplot','gist_yarg','gist_ncar','gist_heat',
-               'coolwarm','cividis','afmhot','YlOrRd','YlOrBr','YlGnBu','YlGn',
-               'Spectral','Set3','Set1','Reds','RdYlGn','RdYlBu','RdPu','RdGy',
-               'RdBu','Purples','PuRd','PuOr','PuBuGn','PuBu','PiYG','Pastel1',
-               'Paired','PRGn','Oranges','Greys','Greens','GnBu','CMRmap',
-               'BuPu','BuGn','BrBG','Blues'],
+'plot2dcm' : 'Viridis', # Default colormap
 'plot1dColors': [(0,   191, 191), 
                  (0,   0,   255), 
                  (0,   128, 0), 
