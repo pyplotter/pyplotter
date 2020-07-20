@@ -49,6 +49,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         
         # Resize the cell to the column content automatically
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.tableWidgetParameters.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         # Connect event
         self.tableWidgetDataBase.currentCellChanged.connect(self.runClicked)
 
@@ -582,7 +583,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         ## Update label
         self.labelCurrentRun.setText(str(self.getRunId()))
         self.labelCurrentMetadata.setText(str(self.getRunId()))
-        self.labelPlotTypeCurrent.setText(str(self.getNbIndependentParameters())+'d')
+        nbIndependentParameter = self.getNbIndependentParameters()
+        self.labelPlotTypeCurrent.setText(str(nbIndependentParameter)+'d')
 
 
 
@@ -611,8 +613,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                 checkedDependents.append(plot2d.zLabel)
             
 
+        # Get independent parameters list without the independent parameters
+        indeParams = config['sweptParameterSeparator'].join(qc.load_by_id(int(self.getRunId())).parameters.split(',')[:nbIndependentParameter])
         # Get parameters list without the independent parameters
-        params = qc.load_by_id(int(self.getRunId())).get_parameters()[self.getNbIndependentParameters():]
+        params = qc.load_by_id(int(self.getRunId())).get_parameters()[nbIndependentParameter:]
 
         self.tableWidgetParameters.setSortingEnabled(False)
         self.tableWidgetParameters.setRowCount(0)
@@ -632,6 +636,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             self.tableWidgetParameters.setCellWidget(rowPosition, 0, cb)
             self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(param.name))
             self.tableWidgetParameters.setItem(rowPosition, 2, QtGui.QTableWidgetItem(param.unit))
+            self.tableWidgetParameters.setCellWidget(rowPosition, 3, QtWidgets.QLabel(indeParams))
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda cb=cb,

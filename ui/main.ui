@@ -356,6 +356,11 @@
                   <string>unit</string>
                  </property>
                 </column>
+                <column>
+                 <property name="text">
+                  <string>swept parameters</string>
+                 </property>
+                </column>
                </widget>
               </item>
              </layout>

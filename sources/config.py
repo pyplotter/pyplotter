@@ -57,6 +57,7 @@ config = {
 'pyqtgraphyAxisTicksColor' : '#ffffff',
 'pyqtgraphzAxisTicksColor' : '#ffffff',
 'fileStared' : '#eb272e',
+'sweptParameterSeparator' : " <span style='font-weight: bold; color: #eb272e;'>vs</span> ",
 
 
 # Plot parameters
