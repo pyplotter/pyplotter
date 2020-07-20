@@ -62,14 +62,6 @@ Plot windows allow live interaction.
 
 * **Etienne Dumur**  etienne.dumur@gmail.com
 
-## TODO
-
-* Add plotting capability of s2p file, or ascci file of VNA
-* Add 3d plots
-* Add posibility to compare 1d plot of different run
-* Implement none blocking liveplot mode
-* Chose licence
-
 ## License
 
 Surely free but I have to chose one.
