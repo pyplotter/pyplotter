@@ -504,7 +504,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         # Add a progress bar in the statusbar
         self.progressBar = QtWidgets.QProgressBar(self)
-        self.progressBar.setVisible(True)
         self.progressBar.setAlignment(QtCore.Qt.AlignCenter)
         self.progressBar.setValue(0)
         self.progressBar.setTextVisible(True)
