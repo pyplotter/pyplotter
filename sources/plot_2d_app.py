@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
 import inspect
@@ -121,6 +121,10 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.checkBoxSwapxy.stateChanged.connect(self.checkBoxSwapxyState)
         self.checkBoxSubtractAverageX.stateChanged.connect(lambda : self.checkBoxSubtractAverageXState(self.checkBoxSubtractAverageX))
         self.checkBoxSubtractAverageY.stateChanged.connect(lambda : self.checkBoxSubtractAverageYState(self.checkBoxSubtractAverageY))
+        self.checkBoxDerivativeX.stateChanged.connect(lambda : self.checkBoxDerivativeXState(self.checkBoxDerivativeX))
+        self.checkBoxDerivativeY.stateChanged.connect(lambda : self.checkBoxDerivativeYState(self.checkBoxDerivativeY))
+        self.checkBoxDerivativeXY.stateChanged.connect(lambda : self.checkBoxDerivativeXYState(self.checkBoxDerivativeXY))
+
 
         # Add fitting function to the GUI
         self.initFitGUI()
@@ -496,6 +500,81 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                     # which will remove the associated infiniteLine
                     else:
                         self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
+
+
+
+    ####################################
+    #
+    #           Derivative
+    #
+    ####################################
+
+
+
+    def checkBoxDerivativeXState(self, cb):
+        """
+        Handle events when user wants to derivate along x.
+        """
+        
+        if cb.isChecked():
+
+            if self.checkBoxDerivativeY.isChecked():
+                self.checkBoxDerivativeY.setChecked(False)
+            if self.checkBoxDerivativeXY.isChecked():
+                self.checkBoxDerivativeXY.setChecked(False)
+
+            self.z_backupx = self.z
+            self.z = np.gradient(self.z, self.x, axis=0)
+        else: 
+            self.z = self.z_backupx
+
+        self.updateImageItem(self.x, self.y, self.z)
+
+
+
+    def checkBoxDerivativeYState(self, cb):
+        """
+        Handle events when user wants to derivate along y.
+        """
+        
+        if cb.isChecked():
+
+            if self.checkBoxDerivativeX.isChecked():
+                self.checkBoxDerivativeX.setChecked(False)
+            if self.checkBoxDerivativeXY.isChecked():
+                self.checkBoxDerivativeXY.setChecked(False)
+
+            self.z_backupy = self.z
+            self.z = np.gradient(self.z, self.y, axis=1)
+        else: 
+            self.z = self.z_backupy
+
+        self.updateImageItem(self.x, self.y, self.z)
+
+
+
+    def checkBoxDerivativeXYState(self, cb):
+        """
+        Handle events when user wants the gradient.
+          ____________________
+        \/ (d/dx)^2 + (d/dy)^2
+
+        """
+        
+        if cb.isChecked():
+
+            if self.checkBoxDerivativeX.isChecked():
+                self.checkBoxDerivativeX.setChecked(False)
+            if self.checkBoxDerivativeY.isChecked():
+                self.checkBoxDerivativeY.setChecked(False)
+
+            self.z_backupz = self.z
+            self.z = np.sqrt(np.gradient(self.z, self.x, axis=0)**2. + np.gradient(self.z, self.y, axis=1)**2.)
+        else: 
+            self.z = self.z_backupz
+
+        self.updateImageItem(self.x, self.y, self.z)
+
 
 
 
