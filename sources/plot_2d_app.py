@@ -119,6 +119,8 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.checkBoxMaximum.stateChanged.connect(self.checkBoxExtractionState)
         self.checkBoxMinimum.stateChanged.connect(self.checkBoxExtractionState)
         self.checkBoxSwapxy.stateChanged.connect(self.checkBoxSwapxyState)
+        self.checkBoxSubtractAverageX.stateChanged.connect(lambda : self.checkBoxSubtractAverageXState(self.checkBoxSubtractAverageX))
+        self.checkBoxSubtractAverageY.stateChanged.connect(lambda : self.checkBoxSubtractAverageYState(self.checkBoxSubtractAverageY))
 
         # Add fitting function to the GUI
         self.initFitGUI()
@@ -494,6 +496,45 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                     # which will remove the associated infiniteLine
                     else:
                         self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
+
+
+
+    ####################################
+    #
+    #           Subtraction
+    #
+    ####################################
+
+
+
+    def checkBoxSubtractAverageXState(self, cb):
+        """
+        Handle events when user wants to subtract average alon x axis
+        """
+        
+        if cb.isChecked():
+            self.averageX = np.mean(self.z, axis=0)
+            self.z -= self.averageX
+        else: 
+            self.z += self.averageX
+
+        self.updateImageItem(self.x, self.y, self.z)
+
+
+
+    def checkBoxSubtractAverageYState(self, cb):
+        """
+        Handle events when user wants to subtract average alon x axis
+        """
+        
+        if cb.isChecked():
+            self.averageY = np.mean(self.z, axis=1)
+            self.z = (self.z.T -self.averageY).T
+        else: 
+            self.z = (self.z.T +self.averageY).T
+
+        self.updateImageItem(self.x, self.y, self.z)
+
 
 
     ####################################
