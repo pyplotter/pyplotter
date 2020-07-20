@@ -30,7 +30,7 @@ class ImportDatabaseSignal(QtCore.QObject):
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
     # Signal used to add a row in the database table
-    addRow = QtCore.pyqtSignal(str, dict, str)
+    addRow = QtCore.pyqtSignal(str, str, dict, str)
 
 
 
@@ -78,8 +78,8 @@ class ImportDatabaseThread(QtCore.QRunnable):
         # Catch error at the open of a db
         try:
             qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
-        except:
-            self.signals.setStatusBarMessage.emit("Can't load database", True)
+        except Exception as e:
+            self.signals.setStatusBarMessage.emit("Can't load database: "+str(e), True)
             return
 
 
@@ -93,7 +93,8 @@ class ImportDatabaseThread(QtCore.QRunnable):
         for ds in datasets: 
 
             info = self.get_ds_info(ds, get_structure=False)
-            self.signals.addRow.emit(str(ds.run_id), info, self.nbTotalRun)
+            nbIndependentParameter = str(len(ds.get_parameters()) - len(ds.dependent_parameters))
+            self.signals.addRow.emit(str(ds.run_id), nbIndependentParameter, info, self.nbTotalRun)
 
         # Signal that the whole database has been looked at
         self.signals.done.emit()

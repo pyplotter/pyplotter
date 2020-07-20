@@ -841,6 +841,19 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
+    def open_conn_database(self, databasePath):
+        """
+        Wrapper arround QCoDeS functions to opendatabase.
+        You just want to catch error to avoid the plotter to crash
+        """
+
+        try:
+            qc.initialise_or_create_database_at(databasePath)
+        except Exception as e:
+            self.setStatusBarMessage("Can't load database: "+str(e), True)
+
+
+
     # From plottr
     def _get_names_of_standalone_parameters(self, paramspecs: List['ParamSpec']
                                             ) -> Set[str]:
@@ -934,7 +947,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
 
         if refresh_db:
-            qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
+            self.open_conn_database(os.path.join(self.currentPath, self.currentDatabase))
         datasets = sorted(
         chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
         key=attrgetter('run_id'))
