@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import QtGui, QtCore
 import numpy as np
 import datetime
 import pyqtgraph as pg

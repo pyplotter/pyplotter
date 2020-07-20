@@ -7,7 +7,6 @@ from itertools import chain
 from operator import attrgetter
 
 
-from MyTableWidgetItem import MyTableWidgetItem
 
 def trap_exc_during_debug(*args):
     # when app raises uncaught exception, print info

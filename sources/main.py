@@ -3,11 +3,10 @@ from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
 import os
 import numpy as np
 import pandas as pd
-import tempfile
 import sys 
 import qcodes as qc
 from itertools import chain
-from pprint import pformat 
+from pprint import pformat
 from typing import Dict, List, Set
 from operator import attrgetter
 sys.path.append('ui')
