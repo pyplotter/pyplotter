@@ -9,7 +9,7 @@ config = {
 # Default display path, should be at least the root
 'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
 'authorized_setup' : ['bluelagoon'],
-'authorized_extension' : ['db'],
+'authorized_extension' : ['db', 'csv'], # Others file will not appear in the plotter
 
 # Authorized OpenGL
 'pyqtgraphOpenGL' : True,

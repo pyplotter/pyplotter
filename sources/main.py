@@ -206,7 +206,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                     self.listWidgetFolder.addItem(item)
             # If files
             else:
-                if file_extension in config['authorized_extension']:
+                if file_extension.lower() in config['authorized_extension']:
 
                     # We look if the file is already opened by someone else
                     already_opened = False
@@ -262,8 +262,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             elif os.path.isdir(nextPath):
                 self.statusBar.showMessage('Update')
                 self.folderClicked(directory=nextPath)
-                self.statusBar.showMessage('Ready')
-            # If it is a database
+                self.statusBar.showMessage('Ready')\
+            # If it is a CSV file
+            elif nextPath[-3:].lower() == 'csv':
+
+                self.csvFileClicked(nextPath)
+            # If it is a QCoDeS database
             else:
                 
                 self.dataBaseClicked()
@@ -276,6 +280,146 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # When the signal has been called at least once
         if not self.guiInitialized:
             self.guiInitialized = True
+
+
+
+    ###########################################################################
+    #
+    #
+    #                           VNA csv browsing
+    #
+    #
+    ###########################################################################
+
+
+
+    def csvFileClicked(self, filePath:str) -> None :
+        """
+        Call when user click on a csv file in the listWidgetFolder.
+        Load the csv file and display its information in the tableWidgetParameters.
+        """
+        
+        
+        self.setStatusBarMessage('Loading csv file')
+
+        # Get the file name
+        fileName = os.path.basename(os.path.normpath(filePath))
+
+        ## Update label
+        self.labelCurrentRun.setText('csv: '+fileName[:-4])
+        self.labelPlotTypeCurrent.setText('1d')
+
+
+        ## Fill the tableWidgetParameters with the run parameters
+
+        # When we fill the table, we need to check if there is already
+        # a plotWindow of that file opened.
+        # If it is the case, we need to checked the checkBox which are plotted
+        # in the plotWindow.
+        # Our aim is then to get the list of the checkBox which has to be checked.
+        checkedDependents = []
+        # If a plotWindow is already open
+        if len(self._refs) > 0:
+            # We iterate over all plotWindow
+            for key, val in self._refs.items():
+                # For 1d plot window
+                if self.getPlotWindowType(key) == '1d':
+                    if self.currentDatabase == val['plot'].windowTitle:
+                        checkedDependents = val['plot'].curves.keys()
+
+
+        # Clean GUI
+        self.tableWidgetDataBase.setSortingEnabled(False)
+        self.tableWidgetDataBase.setRowCount(0)
+        self.tableWidgetDataBase.setSortingEnabled(True)
+
+        self.tableWidgetParameters.setSortingEnabled(False)
+        self.tableWidgetParameters.setRowCount(0)
+        self.tableWidgetParameters.setSortingEnabled(True)
+        
+        self.textEditMetadata.clear()
+
+
+
+        ## File parameters table
+
+
+        f = open(filePath, 'r')
+        # Get the comment character
+        c = f.readline()[0]
+        f.close()
+
+        try:
+            df = pd.read_csv(filePath, comment=c)
+        except Exception as e:
+            self.setStatusBarMessage("Can't open CSV file: "+str(e), error=True)
+            return
+
+        independentParameter = df.columns[0]
+        i = 1
+        for column in df.columns[1:]:
+            
+            rowPosition = self.tableWidgetParameters.rowCount()
+            self.tableWidgetParameters.insertRow(rowPosition)
+
+            cb = QtWidgets.QCheckBox()
+
+            # We check if that parameter is already plotted
+            if column in checkedDependents:
+                cb.setChecked(True)
+
+            self.tableWidgetParameters.setCellWidget(rowPosition, 0, cb)
+            self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(column))
+            self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(independentParameter))
+
+            # Each checkbox at its own event attached to it
+            cb.toggled.connect(lambda cb=cb,
+                                    column=i,
+                                    dataFrame=df,
+                                    plotRef=self.getPlotTitle(): self.csvParameterClicked(cb, column, dataFrame, plotRef))
+            
+            i += 1
+
+
+        self.setStatusBarMessage('Ready')
+
+
+
+    def csvParameterClicked(self, cb : QtWidgets.QCheckBox,
+                                  column : int,
+                                  dataFrame : pd.DataFrame,
+                                  plotRef : str) -> None:
+        """
+        Call when user click on a pameter from a csv file in the tableWidgetParameters.
+        Launch a plot if user check a parameter and remove curve otherwise.
+        """
+        
+        yLabel = dataFrame.columns[column]
+        if cb:
+
+            # Reference
+            if plotRef in self._refs:
+                self._refs[plotRef]['nbCurve'] += 1
+            else:
+                self._refs[plotRef] = {'nbCurve': 1}
+
+
+            self.setStatusBarMessage('Launching 1D plot')
+            self.startPlotting(plotRef=plotRef,
+                                data=(dataFrame[dataFrame.columns[0]], dataFrame[yLabel]),
+                                xLabel=dataFrame.columns[0],
+                                yLabel=yLabel)
+            
+        else:
+            # We are dealing with 1d plot
+            # If there is more than one curve, we remove one curve
+            if self._refs[plotRef]['nbCurve'] > 1:
+                self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
+                self._refs[plotRef]['nbCurve'] -= 1
+            # If there is one curve we close the plot window
+            else:
+                self._refs[plotRef]['plot'].o()
+                del(self._refs[plotRef])
 
 
 
@@ -1029,6 +1173,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # If BlueFors log files
         if self.isBlueForsFolder(self.currentDatabase):
             return self.currentDatabase
+        # If csv files we return the filename without the extension
+        elif self.currentDatabase[-3:].lower()=='csv':
+            return self.currentDatabase[:-4]
         else:
             title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
             title = '/'.join(title)+'<br>'+str(self.getRunId())+' - '+self.getRunExperiment()
