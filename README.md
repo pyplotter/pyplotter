@@ -14,6 +14,7 @@ You need QCodes to be installed and also the following libraries:
 
 ```bash
 conda install pyqtgraph pandas pyopengl
+conda install -c conda-forge  scikit-rf
 pip install lmfit
 ```
 
