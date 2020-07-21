@@ -215,7 +215,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                         if subfile==file[:-2]+'db-wal':
                             already_opened = True
 
-                    if already_opened:
+                    if file_extension.lower() == 'csv':
+                        item =  QtGui.QListWidgetItem(file)
+                        item.setIcon(QtGui.QIcon('ui/pictures/csv.png'))
+                    elif file_extension.lower() == 's2p':
+                        item =  QtGui.QListWidgetItem(file)
+                        item.setIcon(QtGui.QIcon('ui/pictures/s2p.png'))
+                    elif already_opened:
                         item =  QtGui.QListWidgetItem(file)
                         item.setIcon(QtGui.QIcon('ui/pictures/fileOpened.png'))
                         item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
