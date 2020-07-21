@@ -752,10 +752,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         self.setStatusBarMessage('Loading run parameters')
 
+        ds = qc.load_by_id(int(self.getRunId()))
+
         ## Update label
         self.labelCurrentRun.setText(str(self.getRunId()))
         self.labelCurrentMetadata.setText(str(self.getRunId()))
-        nbIndependentParameter = self.getNbIndependentParameters()
+        nbIndependentParameter = self.getNbIndependentParameters(ds)
         self.labelPlotTypeCurrent.setText(str(nbIndependentParameter)+'d')
 
 
@@ -819,7 +821,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         ## Fill the listWidgetMetada with the station snapshot
         self.textEditMetadata.clear()
-        ds = qc.load_by_id(int(self.getRunId()))
         self.textEditMetadata.setText(pformat(ds.snapshot).replace('{', '').replace('}', '').replace("'", ''))
 
 
@@ -1108,7 +1109,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         if get_structure:
             ret['structure'] = get_ds_structure(ds)
 
-        ret['records'] = ds.number_of_results
+        try:
+            ret['records'] = ds.number_of_results
+        except:
+            ret['records'] = None
+
 
         return ret
 
@@ -1303,7 +1308,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             # We get which open plot window is the liveplot one
             livePlotRef = self.getLivePlotRef()
             
-            if self.getPlotWindowType(livePlotRef) == '1d':
+            # If there is no live plot, because user closed it/them for example
+            # We relaunch a live plot of the first parameters
+            if livePlotRef is None:
+                self.parameterCellClicked(0,0)
+            
+            # If the live plot is a 1d plot
+            elif self.getPlotWindowType(livePlotRef) == '1d':
                 
                 # We get which parameters has to be updated
                 for row in range(self.tableWidgetParameters.rowCount()):
@@ -1321,6 +1332,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                                         curveLegend=None,
                                                         autoRange=True)
 
+            # If the live plot is a 2d plot
             else:
                 # We get which parameters has to be updated
                 for row in range(self.tableWidgetParameters.rowCount()):
