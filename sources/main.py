@@ -3,12 +3,13 @@ from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
 import os
 import numpy as np
 import pandas as pd
-import sys 
 import qcodes as qc
+from skrf import Touchstone # To easily read s2p file
 from itertools import chain
 from pprint import pformat
 from typing import Dict, List, Set
 from operator import attrgetter
+import sys 
 sys.path.append('ui')
 sys.path.append('sources')
 
@@ -263,8 +264,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 self.statusBar.showMessage('Update')
                 self.folderClicked(directory=nextPath)
                 self.statusBar.showMessage('Ready')\
-            # If it is a CSV file
-            elif nextPath[-3:].lower() == 'csv':
+            # If it is a csv or a s2p file
+            elif nextPath[-3:].lower() in ['csv', 's2p']:
 
                 self.csvFileClicked(nextPath)
             # If it is a QCoDeS database
@@ -300,13 +301,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
         
         
-        self.setStatusBarMessage('Loading csv file')
+        self.setStatusBarMessage('Loading '+filePath[-3:].lower()+' file')
 
         # Get the file name
         fileName = os.path.basename(os.path.normpath(filePath))
 
         ## Update label
-        self.labelCurrentRun.setText('csv: '+fileName[:-4])
+        self.labelCurrentRun.setText(filePath[-3:].lower()+': '+fileName[:-4])
         self.labelPlotTypeCurrent.setText('1d')
 
 
@@ -343,21 +344,47 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         ## File parameters table
 
+        # csv file
+        if filePath[-3:].lower()=='csv':
 
-        f = open(filePath, 'r')
-        # Get the comment character
-        c = f.readline()[0]
-        f.close()
+            try:
 
-        try:
-            df = pd.read_csv(filePath, comment=c)
-        except Exception as e:
-            self.setStatusBarMessage("Can't open CSV file: "+str(e), error=True)
-            return
+                f = open(filePath, 'r')
+                # Get the comment character
+                c = f.readline()[0]
+                f.close()
 
-        independentParameter = df.columns[0]
+                df = pd.read_csv(filePath, comment=c)
+                independentParameter = df.columns[0]
+                columnsName = df.columns[1:]
+                x = df.values[:,0]
+                ys = df.values.T[1:]
+            except Exception as e:
+                fname = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+                nbLine = sys.exc_info()[2].tb_lineno
+                exc_type = sys.exc_info()[0].__name__ 
+                self.setStatusBarMessage("Can't open csv file: "+str(exc_type)+", "+str(e)+". File "+str(fname)+", line"+str(nbLine), error=True)
+                return
+        # s2p file
+        else:
+
+            try:
+                ts = Touchstone(filePath)
+                self.textEditMetadata.setText(ts.get_comments())
+                independentParameter = 'Frequency'
+                columnsName = list(ts.get_sparameter_data('db').keys())[1:]
+                x = ts.get_sparameter_data('db')['frequency']
+                ys = [ts.get_sparameter_data('db')[i] for i in list(ts.get_sparameter_data('db').keys())[1:]]
+            except Exception as e:
+                fname = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
+                nbLine = sys.exc_info()[2].tb_lineno
+                exc_type = sys.exc_info()[0].__name__ 
+                self.setStatusBarMessage("Can't open s2p file: "+str(exc_type)+", "+str(e)+". File "+str(fname)+", line"+str(nbLine), error=True)
+                return
+
+
         i = 1
-        for column in df.columns[1:]:
+        for columnName, y in zip(columnsName, ys):
             
             rowPosition = self.tableWidgetParameters.rowCount()
             self.tableWidgetParameters.insertRow(rowPosition)
@@ -365,18 +392,19 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             cb = QtWidgets.QCheckBox()
 
             # We check if that parameter is already plotted
-            if column in checkedDependents:
+            if columnName in checkedDependents:
                 cb.setChecked(True)
 
             self.tableWidgetParameters.setCellWidget(rowPosition, 0, cb)
-            self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(column))
+            self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(columnName))
             self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(independentParameter))
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda cb=cb,
-                                    column=i,
-                                    dataFrame=df,
-                                    plotRef=self.getPlotTitle(): self.csvParameterClicked(cb, column, dataFrame, plotRef))
+                                    xLabel=independentParameter,
+                                    yLabel=columnName,
+                                    data=(x, y),
+                                    plotRef=filePath: self.csvParameterClicked(cb, xLabel, yLabel, data, plotRef))
             
             i += 1
 
@@ -386,15 +414,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
     def csvParameterClicked(self, cb : QtWidgets.QCheckBox,
-                                  column : int,
-                                  dataFrame : pd.DataFrame,
+                                  xLabel : str,
+                                  yLabel : str,
+                                  data : tuple,
                                   plotRef : str) -> None:
         """
         Call when user click on a pameter from a csv file in the tableWidgetParameters.
         Launch a plot if user check a parameter and remove curve otherwise.
         """
         
-        yLabel = dataFrame.columns[column]
         if cb:
 
             # Reference
@@ -406,8 +434,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
             self.setStatusBarMessage('Launching 1D plot')
             self.startPlotting(plotRef=plotRef,
-                                data=(dataFrame[dataFrame.columns[0]], dataFrame[yLabel]),
-                                xLabel=dataFrame.columns[0],
+                                data=data,
+                                xLabel=xLabel,
                                 yLabel=yLabel)
             
         else:
@@ -1173,8 +1201,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # If BlueFors log files
         if self.isBlueForsFolder(self.currentDatabase):
             return self.currentDatabase
-        # If csv files we return the filename without the extension
-        elif self.currentDatabase[-3:].lower()=='csv':
+        # If csv or s2p files we return the filename without the extension
+        elif self.currentDatabase[-3:].lower() in ['csv', 's2p']:
             return self.currentDatabase[:-4]
         else:
             title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
