@@ -330,12 +330,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
         # Clean GUI
-        self.tableWidgetDataBase.setSortingEnabled(False)
-        self.tableWidgetDataBase.setRowCount(0)
+        self.clearTableWidet(self.tableWidgetDataBase)
+        self.clearTableWidet(self.tableWidgetParameters)
         self.tableWidgetDataBase.setSortingEnabled(True)
-
-        self.tableWidgetParameters.setSortingEnabled(False)
-        self.tableWidgetParameters.setRowCount(0)
         self.tableWidgetParameters.setSortingEnabled(True)
         
         self.textEditMetadata.clear()
@@ -505,12 +502,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
         # Clean GUI
-        self.tableWidgetDataBase.setSortingEnabled(False)
-        self.tableWidgetDataBase.setRowCount(0)
+        self.clearTableWidet(self.tableWidgetDataBase)
+        self.clearTableWidet(self.tableWidgetParameters)
         self.tableWidgetDataBase.setSortingEnabled(True)
-
-        self.tableWidgetParameters.setSortingEnabled(False)
-        self.tableWidgetParameters.setRowCount(0)
         self.tableWidgetParameters.setSortingEnabled(True)
         
         self.textEditMetadata.clear()
@@ -668,9 +662,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.labelCurrentDataBase.setText(self.currentDatabase[:-3])
 
         # Remove all previous row in the table
-        self.tableWidgetDataBase.setSortingEnabled(False)
-        self.tableWidgetDataBase.setRowCount(0)
-        self.tableWidgetDataBase.setSortingEnabled(True)
+        self.clearTableWidet(self.tableWidgetDataBase)
 
         # Add a progress bar in the statusbar
         self.progressBar = QtWidgets.QProgressBar(self)
@@ -723,6 +715,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         """
         Called when the database table has been filled
         """
+
+        self.tableWidgetDataBase.setSortingEnabled(True)
 
         # Enable live plot
         self.checkBoxLivePlot.setEnabled(True)
@@ -792,9 +786,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # Get parameters list without the independent parameters
         params = qc.load_by_id(int(self.getRunId())).get_parameters()[nbIndependentParameter:]
 
-        self.tableWidgetParameters.setSortingEnabled(False)
-        self.tableWidgetParameters.setRowCount(0)
-        self.tableWidgetParameters.setSortingEnabled(True)
+        self.clearTableWidet(self.tableWidgetParameters)
         for param in params:
             rowPosition = self.tableWidgetParameters.rowCount()
 
@@ -818,6 +810,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                       plotRef=self.getPlotTitle(): self.parameterClicked(cb, row, plotRef))
         
 
+        self.tableWidgetParameters.setSortingEnabled(True)
 
         ## Fill the listWidgetMetada with the station snapshot
         self.textEditMetadata.clear()
@@ -930,6 +923,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     #
     #
     ###########################################################################
+
+
+
+    @staticmethod
+    def clearTableWidet(tableWidget : QtWidgets.QTableWidget) -> None:
+        """
+        Method to remove all row from a table widget.
+        When this function is called, it should be followed by:
+        tableWidget.setSortingEnabled(True)
+        to allowed GUI sorting
+        """
+
+        tableWidget.setSortingEnabled(False)
+        tableWidget.setRowCount(0)
 
 
 
