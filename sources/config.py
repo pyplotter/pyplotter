@@ -8,8 +8,9 @@ config = {
 'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
 # Default display path, should be at least the root
 'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
-'authorized_setup' : ['bluelagoon'],
+'authorized_setup' : ['bluelagoon','Cryoconcept', 'RF4K_stick', 'smurf', 'Tritonito'],
 'authorized_extension' : ['db', 'csv', 's2p'], # Others file will not appear in the plotter
+'display_only_authorized_setup' : True, # If False color setup, if true do not display other folder
 
 # Authorized OpenGL
 'pyqtgraphOpenGL' : True,

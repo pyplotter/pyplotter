@@ -201,10 +201,27 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                     item.setIcon(QtGui.QIcon('ui/pictures/bluefors.png'))
                     self.listWidgetFolder.addItem(item)
                 # Other folders
-                else:
-                    item =  QtGui.QListWidgetItem(file)
-                    item.setIcon(QtGui.QIcon('ui/pictures/folder.png'))
-                    self.listWidgetFolder.addItem(item)
+                else:   
+                    # If user wants to only display authorized setup
+                    if config['display_only_authorized_setup']:
+                        # Only setup listed in 'authorized_setup' will be shown
+                        if directory in os.path.normpath(config['path']):
+                            if file in config['authorized_setup']:
+                                item =  QtGui.QListWidgetItem(file)
+                                item.setIcon(QtGui.QIcon('ui/pictures/folderSetup.png'))
+                                self.listWidgetFolder.addItem(item)
+                        else:
+                            item =  QtGui.QListWidgetItem(file)
+                            item.setIcon(QtGui.QIcon('ui/pictures/folder.png'))
+                            self.listWidgetFolder.addItem(item)
+                    # If not the authorized setup will only be colored
+                    else:
+                        item =  QtGui.QListWidgetItem(file)
+                        if file in config['authorized_setup']:
+                            item.setIcon(QtGui.QIcon('ui/pictures/folderSetup.png'))
+                        else:
+                            item.setIcon(QtGui.QIcon('ui/pictures/folder.png'))
+                        self.listWidgetFolder.addItem(item)
             # If files
             else:
                 if file_extension.lower() in config['authorized_extension']:
