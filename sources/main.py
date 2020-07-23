@@ -805,26 +805,28 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def dataBaseClickedDone(self):
+    def dataBaseClickedDone(self, error=False):
         """
         Called when the database table has been filled
         """
 
-        self.tableWidgetDataBase.setSortingEnabled(True)
-
-        # Enable live plot
-        self.checkBoxLivePlot.setEnabled(True)
-        self.spinBoxLivePlot.setEnabled(True)
-        self.labelLivePlot.setEnabled(True)
-        self.labelLivePlot2.setEnabled(True)
-        self.labelLivePlotDataBase.setEnabled(True)
-        self.labelLivePlotDataBase.setText(self.currentDatabase[:-3])
-
-        # Enable database interaction
-        self.checkBoxHidden.setEnabled(True)
-
         self.statusBar.removeWidget(self.progressBar)
-        self.setStatusBarMessage('Ready')
+        
+        if not error:
+            self.tableWidgetDataBase.setSortingEnabled(True)
+
+            # Enable live plot
+            self.checkBoxLivePlot.setEnabled(True)
+            self.spinBoxLivePlot.setEnabled(True)
+            self.labelLivePlot.setEnabled(True)
+            self.labelLivePlot2.setEnabled(True)
+            self.labelLivePlotDataBase.setEnabled(True)
+            self.labelLivePlotDataBase.setText(self.currentDatabase[:-3])
+
+            # Enable database interaction
+            self.checkBoxHidden.setEnabled(True)
+
+            self.setStatusBarMessage('Ready')
 
 
 
@@ -1238,6 +1240,23 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
+    def get_ds(self) -> list: 
+        """
+        Return the list of datasets contained in the current database.
+        """
+
+        try :
+            datasets = sorted(
+                chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
+                key=attrgetter('run_id'))
+        except:
+            self.setStatusBarMessage("Can't read database", error=True)
+            datasets = []
+
+        return  datasets
+
+
+
     def getNbTotalRun(self, refresh_db=False):
         """
         Return the total number of run in current database
@@ -1245,11 +1264,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         if refresh_db:
             self.open_conn_database(os.path.join(self.currentPath, self.currentDatabase))
-        datasets = sorted(
-        chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-        key=attrgetter('run_id'))
 
-        return len(datasets)
+        return len(self.get_ds())
 
 
 
@@ -1295,9 +1311,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         if self.livePlotMode:
 
-            datasets = sorted(
-            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-            key=attrgetter('run_id'))
+            datasets = self.get_ds()
             
             info = self.get_ds_info(datasets[-1], get_structure=False)
             return info['experiment']
@@ -1343,9 +1357,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         if self.livePlotMode:
 
-            datasets = sorted(
-            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-            key=attrgetter('run_id'))
+            datasets = self.get_ds()
             
             info = self.get_ds_info(datasets[-1], get_structure=False)
             return info['completed date']+' '+info['completed date']
