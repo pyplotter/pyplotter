@@ -55,6 +55,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         # Connect event
         self.tableWidgetDataBase.currentCellChanged.connect(self.runClicked)
+        self.tableWidgetDataBase.doubleClicked.connect(self.runDoubleClicked)
         self.tableWidgetDataBase.keyPressed.connect(self.tableWidgetDataBasekeyPress)
         self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
         
@@ -831,6 +832,22 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
+    def runDoubleClicked(self):
+        """
+        Called when user double click on the database table.
+        Display the measured dependent parameters in the table Parameters.
+        Simulate the user clicking on the first dependent parameter, effectively
+        launching its plot.
+        """
+
+        # We simulate a single click
+        self.runClicked()
+
+        # We click on the first parameter, which will launch a plot
+        self.parameterCellClicked(0, 0)
+
+
+
     def runClicked(self):
         """
         When clicked display the measured dependent parameters in the 
@@ -1522,6 +1539,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 # We update the database to display the completed and records info
                 self.dataBaseClicked()
+
 
 
     def livePlotToggle(self):
