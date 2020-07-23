@@ -130,12 +130,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                                                     caption='Open folder',
                                                                     directory=os.getcwd(),
                                                                     options=QtWidgets.QFileDialog.ReadOnly|QtWidgets.QFileDialog.ShowDirsOnly)
+        if self.currentPath != '':
+            # Set config parameter accordingly
+            config['path'] = os.path.abspath(self.currentPath)
+            config['root'] = os.path.splitdrive(self.currentPath)[0]
 
-        # Set config parameter accordingly
-        config['path'] = os.path.abspath(self.currentPath)
-        config['root'] = os.path.splitdrive(self.currentPath)[0]
-
-        self.folderClicked(directory=self.currentPath)
+            self.folderClicked(directory=self.currentPath)
 
 
 
