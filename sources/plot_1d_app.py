@@ -386,7 +386,8 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                                         xLabel='1/'+self.plotItem.axes['bottom']['item'].labelText,
                                         yLabel=text.upper()+'( '+self.selectedLabel+' )',
                                         windowTitle=self.windowTitle+' - '+text.upper(),
-                                        cleanCheckBox=self.cleanCheckBox('ploploplo'),
+                                        runId=1,
+                                        cleanCheckBox=self.cleanCheckBox,
                                         linkedTo2dPlot=False,
                                         curveId=text.upper()+'( '+self.selectedLabel+' )',
                                         curveLegend=None,
@@ -700,7 +701,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-def new1dplot(x, y, title, xLabel, yLabel, windowTitle, cleanCheckBox,
+def new1dplot(x, y, title, xLabel, yLabel, windowTitle, runId, cleanCheckBox,
                 linkedTo2dPlot=False, curveId=None, curveLegend=None, parent=None):
 
     
@@ -710,9 +711,9 @@ def new1dplot(x, y, title, xLabel, yLabel, windowTitle, cleanCheckBox,
                   xLabel         = xLabel,
                   yLabel         = yLabel,
                   windowTitle    = windowTitle,
+                  runId          = runId,
                   cleanCheckBox  = cleanCheckBox,
                   curveId        = curveId)
-
     p.show()
 
     return p
