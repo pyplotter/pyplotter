@@ -206,8 +206,6 @@ class RunPropertiesExtra:
 
 
 
-
-
     def tableWidgetDataBasekeyPress(self, key : str, row : int) -> None:
         """
         Call when user presses a key while having the focus on the database table.
@@ -245,9 +243,9 @@ class RunPropertiesExtra:
                 # If the database does not contain stared run anymore, we modify
                 # its icon
                 if len(self.getRunStared())==0:
-                    for i in range(self.listWidgetFolder.count()):
-                        if self.currentDatabase == self.listWidgetFolder.item(i).text():
-                            self.listWidgetFolder.item(i).setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
+                    for row in range(self.tableWidgetFolder.rowCount()):
+                        if self.currentDatabase == self.tableWidgetFolder.item(row, 0).text():
+                            self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
 
             # If the user wants to stared the run
             else:
@@ -262,9 +260,9 @@ class RunPropertiesExtra:
                 self.jsonAddStaredRun(runId)
 
                 # If the database containing the stared run is displayed, we star it
-                for i in range(self.listWidgetFolder.count()):
-                    if self.currentDatabase == self.listWidgetFolder.item(i).text():
-                        self.listWidgetFolder.item(i).setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
+                for row in range(self.tableWidgetFolder.rowCount()):
+                    if self.currentDatabase == self.tableWidgetFolder.item(row, 0).text():
+                        self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
 
 
 

@@ -45,16 +45,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         
         # Connect UI
-        self.listWidgetFolder.clicked.connect(self.itemClicked)
+        self.tableWidgetFolder.clicked.connect(self.itemClicked)
         self.pushButtonOpenFolder.clicked.connect(self.openFolderClicked)
         
         # Resize the cell to the column content automatically
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.tableWidgetParameters.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.tableWidgetFolder.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+
         # Connect event
         self.tableWidgetDataBase.currentCellChanged.connect(self.runClicked)
         self.tableWidgetDataBase.keyPressed.connect(self.tableWidgetDataBasekeyPress)
-
         self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
         
         self.checkBoxLivePlot.toggled.connect(self.livePlotToggle)
@@ -190,11 +191,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         databaseStared = self.getDatabaseStared()
 
         ## Display the current dir content
-        self.listWidgetFolder.clear()
+        self.clearTableWidet(self.tableWidgetFolder)
+        self.tableWidgetFolder.setSortingEnabled(True)
+        row = 0
         for file in sorted(os.listdir(self.currentPath), reverse=True): 
             
             abs_filename = os.path.join(self.currentPath, file)
             file_extension = os.path.splitext(abs_filename)[-1][1:]
+
+            
+            
 
             # Only display folder and Qcodes database
             # Add icon depending of the item type
@@ -204,9 +210,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 
                 # If looks like a BlueFors log folder
                 if self.isBlueForsFolder(file):
-                    item =  QtGui.QListWidgetItem(file)
+                    item =  QtGui.QTableWidgetItem(file)
                     item.setIcon(QtGui.QIcon('ui/pictures/bluefors.png'))
-                    self.listWidgetFolder.addItem(item)
+
+                    self.tableWidgetFolder.insertRow(row)
+                    self.tableWidgetFolder.setItem(row, 0, item)
+                    row += 1
                 # Other folders
                 else:   
                     # If user wants to only display authorized setup
@@ -214,24 +223,32 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                         # Only setup listed in 'authorized_setup' will be shown
                         if directory in os.path.normpath(config['path']):
                             if file in config['authorized_setup']:
-                                item =  QtGui.QListWidgetItem(file)
+                                item =  QtGui.QTableWidgetItem(file)
                                 item.setIcon(QtGui.QIcon('ui/pictures/folderSetup.png'))
-                                self.listWidgetFolder.addItem(item)
+                                self.tableWidgetFolder.insertRow(row)
+                                self.tableWidgetFolder.setItem(row, 0, item)
+                                row += 1
+
                         else:
-                            item =  QtGui.QListWidgetItem(file)
+                            item =  QtGui.QTableWidgetItem(file)
                             item.setIcon(QtGui.QIcon('ui/pictures/folder.png'))
-                            self.listWidgetFolder.addItem(item)
+                            self.tableWidgetFolder.insertRow(row)
+                            self.tableWidgetFolder.setItem(row, 0, item)
+                            row += 1
                     # If not the authorized setup will only be colored
                     else:
-                        item =  QtGui.QListWidgetItem(file)
+                        item =  QtGui.QTableWidgetItem(file)
                         if file in config['authorized_setup']:
                             item.setIcon(QtGui.QIcon('ui/pictures/folderSetup.png'))
                         else:
                             item.setIcon(QtGui.QIcon('ui/pictures/folder.png'))
-                        self.listWidgetFolder.addItem(item)
+                        self.tableWidgetFolder.insertRow(row)
+                        self.tableWidgetFolder.setItem(row, 0, item)
+                        row += 1
             # If files
             else:
                 if file_extension.lower() in config['authorized_extension']:
+                    
 
                     # We look if the file is already opened by someone else
                     already_opened = False
@@ -240,27 +257,34 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                             already_opened = True
 
                     if file_extension.lower() == 'csv':
-                        item =  QtGui.QListWidgetItem(file)
+                        item =  QtGui.QTableWidgetItem(file)
                         item.setIcon(QtGui.QIcon('ui/pictures/csv.png'))
                     elif file_extension.lower() == 's2p':
-                        item =  QtGui.QListWidgetItem(file)
+                        item =  QtGui.QTableWidgetItem(file)
                         item.setIcon(QtGui.QIcon('ui/pictures/s2p.png'))
                     elif already_opened and file in databaseStared:
-                        item =  QtGui.QListWidgetItem(file)
+                        item =  QtGui.QTableWidgetItem(file)
                         item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
                         item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
                     elif already_opened:
-                        item =  QtGui.QListWidgetItem(file)
+                        item =  QtGui.QTableWidgetItem(file)
                         item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
                         item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
                     elif file in databaseStared:
-                        item =  QtGui.QListWidgetItem(file)
+                        item =  QtGui.QTableWidgetItem(file)
                         item.setIcon(QtGui.QIcon('ui/pictures/databaseStared.png'))
                     else:
-                        item =  QtGui.QListWidgetItem(file)
+                        item =  QtGui.QTableWidgetItem(file)
                         item.setIcon(QtGui.QIcon('ui/pictures/database.png'))
-                    self.listWidgetFolder.addItem(item)
-                
+                    self.tableWidgetFolder.insertRow(row)
+                    self.tableWidgetFolder.setItem(row, 0, item)
+                    
+                    # Get file size in hman readable format
+                    fileSizeItem = QtGui.QTableWidgetItem(self.sizeof_fmt(os.path.getsize(abs_filename)))
+                    fileSizeItem.setTextAlignment(QtCore.Qt.AlignRight)
+                    self.tableWidgetFolder.setItem(row, 1, fileSizeItem)
+                    row += 1
+                    
 
         # Disable live plot
         self.checkBoxLivePlot.setEnabled(False)
@@ -288,7 +312,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
             # Get current item
-            self.currentDatabase = self.listWidgetFolder.currentItem().text()
+            currentRow = self.tableWidgetFolder.currentIndex().row()
+            self.currentDatabase =  self.tableWidgetFolder.model().index(currentRow, 0).data()
 
             nextPath = os.path.join(self.currentPath, self.currentDatabase)
 
@@ -333,7 +358,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
     def csvFileClicked(self, filePath:str) -> None :
         """
-        Call when user click on a csv file in the listWidgetFolder.
+        Call when user click on a csv file in the tableWidgetFolder.
         Load the csv file and display its information in the tableWidgetParameters.
         """
         
@@ -695,10 +720,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # We show the database is now opened
         if self.isDatabaseStared():
 
-            item = self.listWidgetFolder.currentItem()
+            currentRow = self.tableWidgetFolder.currentIndex().row()
+            item = self.tableWidgetFolder.item(currentRow, 0)
             item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
         else:
-            item = self.listWidgetFolder.currentItem()
+            currentRow = self.tableWidgetFolder.currentIndex().row()
+            item = self.tableWidgetFolder.item(currentRow, 0)
             item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
 
         # Get database
@@ -993,6 +1020,21 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     #
     #
     ###########################################################################
+
+
+    
+    @staticmethod
+    def sizeof_fmt(num, suffix='B'):
+        """
+        Return human readable number of Bytes
+        Adapted from:
+        https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+        """
+        for unit in ['','K','M','G','T','P','E','Z']:
+            if abs(num) < 1024.0:
+                return "%3.1f %s%s" % (num, unit, suffix)
+            num /= 1024.0
+        return "%.1f %s%s" % (num, 'Y', suffix)
 
 
 
@@ -1480,7 +1522,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             self.livePlotMode = True
             
             # Disable browsing
-            self.listWidgetFolder.setEnabled(False)
+            self.tableWidgetFolder.setEnabled(False)
             self.tableWidgetDataBase.setEnabled(False)
             widgets = (self.labelPath.itemAt(i).widget() for i in range(self.labelPath.count())) 
             for widget in widgets:
@@ -1498,7 +1540,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             self.livePlotMode = False
 
             # Enable browsing again
-            self.listWidgetFolder.setEnabled(True)
+            self.tableWidgetFolder.setEnabled(True)
             self.tableWidgetDataBase.setEnabled(True)
             widgets = (self.labelPath.itemAt(i).widget() for i in range(self.labelPath.count())) 
             for widget in widgets:
