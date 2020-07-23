@@ -7,10 +7,10 @@ import sys
 sys.path.append('../ui')
 
 import plot1d
-from config import config
-from plot_app import PlotApp
-import fit
-from DateAxisItem import DateAxisItem
+from sources.config import config
+from sources.plot_app import PlotApp
+import sources.fit as fit
+from sources.DateAxisItem import DateAxisItem
 
 
 

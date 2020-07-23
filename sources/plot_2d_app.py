@@ -4,15 +4,15 @@ import numpy as np
 import pyqtgraph as pg
 import inspect
 import uuid
-import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
 import sys
 sys.path.append('../ui')
 
 import plot2d
-from plot_app import PlotApp
-from plot_1d_app import Plot1dApp
-from config import config
-import fit
+import sources.palettes as palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
+from sources.plot_app import PlotApp
+from sources.plot_1d_app import Plot1dApp
+from sources.config import config
+import sources.fit as fit
 
 
 

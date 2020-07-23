@@ -18,6 +18,12 @@ config = {
 # Live plot
 'livePlotTimer' : 1, # In second
 
+# Interactivity
+'keyPressedStared' : 's', # To star a run
+'keyPressedHide' : 'h', # To hide a run
+'fileNameRunInfo' : 'runinfo', # Will be saved as a hidden json file
+'runStaredColor' : (255, 255, 0),
+'runHiddenColor' : (255, 0, 0),
 
 ## BlueFors
 # Linked file name to plot y axis (x axis being a timestamp)
@@ -49,7 +55,7 @@ config = {
 'dialogWindowSize' : (1.618*500, 500),
 'dialogBackgroundColor'    : '#272822',
 'pyqtgraphBackgroundColor' : '#272822',
-'dialogTextColor'           : '#ffffff',
+'dialogTextColor'          : '#ffffff',
 'pyqtgraphTitleTextColor'  : '#ffffff',
 'pyqtgraphxLabelTextColor' : '#ffffff',
 'pyqtgraphyLabelTextColor' : '#ffffff',
@@ -57,7 +63,6 @@ config = {
 'pyqtgraphxAxisTicksColor' : '#ffffff',
 'pyqtgraphyAxisTicksColor' : '#ffffff',
 'pyqtgraphzAxisTicksColor' : '#ffffff',
-'fileStared' : '#eb272e',
 'sweptParameterSeparator' : " <span style='font-weight: bold; color: #eb272e;'>vs</span> ",
 
 

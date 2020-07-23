@@ -5,10 +5,8 @@ import datetime
 import pyqtgraph as pg
 import pyqtgraph.functions as fn
 import pyqtgraph.debug as debug
-import sys 
-sys.path.append('/daimyo/plotter/ui')
 
-from config import config
+from sources.config import config
 
 class PlotApp(object):
     """

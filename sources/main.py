@@ -11,7 +11,6 @@ from typing import Dict, List, Set
 from operator import attrgetter
 import sys 
 sys.path.append('ui')
-sys.path.append('sources')
 
 # Correct bug with pyqtgraph and python3.8 by replacing function name
 try:
@@ -21,12 +20,13 @@ except AttributeError:
     time.clock = time.process_clock
 
 
-from MyTableWidgetItem import MyTableWidgetItem
-from importDatabase import ImportDatabaseThread
+from sources.runpropertiesextra import RunPropertiesExtra
+from sources.mytablewidgetitem import MyTableWidgetItem
+from sources.importDatabase import ImportDatabaseThread
+from sources.config import config
+from sources.plot_1d_app import Plot1dApp
+from sources.plot_2d_app import Plot2dApp
 from ui import main
-from config import config
-from plot_1d_app import Plot1dApp
-from plot_2d_app import Plot2dApp
 
 pg.setConfigOption('background', config['pyqtgraphBackgroundColor'])
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
@@ -34,7 +34,7 @@ pg.setConfigOption('antialias', config['plot1dAntialias'])
 
 
 
-class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
+class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
@@ -53,12 +53,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.tableWidgetParameters.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         # Connect event
         self.tableWidgetDataBase.currentCellChanged.connect(self.runClicked)
+        self.tableWidgetDataBase.keyPressed.connect(self.tableWidgetDataBasekeyPress)
 
         self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
         
         self.checkBoxLivePlot.toggled.connect(self.livePlotToggle)
         self.spinBoxLivePlot.setValue(int(config['livePlotTimer']))
         self.spinBoxLivePlot.valueChanged.connect(self.livePlotSpinBoxChanged)
+        self.checkBoxHidden.stateChanged.connect(lambda : self.checkBoxHiddenState(self.checkBoxHidden))
 
 
         self.setStatusBarMessage('Ready')
@@ -103,6 +105,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
         self.threadpool = QtCore.QThreadPool()
+
 
 
     ###########################################################################
@@ -181,8 +184,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         self.updateLabelPath()
 
-        
-        # Display the current dir content
+
+        # Load runs extra properties
+        self.jsonLoad()
+        databaseStared = self.getDatabaseStared()
+
+        ## Display the current dir content
         self.listWidgetFolder.clear()
         for file in sorted(os.listdir(self.currentPath), reverse=True): 
             
@@ -238,13 +245,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                     elif file_extension.lower() == 's2p':
                         item =  QtGui.QListWidgetItem(file)
                         item.setIcon(QtGui.QIcon('ui/pictures/s2p.png'))
+                    elif already_opened and file in databaseStared:
+                        item =  QtGui.QListWidgetItem(file)
+                        item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
+                        item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
                     elif already_opened:
                         item =  QtGui.QListWidgetItem(file)
-                        item.setIcon(QtGui.QIcon('ui/pictures/fileOpened.png'))
+                        item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
                         item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
+                    elif file in databaseStared:
+                        item =  QtGui.QListWidgetItem(file)
+                        item.setIcon(QtGui.QIcon('ui/pictures/databaseStared.png'))
                     else:
                         item =  QtGui.QListWidgetItem(file)
-                        item.setIcon(QtGui.QIcon('ui/pictures/file.png'))
+                        item.setIcon(QtGui.QIcon('ui/pictures/database.png'))
                     self.listWidgetFolder.addItem(item)
                 
 
@@ -678,8 +692,21 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         """
 
+        # We show the database is now opened
+        if self.isDatabaseStared():
+
+            item = self.listWidgetFolder.currentItem()
+            item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
+        else:
+            item = self.listWidgetFolder.currentItem()
+            item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
+
         # Get database
         self.setStatusBarMessage('Loading database')
+
+        # Disable interactivity
+        self.checkBoxHidden.setChecked(False)
+        self.checkBoxHidden.setEnabled(False)
 
         # Update label
         self.labelCurrentDataBase.setText(self.currentDatabase[:-3])
@@ -719,11 +746,25 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         if rowPosition==0:
             self.statusBar.clearMessage()
 
-        self.progressBar.setFormat('Get database information: run '+runId+'/'+str(nbTotalRun))
+        self.progressBar.setFormat('Getting database information: run '+runId+'/'+str(nbTotalRun))
         self.progressBar.setValue(int(int(runId)/int(nbTotalRun)*100))
 
+        # If the run has been stared by an user
+        if int(runId) in self.getRunStared():
+            item = MyTableWidgetItem(runId)
+            item.setIcon(QtGui.QIcon('ui/pictures/star.png'))
+            item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runStaredColor'])))
+        # If the user has hidden a row
+        elif int(runId) in self.getRunHidden():
+            item = MyTableWidgetItem(runId)
+            item.setIcon(QtGui.QIcon('ui/pictures/trash.png'))
+            item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
+        else:
+            item = MyTableWidgetItem(runId)
+            item.setIcon(QtGui.QIcon('ui/pictures/empty.png'))
+        
         self.tableWidgetDataBase.insertRow(rowPosition)
-        self.tableWidgetDataBase.setItem(rowPosition, 0, MyTableWidgetItem(runId))
+        self.tableWidgetDataBase.setItem(rowPosition, 0, item)
         self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(nbIndependentParameter+'d'))
         self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(info['experiment']))
         self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(info['sample']))
@@ -731,6 +772,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(info['started date']+' '+info['started time']))
         self.tableWidgetDataBase.setItem(rowPosition, 6, QtGui.QTableWidgetItem(info['completed date']+' '+info['completed time']))
         self.tableWidgetDataBase.setItem(rowPosition, 7, MyTableWidgetItem(str(info['records'])))
+
+        if int(runId) in self.getRunHidden():
+            self.tableWidgetDataBase.setRowHidden(rowPosition, True)
 
 
 
@@ -748,6 +792,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.labelLivePlot2.setEnabled(True)
         self.labelLivePlotDataBase.setEnabled(True)
         self.labelLivePlotDataBase.setText(self.currentDatabase[:-3])
+
+        # Enable database interaction
+        self.checkBoxHidden.setEnabled(True)
 
         self.statusBar.removeWidget(self.progressBar)
         self.setStatusBarMessage('Ready')

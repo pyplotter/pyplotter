@@ -189,10 +189,32 @@
                   </property>
                  </widget>
                 </item>
+                <item>
+                 <widget class="QCheckBox" name="checkBoxHidden">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>90</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Show hidden</string>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </item>
               <item>
-               <widget class="QTableWidget" name="tableWidgetDataBase">
+               <widget class="QTableWidgetKey" name="tableWidgetDataBase">
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
+                </property>
+                <property name="alternatingRowColors">
+                 <bool>true</bool>
+                </property>
                 <property name="selectionBehavior">
                  <enum>QAbstractItemView::SelectRows</enum>
                 </property>
@@ -341,6 +363,18 @@
               </item>
               <item>
                <widget class="QTableWidget" name="tableWidgetParameters">
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
+                </property>
+                <property name="alternatingRowColors">
+                 <bool>true</bool>
+                </property>
+                <property name="selectionBehavior">
+                 <enum>QAbstractItemView::SelectRows</enum>
+                </property>
+                <property name="sortingEnabled">
+                 <bool>true</bool>
+                </property>
                 <column>
                  <property name="text">
                   <string>plotted</string>
@@ -427,6 +461,13 @@
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QTableWidgetKey</class>
+   <extends>QTableWidget</extends>
+   <header location="global">qtablewidgetkey.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
