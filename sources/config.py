@@ -11,6 +11,7 @@ config = {
 'authorized_setup' : ['bluelagoon','Cryoconcept', 'RF4K_stick', 'smurf', 'Tritonito'],
 'authorized_extension' : ['db', 'csv', 's2p'], # Others file will not appear in the plotter
 'display_only_authorized_setup' : True, # If False color setup, if true do not display other folder
+'display_only_db_name_in_plot_title' : False, # If False the path is displayed
 
 # Authorized OpenGL
 'pyqtgraphOpenGL' : True,

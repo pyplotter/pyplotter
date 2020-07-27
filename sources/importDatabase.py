@@ -2,9 +2,8 @@
 from PyQt5 import QtCore
 import sys
 import os
-import qcodes as qc
-from itertools import chain
-from operator import attrgetter
+
+from sources.qcodesdatabase import QcodesDatabase
 
 
 
@@ -29,7 +28,7 @@ class ImportDatabaseSignal(QtCore.QObject):
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
     # Signal used to add a row in the database table
-    addRow = QtCore.pyqtSignal(str, str, dict, str)
+    addRow = QtCore.pyqtSignal(str, str, str, str, str, str, str, str, int)
 
 
 
@@ -37,29 +36,25 @@ class ImportDatabaseSignal(QtCore.QObject):
 class ImportDatabaseThread(QtCore.QRunnable):
 
 
-    def __init__(self, nbTotalRun, currentPath, currentDatabase, get_ds_info):
+    def __init__(self, runInfos, records, experimentInfos):
         """
         Thread used to get all the run info of a database.
         !! Do not import the data !!
 
         Parameters
         ----------
-        nbTotalRun : str
-            Total number of run in the database
         currentPath : str
             CurrentPath attribute of the main thread
         currentDatabase : str
             CurrentDatabase attribute of the main thread
-        get_ds_info : func
-            Method of the main thread to go through the QCoDeS database
         """
 
         super(ImportDatabaseThread, self).__init__()
 
-        self.nbTotalRun           = str(nbTotalRun)
-        self.currentPath          = currentPath
-        self.currentDatabase      = currentDatabase
-        self.get_ds_info          = get_ds_info
+        self.qcodesDatabase  = QcodesDatabase()
+        self.runInfos        = runInfos
+        self.records         = records
+        self.experimentInfos = experimentInfos
         
         self.signals = ImportDatabaseSignal() 
 
@@ -69,32 +64,25 @@ class ImportDatabaseThread(QtCore.QRunnable):
     def run(self):
         """
         Method launched by the worker.
-        Go through the database and send a signal for each new entry.
+        Go through the runs and send a signal for each new entry.
         Each signal is catch by the main thread to add a line in the database
         table displaying all the info of each run.
         """
-        
-        # Catch error at the open of a db
-        try:
-            qc.initialise_or_create_database_at(os.path.join(self.currentPath, self.currentDatabase))
-        except Exception as e:
-            self.signals.setStatusBarMessage.emit("Can't load database: "+str(e), True)
-            self.signals.done.emit(True)
-            return
 
+        nbTotalRun = len(self.runInfos)
 
-        self.signals.setStatusBarMessage.emit('Getting database information', False)
-        datasets = sorted(
-            chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-            key=attrgetter('run_id'))
-        
-        
         # Going through the database here
-        for ds in datasets: 
+        for runInfo, runRecords in zip(self.runInfos, self.records): 
 
-            info = self.get_ds_info(ds, get_structure=False)
-            nbIndependentParameter = str(len(ds.get_parameters()) - len(ds.dependent_parameters))
-            self.signals.addRow.emit(str(ds.run_id), nbIndependentParameter, info, self.nbTotalRun)
+            self.signals.addRow.emit(str(runInfo['run_id']),
+                                     str(self.qcodesDatabase.getNdIndependentFromRow(runInfo))+'d',
+                                     self.experimentInfos[runInfo['exp_id']-1]['name'],
+                                     self.experimentInfos[runInfo['exp_id']-1]['sample_name'],
+                                     runInfo['name'],
+                                     self.qcodesDatabase.timestamp2string(runInfo['run_timestamp']),
+                                     self.qcodesDatabase.timestamp2string(runInfo['completed_timestamp']),
+                                     str(runRecords),
+                                     runInfo['run_id']/nbTotalRun*100)
 
         # Signal that the whole database has been looked at
         self.signals.done.emit(False)

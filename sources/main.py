@@ -5,10 +5,6 @@ import numpy as np
 import pandas as pd
 import qcodes as qc
 from skrf import Touchstone # To easily read s2p file
-from itertools import chain
-from pprint import pformat
-from typing import Dict, List, Set
-from operator import attrgetter
 import sys 
 sys.path.append('ui')
 
@@ -20,6 +16,7 @@ except AttributeError:
     time.clock = time.process_clock
 
 
+from sources.qcodesdatabase import QcodesDatabase
 from sources.runpropertiesextra import RunPropertiesExtra
 from sources.mytablewidgetitem import MyTableWidgetItem
 from sources.importDatabase import ImportDatabaseThread
@@ -104,6 +101,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.livePlotMode       = False
         self.livePlotFetchData  = False
         self.livePlotTimer      = None
+
+
+        # Handle connection and requests to qcodes database
+        self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
 
 
         self.threadpool = QtCore.QThreadPool()
@@ -730,9 +731,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             item = self.tableWidgetFolder.item(currentRow, 0)
             item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
 
-        # Get database
-        self.setStatusBarMessage('Loading database')
-
         # Disable interactivity
         self.checkBoxHidden.setChecked(False)
         self.checkBoxHidden.setEnabled(False)
@@ -743,6 +741,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Remove all previous row in the table
         self.clearTableWidet(self.tableWidgetDataBase)
 
+        # We try to connect to the database
+        self.setStatusBarMessage('Connect to database')
+        connected = self.qcodesDatabase.connectDatabase(os.path.join(self.currentPath, self.currentDatabase))
+        if not connected:
+            return
+
+        # Try to get info from the database
+        self.setStatusBarMessage('Gathered runs infos database')
+        infos = self.qcodesDatabase.getRunInfos()
+        if infos is None:
+            return
+        else:
+            runInfos, records, experimentInfos = infos
+
         # Add a progress bar in the statusbar
         self.progressBar = QtWidgets.QProgressBar(self)
         self.progressBar.setAlignment(QtCore.Qt.AlignCenter)
@@ -751,8 +763,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.statusBar.setSizeGripEnabled(False)
         self.statusBar.addPermanentWidget(self.progressBar)
 
+
+        self.nbTotalRun = len(runInfos)
+        self.setStatusBarMessage('Loading database')
         # Create a thread which will read the database
-        worker = ImportDatabaseThread(self.getNbTotalRun(True), self.currentPath, self.currentDatabase, self.get_ds_info)
+        worker = ImportDatabaseThread(runInfos, records, experimentInfos)
 
         # Connect signals
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
@@ -764,7 +779,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def dataBaseClickedAddRow(self, runId, nbIndependentParameter, info, nbTotalRun):
+    def dataBaseClickedAddRow(self, runId : str,
+                                    dim : str,
+                                    experimentName : str,
+                                    sampleName : str,
+                                    runName : str,
+                                    started : str,
+                                    completed : str,
+                                    runRecords : str,
+                                    progress : int) -> None:
         """
         Called by another thread to fill the database table.
         Each call add one line in the table.
@@ -775,32 +798,33 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if rowPosition==0:
             self.statusBar.clearMessage()
 
-        self.progressBar.setFormat('Getting database information: run '+runId+'/'+str(nbTotalRun))
-        self.progressBar.setValue(int(int(runId)/int(nbTotalRun)*100))
+        self.progressBar.setFormat('Getting database information: run '+runId+'/'+str(self.nbTotalRun))
+        self.progressBar.setValue(progress)
 
+        # Create new row
+        self.tableWidgetDataBase.insertRow(rowPosition)
+        
+        itemRunId = MyTableWidgetItem(runId)
+        
         # If the run has been stared by an user
         if int(runId) in self.getRunStared():
-            item = MyTableWidgetItem(runId)
-            item.setIcon(QtGui.QIcon('ui/pictures/star.png'))
-            item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runStaredColor'])))
+            itemRunId.setIcon(QtGui.QIcon('ui/pictures/star.png'))
+            itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runStaredColor'])))
         # If the user has hidden a row
         elif int(runId) in self.getRunHidden():
-            item = MyTableWidgetItem(runId)
-            item.setIcon(QtGui.QIcon('ui/pictures/trash.png'))
-            item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
+            itemRunId.setIcon(QtGui.QIcon('ui/pictures/trash.png'))
+            itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
         else:
-            item = MyTableWidgetItem(runId)
-            item.setIcon(QtGui.QIcon('ui/pictures/empty.png'))
+            itemRunId.setIcon(QtGui.QIcon('ui/pictures/empty.png'))
         
-        self.tableWidgetDataBase.insertRow(rowPosition)
-        self.tableWidgetDataBase.setItem(rowPosition, 0, item)
-        self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(nbIndependentParameter+'d'))
-        self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(info['experiment']))
-        self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(info['sample']))
-        self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(info['name']))
-        self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(info['started date']+' '+info['started time']))
-        self.tableWidgetDataBase.setItem(rowPosition, 6, QtGui.QTableWidgetItem(info['completed date']+' '+info['completed time']))
-        self.tableWidgetDataBase.setItem(rowPosition, 7, MyTableWidgetItem(str(info['records'])))
+        self.tableWidgetDataBase.setItem(rowPosition, 0, itemRunId)
+        self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem(dim))
+        self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(experimentName))
+        self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(sampleName))
+        self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(runName))
+        self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(started))
+        self.tableWidgetDataBase.setItem(rowPosition, 6, QtGui.QTableWidgetItem(completed))
+        self.tableWidgetDataBase.setItem(rowPosition, 7, MyTableWidgetItem(runRecords))
 
         if int(runId) in self.getRunHidden():
             self.tableWidgetDataBase.setRowHidden(rowPosition, True)
@@ -854,22 +878,35 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         tableWidgetPtableWidgetParameters
         """
         
-        # When the user click on another database while having already clicked
-        # on a run, the runClicked event is happened even if no run have been clicked
-        # This is due to the "currentCellChanged" event handler.
-        # We catch that false event and return nothing
-        if self.getRunId() is None:
+        # # When the user click on another database while having already clicked
+        # # on a run, the runClicked event is happenning even if no run have been clicked
+        # # This is due to the "currentCellChanged" event handler.
+        # # We catch that false event and return nothing
+        runId = str(self.getRunId())
+        if runId is None:
             return
+
+        if self.livePlotMode:
+            runId = str(self.nbTotalRun)
+        else:
+            runId = str(self.getRunId())
 
         self.setStatusBarMessage('Loading run parameters')
 
-        ds = qc.load_by_id(int(self.getRunId()))
+
+        # Get independent parameters list without the independent parameters
+        # Get parameters list without the independent parameters
+        independentList, dependentList, snapshot = self.qcodesDatabase.getIndependentDependentSnapshotFromRunId(runId)
+        independentString = config['sweptParameterSeparator'].join([independent['name'] for independent in independentList])
+
+
+        # ds = self.qcodesDatabase.getDatasetFromRunId(int(self.getRunId()))
 
         ## Update label
-        self.labelCurrentRun.setText(str(self.getRunId()))
-        self.labelCurrentMetadata.setText(str(self.getRunId()))
-        nbIndependentParameter = self.getNbIndependentParameters(ds)
-        self.labelPlotTypeCurrent.setText(str(nbIndependentParameter)+'d')
+        self.labelCurrentRun.setText(runId)
+        self.labelCurrentMetadata.setText(runId)
+        nbIndependentParameter = str(len(independentList))
+        self.labelPlotTypeCurrent.setText(nbIndependentParameter+'d')
 
 
 
@@ -888,23 +925,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 # For 1d plot window
                 if self.getPlotWindowType(key) == '1d':
                     if self.currentDatabase == val['plot'].windowTitle:
-                        if self.getRunId() == val['plot'].runId:
+                        if int(runId) == val['plot'].runId:
                             checkedDependents = list(val['plot'].curves.keys())
                 # For 2d plot window
                 else:
                     for plot2d in val['plot'].values():
                         if self.currentDatabase == plot2d.windowTitle:
-                            if self.getRunId() == plot2d.runId:
+                            if int(runId) == plot2d.runId:
                                 checkedDependents.append(plot2d.zLabel)
             
 
-        # Get independent parameters list without the independent parameters
-        indeParams = config['sweptParameterSeparator'].join(qc.load_by_id(int(self.getRunId())).parameters.split(',')[:nbIndependentParameter])
-        # Get parameters list without the independent parameters
-        params = qc.load_by_id(int(self.getRunId())).get_parameters()[nbIndependentParameter:]
+
 
         self.clearTableWidet(self.tableWidgetParameters)
-        for param in params:
+        for dependent in dependentList:
             rowPosition = self.tableWidgetParameters.rowCount()
 
 
@@ -913,13 +947,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             cb = QtWidgets.QCheckBox()
 
             # We check if that parameter is already plotted
-            if param.name+' ['+param.unit+']' in checkedDependents:
+            if dependent['name']+' ['+dependent['unit']+']' in checkedDependents:
                 cb.setChecked(True)
 
             self.tableWidgetParameters.setCellWidget(rowPosition, 0, cb)
-            self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(param.name))
-            self.tableWidgetParameters.setItem(rowPosition, 2, QtGui.QTableWidgetItem(param.unit))
-            self.tableWidgetParameters.setCellWidget(rowPosition, 3, QtWidgets.QLabel(indeParams))
+            self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(dependent['name']))
+            self.tableWidgetParameters.setItem(rowPosition, 2, QtGui.QTableWidgetItem(dependent['unit']))
+            self.tableWidgetParameters.setCellWidget(rowPosition, 3, QtWidgets.QLabel(independentString))
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda cb=cb,
@@ -931,7 +965,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         ## Fill the listWidgetMetada with the station snapshot
         self.textEditMetadata.clear()
-        self.textEditMetadata.setText(pformat(ds.snapshot).replace('{', '').replace('}', '').replace("'", ''))
+        self.textEditMetadata.setText(snapshot)
 
 
 
@@ -961,7 +995,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         
         # If the checkbutton is checked, we downlad and plot the data
-        params = qc.load_by_id(int(self.getRunId())).get_parameters()
+        paramsIndependent, paramsDependent = self.qcodesDatabase.getListIndependentDependentFromRunId(self.getRunId())
         if cb:
             
 
@@ -977,22 +1011,24 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             
             if nbIndependent==1:
 
+
+                self.setStatusBarMessage('Getting data')
+                data = self.getData1d(row)
                 self.setStatusBarMessage('Launching 1D plot')
 
-                data = self.getData1d(row)
-
-                xLabel = params[0].name+' ['+params[0].unit+']'
-                yLabel = params[row+1].name+' ['+params[row+1].unit+']'
+                xLabel = paramsIndependent[0]['name']+' ['+paramsIndependent[0]['unit']+']'
+                yLabel = paramsDependent[row]['name']+' ['+paramsDependent[row]['unit']+']'
                 zLabel = None
             elif nbIndependent==2:
 
+
+                self.setStatusBarMessage('Getting data')
+                data = self.getData2d(row)
                 self.setStatusBarMessage('Launching 2D plot')
 
-                data = self.getData2d(row)
-
-                xLabel = params[0].name+' ['+params[0].unit+']'
-                yLabel = params[1].name+' ['+params[1].unit+']'
-                zLabel = params[row+2].name+' ['+params[row+2].unit+']'
+                xLabel = paramsIndependent[0]['name']+' ['+paramsIndependent[0]['unit']+']'
+                yLabel = paramsIndependent[1]['name']+' ['+paramsIndependent[1]['unit']+']'
+                zLabel = paramsDependent[row]['name']+' ['+paramsDependent[row]['unit']+']'
             else:
                 self.setStatusBarMessage('Plotter does not handle data whose dim>2', error=True)
 
@@ -1015,7 +1051,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         else:
             # We are dealing with 2d plot
             if self.getPlotWindowType(plotRef) == '2d':
-                zLabel = params[row+2].name+' ['+params[row+2].unit+']'
+                zLabel = paramsDependent[row]['name']+' ['+paramsDependent[row]['unit']+']'
                 self._refs[plotRef]['plot'][zLabel].o()
                 del(self._refs[plotRef]['plot'][zLabel])
 
@@ -1023,7 +1059,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             else:
                 # If there is more than one curve, we remove one curve
                 if self._refs[plotRef]['nbCurve'] > 1:
-                    yLabel = params[row+1].name+' ['+params[row+1].unit+']'
+                    yLabel = paramsDependent[row]['name']+' ['+paramsDependent[row]['unit']+']'
                     self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
                     self._refs[plotRef]['nbCurve'] -= 1
                 # If there is one curve we close the plot window
@@ -1105,8 +1141,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     def closeEvent(self, evnt):
         """
         Method called when closing the main app.
+        Close open database connection
         Close every 1d and 2d plot opened.
         """
+
+        # If an open database connection is detected, we close it.
+        if hasattr(self.qcodesDatabase, 'conn'):
+            self.qcodesDatabase.closeDatabase()
         
         for key in list(self._refs.keys()):
             # For 2d plot
@@ -1144,6 +1185,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                         widget.setChecked(False)
 
 
+
     ###########################################################################
     #
     #
@@ -1154,124 +1196,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def open_conn_database(self, databasePath):
-        """
-        Wrapper arround QCoDeS functions to opendatabase.
-        You just want to catch error to avoid the plotter to crash
-        """
 
-        try:
-            qc.initialise_or_create_database_at(databasePath)
-        except Exception as e:
-            self.setStatusBarMessage("Can't load database: "+str(e), True)
-
-
-
-    # From plottr
-    def _get_names_of_standalone_parameters(self, paramspecs: List['ParamSpec']
-                                            ) -> Set[str]:
-        all_independents = set(spec.name
-                            for spec in paramspecs
-                            if len(spec.depends_on_) == 0)
-        used_independents = set(d for spec in paramspecs for d in spec.depends_on_)
-        standalones = all_independents.difference(used_independents)
-        return standalones
-
-
-
-    # From plottr
-    def get_ds_structure(self, ds: 'DataSet'):
-        """
-        Return the structure of the dataset, i.e., a dictionary in the form
-            {
-                'dependent_parameter_name': {
-                    'unit': unit,
-                    'axes': list of names of independent parameters,
-                    'values': []
-                },
-                'independent_parameter_name': {
-                    'unit': unit,
-                    'values': []
-                },
-                ...
-            }
-        Note that standalone parameters (those which don't depend on any other
-        parameter and no other parameter depends on them) are not included
-        in the returned structure.
-        """
-
-        structure = {}
-
-        paramspecs = ds.get_parameters()
-
-        standalones = self._get_names_of_standalone_parameters(paramspecs)
-
-        for spec in paramspecs:
-            if spec.name not in standalones:
-                structure[spec.name] = {'unit': spec.unit, 'values': []}
-                if len(spec.depends_on_) > 0:
-                    structure[spec.name]['axes'] = list(spec.depends_on_)
-
-        return structure
-
-
-
-    # From plottr
-    def get_ds_info(self, ds: 'DataSet', get_structure: bool = True):
-        """
-        Get some info on a DataSet in dict.
-
-        if get_structure is True: return the datastructure in that dataset
-        as well (key is `structure' then).
-        """
-        ret = {}
-        ret['experiment'] = ds.exp_name
-        ret['sample'] = ds.sample_name
-        ret['name'] = ds.name
-
-        _complete_ts = ds.completed_timestamp()
-        if _complete_ts is not None:
-            ret['completed date'] = _complete_ts[:10]
-            ret['completed time'] = _complete_ts[11:]
-        else:
-            ret['completed date'] = ''
-            ret['completed time'] = ''
-
-        _start_ts = ds.run_timestamp()
-        if _start_ts is not None:
-            ret['started date'] = _start_ts[:10]
-            ret['started time'] = _start_ts[11:]
-        else:
-            ret['started date'] = ''
-            ret['started time'] = ''
-
-        if get_structure:
-            ret['structure'] = get_ds_structure(ds)
-
-        try:
-            ret['records'] = ds.number_of_results
-        except:
-            ret['records'] = None
-
-
-        return ret
-
-
-
-    def get_ds(self) -> list: 
-        """
-        Return the list of datasets contained in the current database.
-        """
-
-        try :
-            datasets = sorted(
-                chain.from_iterable(exp.data_sets() for exp in qc.experiments()),
-                key=attrgetter('run_id'))
-        except:
-            self.setStatusBarMessage("Can't read database", error=True)
-            datasets = []
-
-        return  datasets
 
 
 
@@ -1281,36 +1206,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         if refresh_db:
-            self.open_conn_database(os.path.join(self.currentPath, self.currentDatabase))
+            self.nbTotalRun = self.qcodesDatabase.getNbTotalRun()
 
-        return len(self.get_ds())
-
-
-
-    def getNbIndependentParameters(self, dataset=None):
-        """
-        Return the number of independent parameter of a run.
-        if dataset is not None, return the number of independent parameter of the
-        current dataset.
-        If dataset is None, return the number of independent parameter of the run
-        being currently highlighted in the database table.
-
-        Parameters
-        ----------
-        dataset : QCoDeS dataset
-        """
-
-        if dataset is None:
-            currentRow = self.tableWidgetDataBase.currentIndex().row()
-            return int(self.tableWidgetDataBase.model().index(currentRow, 1).data()[0])
-        else:
-            return len(dataset.get_parameters()) - len(dataset.dependent_parameters)
+        return self.nbTotalRun
 
 
 
     def getRunId(self):
         """
-        Return the current selectec run id.
+        Return the current selected run id.
+        if Live plot mode, return the total number of run.
         """
 
         if self.livePlotMode:
@@ -1323,19 +1228,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
     def getRunExperiment(self):
         """
-        Return the experiment of the current selected run
+        Return the experiment name of the current selected run.
+        if Live plot mode, return the experiment name of the last recorded run.
         """
         
         
         if self.livePlotMode:
 
-            datasets = self.get_ds()
-            
-            info = self.get_ds_info(datasets[-1], get_structure=False)
-            return info['experiment']
+            return self.qcodesDatabase.getExperimentNameLastId()
         else:
             currentRow = self.tableWidgetDataBase.currentIndex().row()
-            return self.tableWidgetDataBase.model().index(currentRow, 1).data()
+            return self.tableWidgetDataBase.model().index(currentRow, 2).data()
 
 
 
@@ -1361,39 +1264,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         elif self.currentDatabase[-3:].lower() in ['csv', 's2p']:
             return self.currentDatabase[:-4]
         else:
-            title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
-            title = '/'.join(title)+'<br>'+str(self.getRunId())+' - '+self.getRunExperiment()
+            # If user only wants the database path
+            if config['display_only_db_name_in_plot_title']:
+                title = self.currentDatabase
+            # If user wants the database path
+            else:
+                title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
+                title = '/'.join(title)
+
+            title = title+'<br>'+str(self.getRunId())+' - '+self.getRunExperiment()
             return title
-
-
-
-    def getCompleted(self):
-        """
-        Return the completed date and time of a run.
-        Empty string when the run is not done.
-        """
-
-        if self.livePlotMode:
-
-            datasets = self.get_ds()
-            
-            info = self.get_ds_info(datasets[-1], get_structure=False)
-            return info['completed date']+' '+info['completed date']
-        else:
-            currentRow = self.tableWidgetDataBase.currentIndex().row()
-            return self.tableWidgetDataBase.model().index(currentRow, 5).data()
-
-
-
-    def isRunCompleted(self):
-        """
-        Return True when run is done, false otherwise
-        """
-
-        if len(self.getCompleted())==1:
-            return False
-        else:
-            return True
 
 
 
@@ -1428,19 +1308,29 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # Check if database has one more run
             # if there is a new run, we launch a plot
             if self.oldTotalRun is not None:
-                if self.oldTotalRun != self.getNbTotalRun(True):
+
+                nbtotalRun = self.getNbTotalRun(True)
+                if self.oldTotalRun != nbtotalRun:
                     
                     # We refresh the database display
                     self.dataBaseClicked()
+                    
+                    databaseUpdated = False
+                    while not databaseUpdated:
+                        QtTest.QTest.qWait(500)
+                        try:
+                            self.runClicked()
+                            databaseUpdated = True
+                        except:
+                            pass
 
-                    # We refresh the run display
-                    self.runClicked()
+
 
                     # We click on the first parameter, which will launch a plot
                     self.parameterCellClicked(0,0)
 
                     # We update the total number of run
-                    self.oldTotalRun = self.getNbTotalRun()
+                    self.oldTotalRun = nbtotalRun
 
                     # We save the fact that we have to update an existing live plot
                     self.livePlotFetchData = True
@@ -1451,6 +1341,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         # If we have to update the data of a livePlot
         if self.livePlotFetchData:
+
+            runId = int(self.getNbTotalRun())
             
             self.setStatusBarMessage('Fetching data')
 
@@ -1473,7 +1365,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                     if widget.isChecked():
                         data = self.getData1d(row)
 
-                        params = qc.load_by_id(int(self.getRunId())).get_parameters()
+                        params = self.qcodesDatabase.getDatasetFromRunId(runId).get_parameters()
                         yLabel = params[row+1].name+' ['+params[row+1].unit+']'
 
                         self._refs[livePlotRef]['plot'].updatePlotDataItem(data[0], data[1],
@@ -1523,16 +1415,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                                     autoRange   = True)
 
 
-            self.setStatusBarMessage('Plot updated')
+            self.setStatusBarMessage('Plot updating')
 
             # If the run is done
-            if self.isRunCompleted():
+            if self.qcodesDatabase.isRunCompleted(runId):
 
                 self.setStatusBarMessage('Run done')
 
                 # We remove the livePlotFlag attached to the plot window
                 livePlotRef = self.getLivePlotRef()
-                self._refs[livePlotRef]['livePlot'] = False
+                if livePlotRef in self._refs:
+                    self._refs[livePlotRef]['livePlot'] = False
 
                 # We cancel the need to update the plot
                 self.livePlotFetchData = False
@@ -1551,6 +1444,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             
             # Launch the liveplot mode
             self.livePlotMode = True
+
+            # We call the liveplot function once manually to be sure it has been
+            # initialized properly
+            self.livePlotUpdate()
             
             # Disable browsing
             self.tableWidgetFolder.setEnabled(False)
@@ -1709,17 +1606,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # Get data
-        params = qc.load_by_id(int(self.getRunId())).get_parameters()
-        ds = qc.load_by_id(int(self.getRunId()))
-        nbIndependent = self.getNbIndependentParameters(ds)
-        d = ds.get_parameter_data(params[row+nbIndependent].name)[params[row+nbIndependent].name]
+        paramIndependent = self.tableWidgetParameters.cellWidget(row, 3).text()
+        paramDependent = self.tableWidgetParameters.item(row, 1).text()
 
-
+        ds = self.qcodesDatabase.getDatasetFromRunId(int(self.getRunId()))
+        d = ds.get_parameter_data(paramDependent)[paramDependent]
+        
         # We try to load data
         # if there is none, we return an empty array
         try:
-            # data = np.vstack((d[params[0].name], d[params[row+1].name])).T
-            data = d[params[0].name], d[params[row+1].name]
+            data = d[paramIndependent], d[paramDependent]
         except:
             data = np.array([np.nan]), np.array([np.nan])
 
@@ -1740,16 +1636,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # Get data
-        params = qc.load_by_id(int(self.getRunId())).get_parameters()
-        ds = qc.load_by_id(int(self.getRunId()))
-        nbIndependent = self.getNbIndependentParameters(ds)
-        d = ds.get_parameter_data(params[row+nbIndependent].name)[params[row+nbIndependent].name]
-
+        paramsIndependent = self.tableWidgetParameters.cellWidget(row, 3).text().split(config['sweptParameterSeparator'])
+        paramDependent = self.tableWidgetParameters.item(row, 1).text()
+        ds = self.qcodesDatabase.getDatasetFromRunId(int(self.getRunId()))
+        d = ds.get_parameter_data(paramDependent)[paramDependent]
 
         # We try to load data
         # if there is none, we return an empty array
         try:
-            data = self.shapeData2d(d[params[0].name], d[params[1].name], d[params[row+2].name])
+            data = self.shapeData2d(d[paramsIndependent[0]], d[paramsIndependent[1]], d[paramDependent])
         except:
             # We have to send [0,1] for the z axis when no data to avoid bug with the histogram
             data = np.array([0, 1]), np.array([0, 1]), np.array([[0, 1],[0, 1]])
@@ -1774,6 +1669,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             z = z.T
 
         return x, y, z
+
 
 
     def shapeData2dSub(self, x, y, z):
@@ -1832,6 +1728,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             zz = z
         # If not (like a auto freq measurement )
         else:
+
+            self.setStatusBarMessage('Irregular grid detexted, shapping 2d data')
             xx = x[:,0]
             # Create a bigger array containing sorted data in the same bases
             # New y axis containing all the previous y axes
