@@ -281,14 +281,14 @@ class QcodesDatabase:
         row = cur.fetchall()[0]
         # Create nice dict object from a string
         d = json.loads(row['run_description'])
-        snapshot = pformat(json.loads(row['snapshot'])).replace('{', '').replace('}', '').replace("'", '')
+        snapshotDict = json.loads(row['snapshot'])
 
         cur.close()
 
         independent = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0]
         dependent   = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
 
-        return independent, dependent, snapshot
+        return independent, dependent, snapshotDict
 
 
 
@@ -425,6 +425,19 @@ class QcodesDatabase:
 
 
 
+
+    def get_parameter_data(self, runId : int, paramDependent : str) -> dict:
+
+        ds = self.getDatasetFromRunId(int(runId))
+
+        try:
+            d = ds.get_parameter_data(paramDependent)[paramDependent]
+        except sqlite3.OperationalError:
+            self.setStatusBarMessage("Can't load data: disk I/O error", error=True)
+            d = None
+
+        return d
+            
 # a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\edumur_test.db"
 # q = QcodesDatabase()
 # q.connectDatabase(a)

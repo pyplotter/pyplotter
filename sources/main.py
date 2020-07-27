@@ -1,9 +1,11 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
 import os
+import json
+from pprint import pformat
+from typing import Generator
 import numpy as np
 import pandas as pd
-import qcodes as qc
 from skrf import Touchstone # To easily read s2p file
 import sys 
 sys.path.append('ui')
@@ -60,6 +62,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.spinBoxLivePlot.setValue(int(config['livePlotTimer']))
         self.spinBoxLivePlot.valueChanged.connect(self.livePlotSpinBoxChanged)
         self.checkBoxHidden.stateChanged.connect(lambda : self.checkBoxHiddenState(self.checkBoxHidden))
+
+        self.lineEditFilter.textChanged.connect(self.lineEditFilterTextEdited)
 
 
         self.setStatusBarMessage('Ready')
@@ -365,6 +369,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Load the csv file and display its information in the tableWidgetParameters.
         """
         
+        # Disable widget received for qcodes database
+        self.lineEditFilter.setEnabled(False)
+        self.labelFilter.setEnabled(False)
         
         self.setStatusBarMessage('Loading '+filePath[-3:].lower()+' file')
 
@@ -610,6 +617,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Basically, launch a 1d plot window.
         """
 
+        # Disable widget received for qcodes database
+        self.lineEditFilter.setEnabled(False)
+        self.labelFilter.setEnabled(False)
 
         fileName = os.path.basename(os.path.normpath(filePath))[:-13]
         if cb:
@@ -896,7 +906,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         # Get independent parameters list without the independent parameters
         # Get parameters list without the independent parameters
-        independentList, dependentList, snapshot = self.qcodesDatabase.getIndependentDependentSnapshotFromRunId(runId)
+        independentList, dependentList, snapshotDict = self.qcodesDatabase.getIndependentDependentSnapshotFromRunId(runId)
         independentString = config['sweptParameterSeparator'].join([independent['name'] for independent in independentList])
 
 
@@ -956,16 +966,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             self.tableWidgetParameters.setCellWidget(rowPosition, 3, QtWidgets.QLabel(independentString))
 
             # Each checkbox at its own event attached to it
-            cb.toggled.connect(lambda cb=cb,
+            cb.toggled.connect(lambda state,
+                                      cb=cb,
                                       row=rowPosition,
-                                      plotRef=self.getPlotTitle(): self.parameterClicked(cb, row, plotRef))
+                                      plotRef=self.getPlotTitle(): self.parameterClicked(state, cb, row, plotRef))
         
 
         self.tableWidgetParameters.setSortingEnabled(True)
 
         ## Fill the listWidgetMetada with the station snapshot
         self.textEditMetadata.clear()
-        self.textEditMetadata.setText(snapshot)
+        self.lineEditFilter.setEnabled(True)
+        self.labelFilter.setEnabled(True)
+        self.originalSnapshot = snapshotDict
+        self.lineEditFilterTextEdited('')
 
 
 
@@ -987,16 +1001,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def parameterClicked(self, cb, row, plotRef):
+    def parameterClicked(self, state, cb, row, plotRef):
         """
         Handle event when user clicked on data line.
         Basically launch a plot
         """
         
-        
         # If the checkbutton is checked, we downlad and plot the data
         paramsIndependent, paramsDependent = self.qcodesDatabase.getListIndependentDependentFromRunId(self.getRunId())
-        if cb:
+        if state:
             
 
             # When the user click to plot we disable the gui
@@ -1014,6 +1027,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 self.setStatusBarMessage('Getting data')
                 data = self.getData1d(row)
+                if data is None:
+                    # Plot is done, we unable the gui
+                    QtGui.QApplication.restoreOverrideCursor()
+                    cb.setChecked(False)
+                    self.centralwidget.setEnabled(True)
+                    return
+
                 self.setStatusBarMessage('Launching 1D plot')
 
                 xLabel = paramsIndependent[0]['name']+' ['+paramsIndependent[0]['unit']+']'
@@ -1024,6 +1044,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 self.setStatusBarMessage('Getting data')
                 data = self.getData2d(row)
+                if data is None:
+                    # Plot is done, we unable the gui
+                    QtGui.QApplication.restoreOverrideCursor()
+                    cb.setChecked(False)
+                    self.centralwidget.setEnabled(True)
+                    return
+
                 self.setStatusBarMessage('Launching 2D plot')
 
                 xLabel = paramsIndependent[0]['name']+' ['+paramsIndependent[0]['unit']+']'
@@ -1050,7 +1077,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # If the checkbox is unchecked
         else:
             # We are dealing with 2d plot
-            if self.getPlotWindowType(plotRef) == '2d':
+            plotType = self.getPlotWindowType(plotRef)
+            if plotType is None:
+                return
+            elif plotType == '2d':
                 zLabel = paramsDependent[row]['name']+' ['+paramsDependent[row]['unit']+']'
                 self._refs[plotRef]['plot'][zLabel].o()
                 del(self._refs[plotRef]['plot'][zLabel])
@@ -1078,7 +1108,63 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     ###########################################################################
 
 
-    
+
+    def find(self, key : str, dictionary : dict) -> Generator:
+        """
+        Find all occurences of a key in nested python dictionaries and lists.
+        Adapted from:
+        https://gist.github.com/douglasmiranda/5127251
+
+        Parameters
+        ----------
+        key : str
+            Part of the text looked as key in the nested dict.
+        dictionary : dict
+            Dictionnary to be looked up
+        
+        Return
+        ------
+        list of all paired of {key : val} found
+        """
+
+        for k, v in dictionary.items():
+            if key in k:
+                yield {k: v}
+            elif isinstance(v, dict):
+                for result in self.find(key, v):
+                    yield result
+            elif isinstance(v, list):
+                for d in v:
+                    if isinstance(d, dict):
+                        for result in self.find(key, d):
+                            yield result
+
+
+
+    def lineEditFilterTextEdited(self, text : str) -> None:
+        """
+        Called when user types text in the filter lineEdit widget.
+        Looked for the all keys which contains the entered string
+        """
+
+        if len(text) != 0:
+            snapshotNew = list(self.find(text, self.originalSnapshot))
+            
+            self.textEditMetadata.setText(pformat(snapshotNew)
+                                        .replace('{', '')
+                                        .replace('}', '')
+                                        .replace("'", '')
+                                        .replace('\n', '<br>')
+                                        .replace(' ', '&nbsp;')
+                                        .replace(text, '<span style="font-weight: bold;color: red;">'+text+'</span>'))
+        else:
+            snapshotNew = self.originalSnapshot
+            self.textEditMetadata.setText(pformat(snapshotNew)
+                                        .replace('{', '')
+                                        .replace('}', '')
+                                        .replace("'", ''))
+
+
     @staticmethod
     def sizeof_fmt(num, suffix='B'):
         """
@@ -1505,10 +1591,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
     def getPlotWindowType(self, ref):
 
-        if isinstance(self._refs[ref]['plot'], dict):
-            return '2d'
-        else:
-            return '1d'
+        try:
+            if isinstance(self._refs[ref]['plot'], dict):
+                return '2d'
+            else:
+                return '1d'
+        except KeyError:
+            return None
         
 
 
@@ -1608,10 +1697,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Get data
         paramIndependent = self.tableWidgetParameters.cellWidget(row, 3).text()
         paramDependent = self.tableWidgetParameters.item(row, 1).text()
-
-        ds = self.qcodesDatabase.getDatasetFromRunId(int(self.getRunId()))
-        d = ds.get_parameter_data(paramDependent)[paramDependent]
         
+        d = self.qcodesDatabase.get_parameter_data(self.getRunId(), paramDependent)
+        if d is None:
+            return
+
         # We try to load data
         # if there is none, we return an empty array
         try:
@@ -1638,9 +1728,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Get data
         paramsIndependent = self.tableWidgetParameters.cellWidget(row, 3).text().split(config['sweptParameterSeparator'])
         paramDependent = self.tableWidgetParameters.item(row, 1).text()
-        ds = self.qcodesDatabase.getDatasetFromRunId(int(self.getRunId()))
-        d = ds.get_parameter_data(paramDependent)[paramDependent]
 
+        d = self.qcodesDatabase.get_parameter_data(self.getRunId(), paramDependent)
+        if d is None:
+            return
+        
         # We try to load data
         # if there is none, we return an empty array
         try:
