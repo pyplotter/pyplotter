@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
 import inspect
@@ -118,6 +118,20 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
         # Should be initialize last
         PlotApp.__init__(self)
+
+
+
+    @staticmethod
+    def clearLayout(layout):
+        """
+        Clear a pyqt layout, from:
+        https://stackoverflow.com/questions/4528347/clear-all-widgets-in-a-layout-in-pyqt
+        """
+        while layout.count():
+            child = layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
 
 
 
@@ -298,6 +312,90 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                 if curve.showInLegend:
                     self.legend.addItem(curve, curve.curveLegend)
 
+
+
+    ####################################
+    #
+    #           Method to add other curves in the plot
+    #
+    ####################################
+
+
+    def updatePlottedCurvesList(self, plots):
+        """
+        Is called by the Main object when the user plots a new 1d curve.
+        Build a list of checkbox related to every already plotted curve and
+        display it in the curve tab.
+        """
+        
+
+        if hasattr(self, 'tabCurves'):
+            self.tabWidget.removeTab(1)
+
+        # Is there at least one another curve to be shown in the new tab
+        isThere = False
+        for plot in plots:
+            for curveId in plot.curves.keys():
+
+                # We do not add a checkbox button for the original curves of
+                # the plot window
+                if (self.windowTitle != plot.windowTitle or
+                    plot.runId != self.runId or
+                    curveId not in self.curves):
+                    
+                    isThere = True
+
+        if isThere:
+            self.tabCurves = QtWidgets.QWidget()
+            self.tabWidget.addTab(self.tabCurves, 'Add curves')
+
+            layout = QtGui.QVBoxLayout()
+            self.tabCurves.setLayout(layout)
+
+            for plot in plots:
+                for curveId in plot.curves.keys():
+
+                    # We do not add a checkbox button for the original curves of
+                    # the plot window
+                    if (self.windowTitle != plot.windowTitle or
+                        plot.runId != self.runId or
+                        curveId not in self.curves):
+                        cb = QtWidgets.QCheckBox()
+                        label = plot.windowTitle+\
+                                ' - '+str(plot.runId)+'\n'+\
+                                plot.plotItem.axes['left']['item'].labelText
+
+                        cb.setText(label)
+
+                        cb.toggled.connect(lambda state,
+                                                curveId = curveId,
+                                                plot    = plot: self.toggleNewPlot(state, curveId, plot))
+
+                        layout.addWidget(cb)
+
+
+            verticalSpacer = QtWidgets.QSpacerItem(20, 40,
+                                QtWidgets.QSizePolicy.Minimum,
+                                QtWidgets.QSizePolicy.Expanding) 
+            layout.addItem(verticalSpacer)
+
+
+    def toggleNewPlot(self, state, curveId, plot):
+        """
+        Called when user click on the checkbox of the curves tab.
+        Add or remove curve in the plot window.
+        """
+        
+        if state:
+
+            self.addPlotDataItem(x = plot.curves[curveId].xData,
+                                y = plot.curves[curveId].yData,
+                                curveId = curveId,
+                                curveLabel = plot.plotItem.axes['left']['item'].labelText,
+                                curveLegend = plot.plotItem.axes['left']['item'].labelText)
+
+        else:
+            self.removePlotDataItem(curveId)
 
 
     ####################################

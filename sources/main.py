@@ -608,8 +608,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.originalSnapshot = snapshotDict
         self.lineEditFilterTextEdited('')
 
-
-
         self.setStatusBarMessage('Ready')
 
 
@@ -723,7 +721,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                     self._refs[plotRef]['plot'].o()
                     del(self._refs[plotRef])
 
-
+        
+        self.updateList1dCurvesLabels()
 
     ###########################################################################
     #
@@ -1271,6 +1270,40 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     ###########################################################################
 
 
+    def updateList1dCurvesLabels(self):
+        """
+        Is called when the user launches or delete a plot, see the 
+        parameterClicked method.
+        The method creates a list of all displayed 1d plot window object and
+        send it to all displayed 1d plot windows via the updatePlottedCurvesList
+        method.
+        """
+
+        if len(self._refs) > 0:
+            
+            plotWindows = []
+            for key, val in self._refs.items():
+
+                # For 1d plot window
+                if self.getPlotWindowType(key) == '1d':
+                    plotWindows.append(val['plot'])
+        
+            for key, val in self._refs.items():
+                # For 1d plot window
+                if self.getPlotWindowType(key) == '1d':
+                    val['plot'].updatePlottedCurvesList(plotWindows)
+
+
+
+    def getCurveId(self, ylabel) -> str:
+        """
+        Return an id for a curve in a plot.
+        Should be unique for every curve.
+        """ 
+
+        return os.path.abspath(self.currentDatabase)+str(self.getRunId())+str(ylabel)
+
+
 
     def getPlotWindowType(self, ref):
 
@@ -1307,7 +1340,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               windowTitle    = self.getWindowTitle(),
                               runId          = int(self.getRunId()),
                               cleanCheckBox  = self.cleanCheckBox,
-                              curveId        = yLabel,
+                              curveId        = self.getCurveId(yLabel),
                               timestampXAxis=self.blueFors.isBlueForsFolder(self.currentDatabase))
 
                 self._refs[plotRef]['plot']     = p
@@ -1318,7 +1351,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             else:
                 self._refs[plotRef]['plot'].addPlotDataItem(x            = data[0],
                                                             y            = data[1],
-                                                            curveId      = yLabel,
+                                                            curveId      = self.getCurveId(yLabel),
                                                             curveLabel   = yLabel,
                                                             curveLegend  = yLabel)
             
