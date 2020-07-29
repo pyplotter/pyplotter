@@ -309,9 +309,10 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
     ####################################
     #
-    #           Method to add other curves in the plot
+    #           Method to add curves from other plot window in the plot
     #
     ####################################
+
 
 
     def updatePlottedCurvesList(self, plots):
@@ -361,8 +362,8 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                         cb.setText(label)
 
                         cb.toggled.connect(lambda state,
-                                                curveId = curveId,
-                                                plot    = plot: self.toggleNewPlot(state, curveId, plot))
+                                                  curveId = curveId,
+                                                  plot    = plot: self.toggleNewPlot(state, curveId, plot))
 
                         layout.addWidget(cb)
 
@@ -373,6 +374,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
             layout.addItem(verticalSpacer)
 
 
+
     def toggleNewPlot(self, state, curveId, plot):
         """
         Called when user click on the checkbox of the curves tab.
@@ -381,14 +383,15 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         
         if state:
 
-            self.addPlotDataItem(x = plot.curves[curveId].xData,
-                                y = plot.curves[curveId].yData,
-                                curveId = curveId,
-                                curveLabel = plot.plotItem.axes['left']['item'].labelText,
-                                curveLegend = plot.plotItem.axes['left']['item'].labelText)
+            self.addPlotDataItem(x           = plot.curves[curveId].xData,
+                                 y           = plot.curves[curveId].yData,
+                                 curveId     = curveId,
+                                 curveLabel  = plot.plotItem.axes['left']['item'].labelText,
+                                 curveLegend = plot.plotItem.axes['left']['item'].labelText)
 
         else:
             self.removePlotDataItem(curveId)
+
 
 
     ####################################
