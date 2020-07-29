@@ -286,23 +286,16 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                 if self.legend is None:
                     self.legend = self.plotItem.addLegend()
                 else:
-                    # For an unknown reason we need the loop twice for windows...
-                    for i, j in self.legend.items:
-                        self.legend.removeItem(j.text)
                     for i, j in self.legend.items:
                         self.legend.removeItem(j.text)
             else:
                 if self.legend is not None:
-                    self.legend.scene().removeItem(self.legend)
-                    self.legend = None
+                    for i, j in self.legend.items:
+                        self.legend.removeItem(j.text)
         elif len(self.curves) > 1:
             if self.legend is None:
                 self.legend = self.plotItem.addLegend()
             else:
-
-                # For an unknown reason we need the loop twice for windows...
-                for i, j in self.legend.items:
-                    self.legend.removeItem(j.text)
                 for i, j in self.legend.items:
                     self.legend.removeItem(j.text)
         

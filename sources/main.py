@@ -13,7 +13,8 @@ try:
     import pyqtgraph as pg
 except AttributeError:
     import time
-    time.clock = time.process_clock
+    time.clock = time.perf_counter
+    import pyqtgraph as pg
 
 
 from sources.csv import CSV
