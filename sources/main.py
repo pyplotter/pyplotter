@@ -725,6 +725,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         self.updateList1dCurvesLabels()
 
+
+
     ###########################################################################
     #
     #
@@ -749,7 +751,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Return True when the displayed parameter is currently plotted.
         """
 
-        # checkedDependents = []
+        curveId = self.getCurveId(parameterLabel)
+
         # If a plotWindow is already open
         if len(self._refs) > 0:
             # We iterate over all plotWindow
@@ -757,7 +760,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 if key == self.getPlotRef():
                     # For 1d plot window
                     if self.getPlotWindowType(key) == '1d':
-                        if parameterLabel in list(val['plot'].curves.keys()):
+                        if curveId in list(val['plot'].curves.keys()):
                             return True
                     # For 2d plot window
                     else:
@@ -1271,6 +1274,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     ###########################################################################
 
 
+
     def updateList1dCurvesLabels(self):
         """
         Is called when the user launches or delete a plot, see the 
@@ -1316,7 +1320,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         except KeyError:
             return None
         
-
 
 
     def startPlotting(self, plotRef, data, xLabel, yLabel, zLabel=None):
@@ -1571,73 +1574,3 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             yy = np.array([yy*0.9, yy*1.1])
 
         return xx, yy, zz
-
-
-
-    ############################################################################
-    #
-    #
-    #                           Replace faulty pyqtgraph function
-    #
-    #
-    ############################################################################
-
-
-def export(self, fileName=None, toBytes=False, copy=False):
-    if fileName is None and not toBytes and not copy:
-        if USE_PYSIDE:
-            filter = ["*."+str(f) for f in QtGui.QImageWriter.supportedImageFormats()]
-        else:
-            filter = ["*."+bytes(f).decode('utf-8') for f in QtGui.QImageWriter.supportedImageFormats()]
-        preferred = ['*.png', '*.tif', '*.jpg']
-        for p in preferred[::-1]:
-            if p in filter:
-                filter.remove(p)
-                filter.insert(0, p)
-        self.fileSaveDialog(filter=filter)
-        return
-        
-    targetRect = QtCore.QRect(0, 0, self.params['width'], self.params['height'])
-    sourceRect = self.getSourceRect()
-    
-    
-    #self.png = QtGui.QImage(targetRect.size(), QtGui.QImage.Format_ARGB32)
-    #self.png.fill(pyqtgraph.mkColor(self.params['background']))
-    w, h = self.params['width'], self.params['height']
-    if w == 0 or h == 0:
-        raise Exception("Cannot export image with size=0 (requested export size is %dx%d)" % (w,h))
-    bg = np.empty((int(self.params['width']), int(self.params['height']), 4), dtype=np.ubyte)
-    color = self.params['background']
-    bg[:,:,0] = color.blue()
-    bg[:,:,1] = color.green()
-    bg[:,:,2] = color.red()
-    bg[:,:,3] = color.alpha()
-    self.png = fn.makeQImage(bg, alpha=True)
-    
-    ## set resolution of image:
-    origTargetRect = self.getTargetRect()
-    resolutionScale = targetRect.width() / origTargetRect.width()
-    #self.png.setDotsPerMeterX(self.png.dotsPerMeterX() * resolutionScale)
-    #self.png.setDotsPerMeterY(self.png.dotsPerMeterY() * resolutionScale)
-    
-    painter = QtGui.QPainter(self.png)
-    #dtr = painter.deviceTransform()
-    try:
-        self.setExportMode(True, {'antialias': self.params['antialias'], 'background': self.params['background'], 'painter': painter, 'resolutionScale': resolutionScale})
-        painter.setRenderHint(QtGui.QPainter.Antialiasing, self.params['antialias'])
-        self.getScene().render(painter, QtCore.QRectF(targetRect), QtCore.QRectF(sourceRect))
-    finally:
-        self.setExportMode(False)
-    painter.end()
-    
-    if copy:
-        QtGui.QApplication.clipboard().setImage(self.png)
-    elif toBytes:
-        return self.png
-    else:
-        self.png.save(fileName)
-
-from pyqtgraph.exporters.ImageExporter import ImageExporter
-from pyqtgraph.Qt import USE_PYSIDE
-import pyqtgraph.functions as fn
-ImageExporter.export = export
