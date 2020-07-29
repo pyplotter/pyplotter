@@ -5,11 +5,12 @@ import json
 import sys
 import os
 import qcodes as qc
-from pprint import pformat
 from typing import Callable
 
 
 class QcodesDatabase:
+
+
 
 
     def __init__(self, setStatusBarMessage = Callable[[str, bool], None]):
@@ -25,59 +26,99 @@ class QcodesDatabase:
 
 
 
-    def closeDatabase(self):
-        """
-        Close the connection to the database.
-        """
-        
-        self.conn.close()
+
+    ############################################################################
+    #
+    #
+    #                           Properties
+    #
+    #
+    ############################################################################
 
 
 
-    def connectDatabase(self, databasePath : str, signal=None) -> None:
+
+    @property
+    def databasePath(self) -> str:
+
+        return self._databasePath
+
+
+
+
+    @databasePath.setter
+    def databasePath(self, databasePath : str) -> None:
         """
-        Open connection to database using qcodes functions.
 
         Parameters
         ----------
         databasePath : str
             Path to the database file.
-        signal
-            Signal to be emitted if we can't open the database
+        """
+
+        self._databasePath = databasePath
+
+
+
+
+    ############################################################################
+    #
+    #
+    #                           Open and close connection to database
+    #
+    #
+    ############################################################################
+
+
+
+
+    def openDatabase(self) -> None:
+        """
+        Open connection to database using qcodes functions.
+
+        Return
+        ------
+        conn : Connection
+            Connection to the db
+        cur : Cursor
+            Cursor to the db
         """
         
-        try:
-            self.databasePath = databasePath
-            self.conn =  qc.dataset.sqlite.database.connect(self.databasePath)
+        conn =  qc.dataset.sqlite.database.connect(self.databasePath)
+        cur = conn.cursor()
 
-            return True
-        except Exception as e:
-            fname = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            nbLine = sys.exc_info()[2].tb_lineno
-            exc_type = sys.exc_info()[0].__name__ 
-            self.setStatusBarMessage("Can't open database file: "+str(exc_type)+", "+str(e)+". File "+str(fname)+", line"+str(nbLine), error=True)
-
-            return False
+        return conn, cur
 
 
 
-    def getCursor(self) -> sqlite3.Cursor:
+
+    def closeDatabase(self, conn : qc.dataset.sqlite.connection.ConnectionPlus,
+                            cur : sqlite3.Cursor) -> None:
         """
-        Try to open a cursor from existing database connection.
-        Raise an error otherwise
+        Close the connection to the database.
+
+        Parameters
+        ----------
+        conn : Connection
+            Connection to the db
+        cur : Cursor
+            Cursor to the db
         """
-
-        try:
-            cur = self.conn.cursor()
-        except Exception as e:
-            fname = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-            nbLine = sys.exc_info()[2].tb_lineno
-            exc_type = sys.exc_info()[0].__name__ 
-            self.setStatusBarMessage("Can't get cursor: "+str(exc_type)+", "+str(e)+". File "+str(fname)+", line"+str(nbLine), error=True)
-            return
+        
+        cur.close()
+        conn.close()
 
 
-        return cur
+
+
+    ############################################################################
+    #
+    #
+    #                           Others
+    #
+    #
+    ############################################################################
+
 
 
 
@@ -90,7 +131,20 @@ class QcodesDatabase:
 
 
 
-    def getNdIndependentFromRow(self, row : sqlite3.Row) -> int:
+
+
+    ############################################################################
+    #
+    #
+    #                           Queries
+    #
+    #
+    ############################################################################
+
+
+
+
+    def getNbIndependentFromRow(self, row : sqlite3.Row) -> int:
         """
         Get the number of independent parameter from a row object of sqlite3.
         The row must come from a "runs" table.
@@ -105,6 +159,26 @@ class QcodesDatabase:
         d = json.loads(row['run_description'])
         
         return len([i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0])
+
+
+
+
+    def getNbDependentFromRow(self, row : sqlite3.Row) -> int:
+        """
+        Get the number of dpendent parameter from a row object of sqlite3.
+        The row must come from a "runs" table.
+
+        Parameters
+        ----------
+        row : sqlite3.Row
+            Row of a "runs" database
+        """
+
+        # Create nice dict object from a string
+        d = json.loads(row['run_description'])
+        
+        return len([i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0])
+
 
 
 
@@ -128,6 +202,7 @@ class QcodesDatabase:
 
 
 
+
     def getListIndependentFromRunId(self, runId : int) -> list:
         """
         Get the list of independent parameter from a runId.
@@ -138,17 +213,19 @@ class QcodesDatabase:
             id of the run
         """
 
-        cur = self.getCursor()
+        
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT run_description FROM 'runs' WHERE run_id="+str(runId))
         row = cur.fetchall()[0]
         # Create nice dict object from a string
         d = json.loads(row['run_description'])
-
-        cur.close()
+        
+        self.closeDatabase(conn, cur)
 
         return [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0]
+
 
 
 
@@ -161,19 +238,19 @@ class QcodesDatabase:
         runId : int
             id of the run
         """
-
-       
-        cur = self.getCursor()
+        
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT run_description FROM 'runs' WHERE run_id="+str(runId))
         row = cur.fetchall()[0]
         # Create nice dict object from a string
         d = json.loads(row['run_description'])
-
-        cur.close()
+        
+        self.closeDatabase(conn, cur)
 
         return [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
+
 
 
 
@@ -191,42 +268,19 @@ class QcodesDatabase:
         parameter : tuple
             ([independent], [dependents])
         """
-
-       
-        cur = self.getCursor()
+        
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT run_description FROM 'runs' WHERE run_id="+str(runId))
         row = cur.fetchall()[0]
         # Create nice dict object from a string
         d = json.loads(row['run_description'])
-
-        cur.close()
         
+        self.closeDatabase(conn, cur)
         
         return ([i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0],
                 [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0])
-
-
-
-
-    def getDatasetFromRunId(self, runId : int):
-        """
-        Get the dataset from a runId.
-
-        Parameters
-        ----------
-        runId : int
-            id of the run
-        """
-
-        try:
-            a = qc.load_by_id(int(runId), self.conn)
-        except:
-            self.connectDatabase(self.databasePath)
-            a = qc.load_by_id(int(runId), self.conn)
-
-        return a
 
 
 
@@ -242,18 +296,17 @@ class QcodesDatabase:
         runId : int
             id of the run
         """
-
-        cur = self.getCursor()
+        
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT run_description FROM 'runs' WHERE run_id="+str(runId))
         row = cur.fetchall()[0]
         # Create nice dict object from a string
         d = json.loads(row['run_description'])
-
-        cur.close()
         
-
+        self.closeDatabase(conn, cur)
+        
         independent = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0]
         dependent   = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
         
@@ -273,8 +326,8 @@ class QcodesDatabase:
         runId : int
             id of the run
         """
-
-        cur = self.getCursor()
+        
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT run_description, snapshot FROM 'runs' WHERE run_id="+str(runId))
@@ -282,8 +335,8 @@ class QcodesDatabase:
         # Create nice dict object from a string
         d = json.loads(row['run_description'])
         snapshotDict = json.loads(row['snapshot'])
-
-        cur.close()
+        
+        self.closeDatabase(conn, cur)
 
         independent = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0]
         dependent   = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
@@ -293,16 +346,12 @@ class QcodesDatabase:
 
 
 
-    def getRunInfos(self) -> tuple:
+    def getRunInfos(self) -> dict:
         """
         Get a handfull of information about all the run of a database.
         """
-
         
-        
-        cur = self.getCursor()
-        if cur is None:
-            return 
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT run_id, exp_id, name, completed_timestamp, run_timestamp, result_table_name, run_description FROM 'runs'")
@@ -311,37 +360,34 @@ class QcodesDatabase:
         result_table_names = [row['result_table_name'] for row in runInfos]
         runIds = [str(row['run_id']) for row in runInfos]
 
+
         # Get runs records
         request = 'SELECT '
         for result_table_name, runId in zip(result_table_names, runIds):
             request += '(SELECT MAX(id) FROM "'+result_table_name+'") AS runId'+runId+','
 
-        try:
-            cur.execute(request[:-1])
-            records = cur.fetchall()[0]
-        
-        # Sometimes this request doesn't work and doing the count one by one works
-        except sqlite3.OperationalError:
-
-            records = []
-            for result_table_name, runId in zip(result_table_names, runIds):
-                try:
-                    request = 'SELECT MAX(id) FROM "'+result_table_name+'"'
-                    cur.execute(request)
-                    records.append(cur.fetchall()[0]['max(id)'])
-                except sqlite3.OperationalError:
-                    records.append('nan')
-
+        cur.execute(request[:-1])
+        records = cur.fetchall()[0]
 
 
         # Get experiments Infos
         cur.execute("SELECT  exp_id, name, sample_name FROM 'experiments'")
         experimentInfos = cur.fetchall()
         
-        cur.close()
-        
+        self.closeDatabase(conn, cur)
 
-        return runInfos, records, experimentInfos
+        infos = {}
+        for runInfo, runRecords in zip(runInfos, records):
+            infos[runInfo['run_id']] = {'nb_independent_parameter' : self.getNbIndependentFromRow(runInfo),
+                                        'nb_dependent_parameter' : self.getNbDependentFromRow(runInfo),
+                                        'experiment_name' : experimentInfos[runInfo['exp_id']-1]['name'],
+                                        'sample_name' : experimentInfos[runInfo['exp_id']-1]['sample_name'],
+                                        'run_name' : runInfo['name'],
+                                        'started' : self.timestamp2string(runInfo['run_timestamp']),
+                                        'completed' : self.timestamp2string(runInfo['completed_timestamp']),
+                                        'records' : runRecords}
+
+        return infos
 
 
 
@@ -351,16 +397,16 @@ class QcodesDatabase:
         Return the number of run in the currently opened database
         """
         
-        cur = self.getCursor()
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT MAX(run_id) FROM 'runs'")
 
         rows = cur.fetchall()
         nbTotalRun = rows[0]['max(run_id)']
-        cur.close()
         
-
+        self.closeDatabase(conn, cur)
+        
         return nbTotalRun
 
 
@@ -371,16 +417,16 @@ class QcodesDatabase:
         Return the True if run completed False otherwise
         """
         
-        cur = self.getCursor()
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT is_completed FROM 'runs' WHERE run_id="+str(runId))
 
         rows = cur.fetchall()
         isCompleted = rows[0]['is_completed']
-        cur.close()
         
-
+        self.closeDatabase(conn, cur)
+        
         return isCompleted
 
 
@@ -391,16 +437,16 @@ class QcodesDatabase:
         Return the name of the experiment
         """
         
-        cur = self.getCursor()
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT name FROM 'experiments' WHERE exp_id=(SELECT exp_id FROM 'runs' WHERE run_id="+str(runId)+")")
 
         rows = cur.fetchall()
         ExperimentName = rows[0]['name']
-        cur.close()
         
-
+        self.closeDatabase(conn, cur)
+        
         return ExperimentName
 
 
@@ -411,35 +457,42 @@ class QcodesDatabase:
         Return the name of the experiment of the last run_id
         """
         
-        cur = self.getCursor()
+        conn, cur = self.openDatabase()
 
         # Get runs infos
         cur.execute("SELECT name FROM 'experiments' WHERE exp_id=(SELECT MAX(exp_id) FROM 'runs')")
 
         rows = cur.fetchall()
         ExperimentName = rows[0]['name']
-        cur.close()
         
-
+        self.closeDatabase(conn, cur)
+        
         return ExperimentName
 
 
 
 
-    def get_parameter_data(self, runId : int, paramDependent : str) -> dict:
+    def getParameterData(self, runId : int, paramDependent : str) -> dict:
 
-        ds = self.getDatasetFromRunId(int(runId))
+        conn, cur = self.openDatabase()
+        
+        ds =  qc.load_by_id(run_id=int(runId), conn=conn)
+        d = ds.get_parameter_data(paramDependent)[paramDependent]
 
-        try:
-            d = ds.get_parameter_data(paramDependent)[paramDependent]
-        except sqlite3.OperationalError:
-            self.setStatusBarMessage("Can't load data: disk I/O error", error=True)
-            d = None
+        self.closeDatabase(conn, cur)
 
         return d
-            
-# a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\edumur_test.db"
-# q = QcodesDatabase()
-# q.connectDatabase(a)
 
-# print(q.getNbTotalRun())
+
+
+
+a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\edumur_test.db"
+# a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\experiments.db"
+q = QcodesDatabase()
+q.databasePath = a
+
+
+# d = q.getRunInfos2()
+# print(q.getRunInfos2())
+
+# print(qc.dataset.sqlite.queries.get_run_infos(q.conn))

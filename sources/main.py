@@ -51,6 +51,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.tableWidgetParameters.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.tableWidgetFolder.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.tableWidgetParameters.setColumnHidden(0, True)
+        self.tableWidgetParameters.setColumnHidden(1, True)
 
         # Connect event
         self.tableWidgetDataBase.currentCellChanged.connect(self.runClicked)
@@ -328,6 +330,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if self.isBlueForsFolder(self.currentDatabase):
                 
                 self.blueForsFolderClicked(directory=nextPath)
+                self.folderClicked(directory=self.currentPath)
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
                 self.statusBar.showMessage('Update')
@@ -337,6 +340,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             elif nextPath[-3:].lower() in ['csv', 's2p']:
 
                 self.csvFileClicked(nextPath)
+                self.folderClicked(directory=self.currentPath)
             # If it is a QCoDeS database
             else:
                 
@@ -464,9 +468,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if columnName in checkedDependents:
                 cb.setChecked(True)
 
-            self.tableWidgetParameters.setCellWidget(rowPosition, 0, cb)
-            self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(columnName))
-            self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(independentParameter))
+                # We put a fake runId of value 0 to
+            self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem('0'))
+            self.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
+            self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(columnName))
+            self.tableWidgetParameters.setItem(rowPosition, 5, QtGui.QTableWidgetItem(independentParameter))
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda cb=cb,
@@ -597,8 +603,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 if config[fileName] in checkedDependents:
                     cb.setChecked(True)
 
-                self.tableWidgetParameters.setCellWidget(rowPosition, 0, cb)
-                self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(fileName))
+                # We put a fake runId of value 0 to
+                self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem('0'))
+                self.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
+                self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(fileName))
 
                 # Each checkbox at its own event attached to it
                 cb.toggled.connect(lambda cb=cb,
@@ -729,7 +737,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         which will then contain all runs.
 
         """
-
+        self.databaseClicking = True
         # We show the database is now opened
         if self.isDatabaseStared():
 
@@ -753,17 +761,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         # We try to connect to the database
         self.setStatusBarMessage('Connect to database')
-        connected = self.qcodesDatabase.connectDatabase(os.path.join(self.currentPath, self.currentDatabase))
-        if not connected:
-            return
+        self.qcodesDatabase.databasePath = os.path.join(self.currentPath, self.currentDatabase)
 
         # Try to get info from the database
         self.setStatusBarMessage('Gathered runs infos database')
-        infos = self.qcodesDatabase.getRunInfos()
-        if infos is None:
-            return
-        else:
-            runInfos, records, experimentInfos = infos
+        runInfos = self.qcodesDatabase.getRunInfos()
 
         # Add a progress bar in the statusbar
         self.progressBar = QtWidgets.QProgressBar(self)
@@ -776,8 +778,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         self.nbTotalRun = len(runInfos)
         self.setStatusBarMessage('Loading database')
+        
         # Create a thread which will read the database
-        worker = ImportDatabaseThread(runInfos, records, experimentInfos)
+        worker = ImportDatabaseThread(runInfos)
 
         # Connect signals
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
@@ -864,6 +867,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
             self.setStatusBarMessage('Ready')
 
+        self.databaseClicking = False
 
 
     def runDoubleClicked(self):
@@ -878,7 +882,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.runClicked()
 
         # We click on the first parameter, which will launch a plot
-        self.parameterCellClicked(0, 0)
+        self.parameterCellClicked(0, 2)
 
 
 
@@ -892,9 +896,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # # on a run, the runClicked event is happenning even if no run have been clicked
         # # This is due to the "currentCellChanged" event handler.
         # # We catch that false event and return nothing
-        runId = str(self.getRunId())
-        if runId is None:
+        if self.databaseClicking:
             return
+
+        
+        runId = self.getRunId()
+        experimentName = self.getRunExperimentName()
 
         if self.livePlotMode:
             runId = str(self.nbTotalRun)
@@ -960,10 +967,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if dependent['name']+' ['+dependent['unit']+']' in checkedDependents:
                 cb.setChecked(True)
 
-            self.tableWidgetParameters.setCellWidget(rowPosition, 0, cb)
-            self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(dependent['name']))
-            self.tableWidgetParameters.setItem(rowPosition, 2, QtGui.QTableWidgetItem(dependent['unit']))
-            self.tableWidgetParameters.setCellWidget(rowPosition, 3, QtWidgets.QLabel(independentString))
+            self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem(str(runId)))
+            self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(str(experimentName)))
+            self.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
+            self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(dependent['name']))
+            self.tableWidgetParameters.setItem(rowPosition, 4, QtGui.QTableWidgetItem(dependent['unit']))
+            self.tableWidgetParameters.setCellWidget(rowPosition, 5, QtWidgets.QLabel(independentString))
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda state,
@@ -995,8 +1004,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
         
         # If user clicks on the cell containing the checkbox
-        if column==0:
-            cb = self.tableWidgetParameters.cellWidget(row, 0)
+        if column==2:
+            cb = self.tableWidgetParameters.cellWidget(row, 2)
             cb.toggle()
 
 
@@ -1259,15 +1268,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 # If the current displayed parameters correspond to the one which has
                 # been closed, we uncheck all the checkbox listed in the table
                 for row in range(self.tableWidgetParameters.rowCount()):
-                    widget = self.tableWidgetParameters.cellWidget(row, 0)
+                    widget = self.tableWidgetParameters.cellWidget(row, 2)
                     widget.setChecked(False)
             # If 2d plot
             else:
                 # We uncheck only the plotted parameter
                 targetedZaxis = dependent.split('[')[0][:-1]
                 for row in range(self.tableWidgetParameters.rowCount()):
-                    if targetedZaxis == self.tableWidgetParameters.item(row, 1).text():
-                        widget = self.tableWidgetParameters.cellWidget(row, 0)
+                    if targetedZaxis == self.tableWidgetParameters.item(row, 3).text():
+                        widget = self.tableWidgetParameters.cellWidget(row, 2)
                         widget.setChecked(False)
 
 
@@ -1308,11 +1317,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             return self.getNbTotalRun()
         else:
             currentRow = self.tableWidgetDataBase.currentIndex().row()
-            return self.tableWidgetDataBase.model().index(currentRow, 0).data()
+            runId = self.tableWidgetDataBase.model().index(currentRow, 0).data()
+            if runId is None:
+                
+                runId = self.tableWidgetParameters.item(0, 0).text()
+
+            return int(runId)
 
 
 
-    def getRunExperiment(self):
+    def getRunExperimentName(self):
         """
         Return the experiment name of the current selected run.
         if Live plot mode, return the experiment name of the last recorded run.
@@ -1324,7 +1338,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             return self.qcodesDatabase.getExperimentNameLastId()
         else:
             currentRow = self.tableWidgetDataBase.currentIndex().row()
-            return self.tableWidgetDataBase.model().index(currentRow, 2).data()
+            experimentName =  self.tableWidgetDataBase.model().index(currentRow, 2).data()
+            if experimentName is None:
+                
+                experimentName = self.tableWidgetParameters.item(0, 1).text()
+
+            return str(experimentName)
 
 
 
@@ -1358,7 +1377,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
                 title = '/'.join(title)
 
-            title = title+'<br>'+str(self.getRunId())+' - '+self.getRunExperiment()
+            title = title+'<br>'+str(self.getRunId())+' - '+self.getRunExperimentName()
             return title
 
 
@@ -1438,21 +1457,21 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # If there is no live plot, because user closed it/them for example
             # We relaunch a live plot of the first parameters
             if livePlotRef is None:
-                self.parameterCellClicked(0,0)
+                self.parameterCellClicked(0,2)
             
             # If the live plot is a 1d plot
             elif self.getPlotWindowType(livePlotRef) == '1d':
                 
                 # We get which parameters has to be updated
                 for row in range(self.tableWidgetParameters.rowCount()):
-                    widget = self.tableWidgetParameters.cellWidget(row, 0)
+                    widget = self.tableWidgetParameters.cellWidget(row, 2)
                     
                     # For every checked parameter, we update the data
                     if widget.isChecked():
                         data = self.getData1d(row)
 
-                        params = self.qcodesDatabase.getDatasetFromRunId(runId).get_parameters()
-                        yLabel = params[row+1].name+' ['+params[row+1].unit+']'
+                        params = self.qcodesDatabase.getListDependentFromRunId(runId)
+                        yLabel = params[row]['name']+' ['+params[row]['unit']+']'
 
                         self._refs[livePlotRef]['plot'].updatePlotDataItem(data[0], data[1],
                                                         curveId=yLabel,
@@ -1463,14 +1482,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             else:
                 # We get which parameters has to be updated
                 for row in range(self.tableWidgetParameters.rowCount()):
-                    widget = self.tableWidgetParameters.cellWidget(row, 0)
+                    widget = self.tableWidgetParameters.cellWidget(row, 2)
                     
                     # For every checked parameter, we update the data
                     if widget.isChecked():
 
                         # We get the 2d plot reference only the plotted parameter
-                        zLabel = self.tableWidgetParameters.item(row, 1).text()+ ' ['+\
-                                 self.tableWidgetParameters.item(row, 2).text()+ ']'
+                        zLabel = self.tableWidgetParameters.item(row, 3).text()+ ' ['+\
+                                 self.tableWidgetParameters.item(row, 4).text()+ ']'
 
                         # We get the colormap data
                         x, y, z = self.getData2d(row)
@@ -1622,7 +1641,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               xLabel         = xLabel,
                               yLabel         = yLabel,
                               windowTitle    = self.getWindowTitle(),
-                              runId          = self.getRunId(),
+                              runId          = int(self.getRunId()),
                               cleanCheckBox  = self.cleanCheckBox,
                               curveId        = yLabel,
                               timestampXAxis=self.isBlueForsFolder(self.currentDatabase))
@@ -1652,7 +1671,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                           yLabel         = yLabel,
                           zLabel         = zLabel,
                           windowTitle    = self.getWindowTitle(),
-                          runId          = self.getRunId(),
+                          runId          = int(self.getRunId()),
                           cleanCheckBox  = self.cleanCheckBox)
 
             self._refs[plotRef]['livePlot'] = self.livePlotMode
@@ -1695,10 +1714,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # Get data
-        paramIndependent = self.tableWidgetParameters.cellWidget(row, 3).text()
-        paramDependent = self.tableWidgetParameters.item(row, 1).text()
+        paramIndependent = self.tableWidgetParameters.cellWidget(row, 5).text()
+        paramDependent = self.tableWidgetParameters.item(row, 3).text()
         
-        d = self.qcodesDatabase.get_parameter_data(self.getRunId(), paramDependent)
+        d = self.qcodesDatabase.getParameterData(self.getRunId(), paramDependent)
         if d is None:
             return
 
@@ -1726,10 +1745,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # Get data
-        paramsIndependent = self.tableWidgetParameters.cellWidget(row, 3).text().split(config['sweptParameterSeparator'])
-        paramDependent = self.tableWidgetParameters.item(row, 1).text()
+        paramsIndependent = self.tableWidgetParameters.cellWidget(row, 5).text().split(config['sweptParameterSeparator'])
+        paramDependent = self.tableWidgetParameters.item(row, 3).text()
 
-        d = self.qcodesDatabase.get_parameter_data(self.getRunId(), paramDependent)
+        d = self.qcodesDatabase.getParameterData(self.getRunId(), paramDependent)
         if d is None:
             return
         

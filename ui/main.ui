@@ -433,6 +433,16 @@
                 </attribute>
                 <column>
                  <property name="text">
+                  <string>run id</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>experiment name</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
                   <string>plotted</string>
                  </property>
                 </column>

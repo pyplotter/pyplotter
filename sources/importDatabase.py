@@ -36,7 +36,7 @@ class ImportDatabaseSignal(QtCore.QObject):
 class ImportDatabaseThread(QtCore.QRunnable):
 
 
-    def __init__(self, runInfos, records, experimentInfos):
+    def __init__(self, runInfos):
         """
         Thread used to get all the run info of a database.
         !! Do not import the data !!
@@ -53,8 +53,6 @@ class ImportDatabaseThread(QtCore.QRunnable):
 
         self.qcodesDatabase  = QcodesDatabase()
         self.runInfos        = runInfos
-        self.records         = records
-        self.experimentInfos = experimentInfos
         
         self.signals = ImportDatabaseSignal() 
 
@@ -72,17 +70,17 @@ class ImportDatabaseThread(QtCore.QRunnable):
         nbTotalRun = len(self.runInfos)
 
         # Going through the database here
-        for runInfo, runRecords in zip(self.runInfos, self.records): 
+        for key, val in self.runInfos.items(): 
 
-            self.signals.addRow.emit(str(runInfo['run_id']),
-                                     str(self.qcodesDatabase.getNdIndependentFromRow(runInfo))+'d',
-                                     self.experimentInfos[runInfo['exp_id']-1]['name'],
-                                     self.experimentInfos[runInfo['exp_id']-1]['sample_name'],
-                                     runInfo['name'],
-                                     self.qcodesDatabase.timestamp2string(runInfo['run_timestamp']),
-                                     self.qcodesDatabase.timestamp2string(runInfo['completed_timestamp']),
-                                     str(runRecords),
-                                     runInfo['run_id']/nbTotalRun*100)
+            self.signals.addRow.emit(str(key),
+                                     str(val['nb_independent_parameter']),
+                                     val['experiment_name'],
+                                     val['sample_name'],
+                                     val['run_name'],
+                                     val['started'],
+                                     val['completed'],
+                                     str(val['records']),
+                                     key/nbTotalRun*100)
 
         # Signal that the whole database has been looked at
         self.signals.done.emit(False)
