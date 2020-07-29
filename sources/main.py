@@ -5,8 +5,6 @@ import json
 from pprint import pformat
 from typing import Generator
 import numpy as np
-import pandas as pd
-from skrf import Touchstone # To easily read s2p file
 import sys 
 sys.path.append('ui')
 
@@ -18,6 +16,8 @@ except AttributeError:
     time.clock = time.process_clock
 
 
+from sources.csv import CSV
+from sources.bluefors import BlueFors
 from sources.qcodesdatabase import QcodesDatabase
 from sources.runpropertiesextra import RunPropertiesExtra
 from sources.mytablewidgetitem import MyTableWidgetItem
@@ -99,8 +99,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.folderUpdating  = False # To avoid calling the signal when updating folder content
         self.guiInitialized = True # To avoid calling the signal when starting the GUI
 
-        # By default, we browse the root folder
-        self.folderClicked(directory=self.currentPath)
 
         self.currentDatabase    = None
         self.oldTotalRun        = None
@@ -108,10 +106,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.livePlotFetchData  = False
         self.livePlotTimer      = None
 
-
         # Handle connection and requests to qcodes database
         self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
+        # Handle log files from bluefors fridges
+        self.blueFors       = BlueFors(self)
+        # Handle csv files
+        self.csv            = CSV(self)
 
+
+        # By default, we browse the root folder
+        self.folderClicked(directory=self.currentPath)
 
         self.threadpool = QtCore.QThreadPool()
 
@@ -217,7 +221,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if os.path.isdir(abs_filename):
                 
                 # If looks like a BlueFors log folder
-                if self.isBlueForsFolder(file):
+                if self.blueFors.isBlueForsFolder(file):
                     item =  QtGui.QTableWidgetItem(file)
                     item.setIcon(QtGui.QIcon('ui/pictures/bluefors.png'))
 
@@ -255,44 +259,45 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                         row += 1
             # If files
             else:
-                if file_extension.lower() in config['authorized_extension']:
-                    
+                if file not in config['forbidden_file']:
+                    if file_extension.lower() in config['authorized_extension']:
+                        
 
-                    # We look if the file is already opened by someone else
-                    already_opened = False
-                    for subfile in os.listdir(self.currentPath): 
-                        if subfile==file[:-2]+'db-wal':
-                            already_opened = True
+                        # We look if the file is already opened by someone else
+                        DatabaseAlreadyOpened = False
+                        for subfile in os.listdir(self.currentPath): 
+                            if subfile==file[:-2]+'db-wal':
+                                DatabaseAlreadyOpened = True
 
-                    if file_extension.lower() == 'csv':
-                        item =  QtGui.QTableWidgetItem(file)
-                        item.setIcon(QtGui.QIcon('ui/pictures/csv.png'))
-                    elif file_extension.lower() == 's2p':
-                        item =  QtGui.QTableWidgetItem(file)
-                        item.setIcon(QtGui.QIcon('ui/pictures/s2p.png'))
-                    elif already_opened and file in databaseStared:
-                        item =  QtGui.QTableWidgetItem(file)
-                        item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
-                        item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
-                    elif already_opened:
-                        item =  QtGui.QTableWidgetItem(file)
-                        item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
-                        item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
-                    elif file in databaseStared:
-                        item =  QtGui.QTableWidgetItem(file)
-                        item.setIcon(QtGui.QIcon('ui/pictures/databaseStared.png'))
-                    else:
-                        item =  QtGui.QTableWidgetItem(file)
-                        item.setIcon(QtGui.QIcon('ui/pictures/database.png'))
-                    self.tableWidgetFolder.insertRow(row)
-                    self.tableWidgetFolder.setItem(row, 0, item)
-                    
-                    # Get file size in hman readable format
-                    fileSizeItem = QtGui.QTableWidgetItem(self.sizeof_fmt(os.path.getsize(abs_filename)))
-                    fileSizeItem.setTextAlignment(QtCore.Qt.AlignRight)
-                    fileSizeItem.setTextAlignment(QtCore.Qt.AlignVCenter)
-                    self.tableWidgetFolder.setItem(row, 1, fileSizeItem)
-                    row += 1
+                        if file_extension.lower() == 'csv':
+                            item =  QtGui.QTableWidgetItem(file)
+                            item.setIcon(QtGui.QIcon('ui/pictures/csv.png'))
+                        elif file_extension.lower() == 's2p':
+                            item =  QtGui.QTableWidgetItem(file)
+                            item.setIcon(QtGui.QIcon('ui/pictures/s2p.png'))
+                        elif DatabaseAlreadyOpened and file in databaseStared:
+                            item =  QtGui.QTableWidgetItem(file)
+                            item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
+                            item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
+                        elif DatabaseAlreadyOpened:
+                            item =  QtGui.QTableWidgetItem(file)
+                            item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
+                            item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
+                        elif file in databaseStared:
+                            item =  QtGui.QTableWidgetItem(file)
+                            item.setIcon(QtGui.QIcon('ui/pictures/databaseStared.png'))
+                        else:
+                            item =  QtGui.QTableWidgetItem(file)
+                            item.setIcon(QtGui.QIcon('ui/pictures/database.png'))
+                        self.tableWidgetFolder.insertRow(row)
+                        self.tableWidgetFolder.setItem(row, 0, item)
+                        
+                        # Get file size in hman readable format
+                        fileSizeItem = QtGui.QTableWidgetItem(self.sizeof_fmt(os.path.getsize(abs_filename)))
+                        fileSizeItem.setTextAlignment(QtCore.Qt.AlignRight)
+                        fileSizeItem.setTextAlignment(QtCore.Qt.AlignVCenter)
+                        self.tableWidgetFolder.setItem(row, 1, fileSizeItem)
+                        row += 1
                     
 
         # Disable live plot
@@ -327,9 +332,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             nextPath = os.path.join(self.currentPath, self.currentDatabase)
 
             # If the folder is a BlueFors folder
-            if self.isBlueForsFolder(self.currentDatabase):
+            if self.blueFors.isBlueForsFolder(self.currentDatabase):
                 
-                self.blueForsFolderClicked(directory=nextPath)
+                self.blueFors.blueForsFolderClicked(directory=nextPath)
                 self.folderClicked(directory=self.currentPath)
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
@@ -339,12 +344,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # If it is a csv or a s2p file
             elif nextPath[-3:].lower() in ['csv', 's2p']:
 
-                self.csvFileClicked(nextPath)
+                self.csv.csvFileClicked(nextPath)
                 self.folderClicked(directory=self.currentPath)
             # If it is a QCoDeS database
             else:
                 
                 self.dataBaseClicked()
+                self.folderClicked(directory=self.currentPath)
                 # # We check of the user double click ir single click
                 #                         self._itemClicked)
 
@@ -354,370 +360,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # When the signal has been called at least once
         if not self.guiInitialized:
             self.guiInitialized = True
-
-
-
-    ###########################################################################
-    #
-    #
-    #                           VNA csv browsing
-    #
-    #
-    ###########################################################################
-
-
-
-    def csvFileClicked(self, filePath:str) -> None :
-        """
-        Call when user click on a csv file in the tableWidgetFolder.
-        Load the csv file and display its information in the tableWidgetParameters.
-        """
-        
-        # Disable widget received for qcodes database
-        self.lineEditFilter.setEnabled(False)
-        self.labelFilter.setEnabled(False)
-        
-        self.setStatusBarMessage('Loading '+filePath[-3:].lower()+' file')
-
-        # Get the file name
-        fileName = os.path.basename(os.path.normpath(filePath))
-
-        ## Update label
-        self.labelCurrentRun.setText(filePath[-3:].lower()+': '+fileName[:-4])
-        self.labelPlotTypeCurrent.setText('1d')
-
-
-        ## Fill the tableWidgetParameters with the run parameters
-
-        # When we fill the table, we need to check if there is already
-        # a plotWindow of that file opened.
-        # If it is the case, we need to checked the checkBox which are plotted
-        # in the plotWindow.
-        # Our aim is then to get the list of the checkBox which has to be checked.
-        checkedDependents = []
-        # If a plotWindow is already open
-        if len(self._refs) > 0:
-            # We iterate over all plotWindow
-            for key, val in self._refs.items():
-                # For 1d plot window
-                if self.getPlotWindowType(key) == '1d':
-                    if self.currentDatabase == val['plot'].windowTitle:
-                        checkedDependents = val['plot'].curves.keys()
-
-
-        # Clean GUI
-        self.clearTableWidet(self.tableWidgetDataBase)
-        self.clearTableWidet(self.tableWidgetParameters)
-        self.tableWidgetDataBase.setSortingEnabled(True)
-        self.tableWidgetParameters.setSortingEnabled(True)
-        
-        self.textEditMetadata.clear()
-
-
-
-        ## File parameters table
-
-        # csv file
-        if filePath[-3:].lower()=='csv':
-
-            try:
-
-                f = open(filePath, 'r')
-                # Get the comment character
-                c = f.readline()[0]
-                f.close()
-
-                df = pd.read_csv(filePath, comment=c)
-                independentParameter = df.columns[0]
-                columnsName = df.columns[1:]
-                x = df.values[:,0]
-                ys = df.values.T[1:]
-            except Exception as e:
-                fname = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-                nbLine = sys.exc_info()[2].tb_lineno
-                exc_type = sys.exc_info()[0].__name__ 
-                self.setStatusBarMessage("Can't open csv file: "+str(exc_type)+", "+str(e)+". File "+str(fname)+", line"+str(nbLine), error=True)
-                return
-        # s2p file
-        else:
-
-            try:
-                ts = Touchstone(filePath)
-                self.textEditMetadata.setText(ts.get_comments())
-                independentParameter = 'Frequency'
-                columnsName = list(ts.get_sparameter_data('db').keys())[1:]
-                x = ts.get_sparameter_data('db')['frequency']
-                ys = [ts.get_sparameter_data('db')[i] for i in list(ts.get_sparameter_data('db').keys())[1:]]
-            except Exception as e:
-                fname = os.path.split(sys.exc_info()[2].tb_frame.f_code.co_filename)[1]
-                nbLine = sys.exc_info()[2].tb_lineno
-                exc_type = sys.exc_info()[0].__name__ 
-                self.setStatusBarMessage("Can't open s2p file: "+str(exc_type)+", "+str(e)+". File "+str(fname)+", line"+str(nbLine), error=True)
-                return
-
-
-        i = 1
-        for columnName, y in zip(columnsName, ys):
-            
-            rowPosition = self.tableWidgetParameters.rowCount()
-            self.tableWidgetParameters.insertRow(rowPosition)
-
-            cb = QtWidgets.QCheckBox()
-
-            # We check if that parameter is already plotted
-            if columnName in checkedDependents:
-                cb.setChecked(True)
-
-                # We put a fake runId of value 0 to
-            self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem('0'))
-            self.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
-            self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(columnName))
-            self.tableWidgetParameters.setItem(rowPosition, 5, QtGui.QTableWidgetItem(independentParameter))
-
-            # Each checkbox at its own event attached to it
-            cb.toggled.connect(lambda cb=cb,
-                                    xLabel=independentParameter,
-                                    yLabel=columnName,
-                                    data=(x, y),
-                                    plotRef=filePath: self.csvParameterClicked(cb, xLabel, yLabel, data, plotRef))
-            
-            i += 1
-
-
-        self.setStatusBarMessage('Ready')
-
-
-
-    def csvParameterClicked(self, cb : QtWidgets.QCheckBox,
-                                  xLabel : str,
-                                  yLabel : str,
-                                  data : tuple,
-                                  plotRef : str) -> None:
-        """
-        Call when user click on a pameter from a csv file in the tableWidgetParameters.
-        Launch a plot if user check a parameter and remove curve otherwise.
-        """
-        
-        if cb:
-
-            # Reference
-            if plotRef in self._refs:
-                self._refs[plotRef]['nbCurve'] += 1
-            else:
-                self._refs[plotRef] = {'nbCurve': 1}
-
-
-            self.setStatusBarMessage('Launching 1D plot')
-            self.startPlotting(plotRef=plotRef,
-                                data=data,
-                                xLabel=xLabel,
-                                yLabel=yLabel)
-            
-        else:
-            # We are dealing with 1d plot
-            # If there is more than one curve, we remove one curve
-            if self._refs[plotRef]['nbCurve'] > 1:
-                self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
-                self._refs[plotRef]['nbCurve'] -= 1
-            # If there is one curve we close the plot window
-            else:
-                self._refs[plotRef]['plot'].o()
-                del(self._refs[plotRef])
-
-
-
-    ###########################################################################
-    #
-    #
-    #                           BlueFors log browsing
-    #
-    #
-    ###########################################################################
-
-
-
-    @staticmethod
-    def isBlueForsFolder(folderName:str) -> bool:
-        """
-        Return True if a string follow blueFors log folder name pattern.
-        """
-    
-        return len(folderName.split('-'))==3 and all([len(i)==2 for i in folderName.split('-')]) == True
-
-
-
-    def blueForsFolderClicked(self, directory):
-        """
-        When user click on a BlueFors folder while browsing files
-        """
-        
-        self.setStatusBarMessage('Loading BlueFors log')
-
-        # Get the BF folder name
-        bfName = os.path.basename(os.path.normpath(directory))
-
-        ## Update label
-        self.labelCurrentRun.setText('BF log folder: '+bfName)
-        self.labelPlotTypeCurrent.setText('1d')
-
-
-        ## Fill the tableWidgetParameters with the run parameters
-
-        # When we fill the table, we need to check if there is already
-        # a plotWindow of that file opened.
-        # If it is the case, we need to checked the checkBox which are plotted
-        # in the plotWindow.
-        # Our aim is then to get the list of the checkBox which has to be checked.
-        checkedDependents = []
-        # If a plotWindow is already open
-        if len(self._refs) > 0:
-            # We iterate over all plotWindow
-            for key, val in self._refs.items():
-                # For 1d plot window
-                if self.getPlotWindowType(key) == '1d':
-                    if self.currentDatabase == val['plot'].windowTitle:
-                        checkedDependents = val['plot'].curves.keys()
-
-
-        # Clean GUI
-        self.clearTableWidet(self.tableWidgetDataBase)
-        self.clearTableWidet(self.tableWidgetParameters)
-        self.tableWidgetDataBase.setSortingEnabled(True)
-        self.tableWidgetParameters.setSortingEnabled(True)
-        
-        self.textEditMetadata.clear()
-
-
-        for file in sorted(os.listdir(directory)):
-            
-            fileName = file[:-13]
-            
-            # We only show file handled by the plotter
-            if fileName in config.keys():
-                rowPosition = self.tableWidgetParameters.rowCount()
-                self.tableWidgetParameters.insertRow(rowPosition)
-
-                cb = QtWidgets.QCheckBox()
-
-                # We check if that parameter is already plotted
-                if config[fileName] in checkedDependents:
-                    cb.setChecked(True)
-
-                # We put a fake runId of value 0 to
-                self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem('0'))
-                self.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
-                self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(fileName))
-
-                # Each checkbox at its own event attached to it
-                cb.toggled.connect(lambda cb=cb,
-                                        filePath=os.path.join(directory, file),
-                                        plotRef=self.getPlotTitle(): self.blueForsLogClicked(cb, filePath, plotRef))
-            
-
-
-        self.setStatusBarMessage('Ready')
-
-
-
-    def blueForsLogClicked(self, cb, filePath, plotRef):
-        """
-        When user clicked on BF log file.
-        Basically, launch a 1d plot window.
-        """
-
-        # Disable widget received for qcodes database
-        self.lineEditFilter.setEnabled(False)
-        self.labelFilter.setEnabled(False)
-
-        fileName = os.path.basename(os.path.normpath(filePath))[:-13]
-        if cb:
-            self.setStatusBarMessage('Loading BlueFors data')
-            
-            # Maxigauges file (all pressure gauges)
-            if fileName == 'maxigauge':
-
-                df = pd.read_csv(filePath,
-                                delimiter=',',
-                                names=['date', 'time',
-                                    'ch1_name', 'ch1_void1', 'ch1_status', 'ch1_pressure', 'ch1_void2', 'ch1_void3',
-                                    'ch2_name', 'ch2_void1', 'ch2_status', 'ch2_pressure', 'ch2_void2', 'ch2_void3',
-                                    'ch3_name', 'ch3_void1', 'ch3_status', 'ch3_pressure', 'ch3_void2', 'ch3_void3',
-                                    'ch4_name', 'ch4_void1', 'ch4_status', 'ch4_pressure', 'ch4_void2', 'ch4_void3',
-                                    'ch5_name', 'ch5_void1', 'ch5_status', 'ch5_pressure', 'ch5_void2', 'ch5_void3',
-                                    'ch6_name', 'ch6_void1', 'ch6_status', 'ch6_pressure', 'ch6_void2', 'ch6_void3',
-                                    'void'],
-                                header=None)
-
-                df.index = pd.to_datetime(df['date']+'-'+df['time'], format='%d-%m-%y-%H:%M:%S')
-                
-                for i in range(1, 7):
-                    
-                    # Reference
-                    if plotRef in self._refs:
-                        self._refs[plotRef]['nbCurve'] += 1
-                    else:
-                        self._refs[plotRef] = {'nbCurve': 1}
-
-                    name = 'ch'+str(i)+'_pressure'
-                    
-                    self.setStatusBarMessage('Launching 1D plot')
-                    self.startPlotting(plotRef=plotRef,
-                                       data=(df[name].index.astype(np.int64).values//1e9, df[name]),
-                                       xLabel='Time',
-                                       yLabel=config[fileName][name[:3]])
-                
-                # Once all is plotting we autorange
-                self._refs[plotRef]['plot'].plotItem.vb.autoRange()
-
-                # and we set y log mode True
-                QtTest.QTest.qWait(100) # To avoid an overflow error
-                self._refs[plotRef]['plot'].checkBoxLogY.toggle()
-
-            # Thermometers files
-            else:
-                df = pd.read_csv(filePath,
-                                delimiter=',',
-                                names=['date', 'time', 'y'],
-                                header=None)
-
-                # There is a space before the day
-                df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
-
-
-                # Reference
-                if plotRef in self._refs:
-                    self._refs[plotRef]['nbCurve'] += 1
-                else:
-                    self._refs[plotRef] = {'nbCurve': 1}
-
-
-                self.setStatusBarMessage('Launching 1D plot')
-                self.startPlotting(plotRef=plotRef,
-                                   data=(df['y'].index.astype(np.int64).values//1e9, df['y']),
-                                   xLabel='Time',
-                                   yLabel=config[fileName])
-
-
-        else:
-
-            # If there is more than one curve, we remove one curve
-            if self._refs[plotRef]['nbCurve'] > 1:
-                yLabel = config[fileName]
-
-                # If maxigauge file, we have to remove all the curves at once
-                if yLabel == config['maxigauge']:
-                    for i in range(1, 7):
-                        
-                        curveId = config[fileName]['ch'+str(i)]
-                        self._refs[plotRef]['plot'].removePlotDataItem(curveId=curveId)
-                        self._refs[plotRef]['nbCurve'] -= 1
-                else:
-                    self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
-                    self._refs[plotRef]['nbCurve'] -= 1
-            # If there is one curve we close the plot window
-            else:
-                self._refs[plotRef]['plot'].o()
-                del(self._refs[plotRef])
 
 
 
@@ -870,6 +512,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.databaseClicking = False
 
 
+
     def runDoubleClicked(self):
         """
         Called when user double click on the database table.
@@ -929,42 +572,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         ## Fill the tableWidgetParameters with the run parameters
 
-        # When we fill the table, we need to check if there is already
-        # a plotWindow of that file opened.
-        # If it is the case, we need to checked the checkBox which are plotted
-        # in the plotWindow.
-        # Our aim is then to get the list of the checkBox which has to be checked.
-        checkedDependents = []
-        # If a plotWindow is already open
-        if len(self._refs) > 0:
-            # We iterate over all plotWindow
-            for key, val in self._refs.items():
-                # For 1d plot window
-                if self.getPlotWindowType(key) == '1d':
-                    if self.currentDatabase == val['plot'].windowTitle:
-                        if int(runId) == val['plot'].runId:
-                            checkedDependents = list(val['plot'].curves.keys())
-                # For 2d plot window
-                else:
-                    for plot2d in val['plot'].values():
-                        if self.currentDatabase == plot2d.windowTitle:
-                            if int(runId) == plot2d.runId:
-                                checkedDependents.append(plot2d.zLabel)
-            
-
-
-
         self.clearTableWidet(self.tableWidgetParameters)
         for dependent in dependentList:
+            
             rowPosition = self.tableWidgetParameters.rowCount()
-
 
             self.tableWidgetParameters.insertRow(rowPosition)
 
             cb = QtWidgets.QCheckBox()
 
             # We check if that parameter is already plotted
-            if dependent['name']+' ['+dependent['unit']+']' in checkedDependents:
+            if self.isParameterPlotted(self.getDependentLabel(dependent)):
                 cb.setChecked(True)
 
             self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem(str(runId)))
@@ -978,7 +596,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             cb.toggled.connect(lambda state,
                                       cb=cb,
                                       row=rowPosition,
-                                      plotRef=self.getPlotTitle(): self.parameterClicked(state, cb, row, plotRef))
+                                      plotRef=self.getPlotRef(): self.parameterClicked(state, cb, row, plotRef))
         
 
         self.tableWidgetParameters.setSortingEnabled(True)
@@ -1018,14 +636,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         # If the checkbutton is checked, we downlad and plot the data
         paramsIndependent, paramsDependent = self.qcodesDatabase.getListIndependentDependentFromRunId(self.getRunId())
+
         if state:
             
-
             # When the user click to plot we disable the gui
             self.setStatusBarMessage('Loading run data')
             QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             self.centralwidget.setEnabled(False)
-            # Get parameters
 
 
             # Get data
@@ -1045,8 +662,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 self.setStatusBarMessage('Launching 1D plot')
 
-                xLabel = paramsIndependent[0]['name']+' ['+paramsIndependent[0]['unit']+']'
-                yLabel = paramsDependent[row]['name']+' ['+paramsDependent[row]['unit']+']'
+                xLabel = self.getDependentLabel(paramsIndependent[0])
+                yLabel = self.getDependentLabel(paramsDependent[row])
                 zLabel = None
             elif nbIndependent==2:
 
@@ -1062,9 +679,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 self.setStatusBarMessage('Launching 2D plot')
 
-                xLabel = paramsIndependent[0]['name']+' ['+paramsIndependent[0]['unit']+']'
-                yLabel = paramsIndependent[1]['name']+' ['+paramsIndependent[1]['unit']+']'
-                zLabel = paramsDependent[row]['name']+' ['+paramsDependent[row]['unit']+']'
+                xLabel = self.getDependentLabel(paramsIndependent[0])
+                yLabel = self.getDependentLabel(paramsIndependent[1])
+                zLabel = self.getDependentLabel(paramsDependent[row])
             else:
                 self.setStatusBarMessage('Plotter does not handle data whose dim>2', error=True)
 
@@ -1090,7 +707,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if plotType is None:
                 return
             elif plotType == '2d':
-                zLabel = paramsDependent[row]['name']+' ['+paramsDependent[row]['unit']+']'
+                zLabel = self.getDependentLabel(paramsDependent[row])
                 self._refs[plotRef]['plot'][zLabel].o()
                 del(self._refs[plotRef]['plot'][zLabel])
 
@@ -1098,7 +715,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             else:
                 # If there is more than one curve, we remove one curve
                 if self._refs[plotRef]['nbCurve'] > 1:
-                    yLabel = paramsDependent[row]['name']+' ['+paramsDependent[row]['unit']+']'
+                    yLabel = self.getDependentLabel(paramsDependent[row])
                     self._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
                     self._refs[plotRef]['nbCurve'] -= 1
                 # If there is one curve we close the plot window
@@ -1118,7 +735,41 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def find(self, key : str, dictionary : dict) -> Generator:
+    def getDependentLabel(self, dependent : dict) -> str:
+        """
+        Return the label from a qcodes dependent parameter.
+        """
+
+        return dependent['name']+' ['+dependent['unit']+']'
+
+
+
+    def isParameterPlotted(self, parameterLabel : str) -> bool:
+        """
+        Return True when the displayed parameter is currently plotted.
+        """
+
+        # checkedDependents = []
+        # If a plotWindow is already open
+        if len(self._refs) > 0:
+            # We iterate over all plotWindow
+            for key, val in self._refs.items():
+                if key == self.getPlotRef():
+                    # For 1d plot window
+                    if self.getPlotWindowType(key) == '1d':
+                        if parameterLabel in list(val['plot'].curves.keys()):
+                            return True
+                    # For 2d plot window
+                    else:
+                        for plot2d in val['plot'].values():
+                            if parameterLabel == plot2d.zLabel:
+                                return True
+        
+        return False
+
+
+
+    def findKeyInDict(self, key : str, dictionary : dict) -> Generator:
         """
         Find all occurences of a key in nested python dictionaries and lists.
         Adapted from:
@@ -1140,12 +791,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if key in k:
                 yield {k: v}
             elif isinstance(v, dict):
-                for result in self.find(key, v):
+                for result in self.findKeyInDict(key, v):
                     yield result
             elif isinstance(v, list):
                 for d in v:
                     if isinstance(d, dict):
-                        for result in self.find(key, d):
+                        for result in self.findKeyInDict(key, d):
                             yield result
 
 
@@ -1157,7 +808,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         if len(text) != 0:
-            snapshotNew = list(self.find(text, self.originalSnapshot))
+            snapshotNew = list(self.findKeyInDict(text, self.originalSnapshot))
             
             self.textEditMetadata.setText(pformat(snapshotNew)
                                         .replace('{', '')
@@ -1291,10 +942,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-
-
-
-
     def getNbTotalRun(self, refresh_db=False):
         """
         Return the total number of run in current database
@@ -1363,7 +1010,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # If BlueFors log files
-        if self.isBlueForsFolder(self.currentDatabase):
+        if self.blueFors.isBlueForsFolder(self.currentDatabase):
             return self.currentDatabase
         # If csv or s2p files we return the filename without the extension
         elif self.currentDatabase[-3:].lower() in ['csv', 's2p']:
@@ -1379,6 +1026,23 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
             title = title+'<br>'+str(self.getRunId())+' - '+self.getRunExperimentName()
             return title
+
+
+
+    def getPlotRef(self):
+        """
+        Return a reference for the plot window.
+        This should be unique for a given set of data.
+        """
+
+        # If BlueFors log files
+        if self.blueFors.isBlueForsFolder(self.currentDatabase):
+            return os.path.abspath(self.currentDatabase)
+        # If csv or s2p files we return the filename without the extension
+        elif self.currentDatabase[-3:].lower() in ['csv', 's2p']:
+            return os.path.abspath(self.currentDatabase)
+        else:
+            return os.path.abspath(self.currentDatabase)+str(self.getRunId())
 
 
 
@@ -1471,7 +1135,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                         data = self.getData1d(row)
 
                         params = self.qcodesDatabase.getListDependentFromRunId(runId)
-                        yLabel = params[row]['name']+' ['+params[row]['unit']+']'
+                        yLabel = self.getDependentLabel(params)
 
                         self._refs[livePlotRef]['plot'].updatePlotDataItem(data[0], data[1],
                                                         curveId=yLabel,
@@ -1644,7 +1308,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               runId          = int(self.getRunId()),
                               cleanCheckBox  = self.cleanCheckBox,
                               curveId        = yLabel,
-                              timestampXAxis=self.isBlueForsFolder(self.currentDatabase))
+                              timestampXAxis=self.blueFors.isBlueForsFolder(self.currentDatabase))
 
                 self._refs[plotRef]['plot']     = p
                 self._refs[plotRef]['livePlot'] = self.livePlotMode

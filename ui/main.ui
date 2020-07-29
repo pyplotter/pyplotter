@@ -230,9 +230,14 @@
                  <widget class="QLabel" name="labelCurrentDataBase">
                   <property name="font">
                    <font>
+                    <family>MS Shell Dlg 2</family>
+                    <pointsize>10</pointsize>
                     <weight>75</weight>
                     <bold>true</bold>
                    </font>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">color: green;</string>
                   </property>
                   <property name="text">
                    <string/>

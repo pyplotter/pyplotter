@@ -245,7 +245,7 @@ class RunPropertiesExtra:
                 if len(self.getRunStared())==0:
                     for row in range(self.tableWidgetFolder.rowCount()):
                         if self.currentDatabase == self.tableWidgetFolder.item(row, 0).text():
-                            self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
+                            self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon('ui/pictures/database.png'))
 
             # If the user wants to stared the run
             else:
@@ -262,7 +262,7 @@ class RunPropertiesExtra:
                 # If the database containing the stared run is displayed, we star it
                 for row in range(self.tableWidgetFolder.rowCount()):
                     if self.currentDatabase == self.tableWidgetFolder.item(row, 0).text():
-                        self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
+                        self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon('ui/pictures/databaseStared.png'))
 
 
 
@@ -308,6 +308,7 @@ class RunPropertiesExtra:
     #
     #
     ############################################################################
+
 
 
     def databaseGetPath(self) -> str:
