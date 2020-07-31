@@ -74,13 +74,14 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
         # Create a Image item to host the image view
         self.imageItem = pg.ImageItem()
+        self.imageItem.autoDownsample = config['2dDownSampling']
         self.imageView = pg.ImageView(imageItem=self.imageItem)
 
         # Embed the plot item in the graphics layout
         self.plotItem.vb.addItem(self.imageItem)
 
 
-        # Create a hostogram item linked to the imageitem
+        # Create a histogram item linked to the imageitem
         self.histWidget.setImageItem(self.imageItem)
         self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
 

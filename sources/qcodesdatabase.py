@@ -491,8 +491,9 @@ a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\edumur_test.db"
 q = QcodesDatabase()
 q.databasePath = a
 
+# d = q.getRunInfos(3)
+d = q.getParameterData(3, 'magnitude')
 
-# d = q.getRunInfos2()
 # print(q.getRunInfos2())
 
 # print(qc.dataset.sqlite.queries.get_run_infos(q.conn))

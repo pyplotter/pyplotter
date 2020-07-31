@@ -650,7 +650,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if nbIndependent==1:
 
 
-                self.setStatusBarMessage('Getting data')
+                self.setStatusBarMessage('Extracting data from database')
                 data = self.getData1d(row)
                 if data is None:
                     # Plot is done, we unable the gui
@@ -667,7 +667,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             elif nbIndependent==2:
 
 
-                self.setStatusBarMessage('Getting data')
+                self.setStatusBarMessage('Extracting data from database')
                 data = self.getData2d(row)
                 if data is None:
                     # Plot is done, we unable the gui
@@ -1574,3 +1574,137 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             yy = np.array([yy*0.9, yy*1.1])
 
         return xx, yy, zz
+
+
+
+    def shapeData2dPolygon(self, x : np.array,
+                                 y : np.array,
+                                 z : np.array) -> tuple :
+        """
+        Reshape 2d scan into a meshing.
+        
+        Return
+        ------
+            x2dVertices : 2d np.array
+                Vertices along x of the polygons
+            y2dVertices : 2d np.array
+                Vertices along y of the polygons
+            z2d : 2d np.array
+                Value of the polygons
+        """
+        
+        self.setStatusBarMessage('Shapping 2d data for display')
+
+        ## Find effective "x" column
+        # The x column is defined as the column where the independent parameter
+        # is not modified while the y column independet parameter is.
+
+        if y[1]==y[0]:
+            t = x
+            x = y
+            y = t
+
+
+        ## Treat the data depending on their shape
+        # We get the number of point in the x and y dimension
+        # We add fake data (with np.nan value for the xaxis) for unfinished 
+        # measurements
+
+        # Finished regular grid
+        if len(np.unique([len(x[x==i])for i in np.unique(x)]))==1 and len(np.unique(y))==len(y[::len(np.unique(x))]):
+            
+            # Nb points in the 1st dimension
+            xn = len(np.unique(x))
+
+            # Nb points in the 2nd dimension
+            yn = len(y[::xn])# Finished regular grid
+            
+        # Finished unregular grid
+        elif len(np.unique([len(x[x==i])for i in np.unique(x)]))==1 :
+            
+            # Nb points in the 1st dimension
+            xn = len(np.unique(x))
+
+            # Nb points in the 2nd dimension
+            yn = len(y[::xn])
+
+        # Unfinished unregular grid
+        elif y[0]!=y[len(x[x==x[0]])]:
+            
+            # Nb points in the 1st dimension
+            xn = len(np.unique(x))
+            
+            # Nb points in the 2nd dimension
+            yn = len(x[x==x[0]])
+            
+            ## Build "full" x, y and z
+            
+            # Find how many element a finished grid would have
+            # Number of element per x value
+            t = np.array([len(x[x==i])for i in np.unique(x)])
+            tmax = max(t)
+            # Number of element if the measurement was finished
+            tFinished = (len(t[t==min(t)]) + len(t[t==tmax]))*tmax
+            # Number of missing element
+            nbMissing = tFinished - len(x)
+            
+            ## Interpolate last y value based on the last done scan
+            # Last full y measured
+            yLastFull = y[-2*tmax+nbMissing:-tmax+nbMissing]
+            dyLastFull = np.gradient(yLastFull)
+            dyinterp = np.gradient(yLastFull)[-nbMissing:]
+
+            yMissing = np.array([y[-1]])
+            for i in dyinterp:
+                yMissing = np.append(yMissing, yMissing[-1] + i)
+
+
+            x = np.concatenate((x, [x[-1]]*nbMissing))
+            y = np.concatenate((y, yMissing[1:]))
+            z = np.concatenate((z, [np.nan]*nbMissing))
+            
+        # Unfinished regular grid
+        else:
+            
+            ## Build "full" x, y and z
+            
+            # Find how many element a finished grid would have
+            # Number of element per x value
+            t = np.array([len(x[x==i])for i in np.unique(x)])
+            # Number of element if the measurement was finished
+            tFinished = (len(t[t==min(t)]) + len(t[t==max(t)]))*max(t)
+            # Number of missing element
+            nbMissing = tFinished - len(x)
+            
+            # Nb points in the 1st dimension
+            xn = len(np.unique(x))
+            # Nb points in the 2nd dimension
+            yn = len(np.unique(y))
+            
+            x = np.concatenate((x, [x[-1]]*nbMissing))
+            y = np.concatenate((y, y[:yn][-nbMissing:]))
+            z = np.concatenate((z, [np.nan]*nbMissing))
+            
+
+
+        ## Get the 2d matrices for x, y and z
+        # x and y are the vertices of the polygon and their shape should be
+        # x[i+1, j+1] and y[i+1, j+1] while z is the value of the polygon and
+        # its shape should be z[i, j]
+
+        x2d = x.reshape((xn, yn))
+        dx = np.gradient(x2d, axis=0)/2.
+        x2dVertices = np.concatenate((x2d - dx, [x2d[-1]+dx[-1]]))
+        x2dVertices = np.concatenate((x2dVertices, np.array([x2dVertices[:,1]]).T), axis=1)
+
+
+        y2d = y.reshape((xn, yn))
+        dy = np.gradient(y2d, axis=1)/2.
+        y2dVertices = np.concatenate((y2d - dy, np.array([y2d[:,-1]+dy[:,-1]]).T), axis=1)
+        y2dVertices = np.concatenate((y2dVertices, np.array([y2dVertices[-1]*2 -y2dVertices[-2] ])))
+
+
+        z2d = z.reshape((xn, yn))
+
+
+        return x2dVertices, y2dVertices, z2d
