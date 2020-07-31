@@ -381,16 +381,19 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         """
         self.databaseClicking = True
-        # We show the database is now opened
-        if self.isDatabaseStared():
 
-            currentRow = self.tableWidgetFolder.currentIndex().row()
-            item = self.tableWidgetFolder.item(currentRow, 0)
-            item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
-        else:
-            currentRow = self.tableWidgetFolder.currentIndex().row()
-            item = self.tableWidgetFolder.item(currentRow, 0)
-            item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
+        if not self.livePlotMode:
+            
+            # We show the database is now opened
+            if self.isDatabaseStared():
+
+                currentRow = self.tableWidgetFolder.currentIndex().row()
+                item = self.tableWidgetFolder.item(currentRow, 0)
+                item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
+            else:
+                currentRow = self.tableWidgetFolder.currentIndex().row()
+                item = self.tableWidgetFolder.item(currentRow, 0)
+                item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
 
         # Disable interactivity
         self.checkBoxHidden.setChecked(False)
@@ -1138,10 +1141,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                         data = self.getData1d(row)
 
                         params = self.qcodesDatabase.getListDependentFromRunId(runId)
-                        yLabel = self.getDependentLabel(params)
+                        yLabel = self.getDependentLabel(params[row])
 
                         self._refs[livePlotRef]['plot'].updatePlotDataItem(data[0], data[1],
-                                                        curveId=yLabel,
+                                                        curveId=self.getCurveId(yLabel),
                                                         curveLegend=None,
                                                         autoRange=True)
 
