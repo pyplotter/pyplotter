@@ -3,9 +3,6 @@ from PyQt5 import QtCore
 import sys
 import os
 
-from sources.qcodesdatabase import QcodesDatabase
-
-
 
 def trap_exc_during_debug(*args):
     # when app raises uncaught exception, print info
@@ -49,7 +46,6 @@ class ImportDatabaseThread(QtCore.QRunnable):
 
         super(ImportDatabaseThread, self).__init__()
 
-        self.qcodesDatabase = QcodesDatabase()
         self.getRunInfos    = getRunInfos
         
         self.signals = ImportDatabaseSignal() 

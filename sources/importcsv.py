@@ -136,18 +136,10 @@ class ImportCSV:
         
         if cb:
 
-            # Reference
-            if plotRef in self.main._refs:
-                self.main._refs[plotRef]['nbCurve'] += 1
-            else:
-                self.main._refs[plotRef] = {'nbCurve': 1}
-
-
-            self.main.setStatusBarMessage('Launching 1D plot')
             self.main.startPlotting(plotRef = plotRef,
-                               data    = data,
-                               xLabel  = xLabel,
-                               yLabel  = yLabel)
+                                    data    = data,
+                                    xLabel  = xLabel,
+                                    yLabel  = yLabel)
             
         else:
             # We are dealing with 1d plot

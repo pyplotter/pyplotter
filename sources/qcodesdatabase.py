@@ -1,4 +1,5 @@
 # This Python file uses the following encoding: utf-8
+from PyQt5 import QtCore
 import time
 import sqlite3
 import json
@@ -72,9 +73,15 @@ class QcodesDatabase:
 
 
 
-    def openDatabase(self) -> None:
+    def openDatabase(self, callEvery: int=None) -> None:
         """
         Open connection to database using qcodes functions.
+
+        Parameters
+        ----------
+        callEvery : int, default None
+            Number of virtual machine instructions between each callback.
+
 
         Return
         ------
@@ -85,6 +92,11 @@ class QcodesDatabase:
         """
         
         conn =  qc.dataset.sqlite.database.connect(self.databasePath)
+
+        # ProgressHandler will be called every "callevery"
+        if callEvery is not None:
+            conn.set_progress_handler(self.progressHandler, callEvery)
+
         cur = conn.cursor()
 
         return conn, cur
@@ -136,11 +148,32 @@ class QcodesDatabase:
     ############################################################################
     #
     #
-    #                           Queries
+    #                           Progress bar
     #
     #
     ############################################################################
 
+
+
+    def progressHandler(self):
+        """
+        Is called by sql queries.
+
+        Increment progressBarValue by one and display the data download progress.
+        """
+
+        self.progressBarValue += 1
+        self.progressBarUpdate.emit(self.progressBarValue)
+
+
+
+    ############################################################################
+    #
+    #
+    #                           Queries
+    #
+    #
+    ############################################################################
 
 
 
@@ -472,12 +505,39 @@ class QcodesDatabase:
 
 
 
-    def getParameterData(self, runId : int, paramDependent : str) -> dict:
+    def getParameterData(self, runId             : int,
+                               paramDependent    : str,
+                               progressBarUpdate : Callable[[int], None]) -> dict:
 
+        # Initialized progress bar
+        self.progressBarValue  = 0
+        self.progressBarUpdate = progressBarUpdate
+
+        # In order to display a progress of the data loading, we need the
+        # number of point downloaded. This requires the two following queries.
         conn, cur = self.openDatabase()
+
+        cur.execute("SELECT result_table_name FROM runs WHERE run_id="+str(runId))
+
+        rows = cur.fetchall()
+        table_name = rows[0]['result_table_name']
+
+        cur.execute("SELECT MAX(id) FROM '"+table_name+"'")
+        rows = cur.fetchall()
+        total = rows[0]['max(id)']
+        callEvery = int(total/100*6)
+        
+        self.closeDatabase(conn, cur)
+
+        # We download the data while updating the progress bar every ~2 percent
+        conn, cur = self.openDatabase(callEvery=callEvery)
         
         ds =  qc.load_by_id(run_id=int(runId), conn=conn)
-        d = ds.get_parameter_data(paramDependent)[paramDependent]
+
+        try:
+            d = ds.get_parameter_data(paramDependent)[paramDependent]
+        except sqlite3.OperationalError:
+            d = None
 
         self.closeDatabase(conn, cur)
 
@@ -492,8 +552,9 @@ class QcodesDatabase:
 # q.databasePath = a
 
 # # d = q.getRunInfos(3)
-# d = q.getParameterData(3, 'magnitude')
+# d = q.getListIndependentFromRunId(3)
+# # d = q.getParameterData(3, 'magnitude')
 
-# print(q.getRunInfos2())
+# # print(q.getRunInfos2())
 
-# print(qc.dataset.sqlite.queries.get_run_infos(q.conn))
+# # print(qc.dataset.sqlite.queries.get_run_infos(q.conn))

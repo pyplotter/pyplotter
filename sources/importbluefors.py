@@ -123,15 +123,9 @@ class ImportBlueFors:
                 
                 for i in range(1, 7):
                     
-                    # Reference
-                    if plotRef in self.main._refs:
-                        self.main._refs[plotRef]['nbCurve'] += 1
-                    else:
-                        self.main._refs[plotRef] = {'nbCurve': 1}
 
                     name = 'ch'+str(i)+'_pressure'
                     
-                    self.main.setStatusBarMessage('Launching 1D plot')
                     self.main.startPlotting(plotRef = plotRef,
                                        data    = (df[name].index.astype(np.int64).values//1e9, df[name]),
                                        xLabel  = 'Time',
@@ -154,15 +148,6 @@ class ImportBlueFors:
                 # There is a space before the day
                 df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
 
-
-                # Reference
-                if plotRef in self.main._refs:
-                    self.main._refs[plotRef]['nbCurve'] += 1
-                else:
-                    self.main._refs[plotRef] = {'nbCurve': 1}
-
-
-                self.main.setStatusBarMessage('Launching 1D plot')
                 self.main.startPlotting(plotRef = plotRef,
                                    data    = (df['y'].index.astype(np.int64).values//1e9, df['y']),
                                    xLabel  = 'Time',
