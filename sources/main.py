@@ -967,11 +967,24 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if self.livePlotMode:
             return self.getNbTotalRun()
         else:
+
+            # If not in liveplot mode we get the runId from the gui to avoid
+            # a sql call
+            # First we try to get it from the database table
             currentRow = self.tableWidgetDataBase.currentIndex().row()
             runId = self.tableWidgetDataBase.model().index(currentRow, 0).data()
+
+            # If it doesn't exist, we try the parameter table
             if runId is None:
                 
-                runId = self.tableWidgetParameters.item(0, 0).text()
+                item = self.tableWidgetParameters.item(0, 0)
+                
+                # This occurs when user is looking to csv, s2p of bluefors files
+                # In this case the runid is 0
+                if item is None:
+                    runId = 0
+                else:
+                    runId = item.text()
 
             return int(runId)
 

@@ -104,7 +104,7 @@ class ImportCSV:
             if self.main.isParameterPlotted(columnName):
                 cb.setChecked(True)
 
-                # We put a fake runId of value 0
+            # We put a fake runId of value 0
             self.main.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem('0'))
             self.main.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
             self.main.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(columnName))
