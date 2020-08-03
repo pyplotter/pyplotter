@@ -486,13 +486,13 @@ class QcodesDatabase:
 
 
 
-a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\edumur_test.db"
-# a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\experiments.db"
-q = QcodesDatabase()
-q.databasePath = a
+# a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\edumur_test.db"
+# # a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\experiments.db"
+# q = QcodesDatabase()
+# q.databasePath = a
 
-# d = q.getRunInfos(3)
-d = q.getParameterData(3, 'magnitude')
+# # d = q.getRunInfos(3)
+# d = q.getParameterData(3, 'magnitude')
 
 # print(q.getRunInfos2())
 

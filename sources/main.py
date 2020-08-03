@@ -350,10 +350,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # If it is a QCoDeS database
             else:
                 
+                # folderClicked called after the worker is done
                 self.dataBaseClicked()
-                self.folderClicked(directory=self.currentPath)
-                # # We check of the user double click ir single click
-                #                         self._itemClicked)
 
             # Job done, we restor the usual cursor 
             QtGui.QApplication.restoreOverrideCursor()
@@ -405,13 +403,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Remove all previous row in the table
         self.clearTableWidet(self.tableWidgetDataBase)
 
-        # We try to connect to the database
-        self.setStatusBarMessage('Connect to database')
         self.qcodesDatabase.databasePath = os.path.join(self.currentPath, self.currentDatabase)
-
-        # Try to get info from the database
-        self.setStatusBarMessage('Gathered runs infos database')
-        runInfos = self.qcodesDatabase.getRunInfos()
 
         # Add a progress bar in the statusbar
         self.progressBar = QtWidgets.QProgressBar(self)
@@ -421,12 +413,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.statusBar.setSizeGripEnabled(False)
         self.statusBar.addPermanentWidget(self.progressBar)
 
-
-        self.nbTotalRun = len(runInfos)
-        self.setStatusBarMessage('Loading database')
-        
         # Create a thread which will read the database
-        worker = ImportDatabaseThread(runInfos)
+        worker = ImportDatabaseThread(self.qcodesDatabase.getRunInfos)
 
         # Connect signals
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
@@ -446,7 +434,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                     started : str,
                                     completed : str,
                                     runRecords : str,
-                                    progress : int) -> None:
+                                    progress : int,
+                                    nbTotalRun : int) -> None:
         """
         Called by another thread to fill the database table.
         Each call add one line in the table.
@@ -457,7 +446,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if rowPosition==0:
             self.statusBar.clearMessage()
 
-        self.progressBar.setFormat('Getting database information: run '+runId+'/'+str(self.nbTotalRun))
+        self.progressBar.setFormat('Getting database information: run '+runId+'/'+str(nbTotalRun))
         self.progressBar.setValue(progress)
 
         # Create new row
@@ -490,7 +479,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def dataBaseClickedDone(self, error=False):
+    def dataBaseClickedDone(self, error, nbTotalRun):
         """
         Called when the database table has been filled
         """
@@ -513,7 +502,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
             self.setStatusBarMessage('Ready')
 
+
+        # We store the total number of run
+        self.nbTotalRun = nbTotalRun
+
+        # Done 
         self.databaseClicking = False
+
+        self.folderClicked(directory=self.currentPath)
+
+
 
 
 
@@ -539,10 +537,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         tableWidgetPtableWidgetParameters
         """
         
-        # # When the user click on another database while having already clicked
-        # # on a run, the runClicked event is happenning even if no run have been clicked
-        # # This is due to the "currentCellChanged" event handler.
-        # # We catch that false event and return nothing
+        # When the user click on another database while having already clicked
+        # on a run, the runClicked event is happenning even if no run have been clicked
+        # This is due to the "currentCellChanged" event handler.
+        # We catch that false event and return nothing
         if self.databaseClicking:
             return
 

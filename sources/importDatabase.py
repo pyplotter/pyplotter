@@ -24,11 +24,11 @@ class ImportDatabaseSignal(QtCore.QObject):
 
 
     # When the run method is done
-    done = QtCore.pyqtSignal(bool)
+    done = QtCore.pyqtSignal(bool, int)
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
     # Signal used to add a row in the database table
-    addRow = QtCore.pyqtSignal(str, str, str, str, str, str, str, str, int)
+    addRow = QtCore.pyqtSignal(str, str, str, str, str, str, str, str, int, int)
 
 
 
@@ -36,23 +36,21 @@ class ImportDatabaseSignal(QtCore.QObject):
 class ImportDatabaseThread(QtCore.QRunnable):
 
 
-    def __init__(self, runInfos):
+    def __init__(self, getRunInfos):
         """
         Thread used to get all the run info of a database.
-        !! Do not import the data !!
+        !! Do not import data !!
 
         Parameters
         ----------
-        currentPath : str
-            CurrentPath attribute of the main thread
-        currentDatabase : str
-            CurrentDatabase attribute of the main thread
+        getRunInfos : func
+            Function which returns all infos of a database in a nice python dict.
         """
 
         super(ImportDatabaseThread, self).__init__()
 
-        self.qcodesDatabase  = QcodesDatabase()
-        self.runInfos        = runInfos
+        self.qcodesDatabase = QcodesDatabase()
+        self.getRunInfos    = getRunInfos
         
         self.signals = ImportDatabaseSignal() 
 
@@ -67,10 +65,14 @@ class ImportDatabaseThread(QtCore.QRunnable):
         table displaying all the info of each run.
         """
 
-        nbTotalRun = len(self.runInfos)
+        self.signals.setStatusBarMessage.emit('Gathered runs infos database', False)
+        runInfos = self.getRunInfos()
+
 
         # Going through the database here
-        for key, val in self.runInfos.items(): 
+        self.signals.setStatusBarMessage.emit('Loading database', False)
+        nbTotalRun = len(runInfos)
+        for key, val in runInfos.items(): 
 
             self.signals.addRow.emit(str(key),
                                      str(val['nb_independent_parameter']),
@@ -80,10 +82,11 @@ class ImportDatabaseThread(QtCore.QRunnable):
                                      val['started'],
                                      val['completed'],
                                      str(val['records']),
-                                     key/nbTotalRun*100)
+                                     key/nbTotalRun*100,
+                                     nbTotalRun)
 
         # Signal that the whole database has been looked at
-        self.signals.done.emit(False)
+        self.signals.done.emit(False, nbTotalRun)
 
 
 
