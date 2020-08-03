@@ -5,7 +5,7 @@ import pandas as pd
 from skrf import Touchstone # To easily read s2p file
 
 
-class CSV:
+class ImportCSV:
 
 
     def __init__(self, mainObject):
@@ -13,7 +13,7 @@ class CSV:
         Class handling the reading of csv file.
         """
 
-        super(CSV, self).__init__()
+        super(ImportCSV, self).__init__()
 
         self.main = mainObject
 

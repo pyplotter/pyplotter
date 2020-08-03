@@ -17,8 +17,8 @@ except AttributeError:
     import pyqtgraph as pg
 
 
-from sources.csv import CSV
-from sources.bluefors import BlueFors
+from sources.importcsv import ImportCSV
+from sources.importbluefors import ImportBlueFors
 from sources.qcodesdatabase import QcodesDatabase
 from sources.runpropertiesextra import RunPropertiesExtra
 from sources.mytablewidgetitem import MyTableWidgetItem
@@ -110,9 +110,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Handle connection and requests to qcodes database
         self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
         # Handle log files from bluefors fridges
-        self.blueFors       = BlueFors(self)
+        self.importblueFors = ImportBlueFors(self)
         # Handle csv files
-        self.csv            = CSV(self)
+        self.importcsv      = ImportCSV(self)
 
 
         # By default, we browse the root folder
@@ -222,7 +222,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if os.path.isdir(abs_filename):
                 
                 # If looks like a BlueFors log folder
-                if self.blueFors.isBlueForsFolder(file):
+                if self.importblueFors.isBlueForsFolder(file):
                     item =  QtGui.QTableWidgetItem(file)
                     item.setIcon(QtGui.QIcon('ui/pictures/bluefors.png'))
 
@@ -333,9 +333,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             nextPath = os.path.join(self.currentPath, self.currentDatabase)
 
             # If the folder is a BlueFors folder
-            if self.blueFors.isBlueForsFolder(self.currentDatabase):
+            if self.importblueFors.isBlueForsFolder(self.currentDatabase):
                 
-                self.blueFors.blueForsFolderClicked(directory=nextPath)
+                self.importblueFors.blueForsFolderClicked(directory=nextPath)
                 self.folderClicked(directory=self.currentPath)
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
@@ -345,7 +345,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # If it is a csv or a s2p file
             elif nextPath[-3:].lower() in ['csv', 's2p']:
 
-                self.csv.csvFileClicked(nextPath)
+                self.importcsv.csvFileClicked(nextPath)
                 self.folderClicked(directory=self.currentPath)
             # If it is a QCoDeS database
             else:
@@ -1014,7 +1014,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # If BlueFors log files
-        if self.blueFors.isBlueForsFolder(self.currentDatabase):
+        if self.importblueFors.isBlueForsFolder(self.currentDatabase):
             return self.currentDatabase
         # If csv or s2p files we return the filename without the extension
         elif self.currentDatabase[-3:].lower() in ['csv', 's2p']:
@@ -1040,7 +1040,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # If BlueFors log files
-        if self.blueFors.isBlueForsFolder(self.currentDatabase):
+        if self.importblueFors.isBlueForsFolder(self.currentDatabase):
             return os.path.abspath(self.currentDatabase)
         # If csv or s2p files we return the filename without the extension
         elif self.currentDatabase[-3:].lower() in ['csv', 's2p']:
@@ -1346,7 +1346,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               runId          = int(self.getRunId()),
                               cleanCheckBox  = self.cleanCheckBox,
                               curveId        = self.getCurveId(yLabel),
-                              timestampXAxis=self.blueFors.isBlueForsFolder(self.currentDatabase))
+                              timestampXAxis=self.importblueFors.isBlueForsFolder(self.currentDatabase))
 
                 self._refs[plotRef]['plot']     = p
                 self._refs[plotRef]['livePlot'] = self.livePlotMode

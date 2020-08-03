@@ -6,7 +6,7 @@ import pandas as pd
 
 from sources.config import config
 
-class BlueFors:
+class ImportBlueFors:
 
 
     def __init__(self, mainObject):
@@ -14,7 +14,7 @@ class BlueFors:
         Class handling the reading of the blueFors logging files
         """
 
-        super(BlueFors, self).__init__()
+        super(ImportBlueFors, self).__init__()
 
         self.main = mainObject
 
