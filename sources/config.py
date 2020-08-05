@@ -79,7 +79,7 @@ config = {
 # certain number of points and realize a linear interpolation between those points
 # The default is 8 (above 8 will make some colormap crash)
 '2dMapNbColorPoints' : 8,
-'2dDownSampling' : True,
+'2dDownSampling' : False,
 'plotShrinkActiveArea' : 2, # In percentage
 'plot1dGrid' : True,
 'plot1dSymbol' : ['o', 's', 't', 'd', '+'],

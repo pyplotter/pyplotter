@@ -142,31 +142,23 @@ class LoadDataThread(QtCore.QRunnable):
 
     def shapeData2d(self, x, y, z):
         """
-        Intermediate method to catch "error" when user is inverting the x and y
-        axis compare to what the algo is expecting.
-        """
-        
-        try:
-            x, y, z = self.shapeData2dSub(x, y, z)
-        except ValueError:
-            x, y, z = self.shapeData2dSub(y, x, z)
-            t = y
-            y = x
-            x = t
-            z = z.T
-
-        return x, y, z
-
-
-
-    def shapeData2dSub(self, x, y, z):
-        """
         Shape the data for a 2d plot but mainly handled all kind of data error/missing/...
 
         Return x and y as a 1d array, ready to be used for the 2d plot
         and z as a 2d array.
         In case of non regular grid, the y axis is approximated.
         """
+
+
+        self.signals.setStatusBarMessage.emit('Shapping 2d data for display', False)
+
+        ## Find effective "x" column
+        # The x column is defined as the column where the independent parameter
+        # is not modified while the y column independent parameter is.
+        if y[1]==y[0]:
+            t = x
+            x = y
+            y = t
 
         # Nb points in the 1st dimension
         xn = len(np.unique(x))
@@ -215,34 +207,22 @@ class LoadDataThread(QtCore.QRunnable):
         # If not (like a auto freq measurement )
         else:
 
-            self.signals.setStatusBarMessage.emit('Irregular grid detexted, shapping 2d data', False)
+            self.signals.setStatusBarMessage.emit('Irregular grid detected, shapping 2d data', False)
+
             xx = x[:,0]
+            
             # Create a bigger array containing sorted data in the same bases
             # New y axis containing all the previous y axes
             yd = np.gradient(np.sort(y[0])).min()
             yy = np.arange(y[~np.isnan(y)].min(), y[~np.isnan(y)].max()+yd*2, yd)
-
-            # For each z scan we create a new z array
-            zz = np.array([])
-            for y_current, z_current in zip(y, z):
+            
+            # fit the z value to the new grid
+            zz = np.full((len(xx), len(yy)), np.nan)
+            for x_index in range(len(x)):
+                for y_index in range(len(y.T)):
+                    zz[x_index,np.abs(yy-y[x_index, y_index]).argmin()] = z[x_index,y_index]
                 
-                # Find the index of the current y axis on the global y axis
-                p = np.abs(yy-y_current[0]).argmin()
-                
-                # Find the number of nan to insert at the beginning
-                v  = np.full(p, np.nan)
 
-                # Find the number of nan to insert at the end
-                t = len(yy)-p-len(y_current)
-                if t > 0:
-                    vv = np.full(len(yy)-p-len(y_current), np.nan)
-
-                    # Build the new z axis
-                    zz = np.append(zz, np.concatenate((v, z_current, vv)))
-                else:
-                    zz = np.append(zz, np.concatenate((v, z_current[-t:])))
-
-            zz = zz.reshape(int(len(zz)/len(yy)), len(yy))
         
         # If there is only one point in x or we artificialy create more
         if len(xx)==1:
