@@ -2,6 +2,7 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
+from typing import Union
 import inspect
 import uuid
 import sys
@@ -22,7 +23,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
     """
 
     def __init__(self, x, y, z, title, xLabel, yLabel, zLabel, windowTitle,
-                runId, cleanCheckBox, parent=None):
+                runId, cleanCheckBox, plotRef, parent=None):
         super(Plot2dApp, self).__init__(parent)
 
         self.setupUi(self)
@@ -44,6 +45,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.windowTitle   = windowTitle
         self.runId         = runId
         self.cleanCheckBox = cleanCheckBox
+        self.plotRef       = plotRef
 
         # Store references to infiniteLines
         self.infiniteLines = {}
@@ -165,7 +167,10 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         We propagate that event to the mainWindow
         """
 
-        self.cleanCheckBox(windowTitle=self.windowTitle, runId=self.runId, dependent=self.zLabel)
+        self.cleanCheckBox(plotRef     = self.plotRef,
+                           windowTitle = self.windowTitle,
+                           runId       = self.runId,
+                           label   = self.zLabel)
 
         # If user created data slice, we close the linked 1d plot
         if self.linked1dPlots['vertical'] is not None:
@@ -372,7 +377,11 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-    def cleanInfiniteLine(self, windowTitle, runId):
+    # def cleanInfiniteLine(self, windowTitle, runId):
+    def cleanInfiniteLine(self, plotRef     : str,
+                                windowTitle : str,
+                                runId       : int,
+                                label       : Union[str, list]) -> None:
         """
         Called when a linked 1dPlot is closed
         """
@@ -429,7 +438,10 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
             sliceX      = self.x
             sliceY      = self.z[:,n]
             sliceLegend = self.y[n]
-
+        
+        if isinstance(sliceLegend, np.ndarray):
+            sliceLegend = sliceLegend[0]
+        print(sliceX, sliceY, sliceLegend)
         return sliceX, sliceY, '{:.3e}'.format(sliceLegend)
 
 
@@ -464,6 +476,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                               windowTitle    = self.windowTitle+' - '+self.sliceOrientation+' slice',
                               runId          = self.runId,
                               cleanCheckBox  = self.cleanInfiniteLine,
+                              plotRef        = self.plotRef+'dataslicing',
                               curveId        = curveId,
                               linkedTo2dPlot = True,
                               curveLegend    = sliceLegend)

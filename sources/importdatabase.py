@@ -2,6 +2,7 @@
 from PyQt5 import QtCore
 import sys
 import os
+from typing import Callable
 
 
 def trap_exc_during_debug(*args):
@@ -21,11 +22,13 @@ class ImportDatabaseSignal(QtCore.QObject):
 
 
     # When the run method is done
-    done = QtCore.pyqtSignal(bool, int)
+    done = QtCore.pyqtSignal(str, bool, int)
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
     # Signal used to add a row in the database table
-    addRow = QtCore.pyqtSignal(str, str, str, str, str, str, str, str, int, int)
+    addRow = QtCore.pyqtSignal(str, str, str, str, str, str, str, str, int, int, str)
+    # Signal used to update the progress bar
+    updateProgressBar = QtCore.pyqtSignal(str, int)
 
 
 
@@ -33,7 +36,7 @@ class ImportDatabaseSignal(QtCore.QObject):
 class ImportDatabaseThread(QtCore.QRunnable):
 
 
-    def __init__(self, getRunInfos):
+    def __init__(self, getRunInfos: Callable[[int], dict], progressBarKey: str):
         """
         Thread used to get all the run info of a database.
         !! Do not import data !!
@@ -42,11 +45,14 @@ class ImportDatabaseThread(QtCore.QRunnable):
         ----------
         getRunInfos : func
             Function which returns all infos of a database in a nice python dict.
+        progressBarKey : str
+            Key to the progress bar in the dict progressBars
         """
 
         super(ImportDatabaseThread, self).__init__()
 
         self.getRunInfos    = getRunInfos
+        self.progressBarKey = progressBarKey
         
         self.signals = ImportDatabaseSignal() 
 
@@ -62,7 +68,7 @@ class ImportDatabaseThread(QtCore.QRunnable):
         """
 
         self.signals.setStatusBarMessage.emit('Gathered runs infos database', False)
-        runInfos = self.getRunInfos()
+        runInfos = self.getRunInfos(self.signals.updateProgressBar, self.progressBarKey)
 
 
         # Going through the database here
@@ -79,10 +85,11 @@ class ImportDatabaseThread(QtCore.QRunnable):
                                      val['completed'],
                                      str(val['records']),
                                      key/nbTotalRun*100,
-                                     nbTotalRun)
+                                     nbTotalRun,
+                                     self.progressBarKey)
 
         # Signal that the whole database has been looked at
-        self.signals.done.emit(False, nbTotalRun)
+        self.signals.done.emit(self.progressBarKey, False, nbTotalRun)
 
 
 

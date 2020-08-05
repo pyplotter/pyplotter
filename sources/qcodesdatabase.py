@@ -1,12 +1,11 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtCore
 import time
 import sqlite3
 import json
-import sys
-import os
 import qcodes as qc
 from typing import Callable
+
+from sources.config import config
 
 
 class QcodesDatabase:
@@ -155,15 +154,15 @@ class QcodesDatabase:
 
 
 
-    def progressHandler(self):
+    def progressHandler(self) -> None:
         """
         Is called by sql queries.
 
-        Increment progressBarValue by one and display the data download progress.
+        Increment progressBarValue and display the progress through a pyqt signal.
         """
-
-        self.progressBarValue += 1
-        self.progressBarUpdate.emit(self.progressBarValue)
+        
+        self.progressBarValue += config['displayedDownloadQcodesPercentage']
+        self.progressBarUpdate.emit(self.progressBarKey, self.progressBarValue)
 
 
 
@@ -357,7 +356,17 @@ class QcodesDatabase:
         Parameters
         ----------
         runId : int
-            id of the run
+            id of the run.
+
+        Return
+        ------
+        (independents, dependent, snapshotDict) : tuple
+            independents : list
+                list of dict of all independents parameters.
+            dependents : list
+                list of dict of all dependents parameters.
+            snapshotDict : dict
+                Snapshot of the run.
         """
         
         conn, cur = self.openDatabase()
@@ -371,20 +380,54 @@ class QcodesDatabase:
         
         self.closeDatabase(conn, cur)
 
-        independent = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0]
-        dependent   = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
+        independents = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0]
+        dependents   = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
 
-        return independent, dependent, snapshotDict
-
-
+        return independents, dependents, snapshotDict
 
 
-    def getRunInfos(self) -> dict:
+
+
+    def getRunInfos(self,
+                    progressBarUpdate : Callable[[int], None]=None,
+                    progressBarKey    : str=None) -> dict:
         """
         Get a handfull of information about all the run of a database.
+
+        Parameters
+        ----------
+        progressBarUpdate : func
+            Pyqt signal to update the progress bar in the main thread 
+        progressBarKey : str
+            Key to the progress bar in the dict progressBars.
         """
-        
+
+        # Initialized progress bar
+        self.progressBarValue  = 0
+        self.progressBarUpdate = progressBarUpdate
+        self.progressBarKey    = progressBarKey
+
+
+        # In order to display a progress of the info gathering, we need the
+        # number of runs to be downloaded.
         conn, cur = self.openDatabase()
+
+        cur.execute("SELECT MAX(run_id) FROM runs")
+        rows = cur.fetchall()
+        
+        if progressBarUpdate is None:
+            
+            callEvery = None
+        else:
+
+            callEvery = int(rows[0]['max(run_id)']/100*6*config['displayedDownloadQcodesPercentage'])
+
+        self.closeDatabase(conn, cur)
+
+
+
+        # We download the run info while updating the progress bar
+        conn, cur = self.openDatabase(callEvery=callEvery)
 
         # Get runs infos
         cur.execute("SELECT run_id, exp_id, name, completed_timestamp, run_timestamp, result_table_name, run_description FROM 'runs'")
@@ -392,6 +435,21 @@ class QcodesDatabase:
         runInfos = cur.fetchall()
         result_table_names = [row['result_table_name'] for row in runInfos]
         runIds = [str(row['run_id']) for row in runInfos]
+
+        self.closeDatabase(conn, cur)
+
+        # Initialize again the progress bar for the second query
+        self.progressBarValue  = 0
+
+        if progressBarUpdate is None:
+            
+            callEvery = None
+        else:
+            callEvery = int(len(result_table_names)/100*6*config['displayedDownloadQcodesPercentage'])
+
+
+        # We download the number of records per run while updating the progress bar
+        conn, cur = self.openDatabase(callEvery=callEvery)
 
 
         # Get runs records
@@ -507,10 +565,26 @@ class QcodesDatabase:
 
     def getParameterData(self, runId             : int,
                                paramDependent    : str,
-                               progressBarUpdate : Callable[[int], None]) -> dict:
+                               progressBarUpdate : Callable[[int], None]=None,
+                               progressBarKey    : str=None) -> dict:
+        """
+        Return the data of paramDependent of the runId as a qcodes dict.
+
+        Parameters
+        ----------
+        runId : int
+            Run from which data are downloaded
+        paramDependent : str
+            Dependent parameter name to extract sub dict from main dict
+        progressBarUpdate : func
+            Pyqt signal to update the progress bar in the main thread 
+        progressBarKey : str
+            Key to the progress bar in the dict progressBars.
+        """
 
         # Initialized progress bar
         self.progressBarValue  = 0
+        self.progressBarKey    = progressBarKey
         self.progressBarUpdate = progressBarUpdate
 
         # In order to display a progress of the data loading, we need the
@@ -524,12 +598,22 @@ class QcodesDatabase:
 
         cur.execute("SELECT MAX(id) FROM '"+table_name+"'")
         rows = cur.fetchall()
-        total = rows[0]['max(id)']
-        callEvery = int(total/100*6)
+        
+        if progressBarUpdate is None:
+            
+            callEvery = None
+        else:
+            # In case of a live plot, total may be None
+            # In that case we return 0
+            total = rows[0]['max(id)']
+            if total is None:
+                callEvery = 0
+            else:
+                callEvery = int(total/100*6*config['displayedDownloadQcodesPercentage'])
         
         self.closeDatabase(conn, cur)
 
-        # We download the data while updating the progress bar every ~2 percent
+        # We download the data while updating the progress bar
         conn, cur = self.openDatabase(callEvery=callEvery)
         
         ds =  qc.load_by_id(run_id=int(runId), conn=conn)
@@ -552,7 +636,7 @@ class QcodesDatabase:
 # q.databasePath = a
 
 # # d = q.getRunInfos(3)
-# d = q.getListIndependentFromRunId(3)
+# d = q.getIndependentDependentSnapshotFromRunId(3)
 # # d = q.getParameterData(3, 'magnitude')
 
 # # print(q.getRunInfos2())

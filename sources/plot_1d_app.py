@@ -20,7 +20,8 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
     """
 
 
-    def __init__(self, x, y, title, xLabel, yLabel, windowTitle, runId, cleanCheckBox,
+    def __init__(self, x, y, title, xLabel, yLabel, windowTitle, runId,
+                cleanCheckBox, plotRef,
                 linkedTo2dPlot=False, curveId=None, curveLegend=None,
                 timestampXAxis=False, parent=None):
         super(Plot1dApp, self).__init__(parent)
@@ -38,9 +39,10 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         self.windowTitle    = windowTitle
         self.runId          = runId
         self.cleanCheckBox  = cleanCheckBox
+        self.plotRef        = plotRef
         self.timestampXAxis = timestampXAxis
 
-        # Is that's 1d plot linked to a 2d plot (slice of a 2d plot)
+        # Is that 1d plot is linked to a 2d plot (slice of a 2d plot)
         self.linkedTo2dPlot = linkedTo2dPlot
 
         # Keep reference of FFT
@@ -141,7 +143,10 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         We propagate that event to the mainWindow
         """
 
-        self.cleanCheckBox(windowTitle=self.windowTitle, runId=self.runId)
+        self.cleanCheckBox(plotRef     = self.plotRef,
+                           windowTitle = self.windowTitle,
+                           runId       = self.runId,
+                           label       = [curve.curveLabel for curve in self.curves.values()])
         if self.fitWindow is not None:
             self.fitWindow.close()
         if len(self.fftwindow)>0:
@@ -204,7 +209,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         # Create plotDataItem and save its reference
         self.curves[curveId] = self.plotItem.plot(x, y, pen=mkpen)
 
-        # Create attribute usefull
+        # Create usefull attribute
         self.curves[curveId].colorIndex   = colorIndex
         self.curves[curveId].curveLabel   = curveLabel
         self.curves[curveId].curveLegend  = curveLegend

@@ -8,13 +8,19 @@ config = {
 'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
 # Default display path, should be at least the root
 'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
-'authorized_setup' : ['bluelagoon','Cryoconcept', 'RF4K_stick', 'smurf', 'Tritonito'],
-'authorized_extension' : ['db', 'csv', 's2p'], # Others file will not appear in the plotter
-'forbidden_file' : ['Thumbs.db'], # Will not be displayed, usefull for some windows file
-'display_only_authorized_setup' : True, # If False color setup, if true do not display other folder
-'display_only_db_name_in_plot_title' : False, # If False the path is displayed
+# Folder having these names will be colored, easier to browse
+'setup' : ['bluelagoon','Cryoconcept', 'RF4K_stick', 'smurf', 'Tritonito'],
+# Other files will not appear in the plotter
+'authorizedExtension' : ['db', 'csv', 's2p'], 
+# Will not be displayed, usefull for some windows file
+'forbiddenFile' : ['Thumbs.db'], 
+# If False the path is displayed
+'displayOnlyDbNameInPlotTitle' : False, 
+'displayedDownloadQcodesPercentage' : 5, # int
 
 # Authorized OpenGL
+# Make pyqtgraph faster but may cause issues on some computers
+# If you encounter issues with opengl, set this to False.
 'pyqtgraphOpenGL' : True,
 
 # Live plot

@@ -123,13 +123,13 @@ class ImportBlueFors:
                 
                 for i in range(1, 7):
                     
-
                     name = 'ch'+str(i)+'_pressure'
                     
-                    self.main.startPlotting(plotRef = plotRef,
-                                       data    = (df[name].index.astype(np.int64).values//1e9, df[name]),
-                                       xLabel  = 'Time',
-                                       yLabel  = config[fileName][name[:3]])
+                    self.main.addPlot(plotRef        = plotRef,
+                                      data           = (df[name].index.astype(np.int64).values//1e9, df[name]),
+                                      progressBarKey = '',
+                                      xLabel         = 'Time',
+                                      yLabel         = config[fileName][name[:3]])
                 
                 # Once all is plotting we autorange
                 self.main._refs[plotRef]['plot'].plotItem.vb.autoRange()
@@ -148,31 +148,21 @@ class ImportBlueFors:
                 # There is a space before the day
                 df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
 
-                self.main.startPlotting(plotRef = plotRef,
-                                   data    = (df['y'].index.astype(np.int64).values//1e9, df['y']),
-                                   xLabel  = 'Time',
-                                   yLabel  = config[fileName])
+                self.main.addPlot(plotRef        = plotRef,
+                                  progressBarKey = '',
+                                  data           = (df['y'].index.astype(np.int64).values//1e9, df['y']),
+                                  xLabel         = 'Time',
+                                  yLabel         = config[fileName])
 
 
         else:
-
-            # If there is more than one curve, we remove one curve
-            if self.main._refs[plotRef]['nbCurve'] > 1:
-                yLabel = config[fileName]
-
-                # If maxigauge file, we have to remove all the curves at once
-                if yLabel == config['maxigauge']:
-                    for i in range(1, 7):
-                        
-                        curveId = config[fileName]['ch'+str(i)]
-                        self.main._refs[plotRef]['plot'].removePlotDataItem(curveId=curveId)
-                        self.main._refs[plotRef]['nbCurve'] -= 1
-                else:
-                    self.main._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
-                    self.main._refs[plotRef]['nbCurve'] -= 1
-            # If there is one curve we close the plot window
+            
+            if fileName == 'maxigauge':
+                for i in range(1, 7):
+                    name = 'ch'+str(i)+'_pressure'
+                    self.main.removePlot(plotRef = plotRef,
+                                         label   = config[fileName][name[:3]])
             else:
-                self.main._refs[plotRef]['plot'].o()
-                del(self.main._refs[plotRef])
-
+                self.main.removePlot(plotRef = plotRef,
+                                     label   = config[fileName])
 

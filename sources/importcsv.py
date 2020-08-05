@@ -136,20 +136,14 @@ class ImportCSV:
         
         if cb:
 
-            self.main.startPlotting(plotRef = plotRef,
-                                    data    = data,
-                                    xLabel  = xLabel,
-                                    yLabel  = yLabel)
+            self.main.addPlot(plotRef        = plotRef,
+                              progressBarKey = '',
+                              data           = data,
+                              xLabel         = xLabel,
+                              yLabel         = yLabel)
             
         else:
-            # We are dealing with 1d plot
-            # If there is more than one curve, we remove one curve
-            if self.main._refs[plotRef]['nbCurve'] > 1:
-                self.main._refs[plotRef]['plot'].removePlotDataItem(curveId=yLabel)
-                self.main._refs[plotRef]['nbCurve'] -= 1
-            # If there is one curve we close the plot window
-            else:
-                self.main._refs[plotRef]['plot'].o()
-                del(self.main._refs[plotRef])
+
+            self.main.removePlot(plotRef, yLabel)
 
 

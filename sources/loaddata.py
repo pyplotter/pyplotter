@@ -1,7 +1,5 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore
-import sys
-import os
 import numpy as np
 from typing import Callable
 
@@ -12,10 +10,6 @@ def trap_exc_during_debug(*args):
     print(args)
 
 
-# install exception hook: without this, uncaught exception would cause application to exit
-# sys.excepthook = trap_exc_during_debug
-
-
 
 class LoadDataSignal(QtCore.QObject):
     """
@@ -24,11 +18,11 @@ class LoadDataSignal(QtCore.QObject):
 
 
     # When the run method is done
-    done = QtCore.pyqtSignal(str, tuple, str, str, str)
+    done = QtCore.pyqtSignal(str, str, tuple, str, str, str)
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
-    # Signal 
-    updateProgressBar = QtCore.pyqtSignal(int)
+    # Signal to update the progress bar
+    updateProgressBar = QtCore.pyqtSignal(str, int)
 
 
 
@@ -39,6 +33,7 @@ class LoadDataThread(QtCore.QRunnable):
     def __init__(self, runId                                : int,
                        row                                  : int,
                        plotRef                              : str,
+                       progressBarKey                       : str,
                        getParameterData                     : Callable[[int, str, Callable], dict],
                        getListIndependentDependentFromRunId : Callable[[int], list],
                        getDependentLabel                    : Callable[[dict], str]):
@@ -55,6 +50,8 @@ class LoadDataThread(QtCore.QRunnable):
             getListDependentFromRunId method.
         plotRef : str
             Reference of the curve.
+        progressBarKey : str
+            Key to the progress bar in the dict progressBars.
         getParameterData : func
             Method from QcodesDatabase class initialized in the main thread
             with the current database file location.
@@ -72,12 +69,13 @@ class LoadDataThread(QtCore.QRunnable):
 
         self.qcodesDatabase = QcodesDatabase()
 
-        self.runId   = runId
-        self.row   = row
-        self.getParameterData   = getParameterData
-        self.plotRef   = plotRef
-        self.getListIndependentDependentFromRunId   = getListIndependentDependentFromRunId
-        self.getDependentLabel = getDependentLabel
+        self.runId                                = runId
+        self.row                                  = row
+        self.plotRef                              = plotRef
+        self.progressBarKey                       = progressBarKey
+        self.getParameterData                     = getParameterData
+        self.getListIndependentDependentFromRunId = getListIndependentDependentFromRunId
+        self.getDependentLabel                    = getDependentLabel
         
 
         self.signals = LoadDataSignal() 
@@ -94,10 +92,14 @@ class LoadDataThread(QtCore.QRunnable):
 
         paramsIndependent, paramsDependent = self.getListIndependentDependentFromRunId(self.runId)
         
-        d = self.getParameterData(self.runId, paramsDependent[self.row]['name'], self.signals.updateProgressBar)
+        d = self.getParameterData(self.runId, paramsDependent[self.row]['name'], self.signals.updateProgressBar, self.progressBarKey)
 
+        # If getParameterData failed, we return None value which will prevent
+        # data to be plotted while raising no error
         if d is None:
-            data = None
+            data   = None
+            xLabel = None
+            yLabel = None
         else:
 
             # 1d plot
@@ -134,7 +136,7 @@ class LoadDataThread(QtCore.QRunnable):
 
 
         # Signal to launched a plot with the downloaded data
-        self.signals.done.emit(self.plotRef, data, xLabel, yLabel, zLabel)
+        self.signals.done.emit(self.plotRef, self.progressBarKey, data, xLabel, yLabel, zLabel)
 
 
 
@@ -165,7 +167,7 @@ class LoadDataThread(QtCore.QRunnable):
         and z as a 2d array.
         In case of non regular grid, the y axis is approximated.
         """
-        
+
         # Nb points in the 1st dimension
         xn = len(np.unique(x))
 
@@ -195,7 +197,6 @@ class LoadDataThread(QtCore.QRunnable):
         y = y[m]
         z = z[m]
 
-
         # If the data has a rectangular shape (usual 2d measurement)
         if len(np.unique(y[:,0])) == 1:
             
@@ -214,13 +215,12 @@ class LoadDataThread(QtCore.QRunnable):
         # If not (like a auto freq measurement )
         else:
 
-            self.setStatusBarMessage('Irregular grid detexted, shapping 2d data')
+            self.signals.setStatusBarMessage.emit('Irregular grid detexted, shapping 2d data', False)
             xx = x[:,0]
             # Create a bigger array containing sorted data in the same bases
             # New y axis containing all the previous y axes
             yd = np.gradient(np.sort(y[0])).min()
             yy = np.arange(y[~np.isnan(y)].min(), y[~np.isnan(y)].max()+yd*2, yd)
-
 
             # For each z scan we create a new z array
             zz = np.array([])
@@ -233,10 +233,14 @@ class LoadDataThread(QtCore.QRunnable):
                 v  = np.full(p, np.nan)
 
                 # Find the number of nan to insert at the end
-                vv = np.full(len(yy)-p-len(y_current), np.nan)
+                t = len(yy)-p-len(y_current)
+                if t > 0:
+                    vv = np.full(len(yy)-p-len(y_current), np.nan)
 
-                # Build the new z axis
-                zz = np.append(zz, np.concatenate((v, z_current, vv)))
+                    # Build the new z axis
+                    zz = np.append(zz, np.concatenate((v, z_current, vv)))
+                else:
+                    zz = np.append(zz, np.concatenate((v, z_current[-t:])))
 
             zz = zz.reshape(int(len(zz)/len(yy)), len(yy))
         
@@ -265,8 +269,7 @@ class LoadDataThread(QtCore.QRunnable):
             z2d : 2d np.array
                 Value of the polygons
         """
-        
-        self.setStatusBarMessage('Shapping 2d data for display')
+        self.signals.setStatusBarMessage.emit('Shapping 2d data for display', False)
 
         ## Find effective "x" column
         # The x column is defined as the column where the independent parameter
