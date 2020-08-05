@@ -736,7 +736,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Text to be shown on the progress bar.
         """
 
-        if fmt is not None:
+        if text is not None:
             self.progressBars[key].setFormat(text)
         self.progressBars[key].setValue(val)
 
