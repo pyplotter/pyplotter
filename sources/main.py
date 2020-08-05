@@ -24,7 +24,7 @@ from sources.qcodesdatabase import QcodesDatabase
 from sources.runpropertiesextra import RunPropertiesExtra
 from sources.mytablewidgetitem import MyTableWidgetItem
 from sources.importdatabase import ImportDatabaseThread
-from sources.loadData import LoadDataThread
+from sources.loaddata import LoadDataThread
 from sources.config import config
 from sources.plot_1d_app import Plot1dApp
 from sources.plot_2d_app import Plot2dApp
