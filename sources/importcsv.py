@@ -34,10 +34,6 @@ class ImportCSV:
         # Get the file name
         fileName = os.path.basename(os.path.normpath(filePath))
 
-        ## Update label
-        self.main.labelCurrentRun.setText(filePath[-3:].lower()+': '+fileName[:-4])
-        self.main.labelPlotTypeCurrent.setText('1d')
-
 
         ## Fill the tableWidgetParameters with the run parameters
 

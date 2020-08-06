@@ -40,10 +40,6 @@ class ImportBlueFors:
         # Get the BF folder name
         bfName = os.path.basename(os.path.normpath(directory))
 
-        ## Update label
-        self.main.labelCurrentRun.setText('BF log folder: '+bfName)
-        self.main.labelPlotTypeCurrent.setText('1d')
-
 
         ## Fill the tableWidgetParameters with the run parameters
 
