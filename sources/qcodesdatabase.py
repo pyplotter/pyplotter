@@ -630,14 +630,15 @@ class QcodesDatabase:
 
 
 
-# a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\edumur_test.db"
+# # a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\edumur_test.db"
+# a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\bluelagoon\2020\20200623_20200226_NbN01_A1\data\experiments.db"
 # # a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\experiments.db"
 # q = QcodesDatabase()
 # q.databasePath = a
 
 # # d = q.getRunInfos(3)
-# d = q.getIndependentDependentSnapshotFromRunId(3)
-# # d = q.getParameterData(3, 'magnitude')
+# # d = q.getIndependentDependentSnapshotFromRunId(3)
+# d = q.getParameterData(103, 'vna1_TR1_Magnitude')
 
 # # print(q.getRunInfos2())
 

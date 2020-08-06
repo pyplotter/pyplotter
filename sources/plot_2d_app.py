@@ -87,13 +87,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.histWidget.setImageItem(self.imageItem)
         self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
 
-
-        # Set the image view
-        xscale = (x[-1]-x[0])/len(x)
-        yscale = (y[-1]-y[0])/len(y)
-        self.imageView.setImage(z, pos=[x[0], y[0]], scale=[xscale, yscale])
-        self.imageView.view.invertY(False)
-        self.imageView.view.setAspectLocked(False)
+        self.setImageView()
 
         # Axes label
         self.plotItem.setTitle(title=title, color=config['pyqtgraphTitleTextColor'])
@@ -192,6 +186,20 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
+    def setImageView(self):
+
+        # Set the image view
+        xscale = (self.x[-1]-self.x[0])/len(self.x)
+        yscale = (self.y[-1]-self.y[0])/len(self.y)
+        self.imageView.setImage(img   = self.z,
+                                pos   = [self.x[0], self.y[0]],
+                                scale = [xscale, yscale])
+        self.imageView.view.invertY(False)
+        self.imageView.view.setAspectLocked(False)
+        self.imageView.autoRange()
+
+
+
     def updateImageItem(self, x, y, z):
         """
         Update the displayed colormap
@@ -201,12 +209,8 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.y  = y
         self.z  = z
 
-        # Set the image view
-        xscale = (x[-1]-x[0])/len(x) if (x[-1]-x[0])/len(x) else 1.
-        yscale = (y[-1]-y[0])/len(y)
-        self.imageView.setImage(z, pos=[x[0], y[0]], scale=[xscale, yscale])
+        self.setImageView()
         self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
-        self.imageView.autoRange()
 
 
 
@@ -441,7 +445,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         
         if isinstance(sliceLegend, np.ndarray):
             sliceLegend = sliceLegend[0]
-        print(sliceX, sliceY, sliceLegend)
+        
         return sliceX, sliceY, '{:.3e}'.format(sliceLegend)
 
 

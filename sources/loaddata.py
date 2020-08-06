@@ -214,7 +214,7 @@ class LoadDataThread(QtCore.QRunnable):
             # Create a bigger array containing sorted data in the same bases
             # New y axis containing all the previous y axes
             yd = np.gradient(np.sort(y[0])).min()
-            yy = np.arange(y[~np.isnan(y)].min(), y[~np.isnan(y)].max()+yd*2, yd)
+            yy = np.arange(y[~np.isnan(y)].min(), y[~np.isnan(y)].max()+yd, yd)
             
             # fit the z value to the new grid
             zz = np.full((len(xx), len(yy)), np.nan)
@@ -224,11 +224,23 @@ class LoadDataThread(QtCore.QRunnable):
                 
 
         
-        # If there is only one point in x or we artificialy create more
+        # If there is only one point in x or y, we artificialy create more
+        moreThanOneColumn = True
         if len(xx)==1:
             xx = np.array([xx*0.9, xx*1.1])
+            moreThanOneColumn = False
         if len(yy)==1:
             yy = np.array([yy*0.9, yy*1.1])
+            moreThanOneColumn = False
+
+        # If there is more than one column, we center the colored rectangles
+        if moreThanOneColumn:
+            
+            dx = np.gradient(xx)/2.
+            xx = np.linspace(xx[0]-dx[0], xx[-1]+2.*dx[-1], len(xx))
+
+            dy = np.gradient(yy)/2.
+            yy = np.linspace(yy[0]-dy[0], yy[-1]+2.*dy[-1], len(yy))
 
         return xx, yy, zz
 

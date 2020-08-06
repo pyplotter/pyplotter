@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>987</width>
-    <height>428</height>
+    <height>437</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -50,6 +50,12 @@
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <widget class="QLabel" name="label_3">
+         <property name="minimumSize">
+          <size>
+           <width>250</width>
+           <height>0</height>
+          </size>
+         </property>
          <property name="font">
           <font>
            <pointsize>10</pointsize>

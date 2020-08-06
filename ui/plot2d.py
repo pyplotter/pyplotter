@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'plot2d.ui'
+# Form implementation generated from reading ui file '.\plot2d.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.2
 #
@@ -12,7 +12,7 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.setEnabled(True)
-        Dialog.resize(987, 428)
+        Dialog.resize(987, 437)
         Dialog.setSizeGripEnabled(False)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(Dialog)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
@@ -34,6 +34,7 @@ class Ui_Dialog(object):
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.label_3 = QtWidgets.QLabel(Dialog)
+        self.label_3.setMinimumSize(QtCore.QSize(250, 0))
         font = QtGui.QFont()
         font.setPointSize(10)
         font.setBold(True)
