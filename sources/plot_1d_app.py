@@ -35,7 +35,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
         self.plotType       = '1d'
         self.curves         = {}
-        self.legend         = None
+        self.legendItem         = None
         self.windowTitle    = windowTitle
         self.runId          = runId
         self.cleanCheckBox  = cleanCheckBox
@@ -51,6 +51,9 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         # Get plotItem from the widget
         self.plotItem = self.widget.getPlotItem()
         self.resize(*config['dialogWindowSize'])
+
+        # Create legendItem
+        self.legendItem = self.plotItem.addLegend()
 
 
         # Add fitting function to the GUI
@@ -279,37 +282,24 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def updateLegend(self):
+    def updateLegend(self) -> None:
         """
         Update the legendItem of the plotItem.
-        If there is one dataPlotItem there is no legendItem.
-        If many dataPlotItem, the legendItem contains the labels from the ini file.
         """
+
+        self.legendItem.clear()
         
+        # We do not add items in the legend when there is only one curve
+        # except when the 1d plot is linked to a 2d plot
         if len(self.curves)==1:
             if self.linkedTo2dPlot:
-                if self.legend is None:
-                    self.legend = self.plotItem.addLegend()
-                else:
-                    for i, j in self.legend.items:
-                        self.legend.removeItem(j.text)
-            else:
-                if self.legend is not None:
-                    for i, j in self.legend.items:
-                        self.legend.removeItem(j.text)
+                for curve in self.curves.values():
+                    if curve.showInLegend:
+                        self.legendItem.addItem(curve, curve.curveLegend)
         elif len(self.curves) > 1:
-            if self.legend is None:
-                self.legend = self.plotItem.addLegend()
-            else:
-                for i, j in self.legend.items:
-                    self.legend.removeItem(j.text)
-        
-        # If there is a displayed legendItem, we need to manually enter the info
-        if self.legend is not None:
             for curve in self.curves.values():
                 if curve.showInLegend:
-                    self.legend.addItem(curve, curve.curveLegend)
-
+                    self.legendItem.addItem(curve, curve.curveLegend)
 
 
     ####################################
