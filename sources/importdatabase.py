@@ -26,7 +26,7 @@ class ImportDatabaseSignal(QtCore.QObject):
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
     # Signal used to add a row in the database table
-    addRow = QtCore.pyqtSignal(str, str, str, str, str, str, str, str, int, int, str)
+    addRow = QtCore.pyqtSignal(str, list, str, str, str, str, str, str, int, int, str)
     # Signal used to update the progress bar
     updateProgressBar = QtCore.pyqtSignal(str, int)
 
@@ -77,7 +77,7 @@ class ImportDatabaseThread(QtCore.QRunnable):
         for key, val in runInfos.items(): 
 
             self.signals.addRow.emit(str(key),
-                                     str(val['nb_independent_parameter']),
+                                     val['nb_independent_parameter'],
                                      val['experiment_name'],
                                      val['sample_name'],
                                      val['run_name'],

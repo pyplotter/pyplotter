@@ -30,13 +30,13 @@ class LoadDataSignal(QtCore.QObject):
 class LoadDataThread(QtCore.QRunnable):
 
 
-    def __init__(self, runId                                : int,
-                       row                                  : int,
-                       plotRef                              : str,
-                       progressBarKey                       : str,
-                       getParameterData                     : Callable[[int, str, Callable], dict],
-                       getListIndependentDependentFromRunId : Callable[[int], list],
-                       getDependentLabel                    : Callable[[dict], str]):
+    def __init__(self, runId              : int,
+                       dependentParamName : str,
+                       plotRef            : str,
+                       progressBarKey     : str,
+                       getParameterData   : Callable[[int, str, Callable], dict],
+                       getParameterInfo   : Callable[[int], list],
+                       getDependentLabel  : Callable[[dict], str]):
         """
         Thread used to get data for a 1d or 2d plot from a runId.
 
@@ -44,10 +44,8 @@ class LoadDataThread(QtCore.QRunnable):
         ----------
         runId : int
             run id from which the data are downloaded
-        row : int
-            Row inside which the dependent parameter is displayed.
-            Correspond to the index position of the dependent parameter in the
-            getListDependentFromRunId method.
+        dependentParamName : str
+            Name of the dependent parameter from which data will be downloaded.
         plotRef : str
             Reference of the curve.
         progressBarKey : str
@@ -56,7 +54,7 @@ class LoadDataThread(QtCore.QRunnable):
             Method from QcodesDatabase class initialized in the main thread
             with the current database file location.
             See QcodesDatabase for more details. 
-        getListIndependentDependentFromRunId : func
+        getParameterInfo : func
             Method from QcodesDatabase class initialized in the main thread
             with the current database file location.
             See QcodesDatabase for more details. 
@@ -69,13 +67,13 @@ class LoadDataThread(QtCore.QRunnable):
 
         self.qcodesDatabase = QcodesDatabase()
 
-        self.runId                                = runId
-        self.row                                  = row
-        self.plotRef                              = plotRef
-        self.progressBarKey                       = progressBarKey
-        self.getParameterData                     = getParameterData
-        self.getListIndependentDependentFromRunId = getListIndependentDependentFromRunId
-        self.getDependentLabel                    = getDependentLabel
+        self.runId              = runId
+        self.dependentParamName = dependentParamName
+        self.plotRef            = plotRef
+        self.progressBarKey     = progressBarKey
+        self.getParameterData   = getParameterData
+        self.getParameterInfo   = getParameterInfo
+        self.getDependentLabel  = getDependentLabel
         
 
         self.signals = LoadDataSignal() 
@@ -90,9 +88,9 @@ class LoadDataThread(QtCore.QRunnable):
 
         self.signals.setStatusBarMessage.emit('Extracting data from database', False)
 
-        paramsIndependent, paramsDependent = self.getListIndependentDependentFromRunId(self.runId)
+        paramsDependent, paramsIndependent = self.getParameterInfo(self.runId, self.dependentParamName)
         
-        d = self.getParameterData(self.runId, paramsDependent[self.row]['name'], self.signals.updateProgressBar, self.progressBarKey)
+        d = self.getParameterData(self.runId, paramsDependent['name'], self.signals.updateProgressBar, self.progressBarKey)
 
         # If getParameterData failed, we return None value which will prevent
         # data to be plotted while raising no error
@@ -108,13 +106,13 @@ class LoadDataThread(QtCore.QRunnable):
                 # We try to load data
                 # if there is none, we return an empty array
                 try:
-                    data = d[paramsIndependent[0]['name']], d[paramsDependent[self.row]['name']]
+                    data = d[paramsIndependent[0]['name']], d[paramsDependent['name']]
                 except:
                     data = np.array([np.nan]), np.array([np.nan])
 
 
                 xLabel = self.getDependentLabel(paramsIndependent[0])
-                yLabel = self.getDependentLabel(paramsDependent[self.row])
+                yLabel = self.getDependentLabel(paramsDependent)
                 zLabel = ''
 
 
@@ -124,7 +122,7 @@ class LoadDataThread(QtCore.QRunnable):
                 # We try to load data
                 # if there is none, we return an empty array
                 try:
-                    data = self.shapeData2d(d[paramsIndependent[0]['name']], d[paramsIndependent[1]['name']], d[paramsDependent[self.row]['name']])
+                    data = self.shapeData2d(d[paramsIndependent[0]['name']], d[paramsIndependent[1]['name']], d[paramsDependent['name']])
                 except:
                     # We have to send [0,1] for the z axis when no data to avoid bug with the histogram
                     data = np.array([0, 1]), np.array([0, 1]), np.array([[0, 1],[0, 1]])
@@ -132,7 +130,7 @@ class LoadDataThread(QtCore.QRunnable):
 
                 xLabel = self.getDependentLabel(paramsIndependent[0])
                 yLabel = self.getDependentLabel(paramsIndependent[1])
-                zLabel = self.getDependentLabel(paramsDependent[self.row])
+                zLabel = self.getDependentLabel(paramsDependent)
 
 
         # Signal to launched a plot with the downloaded data
@@ -227,10 +225,10 @@ class LoadDataThread(QtCore.QRunnable):
         # If there is only one point in x or y, we artificialy create more
         moreThanOneColumn = True
         if len(xx)==1:
-            xx = np.array([xx*0.9, xx*1.1])
+            xx = np.array([xx[0]-0.1, xx[0]+0.1])
             moreThanOneColumn = False
         if len(yy)==1:
-            yy = np.array([yy*0.9, yy*1.1])
+            yy = np.array([yy[0]-0.1, yy[0]+0.1])
             moreThanOneColumn = False
 
         # If there is more than one column, we center the colored rectangles
@@ -241,7 +239,7 @@ class LoadDataThread(QtCore.QRunnable):
 
             dy = np.gradient(yy)/2.
             yy = np.linspace(yy[0]-dy[0], yy[-1]+2.*dy[-1], len(yy))
-
+        
         return xx, yy, zz
 
 

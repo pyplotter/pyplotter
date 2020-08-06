@@ -3,7 +3,7 @@ import time
 import sqlite3
 import json
 import qcodes as qc
-from typing import Callable
+from typing import Callable, Tuple, List
 
 from sources.config import config
 
@@ -176,10 +176,12 @@ class QcodesDatabase:
 
 
 
-    def getNbIndependentFromRow(self, row : sqlite3.Row) -> int:
+    def getNbIndependentFromRow(self, row : sqlite3.Row) -> List[int]:
         """
-        Get the number of independent parameter from a row object of sqlite3.
+        Get the numbers of independent parameter from a row object of sqlite3.
         The row must come from a "runs" table.
+        Since dependent parameters can have different number of independent
+        parameters they depends on, return a list.
 
         Parameters
         ----------
@@ -190,14 +192,14 @@ class QcodesDatabase:
         # Create nice dict object from a string
         d = json.loads(row['run_description'])
         
-        return len([i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0])
+        return list({len(i['depends_on']) for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0})
 
 
 
 
     def getNbDependentFromRow(self, row : sqlite3.Row) -> int:
         """
-        Get the number of dpendent parameter from a row object of sqlite3.
+        Get the number of dependent parameter from a row object of sqlite3.
         The row must come from a "runs" table.
 
         Parameters
@@ -214,7 +216,7 @@ class QcodesDatabase:
 
 
 
-    def getExperimentSampleFromRow(self, rows : sqlite3.Row, exp_id : int) -> tuple:
+    def getExperimentSampleFromRow(self, rows : sqlite3.Row, exp_id : int) -> Tuple[str, str]:
         """
         Get the experiment name and the sample name from a row object of sqlite3.
         The row must come from a "experiments" table.
@@ -235,7 +237,7 @@ class QcodesDatabase:
 
 
 
-    def getListIndependentFromRunId(self, runId : int) -> list:
+    def getListIndependentFromRunId(self, runId : int) -> List[dict]:
         """
         Get the list of independent parameter from a runId.
 
@@ -261,7 +263,7 @@ class QcodesDatabase:
 
 
 
-    def getListDependentFromRunId(self, runId : int) -> list:
+    def getListDependentFromRunId(self, runId : int) -> List[dict]:
         """
         Get the list of dependent parameter from a runId.
 
@@ -286,7 +288,7 @@ class QcodesDatabase:
 
 
 
-    def getListIndependentDependentFromRunId(self, runId : int) -> list:
+    def getListIndependentDependentFromRunId(self, runId : int) -> Tuple[list, list]:
         """
         Get the list of independent and dependent parameter from a runId.
 
@@ -317,7 +319,7 @@ class QcodesDatabase:
 
 
 
-    def getListParametersFromRunId(self, runId : int) -> tuple:
+    def getListParametersFromRunId(self, runId : int) -> Tuple[list, dict]:
         """
         Get the list of independent and dependent parameters from a runId.
         Return a tuple of independent and dependent parameters, each parameter
@@ -347,7 +349,90 @@ class QcodesDatabase:
 
 
 
-    def getIndependentDependentSnapshotFromRunId(self, runId : int) -> tuple:
+    def getDependentSnapshotFromRunId(self, runId : int) -> Tuple[list, dict]:
+        """
+        Get the list of dependent parameters from a runId.
+        Return a tuple of dependent parameters, each parameter
+        being a dict.
+
+        Parameters
+        ----------
+        runId : int
+            id of the run.
+
+        Return
+        ------
+        (dependent, snapshotDict) : tuple
+            dependents : list
+                list of dict of all dependents parameters.
+            snapshotDict : dict
+                Snapshot of the run.
+        """
+        
+        conn, cur = self.openDatabase()
+
+        # Get runs infos
+        cur.execute("SELECT run_description, snapshot FROM 'runs' WHERE run_id="+str(runId))
+        row = cur.fetchall()[0]
+        # Create nice dict object from a string
+        d = json.loads(row['run_description'])
+        snapshotDict = json.loads(row['snapshot'])
+        
+        self.closeDatabase(conn, cur)
+
+        dependents = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
+
+        return dependents, snapshotDict
+
+
+
+    def getParameterInfo(self, runId         : int,
+                               parameterName : str) -> Tuple[dict, List[dict]]:
+        """
+        Get the dependent qcodes parameter dictionary and all the independent
+        parameters dictionary it depends on.
+
+        Parameters
+        ----------
+        runId : int
+            id of the run.
+        parameterName : str
+            Name of the dependent parameter.
+
+        Return
+        ------
+        (dependentParameter, independentParameter) : Tuple
+            dependentParameter : dict
+                Qcodes dependent parameter dictionnary.
+            independentParameter : List[dict]
+                List of qcodes independent parameters dictionnary.
+        """
+        
+        conn, cur = self.openDatabase()
+
+        # Get runs infos
+        cur.execute("SELECT run_description FROM 'runs' WHERE run_id="+str(runId))
+        row = cur.fetchall()[0]
+        # Create nice dict object from a string
+        d = json.loads(row['run_description'])
+        
+        self.closeDatabase(conn, cur)
+
+        # Get parameter
+        param = [i for i in d['interdependencies']['paramspecs'] if i['name']==parameterName][0]
+
+        # Get its dependence
+        l = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])==0]
+        dependences = [j for i in param['depends_on'] for j in d['interdependencies']['paramspecs'] if j['name']==i]
+
+        return param, dependences
+
+
+
+
+
+
+    def getIndependentDependentSnapshotFromRunId(self, runId : int) -> Tuple[list, list, dict]:
         """
         Get the list of independent and dependent parameters from a runId.
         Return a tuple of independent and dependent parameters, each parameter

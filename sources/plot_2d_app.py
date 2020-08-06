@@ -164,7 +164,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.cleanCheckBox(plotRef     = self.plotRef,
                            windowTitle = self.windowTitle,
                            runId       = self.runId,
-                           label   = self.zLabel)
+                           label       = self.zLabel)
 
         # If user created data slice, we close the linked 1d plot
         if self.linked1dPlots['vertical'] is not None:
@@ -209,8 +209,8 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.y  = y
         self.z  = z
 
-        self.setImageView()
         self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
+        self.setImageView()
 
 
 
