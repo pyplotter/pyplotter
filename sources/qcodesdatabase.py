@@ -374,9 +374,15 @@ class QcodesDatabase:
         # Get runs infos
         cur.execute("SELECT run_description, snapshot FROM 'runs' WHERE run_id="+str(runId))
         row = cur.fetchall()[0]
+
         # Create nice dict object from a string
         d = json.loads(row['run_description'])
-        snapshotDict = json.loads(row['snapshot'])
+
+        # If there is no station, the snapshot is None
+        if row['snapshot'] is None:
+            snapshotDict = {'': config['defaultSnapshot']}
+        else:
+            snapshotDict = json.loads(row['snapshot'])
         
         self.closeDatabase(conn, cur)
 

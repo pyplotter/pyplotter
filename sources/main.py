@@ -1415,15 +1415,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         if len(self._refs) > 0:
             
+            # Build the list of 1d plot windows
             plotWindows = []
             for key, val in self._refs.items():
-
-                # For 1d plot window
                 if self.getPlotWindowType(key) == '1d':
                     plotWindows.append(val['plot'])
-        
+
+            # Send the list to every 1d plot windows
             for key, val in self._refs.items():
-                # For 1d plot window
                 if self.getPlotWindowType(key) == '1d':
                     val['plot'].updatePlottedCurvesList(plotWindows)
 

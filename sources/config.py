@@ -18,6 +18,9 @@ config = {
 'displayOnlyDbNameInPlotTitle' : False, 
 'displayedDownloadQcodesPercentage' : 5, # int
 
+# Message to display when station has not been defined in a qcodes experiment
+'defaultSnapshot' : '<span style="color: red; font-weight: bold;">Station undefined, you fool</span>',
+
 # Authorized OpenGL
 # Make pyqtgraph faster but may cause issues on some computers
 # If you encounter issues with opengl, set this to False.
