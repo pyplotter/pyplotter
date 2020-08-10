@@ -624,7 +624,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                      livePlot       = False,
                      progressBarKey = None,
                      zLabel         = None)
-                                        
 
 
 
@@ -883,7 +882,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def enableWhenPlotDataItemSelected(self, enable: bool) -> Non:
+    def enableWhenPlotDataItemSelected(self, enable: bool) -> None:
         """
         Method called when user clicks on a radioButton of the list of
         plotDataItem.
@@ -895,15 +894,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Enable or not the GUI to interact with the selected curve.
         """
 
-        # Enable fit 
-        self.labelFit.setEnabled(enable)
-        self.labelFitModel.setEnabled(enable)
-        widgets = (self.verticalLayoutFitModel.itemAt(i).widget() for i in range(self.verticalLayoutFitModel.count())) 
-        for w in widgets:
-            w.setEnabled(enable)
-
-        # Enable fft
+        self.groupBoxCurveInteraction.setEnabled(enable)
         self.groupBoxFFT.setEnabled(enable)
+        self.groupBoxFit.setEnabled(enable)
 
 
 
@@ -929,7 +922,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 rb = QtWidgets.QRadioButton(obj.checkBoxLabel())
                 rb.fitModel = j
                 rb.clicked.connect(self.radioButtonFitState)
-                rb.setEnabled(False)
+                # rb.setEnabled(False)
                 self.fitModelButtonGroup.addButton(rb, i)
                 self.verticalLayoutFitModel.addWidget(rb)
 
