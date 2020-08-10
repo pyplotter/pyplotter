@@ -1,31 +1,33 @@
 # This Python file uses the following encoding: utf-8
+from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
+from typing import List
 import inspect
-import sys 
-sys.path.append('../ui')
 
-import plot1d
+
+from ui.plot1d import Ui_Dialog
 from sources.config import config
 from sources.plot_app import PlotApp
 import sources.fit as fit
 from sources.DateAxisItem import DateAxisItem
 
 
-
-class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
+class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     """
     Class to handle ploting in 1d.
     """
 
 
     def __init__(self, x, y, title, xLabel, yLabel, windowTitle, runId,
-                cleanCheckBox, plotRef,
+                cleanCheckBox, plotRef, addPlot, getPlotFFTFromRef,
                 linkedTo2dPlot=False, curveId=None, curveLegend=None,
-                timestampXAxis=False, parent=None):
+                timestampXAxis=False,
+                livePlot=False,
+                parent=None):
         super(Plot1dApp, self).__init__(parent)
-
+        
         self.setupUi(self)
         
         # Allow resize of the plot window
@@ -34,19 +36,41 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                             QtCore.Qt.WindowCloseButtonHint)
 
         self.plotType       = '1d'
-        self.curves         = {}
-        self.legendItem         = None
         self.windowTitle    = windowTitle
         self.runId          = runId
         self.cleanCheckBox  = cleanCheckBox
         self.plotRef        = plotRef
+
+        self.addPlot        = addPlot
+        self.getPlotFFTFromRef  = getPlotFFTFromRef
+
+        # References of PlotDataItem 
+        # Structures
+        # self.curves = {'curveId' : pg.PlotDataItem}
+        self.curves         = {}
+
+        # If the x axis is a time axis
+        # If True we use a special pyqtgraph item for time axis
         self.timestampXAxis = timestampXAxis
 
         # Is that 1d plot is linked to a 2d plot (slice of a 2d plot)
         self.linkedTo2dPlot = linkedTo2dPlot
 
+        # If the plot is displaying a qcodes run that is periodically updated
+        self.livePlot = livePlot
+
         # Keep reference of FFT
-        self.fftwindow = []
+        # self.fftwindow = []
+
+        # Reference to QDialog which will contains fit info
+        self.fitWindow = None
+
+        # References of the infinietLines used to select data for the fit.
+        # Structured
+        # self.infiniteLines = {'a' : pg.InfiniteLine,
+        #                       'b' : pg.InfiniteLine}
+        self.infiniteLines = {}
+
 
         # Get plotItem from the widget
         self.plotItem = self.widget.getPlotItem()
@@ -55,24 +79,18 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         # Create legendItem
         self.legendItem = self.plotItem.addLegend()
 
-
         # Add fitting function to the GUI
         self.initFitGUI()
 
-        # Reference to QDialog which will contains fit info
-        self.fitWindow = None
-
-
-        self.infiniteLines = {}
 
         # Connect UI
         self.checkBoxLogX.stateChanged.connect(self.checkBoxLogState)
         self.checkBoxLogY.stateChanged.connect(self.checkBoxLogState)
         self.checkBoxSymbol.stateChanged.connect(self.checkBoxSymbolState)
 
-        self.pushButtonFFT.clicked.connect(lambda:self.clickFFT(self.pushButtonFFT))
-        self.pushButtonFFTnoDC.clicked.connect(lambda:self.clickFFT(self.pushButtonFFTnoDC))
-        self.pushButtonIFFT.clicked.connect(lambda:self.clickFFT(self.pushButtonIFFT))
+        self.radioButtonFFT.clicked.connect(lambda:self.clickFFT(self.radioButtonFFT))
+        self.radioButtonFFTnoDC.clicked.connect(lambda:self.clickFFT(self.radioButtonFFTnoDC))
+        self.radioButtonIFFT.clicked.connect(lambda:self.clickFFT(self.radioButtonIFFT))
 
 
         # Add a radio button for each model of the list
@@ -112,10 +130,10 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         if curveLegend is None:
             curveLegend = yLabel
 
-        self.addPlotDataItem(x = x,
-                             y = y,
-                             curveId = curveId,
-                             curveLabel = yLabel,
+        self.addPlotDataItem(x           = x,
+                             y           = y,
+                             curveId     = curveId,
+                             curveLabel  = yLabel,
                              curveLegend = curveLegend)
 
         # AutoRange only after the first data item is added
@@ -126,8 +144,43 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
+    ####################################
+    #
+    #           Properties
+    #
+    ####################################
+
+
+    @property
+    def xLabel(self) -> str:
+
+        if hasattr(self, 'plotItem'):
+            return self.plotItem.axes['bottom']['item'].labelText
+        else:
+            return ''
+
+
+
+    @property
+    def yLabel(self) -> str:
+
+        if hasattr(self, 'plotItem'):
+            return self.plotItem.axes['left']['item'].labelText
+        else:
+            return ''
+
+
+
+    ####################################
+    #
+    #           Method to close, clean stuff
+    #
+    ####################################
+
+
+
     @staticmethod
-    def clearLayout(layout):
+    def clearLayout(layout: QtWidgets.QBoxLayout) -> None:
         """
         Clear a pyqt layout, from:
         https://stackoverflow.com/questions/4528347/clear-all-widgets-in-a-layout-in-pyqt
@@ -140,20 +193,26 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def closeEvent(self, evnt):
+    def closeEvent(self, evnt: QtGui.QCloseEvent) -> None:
         """
         Method called when use closed the plotWindow.
         We propagate that event to the mainWindow
         """
+        
+        # We send a clean signal for each curves
+        curves = list(self.curves.values())
+        for curve in curves: 
+            self.cleanCheckBox(plotRef     = self.plotRef,
+                               windowTitle = self.windowTitle,
+                               runId       = self.runId,
+                               label       = curve.curveLabel)
 
-        self.cleanCheckBox(plotRef     = self.plotRef,
-                           windowTitle = self.windowTitle,
-                           runId       = self.runId,
-                           label       = [curve.curveLabel for curve in self.curves.values()])
         if self.fitWindow is not None:
             self.fitWindow.close()
-        if len(self.fftwindow)>0:
-            [window.close() for window in self.fftwindow]
+
+        fftPlot = self.getPlotFFTFromRef(self.plotRef)
+        if fftPlot is not None:
+            fftPlot.close()
 
 
 
@@ -164,7 +223,15 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def getLineColor(self):
+    ####################################
+    #
+    #           Method to add, update, remove items
+    #
+    ####################################
+
+
+
+    def getLineColor(self) -> None:
         """
         Return a pyqtgraph mKpen with the color of the next curve following
         the colors in config files
@@ -184,10 +251,29 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def updatePlotDataItem(self, x, y, curveId, curveLegend=None, autoRange=False):
+    def updatePlotDataItem(self, x           : np.ndarray,
+                                 y           : np.ndarray,
+                                 curveId     : str,
+                                 curveLegend : str=None,
+                                 autoRange   : bool=False) -> None:
         """
         Method called by a plot2d when use drag a sliceLine.
         Updating an existing plotDataItem and the plot legendItem
+
+        Parameters
+        ----------
+        x : np.ndarray
+            x data.
+        y : np.ndarray
+            y data.
+        curveId : str
+            Id of the curve.
+            See getCurveId from MainApp
+        curveLegend : str
+            Legend label of the curve.
+        autoRange : bool
+            If the view should perform an autorange after updating the data.
+            Can be slow for heavy data array.
         """
 
         self.curves[curveId].setData(x=x, y=y)
@@ -201,9 +287,31 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def addPlotDataItem(self, x, y, curveId, curveLabel, curveLegend, showInLegend=True):
+    def addPlotDataItem(self, x            : np.ndarray,
+                              y            : np.ndarray,
+                              curveId      : str,
+                              curveLabel   : str,
+                              curveLegend  : str,
+                              showInLegend : bool=True) -> None:
         """
         Method adding a plotDataItem to the plotItem.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            x data.
+        y : np.ndarray
+            y data.
+        curveId : str
+            Id of the curve.
+            See getCurveId from MainApp
+        curveLabel : str
+            y label of the curve.
+        curveLegend : str
+            Legend label of the curve.
+        showInLegend : bool
+            If data should be shown in the legend.
+            Typically selected data for fitting are not displayed in the legend.
         """
 
         # Get the dataPlotItem color
@@ -225,7 +333,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def removePlotDataItem(self, curveId):
+    def removePlotDataItem(self, curveId: str) -> None:
         """
         Remove a PlotDataItem identified via its "curveId"
         """
@@ -253,7 +361,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
     def updateLabel(self):
         """
         Update the ylabel of the plotItem.
-        If there is one dataPlotItem the ylabel is the label from the ini file.
+        If there is one dataPlotItem the displayed ylabel is the data ylabel.
         If many dataPlotItem, the ylabel is "[a.u]".
         """
         
@@ -310,7 +418,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def updatePlottedCurvesList(self, plots):
+    def updatePlottedCurvesList(self, plots: List[Plot1dApp]) -> None:
         """
         Is called by the Main object when the user plots a new 1d curve.
         Build a list of checkbox related to every already plotted curve and
@@ -318,8 +426,6 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         """
         
 
-        if hasattr(self, 'tabCurves'):
-            self.tabWidget.removeTab(1)
 
         # Is there at least one another curve to be shown in the new tab
         isThere = False
@@ -334,12 +440,29 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                     
                     isThere = True
 
-        if isThere:
-            self.tabCurves = QtWidgets.QWidget()
-            self.tabWidget.addTab(self.tabCurves, 'Add curves')
 
-            layout = QtGui.QVBoxLayout()
-            self.tabCurves.setLayout(layout)
+        # If there is, we build the GUI
+        if isThere:
+            
+
+            # Initialize GUI
+            if not hasattr(self, 'tabCurves'):
+                self.tabCurves = QtWidgets.QWidget()
+                self.tabWidget.addTab(self.tabCurves, 'Add curves')
+                
+                self.tabLayout = QtGui.QVBoxLayout()
+                self.tabCurves.setLayout(self.tabLayout)
+            else:
+
+                widgets = (self.tabLayout.itemAt(i).widget() for i in range(self.tabLayout.count())) 
+                for widget in widgets:
+                    if widget is not None:
+                        widget.setChecked(False)
+
+                self.clearLayout(self.tabLayout)
+
+
+            # For each plot, build a checkbox of the available curves
 
             for plot in plots:
                 for curveId in plot.curves.keys():
@@ -352,25 +475,32 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                         cb = QtWidgets.QCheckBox()
                         label = plot.windowTitle+\
                                 ' - '+str(plot.runId)+'\n'+\
-                                plot.plotItem.axes['left']['item'].labelText
+                                plot.curves[curveId].curveLabel
 
                         cb.setText(label)
 
                         cb.toggled.connect(lambda state,
                                                   curveId = curveId,
                                                   plot    = plot: self.toggleNewPlot(state, curveId, plot))
+                        
+                        if curveId in self.curves.keys():
+                            cb.setChecked(True)
 
-                        layout.addWidget(cb)
+                        self.tabLayout.addWidget(cb)
 
 
             verticalSpacer = QtWidgets.QSpacerItem(20, 40,
                                 QtWidgets.QSizePolicy.Minimum,
                                 QtWidgets.QSizePolicy.Expanding) 
-            layout.addItem(verticalSpacer)
+            self.tabLayout.addItem(verticalSpacer)
+        
+        else:
+            if hasattr(self, 'tabCurves'):
+                self.tabWidget.removeTab(1)
 
 
 
-    def toggleNewPlot(self, state, curveId, plot):
+    def toggleNewPlot(self, state: bool, curveId: str, plot: Plot1dApp) -> None:
         """
         Called when user click on the checkbox of the curves tab.
         Add or remove curve in the plot window.
@@ -381,8 +511,8 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
             self.addPlotDataItem(x           = plot.curves[curveId].xData,
                                  y           = plot.curves[curveId].yData,
                                  curveId     = curveId,
-                                 curveLabel  = plot.plotItem.axes['left']['item'].labelText,
-                                 curveLegend = plot.plotItem.axes['left']['item'].labelText)
+                                 curveLabel  = plot.curves[curveId].curveLabel,
+                                 curveLegend = plot.curves[curveId].curveLabel)
 
         else:
             self.removePlotDataItem(curveId)
@@ -397,7 +527,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxLogState(self, b):
+    def checkBoxLogState(self, b: QtWidgets.QCheckBox) -> None:
         """
         Method called when user click on the log checkBoxes.
         Modify the scale, linear or logarithmic, of the plotItem following
@@ -417,7 +547,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxSymbolState(self, b):
+    def checkBoxSymbolState(self, b: QtWidgets.QCheckBox) -> None:
         """
         Method called when user click on the Symbol checkBox.
         Put symbols on all plotDataItem except fit model.
@@ -442,45 +572,59 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def clickFFT(self, b):
+    def clickFFT(self, button:QtWidgets.QRadioButton) -> None:
         """
-        Method called when user click on the
+        Method called when user click on the fft radio buttons.
+        Add a plot containing the FFT/IFFT of the chosen data.
         """
 
-        if b.text() == 'FFT':
+
+        if self.radioButtonFFT.isChecked():
             
             x = np.fft.fftfreq(len(self.selectedX), d=self.selectedX[1] - self.selectedX[0])
             y = np.abs(np.fft.fft(self.selectedY))[x>=0]
             x = x[x>=0]
             text = 'fft'
 
-        elif b.text() == 'FFT (no DC)':
+        elif self.radioButtonFFTnoDC.isChecked():
             
             x = np.fft.fftfreq(len(self.selectedX), d=self.selectedX[1] - self.selectedX[0])
             y = np.abs(np.fft.fft(self.selectedY))[x>=0][1:]
             x = x[x>=0][1:]
             text = 'fft'
 
-        elif b.text() == 'IFFT':
+        elif self.radioButtonIFFT.isChecked():
             
             x = np.fft.fftfreq(len(self.selectedX), d=self.selectedX[1] - self.selectedX[0])
             y = np.abs(np.fft.ifft(self.selectedY))[x>=0]
             x = x[x>=0]
             text = 'ifft'
 
+        xLabel = '1/'+self.plotItem.axes['bottom']['item'].labelText
+        yLabel = text.upper()+'( '+self.selectedLabel+' )'
+        title  = self.windowTitle+' - '+text.upper()
+
+        fftPlot = self.getPlotFFTFromRef(self.plotRef)
+        if fftPlot is not None:
+            fftPlot.close()
         
-        self.fftwindow.append(new1dplot(x=x,
-                                        y=y,
-                                        title=self.windowTitle+' - '+text.upper(),
-                                        xLabel='1/'+self.plotItem.axes['bottom']['item'].labelText,
-                                        yLabel=text.upper()+'( '+self.selectedLabel+' )',
-                                        windowTitle=self.windowTitle+' - '+text.upper(),
-                                        runId=1,
-                                        cleanCheckBox=self.cleanCheckBox,
-                                        linkedTo2dPlot=False,
-                                        curveId=text.upper()+'( '+self.selectedLabel+' )',
-                                        curveLegend=None,
-                                        parent=None))
+        self.addPlot(plotRef        = self.plotRef+'fft',
+                     data           = [x, y],
+                     xLabel         = xLabel,
+                     yLabel         = yLabel,
+                     cleanCheckBox  = self.cleanCheckBox,
+                     plotTitle      = title,
+                     windowTitle    = title,
+                     runId          = 1,
+                     linkedTo2dPlot = False,
+                     curveId        = yLabel,
+                     curveLegend    = yLabel,
+                     curveLabel     = yLabel,
+                     timestampXAxis = False,
+                     livePlot       = False,
+                     progressBarKey = None,
+                     zLabel         = None)
+                                        
 
 
 
@@ -492,7 +636,18 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def getSelectedData(self, curveId):
+    def getSelectedData(self, curveId: str) -> List[np.ndarray]:
+        """
+        Return the x and y data of the curve specified by its curve id troncated
+        between the infiniteLines "a" and "b".
+        It does not matter if a<b or a>b.
+
+        Parameters
+        ----------
+        curveId : str
+            Id of the curve.
+            See getCurveId from MainApp
+        """
 
         a = self.infiniteLines['a'].value()
         b = self.infiniteLines['b'].value()
@@ -509,9 +664,20 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def selectionInifiniteLineChangeFinished(self, lineItem, curveId):
+    def selectionInifiniteLineChangeFinished(self, lineItem: pg.InfiniteLine,
+                                                   curveId: str) -> None:
         """
         Method call when user release a dragged selection line.
+        Update the selected data and if a fit is already being active, update
+        the fit as well.
+
+        Parameters
+        ----------
+        lineItem : pg.InfiniteLine
+            Pyqtgraph infiniteLine being dragged.
+        curveId : str
+            Id of the curve.
+            See getCurveId from MainApp
         """
 
         # Update the style of the display plotDataItem
@@ -529,9 +695,14 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def selectionInifiniteLineDragged(self, lineItem):
+    def selectionInifiniteLineDragged(self, lineItem: pg.InfiniteLine) -> None:
         """
-        Method call when user drag a selection line.
+        Method call when an user is dragging a selection line.
+
+        Parameters
+        ----------
+        lineItem : pg.InfiniteLine
+            Pyqtgraph infiniteLine being dragged.
         """
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
@@ -539,10 +710,16 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def updateSelectionInifiteLine(self, curveId):
+    def updateSelectionInifiteLine(self, curveId: str) -> None:
         """
-        Method call when user start to fit a plotDataItem.
+        Method call when an user starts to fit a plotDataItem.
         Create two infiniteLine linked to the selected plotDataItem
+
+        Parameters
+        ----------
+        curveId : str
+            Id of the curve.
+            See getCurveId from MainApp
         """
         
         # If we want to remove the selection infinite line
@@ -580,10 +757,16 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def updateListDataPlotItem(self, curveId):
+    def updateListDataPlotItem(self, curveId: str) -> None:
         """
         Method called when a plotDataItem is added to the plotItem.
-        Add a radioButton to allow user to chose the plotDataItem for fit.
+        Add a radioButton to allow the user to chose the plotDataItem for fit.
+
+        Parameters
+        ----------
+        curveId : str
+            Id of the curve.
+            See getCurveId from MainApp
         """
 
         # Update list of plotDataItem only if the plotDataItem is not a fit
@@ -599,10 +782,16 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def updatePlotDataItemStyle(self, curveId):
+    def updatePlotDataItemStyle(self, curveId: str) -> None:
         """
         Modify the style of a plotDataItem.
         Use to indicate which plotDataItem is used for the fit
+
+        Parameters
+        ----------
+        curveId : str
+            Id of the curve.
+            See getCurveId from MainApp
         """
 
         curveIdToRemove = [i for i in list(self.curves.keys()) if 'selection' in i]
@@ -647,12 +836,17 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def selectPlotDataItem(self, rb):
+    def selectPlotDataItem(self, rb: QtWidgets.QRadioButton) -> None:
         """
         Method called when user clicks on a radioButton of the list of
         plotDataItem.
         The method will prepare the fit byt placing some data in memory and
         dispay to user which plotDataItem will be used for the fit.
+
+        Parameters
+        ----------
+        rb : QtWidgets.QRadioButton
+            Qt radio button being clicked.
         """
         radioButton = self.plotDataItemButtonGroup.checkedButton()
 
@@ -668,9 +862,9 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
                     radioButton.setCheckable(False)
                     radioButton.setCheckable(True)
 
-            if len(self.fftwindow)>0:
-                [window.close() for window in self.fftwindow]
-                self.fftwindow = []
+            fftplot = self.getPlotFFTFromRef(self.plotRef)
+            if fftplot is not None:
+                [plot.close() for plot in fftplot]
 
             self.updateSelectionInifiteLine(None)
             self.updatePlotDataItemStyle(None)
@@ -689,11 +883,16 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def enableWhenPlotDataItemSelected(self, enable):
+    def enableWhenPlotDataItemSelected(self, enable: bool) -> Non:
         """
         Method called when user clicks on a radioButton of the list of
         plotDataItem.
         Make enable or disable the radioButton of fitmodels.
+
+        Parameters
+        ----------
+        enable : bool
+            Enable or not the GUI to interact with the selected curve.
         """
 
         # Enable fit 
@@ -704,14 +903,11 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
             w.setEnabled(enable)
 
         # Enable fft
-        self.labelFFT.setEnabled(enable)
-        self.pushButtonIFFT.setEnabled(enable)
-        self.pushButtonFFT.setEnabled(enable)
-        self.pushButtonFFTnoDC.setEnabled(enable)
+        self.groupBoxFFT.setEnabled(enable)
 
 
 
-    def initFitGUI(self):
+    def initFitGUI(self) -> None:
         """
         Method called at the initialization of the GUI.
         Make a list of radioButton reflected the available list of fitmodel.
@@ -741,7 +937,7 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
 
 
 
-    def radioButtonFitState(self):
+    def radioButtonFitState(self) -> None:
         """
         Method called when user click on a radioButton of a fitModel.
         Launch a fit of the data using the chosen model and display the results.
@@ -763,46 +959,10 @@ class Plot1dApp(QtWidgets.QDialog, plot1d.Ui_Dialog, PlotApp):
         x, y, params, self.fitWindow =  obj.ffit()
 
         # Plot fit curve
-        self.addPlotDataItem(x = x,
-                            y = y, 
-                            curveId = 'fit',
-                            curveLabel = self.selectedLabel,
-                            curveLegend =  obj.legend2display(params))
+        self.addPlotDataItem(x           = x,
+                             y           = y,
+                             curveId     = 'fit',
+                             curveLabel  = self.selectedLabel,
+                             curveLegend = obj.legend2display(params))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def new1dplot(x, y, title, xLabel, yLabel, windowTitle, runId, cleanCheckBox,
-                linkedTo2dPlot=False, curveId=None, curveLegend=None, parent=None):
-
-    
-    p = Plot1dApp(x              = x,
-                  y              = y,
-                  title          = title,
-                  xLabel         = xLabel,
-                  yLabel         = yLabel,
-                  windowTitle    = windowTitle,
-                  runId          = runId,
-                  cleanCheckBox  = cleanCheckBox,
-                  curveId        = curveId)
-    p.show()
-
-    return p

@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>987</width>
+    <width>1033</width>
     <height>437</height>
    </rect>
   </property>
@@ -88,7 +88,7 @@
        <item>
         <widget class="QCheckBox" name="checkBoxSwapxy">
          <property name="text">
-          <string>Invert x/y</string>
+          <string>Swap x/y</string>
          </property>
         </widget>
        </item>

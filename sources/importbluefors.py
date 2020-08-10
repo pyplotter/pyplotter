@@ -75,7 +75,7 @@ class ImportBlueFors:
                 # Each checkbox at its own event attached to it
                 cb.toggled.connect(lambda cb       = cb,
                                           filePath = os.path.join(directory, file),
-                                          plotRef  = self.main.getPlotRef(): self.blueForsLogClicked(cb, filePath, plotRef))
+                                          plotRef  = self.main.getDataRef(): self.blueForsLogClicked(cb, filePath, plotRef))
             
 
 
@@ -123,7 +123,6 @@ class ImportBlueFors:
                     
                     self.main.addPlot(plotRef        = plotRef,
                                       data           = (df[name].index.astype(np.int64).values//1e9, df[name]),
-                                      progressBarKey = '',
                                       xLabel         = 'Time',
                                       yLabel         = config[fileName][name[:3]])
                 
@@ -145,7 +144,6 @@ class ImportBlueFors:
                 df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
 
                 self.main.addPlot(plotRef        = plotRef,
-                                  progressBarKey = '',
                                   data           = (df['y'].index.astype(np.int64).values//1e9, df['y']),
                                   xLabel         = 'Time',
                                   yLabel         = config[fileName])

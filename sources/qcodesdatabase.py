@@ -2,7 +2,9 @@
 import time
 import sqlite3
 import json
-import qcodes as qc
+from qcodes.dataset import load_by_id
+from qcodes.dataset.sqlite.database import connect
+from qcodes.dataset.sqlite.connection import ConnectionPlus
 from typing import Callable, Tuple, List
 
 from sources.config import config
@@ -90,7 +92,7 @@ class QcodesDatabase:
             Cursor to the db
         """
         
-        conn =  qc.dataset.sqlite.database.connect(self.databasePath)
+        conn =  connect(self.databasePath)
 
         # ProgressHandler will be called every "callevery"
         if callEvery is not None:
@@ -103,7 +105,7 @@ class QcodesDatabase:
 
 
 
-    def closeDatabase(self, conn : qc.dataset.sqlite.connection.ConnectionPlus,
+    def closeDatabase(self, conn : ConnectionPlus,
                             cur : sqlite3.Cursor) -> None:
         """
         Close the connection to the database.
@@ -707,7 +709,7 @@ class QcodesDatabase:
         # We download the data while updating the progress bar
         conn, cur = self.openDatabase(callEvery=callEvery)
         
-        ds =  qc.load_by_id(run_id=int(runId), conn=conn)
+        ds =  load_by_id(run_id=int(runId), conn=conn)
 
         try:
             d = ds.get_parameter_data(paramDependent)[paramDependent]

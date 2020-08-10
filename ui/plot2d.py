@@ -12,7 +12,7 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.setEnabled(True)
-        Dialog.resize(987, 437)
+        Dialog.resize(1033, 437)
         Dialog.setSizeGripEnabled(False)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(Dialog)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
@@ -198,7 +198,7 @@ class Ui_Dialog(object):
         self.plot2dzLabel.setText(_translate("Dialog", "TextLabel"))
         self.label_3.setText(_translate("Dialog", "Display"))
         self.label.setText(_translate("Dialog", "colormap"))
-        self.checkBoxSwapxy.setText(_translate("Dialog", "Invert x/y"))
+        self.checkBoxSwapxy.setText(_translate("Dialog", "Swap x/y"))
         self.checkBoxInvert.setText(_translate("Dialog", "Invert colormap"))
         self.checkBoxCrossHair.setText(_translate("Dialog", "cross hair (fastest without)"))
         self.checkBoxDrawIsoCurve.setText(_translate("Dialog", "Draw isocurve"))

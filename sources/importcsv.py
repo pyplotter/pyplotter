@@ -111,7 +111,7 @@ class ImportCSV:
                                       xLabel  = independentParameter,
                                       yLabel  = columnName,
                                       data    = (x, y),
-                                      plotRef = self.main.getPlotRef(): self.csvParameterClicked(cb, xLabel, yLabel, data, plotRef))
+                                      plotRef = self.main.getDataRef(): self.csvParameterClicked(cb, xLabel, yLabel, data, plotRef))
             
             i += 1
 
@@ -133,7 +133,6 @@ class ImportCSV:
         if cb:
 
             self.main.addPlot(plotRef        = plotRef,
-                              progressBarKey = '',
                               data           = data,
                               xLabel         = xLabel,
                               yLabel         = yLabel)

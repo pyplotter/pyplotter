@@ -2,28 +2,25 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
-from typing import Union
+from typing import Union, List
 import inspect
 import uuid
-import sys
-sys.path.append('../ui')
 
-import plot2d
+from ui.plot2d import Ui_Dialog
 import sources.palettes as palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
 from sources.plot_app import PlotApp
-from sources.plot_1d_app import Plot1dApp
 from sources.config import config
 import sources.fit as fit
 
 
 
-class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
+class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     """
     Class to handle ploting in 2d.
     """
 
     def __init__(self, x, y, z, title, xLabel, yLabel, zLabel, windowTitle,
-                runId, cleanCheckBox, plotRef, parent=None):
+                runId, cleanCheckBox, plotRef, addPlot, removePlot, getPlotSliceFromRef, livePlot=False, parent=None):
         super(Plot2dApp, self).__init__(parent)
 
         self.setupUi(self)
@@ -47,7 +44,16 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.cleanCheckBox = cleanCheckBox
         self.plotRef       = plotRef
 
-        # Store references to infiniteLines
+        # Method from the MainApp to add plot window
+        # Used for data slicing
+        self.addPlot         = addPlot
+        self.removePlot      = removePlot
+        self.getPlotSliceFromRef = getPlotSliceFromRef
+        
+        # If the plot is displaying a qcodes run that is periodically updated
+        self.livePlot       = livePlot
+
+        # Store references to infiniteLines creating by data slicing
         self.infiniteLines = {}
         self.sliceOrientation = 'vertical'
 
@@ -57,8 +63,8 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
         # Store the references to linked 1d plots, object created when user
         # create a slice of data
-        self.linked1dPlots = {'vertical'   : None,
-                              'horizontal' : None}
+        # self.linked1dPlots = {'vertical'   : None,
+        #                       'horizontal' : None}
         
         # Reference to the extracted window
         self.extractionWindow = None
@@ -155,6 +161,14 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
+    ####################################
+    #
+    #           Method to close stuff
+    #
+    ####################################
+
+
+
     def closeEvent(self, evnt):
         """
         Method called when use closed the plotWindow.
@@ -164,13 +178,13 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         self.cleanCheckBox(plotRef     = self.plotRef,
                            windowTitle = self.windowTitle,
                            runId       = self.runId,
-                           label       = self.zLabel)
+                           label      = self.zLabel)
 
         # If user created data slice, we close the linked 1d plot
-        if self.linked1dPlots['vertical'] is not None:
-            self.linked1dPlots['vertical'].close()
-        if self.linked1dPlots['horizontal'] is not None:
-            self.linked1dPlots['horizontal'].close()
+        if self.getPlotRefFromSliceOrientation('vertical') is not None:
+            self.getPlotRefFromSliceOrientation('vertical').close()
+        if self.getPlotRefFromSliceOrientation('horizontal') is not None:
+            self.getPlotRefFromSliceOrientation('horizontal').close()
         
         # If user extracted the maximum
         if self.extractionWindow is not None:
@@ -183,6 +197,14 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
     def o(self):
         self.close()
+
+
+
+    ####################################
+    #
+    #           Method to set, update the image
+    #
+    ####################################
 
 
 
@@ -211,6 +233,13 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
         self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
         self.setImageView()
+
+
+    ####################################
+    #
+    #           Method to related to display
+    #
+    ####################################
 
 
 
@@ -244,22 +273,37 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
                                         self.dragSliceLine(lineItem,
                                                             curveId))
 
-
-        t = self.linked1dPlots['vertical']
-        self.linked1dPlots['vertical']    = self.linked1dPlots['horizontal']
-        self.linked1dPlots['horizontal']  = t
-
-
-
         self.radioButtonSliceHorizontal.toggle()
 
 
 
     ####################################
     #
-    #           InfinityLines
+    #           Method related to data slicing
     #
     ####################################
+
+
+
+    def getPlotRefFromSliceOrientation(self, sliceOrientation : str) -> Union[str, None]:
+        """
+        Return the 1d plot containing the slice data of this 2d plot.
+        Is based on the getPlotSliceFromRef from MainApp but swap orientation when
+        checkBoxSwapxy is checked.
+
+        Parameters
+        ----------
+        sliceOrientation : str
+            Orientation of the slice we are interested in.
+        """
+
+        if self.checkBoxSwapxy.isChecked():
+            if sliceOrientation=='vertical':
+                return self.getPlotSliceFromRef(self.plotRef, 'horizontal')
+            else:
+                return self.getPlotSliceFromRef(self.plotRef, 'vertical')
+        else:
+            return self.getPlotSliceFromRef(self.plotRef, sliceOrientation)
 
 
 
@@ -299,23 +343,24 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-    def dragSliceLine(self, lineItem, curveId):
+    def dragSliceLine(self, InfinitylineItem : pg.InfiniteLine,
+                            curveId          : str) -> None:
         """
         Method call when user drag a slice line.
 
         Parameters
         ----------
-        InfinitylineItem : 
+        InfinitylineItem : pg.InifiniteLine
             InfinitylineItem currently being dragged.
-        curveId :
+        curveId : str
             ID of the curve associated to the slice being dragged
         """
 
         # We get the slice data from the 2d plot
-        sliceX, sliceY, sliceLegend = self.getDataSlice(lineItem=lineItem)
+        sliceX, sliceY, sliceLegend = self.getDataSlice(InfinitylineItem=InfinitylineItem)
         
         # We update the curve associated to the sliceLine
-        self.linked1dPlots[self.getInfinityLineOrientation(lineItem)]\
+        self.getPlotRefFromSliceOrientation(self.getInfinityLineOrientation(InfinitylineItem))\
         .updatePlotDataItem(x           = sliceX,
                             y           = sliceY,
                             curveId     = curveId,
@@ -323,8 +368,6 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
         self.infiniteLines[curveId].mouseHovering  = True
-
-        return 1
 
 
 
@@ -339,7 +382,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
             ID of the curve associated to the data slice
         """
         
-        colorIndex = self.linked1dPlots[self.sliceOrientation].curves[curveId].colorIndex
+        colorIndex = self.getPlotRefFromSliceOrientation(self.sliceOrientation).curves[curveId].colorIndex
 
         pen = pg.mkPen(color=config['plot1dColors'][colorIndex],
                        width=config['crossHairLineWidth'],
@@ -381,43 +424,57 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
 
 
 
-    # def cleanInfiniteLine(self, windowTitle, runId):
     def cleanInfiniteLine(self, plotRef     : str,
                                 windowTitle : str,
                                 runId       : int,
                                 label       : Union[str, list]) -> None:
         """
-        Called when a linked 1dPlot is closed
+        Called when a linked 1dPlot is closed.
+        Has to have the same signature as cleanCheckBox, see MainApp.
         """
         
         # We clean the reference of the linked 1d plot
-        if 'vertical' in windowTitle:
-            self.linked1dPlots['vertical'] = None
+        if 'vertical' in plotRef:
             searchedAngle = 90.
         else:
-            self.linked1dPlots['horizontal'] = None
             searchedAngle =  0.
 
         # We remove all the associated infiniteLine
         keyToRemove = []
-        for key, val in list(self.infiniteLines.items()):
+        for key, val in self.infiniteLines.items():
             if val.angle == searchedAngle:
                 keyToRemove.append(key)
         
         [self.removeInifiteLine(key) for key in keyToRemove]
 
+        # If the close 1d plot window had many curves
+        if isinstance(label, list):
+            [self.removePlot(plotRef, l) for l in label]
+        else:
+            self.removePlot(plotRef, label)
 
 
-    def getDataSlice(self, lineItem=None):
+
+
+    def getDataSlice(self, InfinitylineItem: pg.InfiniteLine=None) -> List[np.ndarray]:
         """
         Return a vertical or horizontal data slice
+
+        Parameters
+        ----------
+        InfinitylineItem : pg.InfiniteLine, default None
+            InfinitylineItem to get the sliced data from.
+            If None, return the sliced data from the mouse position (creation of
+            a slice)
+            If not None, return the sliced data from the InfinitylineItem
+            position (dragging of the slice).
         """
 
         xSlice = None
         ySlice = None
 
-        # When lineItem is None, We are creating the dataSlice
-        if lineItem is None:
+        # When InfinitylineItem is None, We are creating the dataSlice
+        if InfinitylineItem is None:
             if self.sliceOrientation == 'vertical':
                 xSlice = self.mousePos[0]
             else:
@@ -425,10 +482,10 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         # Otherwise the dataSlice exist and return its position depending of its
         # orientation
         else:
-            if self.getInfinityLineOrientation(lineItem) == 'vertical':
-                xSlice = lineItem.value()
+            if self.getInfinityLineOrientation(InfinitylineItem) == 'vertical':
+                xSlice = InfinitylineItem.value()
             else:
-                ySlice = lineItem.value()
+                ySlice = InfinitylineItem.value()
 
         # Depending on the slice we return the x and y axis data and the legend
         # associated with the cut.
@@ -462,62 +519,73 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
             # Get the data of the slice
             sliceX, sliceY, sliceLegend = self.getDataSlice()
 
-            # If nbCurve is 1, we create the 1d plot window
-            if self.linked1dPlots[self.sliceOrientation] is None:
+            # The xLabel of the 1d plot depends on the slice orientation
+            if self.sliceOrientation == 'vertical':
+                xLabel = self.yLabel
+            else:
+                xLabel = self.xLabel
 
-                # The xLabel of the 1d plot depends on the slice orientation
-                if self.sliceOrientation == 'vertical':
-                    xLabel = self.yLabel
-                else:
-                    xLabel = self.xLabel
+            yLabel = self.zLabel
+
+            # If nbCurve is 1, we create the 1d plot window
+            # if self.linked1dPlots[self.sliceOrientation] is None:
+            if self.getPlotRefFromSliceOrientation(self.sliceOrientation) is None:
+
 
                 curveId = self.getCurveId()
-                p = Plot1dApp(x              = sliceX,
-                              y              = sliceY,
-                              title          = self.title,
-                              xLabel         = xLabel,
-                              yLabel         = self.zLabel,
-                              windowTitle    = self.windowTitle+' - '+self.sliceOrientation+' slice',
-                              runId          = self.runId,
-                              cleanCheckBox  = self.cleanInfiniteLine,
-                              plotRef        = self.plotRef+'dataslicing',
-                              curveId        = curveId,
-                              linkedTo2dPlot = True,
-                              curveLegend    = sliceLegend)
-                p.show()
-                self.linked1dPlots[self.sliceOrientation] = p
 
-                # We linked the curve of the 1dplot to the infinite line display
-                # on the 2d plot
+                self.addPlot(data           = [sliceX, sliceY],
+                             plotTitle      = self.title,
+                             xLabel         = xLabel,
+                             yLabel         = yLabel,
+                             windowTitle    = self.windowTitle+' - '+self.sliceOrientation+' slice',
+                             runId          = self.runId,
+                             cleanCheckBox  = self.cleanInfiniteLine,
+                             plotRef        = self.plotRef+self.sliceOrientation,
+                             curveId        = curveId,
+                             linkedTo2dPlot = True,
+                             curveLegend    = sliceLegend)
+                             
                 self.addInifiteLine(curveId)
             else:
                 
                 # We check if user double click on an infiniteLine
                 clickedCurveId = None
-                for curveId, curve in self.linked1dPlots[self.sliceOrientation].curves.items():
-                    if curve.curveLegend == sliceLegend:
-                        clickedCurveId = curveId
+                if self.getPlotRefFromSliceOrientation('vertical') is not None:
+                    for curveId, curve in self.getPlotRefFromSliceOrientation('vertical').curves.items():
+                        if curve.curveLegend == sliceLegend:
+                            clickedCurveId = curveId
+                if self.getPlotRefFromSliceOrientation('horizontal') is not None:
+                    for curveId, curve in self.getPlotRefFromSliceOrientation('horizontal').curves.items():
+                        if curve.curveLegend == sliceLegend:
+                            clickedCurveId = curveId
 
                 # If the user add a new infiniteLine
                 if clickedCurveId is None:
                     curveId = self.getCurveId()
-                    self.linked1dPlots[self.sliceOrientation].addPlotDataItem(x           = sliceX,
-                                                                              y           = sliceY,
-                                                                              curveId     = curveId,
-                                                                              curveLabel  = self.zLabel,
-                                                                              curveLegend = sliceLegend)
+
+                    self.addPlot(plotRef     = self.plotRef+self.sliceOrientation,
+                                 data        = [sliceX, sliceY],
+                                 xLabel      = xLabel,
+                                 yLabel      = self.zLabel,
+                                 curveId     = curveId,
+                                 curveLabel  = self.zLabel,
+                                 curveLegend = sliceLegend)
+
                     self.addInifiteLine(curveId)
 
                 # We remove a slice
                 else:
                     # If there is more than one slice, we remove it and the associated curve
-                    if len(self.infiniteLines)>1:
-                        self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
+                    if len(self.getPlotRefFromSliceOrientation(self.sliceOrientation).curves)>1:
+                    # if len(self.infiniteLines)>1:
+                        self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(clickedCurveId)
                         self.removeInifiteLine(clickedCurveId)
                     # If there is only one slice, we close the linked 1d plot
                     # which will remove the associated infiniteLine
                     else:
-                        self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
+                        self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(clickedCurveId)
+                        # self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
 
 
 
@@ -747,6 +815,7 @@ class Plot2dApp(QtWidgets.QDialog, plot2d.Ui_Dialog, PlotApp):
         """
         
         self.isoCurve.setLevel(self.isoLine.value())
+
 
 
     ####################################
