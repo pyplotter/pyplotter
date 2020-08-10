@@ -246,8 +246,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 # Other folders
                 else:   
                     item =  QtGui.QTableWidgetItem(file)
-                    if file in config['setup']:
-                        item.setIcon(QtGui.QIcon('ui/pictures/folderSetup.png'))
+                    if file in config['enhancedFolder']:
+                        item.setIcon(QtGui.QIcon('ui/pictures/folderEnhanced.png'))
                     else:
                         item.setIcon(QtGui.QIcon('ui/pictures/folder.png'))
                     self.tableWidgetFolder.insertRow(row)
@@ -1693,7 +1693,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if self._refs[plotRef].plotType=='1d':
             # If there is more than one curve, we remove one curve
             if len(self._refs[plotRef].curves) > 1:
-                print(label, self._refs[plotRef].curves.keys())
                 curveId = [key for key in self._refs[plotRef].curves.keys() if label in key][0]
                 self._refs[plotRef].removePlotDataItem(curveId=curveId)
             # If there is one curve we close the plot window
