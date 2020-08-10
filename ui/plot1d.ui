@@ -56,6 +56,18 @@
          <string>Interaction</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>1</number>
+         </property>
+         <property name="topMargin">
+          <number>1</number>
+         </property>
+         <property name="rightMargin">
+          <number>1</number>
+         </property>
+         <property name="bottomMargin">
+          <number>1</number>
+         </property>
          <item>
           <layout class="QVBoxLayout" name="verticalLayoutInteraction">
            <property name="sizeConstraint">
@@ -74,6 +86,18 @@
               <string>Display</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_4">
+              <property name="leftMargin">
+               <number>1</number>
+              </property>
+              <property name="topMargin">
+               <number>5</number>
+              </property>
+              <property name="rightMargin">
+               <number>1</number>
+              </property>
+              <property name="bottomMargin">
+               <number>1</number>
+              </property>
               <item>
                <layout class="QHBoxLayout" name="horizontalLayoutLog">
                 <item>
@@ -153,6 +177,18 @@
               <string>Select curve</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_3">
+              <property name="leftMargin">
+               <number>1</number>
+              </property>
+              <property name="topMargin">
+               <number>5</number>
+              </property>
+              <property name="rightMargin">
+               <number>1</number>
+              </property>
+              <property name="bottomMargin">
+               <number>1</number>
+              </property>
               <item>
                <layout class="QVBoxLayout" name="verticalLayoutPlotDataItem">
                 <item>
@@ -196,6 +232,18 @@
               <string>Curve interaction</string>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_2">
+              <property name="leftMargin">
+               <number>1</number>
+              </property>
+              <property name="topMargin">
+               <number>5</number>
+              </property>
+              <property name="rightMargin">
+               <number>1</number>
+              </property>
+              <property name="bottomMargin">
+               <number>1</number>
+              </property>
               <item>
                <widget class="QGroupBox" name="groupBoxFFT">
                 <property name="enabled">
@@ -212,6 +260,18 @@
                  <string>FFT</string>
                 </property>
                 <layout class="QHBoxLayout" name="horizontalLayout_4">
+                 <property name="leftMargin">
+                  <number>1</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>5</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>1</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>1</number>
+                 </property>
                  <item>
                   <widget class="QRadioButton" name="radioButtonFFT">
                    <property name="font">
@@ -279,6 +339,18 @@
                  <string>Fit</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_5">
+                 <property name="leftMargin">
+                  <number>1</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>5</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>1</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>1</number>
+                 </property>
                  <item>
                   <layout class="QVBoxLayout" name="verticalLayoutFitModel"/>
                  </item>
