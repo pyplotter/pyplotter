@@ -83,9 +83,9 @@ class ImportBlueFors:
 
 
 
-    def blueForsLogClicked(self, cb : QtWidgets.QCheckBox,
+    def blueForsLogClicked(self, cb       : QtWidgets.QCheckBox,
                                  filePath : str,
-                                 plotRef : str) -> None:
+                                 plotRef  : str) -> None:
         """
         When user clicked on BF log file.
         Basically, launch a 1d plot window.
@@ -127,11 +127,11 @@ class ImportBlueFors:
                                       yLabel         = config[fileName][name[:3]])
                 
                 # Once all is plotting we autorange
-                self.main._refs[plotRef]['plot'].plotItem.vb.autoRange()
+                self.main._refs[plotRef].plotItem.vb.autoRange()
 
                 # and we set y log mode True
                 QtTest.QTest.qWait(100) # To avoid an overflow error
-                self.main._refs[plotRef]['plot'].checkBoxLogY.toggle()
+                self.main._refs[plotRef].checkBoxLogY.toggle()
 
             # Thermometers files
             else:

@@ -971,7 +971,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     def cleanCheckBox(self, plotRef     : str,
                             windowTitle : str,
                             runId       : int,
-                            label       : Union[str, list]) -> None:
+                            label       : str) -> None:
         """
         Method called by the QDialog plot when the user close the plot window.
         We propagate that event to the mainWindow to uncheck the checkbox and
@@ -986,12 +986,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Data run id of the database.
         label : str
             Label of the dependent parameter.
+            Will be empty for signal from Plot1dApp since this parameter is only
+            usefull for Plot2dApp.
         """
 
         # If the closed curve is currently being displayed in the parameter table
         if self._currentDatabase == windowTitle and self.getRunId() == runId:
+            
             # If 1d plot
-            if isinstance(label, list):
+            if self._refs[plotRef].plotType=='1d':
+            
                 # If the current displayed parameters correspond to the one which has
                 # been closed, we uncheck all the checkbox listed in the table
                 for row in range(self.tableWidgetParameters.rowCount()):

@@ -198,20 +198,16 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-
     def closeEvent(self, evnt: QtGui.QCloseEvent) -> None:
         """
         Method called when use closed the plotWindow.
         We propagate that event to the mainWindow
         """
         
-        # We send a clean signal for each curves
-        curves = list(self.curves.values())
-        for curve in curves: 
-            self.cleanCheckBox(plotRef     = self.plotRef,
-                               windowTitle = self.windowTitle,
-                               runId       = self.runId,
-                               label       = curve.curveLabel)
+        self.cleanCheckBox(plotRef     = self.plotRef,
+                           windowTitle = self.windowTitle,
+                           runId       = self.runId,
+                           label       = '')
 
         if self.fitWindow is not None:
             self.fitWindow.close()
