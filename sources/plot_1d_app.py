@@ -3,7 +3,7 @@ from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
-from typing import List
+from typing import List, Union
 import inspect
 
 
@@ -11,6 +11,7 @@ from ui.plot1d import Ui_Dialog
 from sources.config import config
 from sources.plot_app import PlotApp
 import sources.fit as fit
+import sources.filtering as filtering
 from sources.DateAxisItem import DateAxisItem
 
 
@@ -65,6 +66,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Reference to QDialog which will contains fit info
         self.fitWindow = None
 
+        # Reference to QDialog which will contains filtering info
+        self.filteringWindow = None
+
         # References of the infinietLines used to select data for the fit.
         # Structured
         # self.infiniteLines = {'a' : pg.InfiniteLine,
@@ -81,6 +85,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Add fitting function to the GUI
         self.initFitGUI()
+        # Add filtering function to the GUI
+        self.initFilteringGUI()
 
 
         # Connect UI
@@ -209,6 +215,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         if self.fitWindow is not None:
             self.fitWindow.close()
+
+        if self.filteringWindow is not None:
+            self.filteringWindow.close()
 
         fftPlot = self.getPlotFFTFromRef(self.plotRef)
         if fftPlot is not None:
@@ -408,6 +417,32 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             for curve in self.curves.values():
                 if curve.showInLegend:
                     self.legendItem.addItem(curve, curve.curveLegend)
+
+
+
+    def updateListDataPlotItem(self, curveId: str) -> None:
+        """
+        Method called when a plotDataItem is added to the plotItem.
+        Add a radioButton to allow the user to select the plotDataItem.
+
+        Parameters
+        ----------
+        curveId : str
+            Id of the curve.
+            See getCurveId from MainApp
+        """
+
+        # Update list of plotDataItem only if the plotDataItem is not a fit
+        if curveId not in ['fit', 'filtering']:
+            radioButton = QtWidgets.QRadioButton(self.curves[curveId].curveLabel)
+            
+            radioButton.curveId = curveId
+            
+            if 'selection' not in curveId:
+                self.plotDataItemButtonGroup.addButton(radioButton, len(self.plotDataItemButtonGroup.buttons()))
+                radioButton.clicked.connect(self.selectPlotDataItem)
+                self.verticalLayoutPlotDataItem.addWidget(radioButton)
+
 
 
     ####################################
@@ -629,7 +664,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     ####################################
     #
-    #           Method to related to fit
+    #           Method to related to data selection
     #
     ####################################
 
@@ -667,8 +702,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                    curveId: str) -> None:
         """
         Method call when user release a dragged selection line.
-        Update the selected data and if a fit is already being active, update
-        the fit as well.
+        Update the selected data and if a model is already being active, update
+        the model as well.
 
         Parameters
         ----------
@@ -688,6 +723,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # If a fit curve is already displayed, we update it
         if 'fit' in list(self.curves.keys()):
             self.radioButtonFitState()
+            
+        # If a filtering curve is already displayed, we update it
+        if 'filtering' in list(self.curves.keys()):
+            self.radioButtonFilteringtState()
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
         lineItem.mouseHovering  = False
@@ -709,15 +748,20 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def updateSelectionInifiteLine(self, curveId: str) -> None:
+    def updateSelectionInifiteLine(self, curveId: Union[str, None]) -> None:
         """
-        Method call when an user starts to fit a plotDataItem.
-        Create two infiniteLine linked to the selected plotDataItem
+        Method call by selectPlotDataItem.
+        Handle the creation or deletion of two infiniteLine items used to select
+        data.
+        The infiniteLine item  events are connected as follow:
+            sigPositionChangeFinished -> selectionInifiniteLineChangeFinished
+            sigDragged -> selectionInifiniteLineDragged
 
         Parameters
         ----------
         curveId : str
             Id of the curve.
+            If None, we delete the infinite lines
             See getCurveId from MainApp
         """
         
@@ -730,8 +774,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                            width=config['crossHairLineWidth'],
                            style=QtCore.Qt.SolidLine)
             hoverPen = pg.mkPen(color=(255, 255, 255),
-                           width=config['crossHairLineWidth'],
-                       style=QtCore.Qt.DashLine)
+                                width=config['crossHairLineWidth'],
+                                style=QtCore.Qt.DashLine)
 
             angle = 90.
             pos = self.curves[curveId].xData[0]
@@ -756,40 +800,16 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def updateListDataPlotItem(self, curveId: str) -> None:
-        """
-        Method called when a plotDataItem is added to the plotItem.
-        Add a radioButton to allow the user to chose the plotDataItem for fit.
-
-        Parameters
-        ----------
-        curveId : str
-            Id of the curve.
-            See getCurveId from MainApp
-        """
-
-        # Update list of plotDataItem only if the plotDataItem is not a fit
-        if curveId != 'fit':
-            radioButton = QtWidgets.QRadioButton(self.curves[curveId].curveLabel)
-            
-            radioButton.curveId = curveId
-            
-            if 'selection' not in curveId:
-                self.plotDataItemButtonGroup.addButton(radioButton, len(self.plotDataItemButtonGroup.buttons()))
-                radioButton.clicked.connect(self.selectPlotDataItem)
-                self.verticalLayoutPlotDataItem.addWidget(radioButton)
-
-
-
-    def updatePlotDataItemStyle(self, curveId: str) -> None:
+    def updatePlotDataItemStyle(self, curveId: Union[str, None]) -> None:
         """
         Modify the style of a plotDataItem.
-        Use to indicate which plotDataItem is used for the fit
+        Use to indicate which plotDataItem is currently selected
 
         Parameters
         ----------
         curveId : str
             Id of the curve.
+            If None, put back the default plotDataItem style.
             See getCurveId from MainApp
         """
 
@@ -839,8 +859,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         Method called when user clicks on a radioButton of the list of
         plotDataItem.
-        The method will prepare the fit byt placing some data in memory and
-        dispay to user which plotDataItem will be used for the fit.
+        The method will put the curve data in memory and display which
+        plotDataItem is currently selected.
+        If the use clicked on the None button, we delete the selected data and
+        all subsequent object created with it.
+        Called the following method:
+            updateSelectionInifiteLine
+            updatePlotDataItemStyle
+            enableWhenPlotDataItemSelected
 
         Parameters
         ----------
@@ -861,9 +887,24 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     radioButton.setCheckable(False)
                     radioButton.setCheckable(True)
 
+            # Remove filtering curve if plotted
+            if 'filtering' in list(self.curves.keys()):
+                self.removePlotDataItem('filtering')
+                self.filteringWindow.close()
+
+                for radioButton in self.filteringModelButtonGroup.buttons():
+                    radioButton.setCheckable(False)
+                    radioButton.setCheckable(True)
+
+            # Remove FFT curve
+            for radioButton in [self.radioButtonFFT, self.radioButtonIFFT, self.radioButtonFFTnoDC]:
+                radioButton.setCheckable(False)
+                radioButton.setCheckable(True)
+
+
             fftplot = self.getPlotFFTFromRef(self.plotRef)
             if fftplot is not None:
-                [plot.close() for plot in fftplot]
+                fftplot.close()
 
             self.updateSelectionInifiteLine(None)
             self.updatePlotDataItemStyle(None)
@@ -886,7 +927,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         Method called when user clicks on a radioButton of the list of
         plotDataItem.
-        Make enable or disable the radioButton of fitmodels.
+        Make enable or disable the radioButton of models.
 
         Parameters
         ----------
@@ -897,6 +938,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.groupBoxCurveInteraction.setEnabled(enable)
         self.groupBoxFFT.setEnabled(enable)
         self.groupBoxFit.setEnabled(enable)
+
+
+
+    ####################################
+    #
+    #           Method to related to fit
+    #
+    ####################################
 
 
 
@@ -958,4 +1007,71 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              curveLabel  = self.selectedLabel,
                              curveLegend = obj.legend2display(params))
 
+
+
+    ####################################
+    #
+    #           Method to related to filtering
+    #
+    ####################################
+
+
+
+    def radioButtonFilteringtState(self) -> None:
+        """
+        Method called when user click on a radioButton of a filteringModel.
+        Launch a filering of the data using the chosen model and display the
+        results.
+        """
+
+        # If a filtering curve is already plotted, we remove it before plotting
+        # a new one
+        if 'filtering' in list(self.curves.keys()):
+                self.removePlotDataItem('filtering')
+                self.filteringWindow.close()
+        
+        radioButton = self.filteringModelButtonGroup.checkedButton()
+
+        # Find which model has been chosed and instance it
+        _class = getattr(filtering, radioButton.filteringModel)
+        obj = _class(self.selectedX, self.selectedY, self.updatePlotDataItem)
+
+        # Do the filtering
+        x, y, self.filteringWindow, legend =  obj.runFiltering()
+
+        # Plot filtered curve
+        self.addPlotDataItem(x           = x,
+                             y           = y,
+                             curveId     = 'filtering',
+                             curveLabel  = self.selectedLabel,
+                             curveLegend = legend)
+
+
+
+
+    def initFilteringGUI(self) -> None:
+        """
+        Method called at the initialization of the GUI.
+        Make a list of radioButton reflected the available list of filtering model.
+        By default all radioButton are disabled and user should chose a plotDataItem
+        to make them available.
+        """
+    
+        # Get list of filtering model
+        listClasses = [m[0] for m in inspect.getmembers(filtering, inspect.isclass) if 'runFiltering' in [*m[1].__dict__.keys()]]
+        # Add a radio button for each model of the list
+        self.filteringModelButtonGroup = QtWidgets.QButtonGroup()
+        for i, j in enumerate(listClasses):
+
+            _class = getattr(filtering, j)
+            
+            obj = _class(self, [], [])
+            rb = QtWidgets.QRadioButton(obj.checkBoxLabel())
+            rb.filteringModel = j
+            rb.clicked.connect(self.radioButtonFilteringtState)
+            # rb.setEnabled(False)
+            self.filteringModelButtonGroup.addButton(rb, i)
+            self.verticalLayoutFilteringModel.addWidget(rb)
+
+        del(obj)
 

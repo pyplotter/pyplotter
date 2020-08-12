@@ -1711,7 +1711,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
     def getPlotSliceFromRef(self, plotRef          : str,
-                                  sliceOrientation : str) -> Union[str, None]:
+                                  sliceOrientation : str) -> Union[Plot1dApp, None]:
         """
         Return the 1d plot containing the slice data of a 2d plot.
 
@@ -1733,7 +1733,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def getPlotFFTFromRef(self, plotRef : str) -> Union[str, None]:
+    def getPlotFFTFromRef(self, plotRef : str) -> Union[Plot1dApp, None]:
         """
         Return the 1d plot containing the FFT of a 1d plot.
 
