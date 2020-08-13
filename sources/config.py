@@ -104,6 +104,7 @@ config = {
                               (0,   191, 0)],
 "plotDataItemWidth" : 2,
 "plotDataItemShadowWidth" : 10,
+"plotCoordinateNbNumber" : '5', # str, how many decimal for coordinates
 
 # crosshair
 'crossHairLineWidth' : 3,
