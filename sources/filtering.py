@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtWidgets, QtGui
 import numpy as np
-from typing import Callable, List
+from typing import Callable, Tuple
 from scipy.signal import savgol_filter
 
 
@@ -196,7 +196,7 @@ class SavitzkyGolay:
 
 
 
-    def runFiltering(self) -> List[np.ndarray]:
+    def runFiltering(self) -> Tuple[np.ndarray]:
         """
         Filter the data.
 

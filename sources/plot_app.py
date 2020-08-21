@@ -7,6 +7,9 @@ import pyqtgraph.functions as fn
 import pyqtgraph.debug as debug
 
 from sources.config import config
+from ui.plot_widget import PlotWidget
+
+
 
 class PlotApp(object):
     """
@@ -14,7 +17,7 @@ class PlotApp(object):
     """
 
 
-    def __init__(self):
+    def __init__(self) -> None:
 
         # Crosshair lines
         self.vLine = None
@@ -34,7 +37,12 @@ class PlotApp(object):
 
 
 
-    def eventFilter(self, object, event):
+    def eventFilter(self, object : PlotWidget,
+                          event  : QtGui.QFocusEvent) -> bool:
+        """
+        Return True/False when the mouse enters/leaves by the PlotWidget.
+        """
+        
         if event.type() == QtCore.QEvent.Enter:
             self.widgetHovered = True
             return True
@@ -44,7 +52,7 @@ class PlotApp(object):
 
 
 
-    def checkBoxCrossHairState(self, b):
+    def checkBoxCrossHairState(self, b: int) -> None:
         """
         Method called when user click on the log checkBoxes.
         Modify the scale, linear or logarithmic, of the plotItem following
@@ -58,9 +66,9 @@ class PlotApp(object):
 
 
 
-    def isMouseOverView(self):
+    def isMouseOverView(self) -> bool:
         """
-        Return true is mouse is over the view of the plot
+        Return true if mouse is over the view of the plot.
         """
 
         x = self.plotItem.getAxis('bottom').range
@@ -77,12 +85,18 @@ class PlotApp(object):
 
 
 
-    def mouseMoved(self, pos):
+    def mouseMoved(self, pos: QtCore.QPointF) -> None:
         """
         Handle the event when the mouse move hover the plotitem.
         Basically do two things:
             Display mouse coordinates
             Draw and undraw a crosshair instead of the mouse cursor
+
+        Parameters
+        ----------
+        pos : QtCore.QPointF
+            Position of the mouse in the scene.
+            Will be converted in View unit using mapSceneToView.
         """
 
         # Get mouse coordinates in "good" units
@@ -112,7 +126,20 @@ class PlotApp(object):
 
 
 
-    def setMouseCoordinate(self, blank=False):
+    def setMouseCoordinate(self, blank: bool=False) -> None:
+        """
+        Display the mouse coodinate in respect to the plot view in the GUI.
+        If the x axis is a time axis, we display coordinate in human readable
+        format.
+        For 1d plot we display :x, y.
+        For 2d plot we display :x, y, z.
+
+        Parameters
+        ----------
+        blank : bool
+            If True, display an empty text, effectively erasing the previous
+            entry. Used when the mouse leave the plotItem.
+        """
 
         if blank:
             self.labelCoordinate.setText('')
@@ -136,13 +163,17 @@ class PlotApp(object):
 
 
 
-    def infiniteLineHovering(self, defaultCursor=QtCore.Qt.ArrowCursor):
+    def infiniteLineHovering(self, defaultCursor: QtCore.Qt.CursorShape=QtCore.Qt.ArrowCursor) -> None:
         """
-        Called when user cursor if hovering a infiniteLine
+        Called when user cursor if hovering a infiniteLine.
+
+        Parameters
+        ----------
+        defaultCursor : QtCore.Qt.CursorShape, default QtCore.Qt.ArrowCursor
+            Cursor to put back when the mouse leave an infiniteLine.
         """
 
-
-        # If we are hovering at least one inifiteLine, the cursor is modified
+        # If we are hovering at least one infiniteLine, the cursor is modified
         for line in list(self.infiniteLines.values()):
             if line.mouseHovering:
                 defaultCursor = QtCore.Qt.PointingHandCursor
@@ -152,9 +183,17 @@ class PlotApp(object):
 
 
 
-    def crossHair(self, remove=False, defaultCursor=QtCore.Qt.ArrowCursor):
+    def crossHair(self, remove        : bool=False,
+                        defaultCursor : QtCore.Qt.CursorShape=QtCore.Qt.ArrowCursor) -> None:
         """
-        Handle the crossHair draw on the viewbox
+        Handle the crossHair draw on the viewbox.
+
+        Parameters
+        ----------
+        remove : bool, default False
+            If the crossHair should be removed.
+        defaultCursor : QtCore.Qt.CursorShape, default QtCore.Qt.ArrowCursor
+            Cursor to put back when the crosshair is removed.
         """
 
         # if the plot is a 2dplot, there is a possibility that the user mouse is

@@ -98,7 +98,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # References of all opened plot window.
         # Structure:
         # {plotRef : plotApp}
-        self._refs = {}
+        self._plotRefs = {}
 
         # Attribute to control the display of data file info when user click of put focus on a item list
         self._folderUpdating  = False # To avoid calling the signal when updating folder content
@@ -118,7 +118,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Handle connection and requests to qcodes database
         self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
         # Handle log files from bluefors fridges
-        self.importblueFors = ImportBlueFors(self)
+        self.importblueFors = ImportBlueFors(self._plotRefs,
+                                             self.lineEditFilter,
+                                             self.labelFilter,
+                                             self.tableWidgetDataBase,
+                                             self.tableWidgetParameters,
+                                             self.textEditMetadata,
+                                             self.setStatusBarMessage,
+                                             self.addPlot,
+                                             self.removePlot,
+                                             self.isParameterPlotted,
+                                             self.getDataRef)
         # Handle csv files
         self.importcsv      = ImportCSV(self)
 
@@ -855,12 +865,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Label of the dependent parameter we are checking.
         """
 
-        if len(self._refs) > 0:
+        if len(self._plotRefs) > 0:
 
             dataRef = self.getDataRef()
             
             # We iterate over all plotWindow
-            for plot in self._refs.values():
+            for plot in self._plotRefs.values():
                 
                 if plot.plotType=='1d':
                     if dataRef in plot.plotRef:
@@ -963,8 +973,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Close every 1d and 2d plot opened.
         """
 
-        plotRefs = [plot for plot in self._refs.keys()]
-        [self._refs[plotRef].o() for plotRef in plotRefs]
+        plotRefs = [plot for plot in self._plotRefs.keys()]
+        [self._plotRefs[plotRef].o() for plotRef in plotRefs]
 
 
 
@@ -975,7 +985,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
         Method called by the QDialog plot when the user close the plot window.
         We propagate that event to the mainWindow to uncheck the checkbox and
-        clean the reference, see self._refs.
+        clean the reference, see self._plotRefs.
 
         Parameters:
         plotRef : str
@@ -994,7 +1004,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if self._currentDatabase == windowTitle and self.getRunId() == runId:
             
             # If 1d plot
-            if self._refs[plotRef].plotType=='1d':
+            if self._plotRefs[plotRef].plotType=='1d':
             
                 # If the current displayed parameters correspond to the one which has
                 # been closed, we uncheck all the checkbox listed in the table
@@ -1236,7 +1246,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         
         # We get which open plot window is the liveplot one
-        for ref, plot in self._refs.items():
+        for ref, plot in self._plotRefs.items():
             if plot.livePlot:
                 return ref
 
@@ -1297,7 +1307,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 self.parameterCellClicked(0,2)
             
             # If the live plot is a 1d plot
-            elif self._refs[livePlotRef].plotType == '1d':
+            elif self._plotRefs[livePlotRef].plotType == '1d':
                 
                 # We get which parameters has to be updated
                 for row in range(self.tableWidgetParameters.rowCount()):
@@ -1330,8 +1340,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 # We remove the livePlotFlag attached to the plot window
                 livePlotRef = self.getLivePlotRef()
-                if livePlotRef in self._refs:
-                    self._refs[livePlotRef].livePlot = False
+                if livePlotRef in self._plotRefs:
+                    self._plotRefs[livePlotRef].livePlot = False
 
                 # We cancel the need to update the plot
                 self._livePlotFetchData = False
@@ -1418,10 +1428,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         method.
         """
 
-        if len(self._refs) > 0:
+        if len(self._plotRefs) > 0:
             
             # Build the list of 1d plot windows
-            plots = [plot for plot in self._refs.values() if plot.plotType=='1d']
+            plots = [plot for plot in self._plotRefs.values() if plot.plotType=='1d']
 
             # Send the list to every 1d plot windows
             [plot.updatePlottedCurvesList(plots) for plot in plots]
@@ -1464,7 +1474,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # 1d plot
         if len(data)==2:
 
-            self._refs[plotRef].updatePlotDataItem(x           = data[0],
+            self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
                                                    y           = data[1],
                                                    curveId     = self.getCurveId(yLabel),
                                                    curveLegend = None,
@@ -1473,14 +1483,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         elif len(data)==3:
 
             # We update the 2d plot data
-            self._refs[plotRef].updateImageItem(x=data[0],
+            self._plotRefs[plotRef].updateImageItem(x=data[0],
                                                 y=data[1],
                                                 z=data[2])
 
             # If there are slices, we update them as well
             # plotSlice = self.getPlotSliceFromRef(plotRef)
             # if plotSlice is not None:
-            for curveId, lineItem in self._refs[plotRef].infiniteLines.items():
+            for curveId, lineItem in self._plotRefs[plotRef].infiniteLines.items():
 
                 # We find its orientation
                 if lineItem.angle == 90:
@@ -1489,10 +1499,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                     sliceOrientation = 'horizontal'
 
                 # We need the data of the slice
-                sliceX, sliceY, sliceLegend = self._refs[plotRef].getDataSlice(lineItem)
+                sliceX, sliceY, sliceLegend = self._plotRefs[plotRef].getDataSlice(lineItem)
 
                 # Get the 1d plot of the slice
-                plotSlice = self._refs[plotRef].getPlotRefFromSliceOrientation(sliceOrientation)
+                plotSlice = self._plotRefs[plotRef].getPlotRefFromSliceOrientation(sliceOrientation)
 
                 # We update the slice data
                 plotSlice.updatePlotDataItem(x           = sliceX,
@@ -1610,7 +1620,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             
             # If the plotRef is not stored we launched a new window
             # Otherwise we add a new PlotDataItem on an existing plot1dApp
-            if plotRef not in self._refs:
+            if plotRef not in self._plotRefs:
                 
 
                 p = Plot1dApp(x              = data[0],
@@ -1629,8 +1639,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               livePlot       = livePlot,
                               timestampXAxis = timestampXAxis)
 
-                self._refs[plotRef] = p
-                self._refs[plotRef].show()
+                self._plotRefs[plotRef] = p
+                self._plotRefs[plotRef].show()
             else:
                 
                 if curveLabel is None:
@@ -1638,7 +1648,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 if curveLegend is None:
                     curveLegend = yLabel
 
-                self._refs[plotRef].addPlotDataItem(x           = data[0],
+                self._plotRefs[plotRef].addPlotDataItem(x           = data[0],
                                                     y           = data[1],
                                                     curveId     = curveId,
                                                     curveLabel  = curveLabel,
@@ -1649,7 +1659,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         elif len(data) == 3:
             
             # Determine if we should open a new Plot2dApp
-            if plotRef not in self._refs:
+            if plotRef not in self._plotRefs:
                 p = Plot2dApp(x               = data[0],
                               y               = data[1],
                               z               = data[2],
@@ -1666,8 +1676,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               getPlotSliceFromRef = self.getPlotSliceFromRef,
                               livePlot        = livePlot)
 
-                self._refs[plotRef] = p
-                self._refs[plotRef].show()
+                self._plotRefs[plotRef] = p
+                self._plotRefs[plotRef].show()
         
         self.setStatusBarMessage('Ready')
         self.updateList1dCurvesLabels()
@@ -1681,7 +1691,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
         Method call when data are remove from the GUI.
         If the data plot window is open, close it.
-        Then remove the reference of the plot window from self._refs.
+        Then remove the reference of the plot window from self._plotRefs.
         
         Once the data are plotted, run updateList1dCurvesLabels.
 
@@ -1694,22 +1704,22 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             See getDependentLabel for qcodes data
         """
         
-        if self._refs[plotRef].plotType=='1d':
+        if self._plotRefs[plotRef].plotType=='1d':
             # If there is more than one curve, we remove one curve
-            if len(self._refs[plotRef].curves) > 1:
-                curveId = [key for key in self._refs[plotRef].curves.keys() if label in key][0]
-                self._refs[plotRef].removePlotDataItem(curveId=curveId)
+            if len(self._plotRefs[plotRef].curves) > 1:
+                curveId = [key for key in self._plotRefs[plotRef].curves.keys() if label in key][0]
+                self._plotRefs[plotRef].removePlotDataItem(curveId=curveId)
             # If there is one curve we close the plot window
             else:
-                self._refs[plotRef].o()
-                del(self._refs[plotRef])
+                self._plotRefs[plotRef].o()
+                del(self._plotRefs[plotRef])
 
             # Update the list of currently plotted dependent parametered on all
             # the plotted window
             self.updateList1dCurvesLabels()
-        elif self._refs[plotRef].plotType=='2d':
-            self._refs[plotRef].o()
-            del(self._refs[plotRef])
+        elif self._plotRefs[plotRef].plotType=='2d':
+            self._plotRefs[plotRef].o()
+            del(self._plotRefs[plotRef])
 
 
 
@@ -1729,8 +1739,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         ref = plotRef+sliceOrientation
 
-        if ref in self._refs.keys():
-            return self._refs[ref]
+        if ref in self._plotRefs.keys():
+            return self._plotRefs[ref]
         else:
             return None
 
@@ -1749,8 +1759,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         ref = plotRef+'fft'
 
-        if ref in self._refs.keys():
-            return self._refs[ref]
+        if ref in self._plotRefs.keys():
+            return self._plotRefs[ref]
         else:
             return None
 
@@ -1801,22 +1811,22 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # If the live plot mode is on, we have to update the plot instead
         # of adding a new plot
         if self._livePlotMode:
-            if plotRef in self._refs.keys():
+            if plotRef in self._plotRefs.keys():
 
                 paramsDependent = self.qcodesDatabase.getListDependentFromRunId(runId)
                 paramDependentDict = [i for i in paramsDependent if i['name']==dependentParamName][0]
                 paramDependentLabel = self.getDependentLabel(paramDependentDict)
                 curveId = self.getCurveId(paramDependentLabel)
 
-                if self._refs[plotRef].plotType=='1d':
+                if self._plotRefs[plotRef].plotType=='1d':
 
-                    if curveId in self._refs[plotRef].curves.keys():
+                    if curveId in self._plotRefs[plotRef].curves.keys():
                         worker.signals.done.connect(self.updatePlot)
                     else:
                         worker.signals.done.connect(self.addPlotFromThread)
                 else:
 
-                    if paramDependentLabel == self._refs[plotRef].zLabel:
+                    if paramDependentLabel == self._plotRefs[plotRef].zLabel:
                         worker.signals.done.connect(self.updatePlot)
                     else:
                         worker.signals.done.connect(self.addPlotFromThread)

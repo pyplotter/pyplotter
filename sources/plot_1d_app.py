@@ -15,6 +15,7 @@ import sources.filtering as filtering
 from sources.DateAxisItem import DateAxisItem
 
 
+
 class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     """
     Class to handle ploting in 1d.
@@ -954,7 +955,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
     
         # Get list of fit model
-        listClasses = [m[0] for m in inspect.getmembers(fit, inspect.isclass) if 'get_initial_params' in [*m[1].__dict__.keys()]]
+        listClasses = [m[0] for m in inspect.getmembers(fit, inspect.isclass) if 'getInitialParams' in [*m[1].__dict__.keys()]]
         # Add a radio button for each model of the list
         self.fitModelButtonGroup = QtWidgets.QButtonGroup()
         for i, j in enumerate(listClasses):
@@ -963,8 +964,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
             if '2d' not in j:
                 
-                obj = _class(self, [], [])
-                rb = QtWidgets.QRadioButton(obj.checkBoxLabel())
+                obj = _class([], [])
+                rb = QtWidgets.QRadioButton(obj.displayedLabel())
                 rb.fitModel = j
                 rb.clicked.connect(self.radioButtonFitState)
                 # rb.setEnabled(False)
@@ -1001,7 +1002,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              y           = y,
                              curveId     = 'fit',
                              curveLabel  = self.selectedLabel,
-                             curveLegend = obj.legend2display(params))
+                             curveLegend = obj.displayedLegend(params))
 
 
 

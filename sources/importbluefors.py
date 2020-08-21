@@ -3,20 +3,69 @@ from PyQt5 import QtWidgets, QtGui, QtTest
 import os
 import numpy as np
 import pandas as pd
+from typing import Callable, Optional
 
 from sources.config import config
+from ui.qtablewidgetkey import QTableWidgetKey
+
+
 
 class ImportBlueFors:
 
 
-    def __init__(self, mainObject):
+    def __init__(self, plotRefs              : dict,
+                       lineEditFilter        : QtWidgets.QLineEdit,
+                       labelFilter           : QtWidgets.QLabel,
+                       tableWidgetDataBase   : QTableWidgetKey,
+                       tableWidgetParameters : QtWidgets.QTableWidget,
+                       textEditMetadata      : QtWidgets.QTextEdit,
+                       setStatusBarMessage   : Callable[[str, bool], None],
+                       addPlot               : Callable[[str, List[np.ndarray], str, str, Optional], None],
+                       removePlot            : Callable[[str, str], None],
+                       isParameterPlotted    : Callable[[str], bool],
+                       getDataRef            : Callable[[None], str]):
         """
-        Class handling the reading of the blueFors logging files
+        Class handling the reading of the blueFors logging files.
+        
+        Parameters
+        ----------
+        plotRefs : dict
+            Contains references to all window, see addPlot
+        lineEditFilter : QtWidgets.QLineEdit
+            LineEdit for the filter interaction.
+        labelFilter : QtWidgets.QLabel
+            Label for the filter interaction.
+        tableWidgetDataBase : QTableWidgetKey
+            Table where database info are displayed.
+        tableWidgetParameters : QtWidgets.QTableWidget
+            Table where parameters info are displayed.
+        textEditMetadata : QtWidgets.QTextEdit
+            TextEdit widget where metadata are displayed.
+        setStatusBarMessage : Callable[[str, bool], None]
+            Method to write messages on the statusBar.
+        addPlot : Callable
+            Method to add a plot, see mainApp.
+        removePlot : Callable
+            Method to remove a plot, see mainApp.
+        isParameterPlotted : Callable[[str], bool]
+            Return True if a parameter is already plotter, see mainApp.
+        getDataRef : Callable[[None], str]
+            Return an unique id for a set of data, see mainApp.
         """
 
         super(ImportBlueFors, self).__init__()
 
-        self.main = mainObject
+        self._plotRefs             = plotRefs
+        self.lineEditFilter        = lineEditFilter
+        self.labelFilter           = labelFilter
+        self.tableWidgetDataBase   = tableWidgetDataBase
+        self.tableWidgetParameters = tableWidgetParameters
+        self.textEditMetadata      = textEditMetadata
+        self.setStatusBarMessage   = setStatusBarMessage
+        self.addPlot               = addPlot
+        self.removePlot            = removePlot
+        self.isParameterPlotted    = isParameterPlotted
+        self.getDataRef            = getDataRef
 
 
 
@@ -24,18 +73,47 @@ class ImportBlueFors:
     def isBlueForsFolder(folderName : str) -> bool:
         """
         Return True if a string follow blueFors log folder name pattern.
+
+        Parameters
+        ----------
+        folderName : str
+            Name of the folder
+
+        Returns
+        -------
+        bool
+            Return True if a string follow blueFors log folder name pattern.
         """
     
         return len(folderName.split('-'))==3 and all([len(i)==2 for i in folderName.split('-')]) == True
 
 
 
+    @staticmethod
+    def clearTableWidet(tableWidget : QtWidgets.QTableWidget) -> None:
+        """
+        Method to remove all row from a table widget.
+        When this function is called, it should be followed by:
+        tableWidget.setSortingEnabled(True)
+        to allowed GUI sorting
+        """
+
+        tableWidget.setSortingEnabled(False)
+        tableWidget.setRowCount(0)
+
+
+
     def blueForsFolderClicked(self, directory : str) -> None:
         """
         When user click on a BlueFors folder while browsing files
+
+        Parameters
+        ----------
+        directory : str
+            Absolute path of the BlueFors log folder.
         """
         
-        self.main.setStatusBarMessage('Loading BlueFors log')
+        self.setStatusBarMessage('Loading BlueFors log')
 
         # Get the BF folder name
         bfName = os.path.basename(os.path.normpath(directory))
@@ -44,42 +122,42 @@ class ImportBlueFors:
         ## Fill the tableWidgetParameters with the run parameters
 
         # Clean GUI
-        self.main.clearTableWidet(self.main.tableWidgetDataBase)
-        self.main.clearTableWidet(self.main.tableWidgetParameters)
-        self.main.tableWidgetDataBase.setSortingEnabled(True)
-        self.main.tableWidgetParameters.setSortingEnabled(True)
-        
-        self.main.textEditMetadata.clear()
+        self.clearTableWidet(self.tableWidgetDataBase)
+        self.clearTableWidet(self.tableWidgetParameters)
+        self.tableWidgetDataBase.setSortingEnabled(True)
+        self.tableWidgetParameters.setSortingEnabled(True)
+        self.textEditMetadata.clear()
 
 
+        # Fill the table parameters with BlueFors info
         for file in sorted(os.listdir(directory)):
             
             fileName = file[:-13]
             
             # We only show file handled by the plotter
             if fileName in config.keys():
-                rowPosition = self.main.tableWidgetParameters.rowCount()
-                self.main.tableWidgetParameters.insertRow(rowPosition)
+                rowPosition = self.tableWidgetParameters.rowCount()
+                self.tableWidgetParameters.insertRow(rowPosition)
 
                 cb = QtWidgets.QCheckBox()
 
                 # We check if that parameter is already plotted
-                if self.main.isParameterPlotted(config[fileName]):
+                if self.isParameterPlotted(config[fileName]):
                     cb.setChecked(True)
 
                 # We put a fake runId of value 0
-                self.main.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem('0'))
-                self.main.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
-                self.main.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(fileName))
+                self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem('0'))
+                self.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
+                self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(fileName))
 
                 # Each checkbox at its own event attached to it
                 cb.toggled.connect(lambda cb       = cb,
                                           filePath = os.path.join(directory, file),
-                                          plotRef  = self.main.getDataRef(): self.blueForsLogClicked(cb, filePath, plotRef))
+                                          plotRef  = self.getDataRef(): self.blueForsLogClicked(cb, filePath, plotRef))
             
 
 
-        self.main.setStatusBarMessage('Ready')
+        self.setStatusBarMessage('Ready')
 
 
 
@@ -89,16 +167,26 @@ class ImportBlueFors:
         """
         When user clicked on BF log file.
         Basically, launch a 1d plot window.
+        Handle the different "type" of BlueFors log file.
+
+        Parameters
+        ----------
+        cb : QtWidgets.QCheckBox
+            Clicked checbox.
+        filePath : str
+            Path of the datafile.
+        plotRef : str
+            Reference of the plot, see getplotRef.
         """
 
         # Disable widget received for qcodes database
-        self.main.lineEditFilter.setEnabled(False)
-        self.main.labelFilter.setEnabled(False)
+        self.lineEditFilter.setEnabled(False)
+        self.labelFilter.setEnabled(False)
 
         fileName = os.path.basename(os.path.normpath(filePath))[:-13]
 
         if cb:
-            self.main.setStatusBarMessage('Loading BlueFors data')
+            self.setStatusBarMessage('Loading BlueFors data')
             
             # Maxigauges file (all pressure gauges)
             if fileName == 'maxigauge':
@@ -121,17 +209,17 @@ class ImportBlueFors:
                     
                     name = 'ch'+str(i)+'_pressure'
                     
-                    self.main.addPlot(plotRef        = plotRef,
-                                      data           = (df[name].index.astype(np.int64).values//1e9, df[name]),
-                                      xLabel         = 'Time',
-                                      yLabel         = config[fileName][name[:3]])
+                    self.addPlot(plotRef = plotRef,
+                                 data    = (df[name].index.astype(np.int64).values//1e9, df[name]),
+                                 xLabel  = 'Time',
+                                 yLabel  = config[fileName][name[:3]])
                 
                 # Once all is plotting we autorange
-                self.main._refs[plotRef].plotItem.vb.autoRange()
+                self._plotRefs[plotRef].plotItem.vb.autoRange()
 
                 # and we set y log mode True
                 QtTest.QTest.qWait(100) # To avoid an overflow error
-                self.main._refs[plotRef].checkBoxLogY.toggle()
+                self._plotRefs[plotRef].checkBoxLogY.toggle()
 
             # Thermometers files
             else:
@@ -143,10 +231,10 @@ class ImportBlueFors:
                 # There is a space before the day
                 df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
 
-                self.main.addPlot(plotRef        = plotRef,
-                                  data           = (df['y'].index.astype(np.int64).values//1e9, df['y']),
-                                  xLabel         = 'Time',
-                                  yLabel         = config[fileName])
+                self.addPlot(plotRef = plotRef,
+                             data    = (df['y'].index.astype(np.int64).values//1e9, df['y']),
+                             xLabel  = 'Time',
+                             yLabel  = config[fileName])
 
 
         else:
@@ -154,9 +242,9 @@ class ImportBlueFors:
             if fileName == 'maxigauge':
                 for i in range(1, 7):
                     name = 'ch'+str(i)+'_pressure'
-                    self.main.removePlot(plotRef = plotRef,
-                                         label   = config[fileName][name[:3]])
+                    self.removePlot(plotRef = plotRef,
+                                    label   = config[fileName][name[:3]])
             else:
-                self.main.removePlot(plotRef = plotRef,
-                                     label   = config[fileName])
+                self.removePlot(plotRef = plotRef,
+                                label   = config[fileName])
 

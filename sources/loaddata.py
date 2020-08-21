@@ -1,13 +1,9 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore
 import numpy as np
-from typing import Callable
+from typing import Callable, Tuple
 
 from sources.qcodesdatabase import QcodesDatabase
-
-def trap_exc_during_debug(*args):
-    # when app raises uncaught exception, print info
-    print(args)
 
 
 
@@ -36,7 +32,7 @@ class LoadDataThread(QtCore.QRunnable):
                        progressBarKey     : str,
                        getParameterData   : Callable[[int, str, Callable], dict],
                        getParameterInfo   : Callable[[int], list],
-                       getDependentLabel  : Callable[[dict], str]):
+                       getDependentLabel  : Callable[[dict], str]) -> None:
         """
         Thread used to get data for a 1d or 2d plot from a runId.
 
@@ -81,7 +77,7 @@ class LoadDataThread(QtCore.QRunnable):
 
 
     @QtCore.pyqtSlot()
-    def run(self):
+    def run(self) -> None:
         """
         Download the data and launch a plot
         """
@@ -138,7 +134,9 @@ class LoadDataThread(QtCore.QRunnable):
 
 
 
-    def shapeData2d(self, x, y, z):
+    def shapeData2d(self, x: np.ndarray,
+                          y: np.ndarray,
+                          z: np.ndarray) -> Tuple[np.ndarray]:
         """
         Shape the data for a 2d plot but mainly handled all kind of data error/missing/...
 
@@ -246,7 +244,7 @@ class LoadDataThread(QtCore.QRunnable):
 
     def shapeData2dPolygon(self, x : np.array,
                                  y : np.array,
-                                 z : np.array) -> tuple :
+                                 z : np.array) -> Tuple[np.ndarray]:
         """
         Reshape 2d scan into a meshing.
         

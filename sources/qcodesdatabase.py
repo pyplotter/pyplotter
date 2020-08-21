@@ -42,6 +42,13 @@ class QcodesDatabase:
 
     @property
     def databasePath(self) -> str:
+        """
+
+        Returns
+        -------
+        databasePath : str
+            Path to the database file.
+        """
 
         return self._databasePath
 

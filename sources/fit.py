@@ -3,19 +3,29 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 import numpy as np
 import lmfit
 from scipy.signal import hilbert
+from typing import Tuple, Union
 
 
 
 
 
 
-class SecondWindow(QtGui.QDialog):
+class FitReportWindow(QtGui.QDialog):
 
 
 
-    def __init__(self, parent, report):
+    def __init__(self, report: str) -> None:
+        """
+        QDialog window launched when fit is done.
+        Display lmfit report.
+        
+        Parameters
+        ----------
+        report : str
+            lmfit report.
+        """
 
-        QtGui.QDialog.__init__(self, parent)
+        QtGui.QDialog.__init__(self)
 
         
         label = QtWidgets.QLabel(report)
@@ -35,11 +45,29 @@ class SecondWindow(QtGui.QDialog):
 
 
 
-    def eventFilter(self, object, event):
+    def eventFilter(self, obj  : QtWidgets.QLabel,
+                          event: Union[QtGui.QHoverEvent,
+                                 QtGui.QPaintEvent,
+                                 QtCore.QEvent]) -> bool:
+        """
+        Filter event happening on the FitReportWindow.
+        Return True when event is of the type QtCore.QEvent.Enter and False
+        when of the type QtCore.QEvent.Leave
+
+        Parameters
+        ----------
+        obj : QtWidgets.QLabel
+            QLabel of the lmfit report.
+        event : Union[QtGui.QHoverEvent, QtGui.QPaintEvent, QtCore.QEvent]
+            Event happening on the QLabel
+        """
+        
         if event.type() == QtCore.QEvent.Enter:
+            
             QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
             return True
         elif event.type() == QtCore.QEvent.Leave:
+            
             QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         return False
 
@@ -59,34 +87,75 @@ class Fit1d(object):
 
 
 
-    def __init__(self, parent, x_data, y_data):
+    def __init__(self,x_data: np.ndarray,
+                      y_data: np.ndarray) -> None:
+        """
 
-        self.parent      = parent
+        Parameters
+        ----------
+        x_data : np.ndarray
+            Selected data from the x axis.
+        y_data : np.ndarray
+            Selected data from the y axis.
+        """
+
         self.x_data      = x_data
         self.y_data      = y_data
 
 
 
-    def getFitType(self):
+    def getFitType(self) -> str:
+        """
+        Return the fitType, either 1d or 2d.
+        """
+
         return self.fitType
 
 
 
-    def residual(self, p):
+    def residual(self, p: lmfit.parameter.Parameters) -> np.ndarray:
+        """
+        Return the error between the model and the data.
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Fit parameters
+
+        Returns
+        -------
+        np.ndarray
+            Error between the model and the data.
+        """
 
         return self.func(p, self.x_data) - self.y_data
 
 
 
-    def ffit(self):
+    def ffit(self) -> Tuple[np.ndarray, np.ndarray, lmfit.parameter.Parameters, FitReportWindow]:
+        """
+        Perform the fit through lmfit minimize function.
 
-        result = lmfit.minimize(self.residual, self.get_initial_params())
+
+        Returns
+        -------
+        xSelected : np.ndarray
+            Selected data from the x axis.
+        yFit : np.ndarray
+            Array of the y axis from the fit procedure.
+        p : lmfit.parameter.Parameters
+            lmfit parameters.
+        fitReportWindow : QtGui.QDialog
+            QDialog displaying lmfit report.
+        """
+
+        result = lmfit.minimize(self.residual, self.getInitialParams())
         dx = np.gradient(self.x_data)/2.
         x = np.sort(np.concatenate((self.x_data, self.x_data+dx)))
         
-        self.childWindow = SecondWindow(self.parent, lmfit.fit_report(result))
-
-        return x, self.func(result.params, x), result.params, self.childWindow
+        self.fitReportWindow = FitReportWindow(lmfit.fit_report(result))
+        
+        return x, self.func(result.params, x), result.params, self.fitReportWindow
 
 
 
@@ -94,20 +163,46 @@ class T2Gaussian(Fit1d):
 
 
 
-    def __init__(self, parent, x_data, y_data):
+    def __init__(self, x_data, y_data):
+        """
+
+        Parameters
+        ----------
+        x_data : np.ndarray
+            Selected data from the x axis.
+        y_data : np.ndarray
+            Selected data from the y axis.
+        """
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, parent, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data)
 
 
 
-    def checkBoxLabel(self):
+    def displayedLabel(self) -> str:
+        """
+        Fit model label shown in the Plot1dApp GUI.
+
+        Returns
+        -------
+        label : str
+            Fit model label shown in the Plot1dApp GUI.
+        """
+
         return 'T2 gaussian'
 
 
 
-    def get_initial_params(self):
+    def getInitialParams(self) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
 
 
         # linearize the timescale
@@ -120,7 +215,7 @@ class T2Gaussian(Fit1d):
         phi = np.arccos(y[0]/(np.max(y) - np.min(y))/2.)
         i = 0
         while True:
-            if (y[i]-0.5)/np.abs(y[i]-0.5) !=  (y[i+1]-0.5)/np.abs(y[i+1]-0.5):                
+            if (y[i]-0.5)/np.abs(y[i]-0.5) != (y[i+1]-0.5)/np.abs(y[i+1]-0.5):
                 break
             i += 1 
         period = x[i]*4
@@ -148,13 +243,42 @@ class T2Gaussian(Fit1d):
 
 
 
-    def func(self, p, x):
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
 
         return p['amplitude']*(1.-np.cos(2.*np.pi*x/p['period']+p['phi'])*np.exp(-x/p['t2']-(x/p['t2_g'])**2.)) + p['background']
 
 
 
-    def legend2display(self, p):
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
 
         return 'T2='+str(round(p['t2'].value, 3))+', T2g='+str(round(p['t2_g'].value, 3))
 
@@ -171,20 +295,38 @@ class T2(Fit1d):
 
 
 
-    def __init__(self, parent, x_data, y_data):
+    def __init__(self, x_data, y_data):
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, parent, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data)
 
 
 
-    def checkBoxLabel(self):
+    def displayedLabel(self) -> str:
+        """
+        Fit model label shown in the Plot1dApp GUI.
+
+        Returns
+        -------
+        label : str
+            Fit model label shown in the Plot1dApp GUI.
+        """
+
         return 'T2'
 
 
 
-    def get_initial_params(self):
+    def getInitialParams(self) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
+
 
 
         # linearize the timescale
@@ -224,13 +366,44 @@ class T2(Fit1d):
 
 
 
-    def func(self, p, x):
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
 
         return p['amplitude']*(1.-np.cos(2.*np.pi*x/p['period']+p['phi'])*np.exp(-x/p['t2'])) + p['background']
 
 
 
-    def legend2display(self, p):
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
 
         return 'T2='+str(round(p['t2'].value, 3))
 
@@ -247,20 +420,38 @@ class T11d(Fit1d):
 
 
 
-    def __init__(self, parent, x_data, y_data):
+    def __init__(self, x_data, y_data):
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, parent, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data)
 
 
 
-    def checkBoxLabel(self):
+    def displayedLabel(self) -> str:
+        """
+        Fit model label shown in the Plot1dApp GUI.
+
+        Returns
+        -------
+        label : str
+            Fit model label shown in the Plot1dApp GUI.
+        """
+
         return 'T1'
 
 
 
-    def get_initial_params(self):
+    def getInitialParams(self) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
+
 
         # linearize the timescale
         x = np.linspace(self.x_data[0], self.x_data[-1], len(self.x_data))
@@ -288,12 +479,43 @@ class T11d(Fit1d):
 
 
 
-    def func(self, p, x):
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
         return p['amplitude']*np.exp(-x/p['t1']) + p['background']
 
 
 
-    def legend2display(self, p):
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
 
         return 'T1='+str(round(p['t1'].value, 3))
 
@@ -310,20 +532,38 @@ class QubitZpa(Fit1d):
 
 
 
-    def __init__(self, parent, x_data, y_data):
+    def __init__(self, x_data, y_data):
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, parent, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data)
 
 
 
-    def checkBoxLabel(self):
+    def displayedLabel(self) -> str:
+        """
+        Fit model label shown in the Plot1dApp GUI.
+
+        Returns
+        -------
+        label : str
+            Fit model label shown in the Plot1dApp GUI.
+        """
+
         return 'Qubit f0[GHz] zpa dependence'
 
 
 
-    def get_initial_params(self):
+    def getInitialParams(self) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
+
 
         # Guess initial value
 
@@ -339,7 +579,24 @@ class QubitZpa(Fit1d):
 
 
 
-    def func(self, p, x):
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
 
         def get_flux_from_qubit_pulse_amplitude(p, x):
             return x*p['qubit_mutual'] + p['qubit_phi_offset']
@@ -355,7 +612,23 @@ class QubitZpa(Fit1d):
 
         return np.sqrt(1./(lq + p['lga'])/p['cq'])/2./np.pi/1e9
 
-    def legend2display(self, p):
+
+
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
         
         x = np.linspace(-1, 1, 10000)
         fmax = np.max(self.func(p, x))
@@ -376,20 +649,38 @@ class ResonancePeakdB(Fit1d):
 
 
 
-    def __init__(self, parent, x_data, y_data):
+    def __init__(self, x_data, y_data):
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, parent, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data)
 
 
 
-    def checkBoxLabel(self):
+    def displayedLabel(self) -> str:
+        """
+        Fit model label shown in the Plot1dApp GUI.
+
+        Returns
+        -------
+        label : str
+            Fit model label shown in the Plot1dApp GUI.
+        """
+
         return 'Resonance peak (dB)'
 
 
 
-    def get_initial_params(self):
+    def getInitialParams(self) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
+
 
         # Guess initial value
         background = np.mean(np.sort(self.y_data)[-10:])
@@ -407,7 +698,24 @@ class ResonancePeakdB(Fit1d):
 
 
 
-    def func(self, p, x):
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
 
         dx = (x - p['f0'])/p['f0']
         y = 1.-1./(1. + p['qi']/p['qc']*np.exp(1j*p['phi'])/(1. + 2j*p['qi']*dx))
@@ -416,7 +724,21 @@ class ResonancePeakdB(Fit1d):
 
 
 
-    def legend2display(self, p):
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
 
         return 'f0='+str(round(p['f0'].value, 5))+', qi='+str(int(np.ceil(p['qi'].value)))+', qc='+str(int(np.ceil(p['qc'].value)))
 
@@ -433,20 +755,38 @@ class ResonanceDipdB(Fit1d):
 
 
 
-    def __init__(self, parent, x_data, y_data):
+    def __init__(self, x_data, y_data):
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, parent, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data)
 
 
 
-    def checkBoxLabel(self):
+    def displayedLabel(self) -> str:
+        """
+        Fit model label shown in the Plot1dApp GUI.
+
+        Returns
+        -------
+        label : str
+            Fit model label shown in the Plot1dApp GUI.
+        """
+
         return 'Resonance dip (Barends paper) (dB)'
 
 
 
-    def get_initial_params(self):
+    def getInitialParams(self) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
+
 
         # Guess initial value
         background = np.mean(self.y_data[-10:])
@@ -464,7 +804,24 @@ class ResonanceDipdB(Fit1d):
 
 
 
-    def func(self, p, x):
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
 
         dx = (x - p['f0'])/p['f0']
         y = 1./(1. + p['qi']/p['qc']*np.exp(1j*p['phi'])/(1. + 2j*p['qi']*dx))
@@ -473,7 +830,21 @@ class ResonanceDipdB(Fit1d):
 
 
 
-    def legend2display(self, p):
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
 
         return 'f0='+str(round(p['f0'].value, 5))+', qi='+str(int(np.ceil(p['qi'].value)))+', qc='+str(int(np.ceil(p['qc'].value)))
 
@@ -491,20 +862,38 @@ class LorentzianPeak(Fit1d):
 
 
 
-    def __init__(self, parent, x_data, y_data):
+    def __init__(self, x_data, y_data):
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, parent, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data)
 
 
 
-    def checkBoxLabel(self):
+    def displayedLabel(self) -> str:
+        """
+        Fit model label shown in the Plot1dApp GUI.
+
+        Returns
+        -------
+        label : str
+            Fit model label shown in the Plot1dApp GUI.
+        """
+
         return 'Lorentzian peak'
 
 
 
-    def get_initial_params(self):
+    def getInitialParams(self) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
+
 
         # Guess initial value
         background  = np.mean(np.sort(self.y_data)[-10:])
@@ -525,7 +914,24 @@ class LorentzianPeak(Fit1d):
 
 
 
-    def func(self, p, x):
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
 
         dx = (x - p['center'])/p['fwhm']/2.
         y = p['height']/(1. + dx**2.)
@@ -534,7 +940,21 @@ class LorentzianPeak(Fit1d):
 
 
 
-    def legend2display(self, p):
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
 
         return 'center={:.3e}<br />fwhm={:.3e}<br />height={:.3e}'.format(p['center'].value, p['fwhm'].value, p['height'].value)
 
@@ -542,6 +962,7 @@ class LorentzianPeak(Fit1d):
 ####################################
 #
 #           2D
+#           TODO: Make it work with the new plot2dApp
 #
 ####################################
 
@@ -551,21 +972,44 @@ class Fit2d(object):
 
 
 
-    def __init__(self, parent, x_data, y_data, z_data):
+    def __init__(self, x_data, y_data, z_data):
 
-        self.parent      = parent
         self.x_data      = x_data
         self.y_data      = y_data
         self.z_data      = z_data
 
 
 
-    def getFitType(self):
+    def getFitType(self) -> str:
+        """
+        Return the fitType, either 1d or 2d.
+        """
+
         return self.fitType
 
 
 
-    def residual(self, p, x, y):
+    def residual(self, p: lmfit.parameter.Parameters,
+                       x: np.ndarray,
+                       y: np.ndarray) -> np.ndarray:
+        """
+        Return the error between the model and the data.
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Fit parameters
+        x : np.ndarray
+            Selected data from the x axis.
+        y : np.ndarray
+            Selected data from the y axis.
+
+        Returns
+        -------
+        np.ndarray
+            Error between the model and the data.
+        """
+        
         y_model = self.func(p, x)
         if np.any(np.isnan(y_model)):
             return np.ones_like(y)
@@ -575,10 +1019,25 @@ class Fit2d(object):
 
 
     def ffit(self):
+        """
+        Perform the fit through lmfit minimize function.
+
+
+        Returns
+        -------
+        xSelected : np.ndarray
+            Selected data from the x axis.
+        yFit : np.ndarray
+            Array of the y axis from the fit procedure.
+        p : lmfit.parameter.Parameters
+            lmfit parameters.
+        fitReportWindow : QtGui.QDialog
+            QDialog displaying lmfit report.
+        """
 
         t1s = np.array([])
         for z in self.z_data:
-            p0 = self.get_initial_params(z[~np.isnan(z)])
+            p0 = self.getInitialParams(z[~np.isnan(z)])
 
             result = lmfit.minimize(self.residual, p0, args=[self.y_data[~np.isnan(z)], z[~np.isnan(z)]])
 
@@ -593,20 +1052,37 @@ class T12d(Fit2d):
 
 
 
-    def __init__(self, parent, x_data, y_data, z_data=None):
+    def __init__(self, x_data, y_data, z_data=None):
 
 
         self.fitType = '2d'
-        Fit2d.__init__(self, parent, x_data, y_data, z_data)
+        Fit2d.__init__(self, x_data, y_data, z_data)
 
 
 
-    def checkBoxLabel(self):
+    def displayedLabel(self) -> str:
+        """
+        Fit model label shown in the Plot1dApp GUI.
+
+        Returns
+        -------
+        label : str
+            Fit model label shown in the Plot1dApp GUI.
+        """
+
         return 'T1'
 
 
 
-    def get_initial_params(self, z):
+    def getInitialParams(self, z) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
         
         # linearize the timescale
         x = np.linspace(self.y_data[0], self.y_data[-1], len(self.y_data))
@@ -634,14 +1110,47 @@ class T12d(Fit2d):
 
 
 
-    def func(self, p, x):
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
         return p['amplitude']*np.exp(-x/p['t1']) + p['background']
 
 
 
-    def legend2display(self, p):
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
 
         return 'T1='+str(round(p['t1'].value, 3))
+
+
 
     def yLabel(self):
         return 'T1'
