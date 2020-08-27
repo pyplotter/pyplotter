@@ -937,7 +937,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 self.fitModelButtonGroup.addButton(rb, i)
                 self.verticalLayoutFitModel.addWidget(rb)
 
-        del(obj)
+                del(obj)
 
 
 
