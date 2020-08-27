@@ -3,7 +3,7 @@ from PyQt5 import QtWidgets, QtGui, QtTest
 import os
 import numpy as np
 import pandas as pd
-from typing import Callable, Optional
+from typing import Callable, Optional, List
 
 from sources.config import config
 from ui.qtablewidgetkey import QTableWidgetKey
@@ -20,7 +20,20 @@ class ImportBlueFors:
                        tableWidgetParameters : QtWidgets.QTableWidget,
                        textEditMetadata      : QtWidgets.QTextEdit,
                        setStatusBarMessage   : Callable[[str, bool], None],
-                       addPlot               : Callable[[str, List[np.ndarray], str, str, Optional], None],
+                       addPlot               : Callable[[str, List[np.ndarray],
+                                                         str, str,
+                                                         Optional[Callable],
+                                                         Optional[str],
+                                                         Optional[str],
+                                                         Optional[int],
+                                                         Optional[bool],
+                                                         Optional[str],
+                                                         Optional[str],
+                                                         Optional[str],
+                                                         Optional[bool],
+                                                         Optional[bool],
+                                                         Optional[str],
+                                                         Optional[str]], None],
                        removePlot            : Callable[[str, str], None],
                        isParameterPlotted    : Callable[[str], bool],
                        getDataRef            : Callable[[None], str]):

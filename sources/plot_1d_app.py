@@ -992,7 +992,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Find which model has been chosed and instance it
         _class = getattr(fit, radioButton.fitModel)
-        obj = _class(self, self.selectedX, self.selectedY)
+        obj = _class(self.selectedX, self.selectedY)
 
         # Do the fit
         x, y, params, self.fitWindow =  obj.ffit()

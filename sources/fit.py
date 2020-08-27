@@ -5,6 +5,7 @@ import lmfit
 from scipy.signal import hilbert
 from typing import Tuple, Union
 
+from sources.config import config
 
 
 
@@ -87,8 +88,8 @@ class Fit1d(object):
 
 
 
-    def __init__(self,x_data: np.ndarray,
-                      y_data: np.ndarray) -> None:
+    def __init__(self, x_data: np.ndarray,
+                       y_data: np.ndarray) -> None:
         """
 
         Parameters
@@ -280,7 +281,7 @@ class T2Gaussian(Fit1d):
             Legend of the fit model
         """
 
-        return 'T2='+str(round(p['t2'].value, 3))+', T2g='+str(round(p['t2_g'].value, 3))
+        return 'T2={:.{nbDecimal}e}<br/>T2g={:.{nbDecimal}e}'.format(p['t2'].value, p['t2_g'].value, nbDecimal=config['fitParameterNbNumber'])
 
 
 
@@ -405,8 +406,7 @@ class T2(Fit1d):
         """
 
 
-        return 'T2='+str(round(p['t2'].value, 3))
-
+        return 'T2={:.{nbDecimal}e}'.format(p['t2'].value, nbDecimal=config['fitParameterNbNumber'])
 
 
 
@@ -517,8 +517,7 @@ class T11d(Fit1d):
         """
 
 
-        return 'T1='+str(round(p['t1'].value, 3))
-
+        return 'T1={:.{nbDecimal}e}'.format(p['t1'].value, nbDecimal=config['fitParameterNbNumber'])
 
 
 
@@ -633,7 +632,8 @@ class QubitZpa(Fit1d):
         x = np.linspace(-1, 1, 10000)
         fmax = np.max(self.func(p, x))
 
-        return 'lga='+str(round(p['lga'].value*1e12, 0))+' pH, lq='+str(round(p['lq'].value*1e9, 2))+' nH, cq='+str(round(p['cq'].value*1e15, 0))+' fF, mutual='+str(round(p['qubit_mutual'].value, 3))+', phi offset='+str(round(p['qubit_phi_offset'].value, 3))+', fmax(GHz)='+str(round(fmax, 3))+' GHz'
+        return 'lga={:.{nbDecimal}e} pH<br/>lq={:.{nbDecimal}e} nH<br/>cq={:.{nbDecimal}e} fF<br/>mutual={:.{nbDecimal}e}<br/>phi offset={:.{nbDecimal}e}<br/>fmax(GHz)={:.{nbDecimal}e} GHz'.format(p['lga'].value, p['lq'].value, p['cq'].value, p['qubit_mutual'].value, p['qubit_phi_offset'].value, fmax, nbDecimal=config['fitParameterNbNumber'])
+
 
 
 
@@ -740,8 +740,7 @@ class ResonancePeakdB(Fit1d):
         """
 
 
-        return 'f0='+str(round(p['f0'].value, 5))+', qi='+str(int(np.ceil(p['qi'].value)))+', qc='+str(int(np.ceil(p['qc'].value)))
-
+        return 'f0={:.{nbDecimal}e}<br/>qi={:.{nbDecimal}e}<br/>qc={:.{nbDecimal}e}'.format(p['f0'].value, p['qi'].value, p['qc'].value, nbDecimal=config['fitParameterNbNumber'])
 
 
 
@@ -846,8 +845,7 @@ class ResonanceDipdB(Fit1d):
         """
 
 
-        return 'f0='+str(round(p['f0'].value, 5))+', qi='+str(int(np.ceil(p['qi'].value)))+', qc='+str(int(np.ceil(p['qc'].value)))
-
+        return 'f0={:.{nbDecimal}e}<br/>qi={:.{nbDecimal}e}<br/>qc={:.{nbDecimal}e}'.format(p['f0'].value, p['qi'].value, p['qc'].value, nbDecimal=config['fitParameterNbNumber'])
 
 
 
@@ -956,7 +954,7 @@ class LorentzianPeak(Fit1d):
         """
 
 
-        return 'center={:.3e}<br />fwhm={:.3e}<br />height={:.3e}'.format(p['center'].value, p['fwhm'].value, p['height'].value)
+        return 'center={:.{nbDecimal}e}<br/>fwhm={:.{nbDecimal}e}<br/>height={:.{nbDecimal}e}'.format(p['center'].value, p['fwhm'].value, p['height'].value, nbDecimal=config['fitParameterNbNumber'])
 
 
 ####################################
@@ -1148,8 +1146,7 @@ class T12d(Fit2d):
         """
 
 
-        return 'T1='+str(round(p['t1'].value, 3))
-
+        return 'T1={:.{nbDecimal}e}'.format(p['t1'].value, nbDecimal=config['fitParameterNbNumber'])
 
 
     def yLabel(self):
