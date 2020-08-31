@@ -63,6 +63,7 @@ config = {
 
 
 # Layout parameters
+'blackBackground' : True,
 'dialogWindowSize' : (1.618*500, 500),
 'dialogBackgroundColor'    : '#272822',
 'pyqtgraphBackgroundColor' : '#272822',

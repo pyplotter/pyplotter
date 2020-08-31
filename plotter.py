@@ -6,12 +6,13 @@ import qdarkstyle
 
 # from sources.login_app import LoginApp
 from sources.main import MainApp
+from sources.config import config
 
 def main():
     
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-
+    if config['blackBackground']: app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    
     # First we launch the login app to ask ids
     # login = LoginApp()
     # if login.exec_() == QtWidgets.QDialog.Accepted:
