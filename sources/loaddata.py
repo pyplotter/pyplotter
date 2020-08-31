@@ -118,19 +118,48 @@ class LoadDataThread(QtCore.QRunnable):
                 # We try to load data
                 # if there is none, we return an empty array
                 try:
-                    data = self.shapeData2d(d[paramsIndependent[0]['name']], d[paramsIndependent[1]['name']], d[paramsDependent['name']])
+                    # Find the effective x and y axis, see findXYIndex
+                    xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
+                    data = self.shapeData2d(d[paramsIndependent[xi]['name']], d[paramsIndependent[yi]['name']], d[paramsDependent['name']])
                 except:
+                    # Find the effective x and y axis, see findXYIndex
+                    xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
                     # We have to send [0,1] for the z axis when no data to avoid bug with the histogram
                     data = np.array([0, 1]), np.array([0, 1]), np.array([[0, 1],[0, 1]])
 
 
-                xLabel = self.getDependentLabel(paramsIndependent[0])
-                yLabel = self.getDependentLabel(paramsIndependent[1])
+                xLabel = self.getDependentLabel(paramsIndependent[xi])
+                yLabel = self.getDependentLabel(paramsIndependent[yi])
                 zLabel = self.getDependentLabel(paramsDependent)
 
 
         # Signal to launched a plot with the downloaded data
         self.signals.done.emit(self.plotRef, self.progressBarKey, data, xLabel, yLabel, zLabel)
+
+
+
+    @staticmethod
+    def findXYIndex(y: np.ndarray) -> Tuple[int]:
+        """
+        Find effective "x" column
+        The x column is defined as the column where the independent parameter
+        is not modified while the y column independent parameter is.
+        
+        Parameters
+        ----------
+        y : np.ndarray
+            Data of the original y axis
+
+        Returns
+        -------
+        (xi, yi) : tuple
+            Index of the the x and y axis.
+        """
+        
+        if y[1]==y[0]:
+            return 1, 0
+        else:
+            return 0, 1
 
 
 
@@ -148,13 +177,6 @@ class LoadDataThread(QtCore.QRunnable):
 
         self.signals.setStatusBarMessage.emit('Shapping 2d data for display', False)
 
-        ## Find effective "x" column
-        # The x column is defined as the column where the independent parameter
-        # is not modified while the y column independent parameter is.
-        if y[1]==y[0]:
-            t = x
-            x = y
-            y = t
 
         # Nb points in the 1st dimension
         xn = len(np.unique(x))
@@ -258,15 +280,6 @@ class LoadDataThread(QtCore.QRunnable):
                 Value of the polygons
         """
         self.signals.setStatusBarMessage.emit('Shapping 2d data for display', False)
-
-        ## Find effective "x" column
-        # The x column is defined as the column where the independent parameter
-        # is not modified while the y column independet parameter is.
-
-        if y[1]==y[0]:
-            t = x
-            x = y
-            y = t
 
 
         ## Treat the data depending on their shape
