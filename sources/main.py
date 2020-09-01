@@ -974,6 +974,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         plotRefs = [plot for plot in self._plotRefs.keys()]
+        plotRefs = [plotRef for plotRef in plotRefs if 'fft' not in plotRef]
+        plotRefs = [plotRef for plotRef in plotRefs if 'derivative' not in plotRef]
         [self._plotRefs[plotRef].o() for plotRef in plotRefs]
 
 

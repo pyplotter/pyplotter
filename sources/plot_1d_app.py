@@ -320,7 +320,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Legend label of the curve.
         showInLegend : bool
             If data should be shown in the legend.
-            Typically selected data for fitting are not displayed in the legend.
         """
 
         # Get the dataPlotItem color
@@ -887,9 +886,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         for curve in self.curves.values():
             
             # Create new style
-            lineStyle = QtCore.Qt.SolidLine 
             mkPen = pg.mkPen(color=config['plot1dColors'][curve.colorIndex],
-                            style=lineStyle,
+                            style=QtCore.Qt.SolidLine ,
                             width=config['plotDataItemWidth'])
             mkShadowPen = pg.mkPen(color=config['plot1dColorsComplementary'][curve.colorIndex],
                             width=0)
@@ -901,13 +899,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Then we apply the selected style to only one of the plotDataItem
         if curveId is not None:
             # Create new style
-            lineStyle = QtCore.Qt.DashLine
-            mkPen = pg.mkPen(color=config['plot1dColors'][self.curves[curveId].colorIndex],
-                            style=lineStyle,
+            mkPen = pg.mkPen(color=config['plot1dColorsComplementary'][self.curves[curveId].colorIndex],
+                            style=QtCore.Qt.SolidLine ,
                             width=config['plotDataItemWidth'])
-
-            mkShadowPen = pg.mkPen(color=config['plot1dColorsComplementary'][self.curves[curveId].colorIndex],
-                            width=config['plotDataItemShadowWidth'])
             
             # Get data to display with a different style
             x, y = self.getSelectedData(curveId)
@@ -916,13 +910,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                  y            = y,
                                  curveId      = curveId+'-selection',
                                  curveLabel   = self.curves[curveId].curveLabel,
-                                 curveLegend  = self.curves[curveId].curveLegend,
-                                 showInLegend = False)
-
+                                 curveLegend  = 'Selection',
+                                 showInLegend = True)
 
             # Apply new style
             self.curves[curveId+'-selection'].setPen(mkPen)
-            self.curves[curveId+'-selection'].setShadowPen(mkShadowPen)
 
 
 
