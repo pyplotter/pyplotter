@@ -23,7 +23,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
     def __init__(self, x, y, title, xLabel, yLabel, windowTitle, runId,
-                cleanCheckBox, plotRef, addPlot, getPlotFFTFromRef,
+                cleanCheckBox, plotRef, addPlot, getPlotFromRef,
                 linkedTo2dPlot=False, curveId=None, curveLegend=None,
                 timestampXAxis=False,
                 livePlot=False,
@@ -44,7 +44,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.plotRef        = plotRef
 
         self.addPlot        = addPlot
-        self.getPlotFFTFromRef  = getPlotFFTFromRef
+        self.getPlotFromRef = getPlotFromRef
 
         # References of PlotDataItem 
         # Structures
@@ -95,6 +95,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxLogY.stateChanged.connect(self.checkBoxLogState)
         self.checkBoxSymbol.stateChanged.connect(self.checkBoxSymbolState)
 
+        self.checkBoxDerivative.clicked.connect(self.clickDerivative)
+        
         self.radioButtonFFT.clicked.connect(lambda:self.clickFFT(self.radioButtonFFT))
         self.radioButtonFFTnoDC.clicked.connect(lambda:self.clickFFT(self.radioButtonFFTnoDC))
         self.radioButtonIFFT.clicked.connect(lambda:self.clickFFT(self.radioButtonIFFT))
@@ -216,9 +218,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if self.filteringWindow is not None:
             self.filteringWindow.close()
 
-        fftPlot = self.getPlotFFTFromRef(self.plotRef)
-        if fftPlot is not None:
-            fftPlot.close()
+        for curveType in ['fft', 'derivative']:
+            plot = self.getPlotFromRef(self.plotRef, curveType)
+            if plot is not None:
+                plot.close()
 
 
 
@@ -374,9 +377,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # The label is changed only of we are not display slices of a 2d plot
         if not self.linkedTo2dPlot:
             
+            # If there are two curves and on is the selection one, we change nothing
+            if len(self.curves)==2 and any(['selection' in curveId for curveId in self.curves.keys()]):
+                pass
             # If there is more than one plotDataItem
             # We check of the share the same unit
-            if len(self.curves)>1 and len(np.unique(np.array([curve.curveLabel[:-1].split('[')[-1] for curve in self.curves.values()])))==1:
+            elif len(self.curves)>1 and len(np.unique(np.array([curve.curveLabel[:-1].split('[')[-1] for curve in self.curves.values()])))==1:
                 self.plotItem.setLabel('left',
                                         '['+self.curves[list(self.curves.keys())[0]].curveLabel[:-1].split('[')[-1]+']',
                                         color=config['styles'][config['style']]['pyqtgraphyLabelTextColor'])
@@ -636,7 +642,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         yLabel = text.upper()+'( '+self.selectedLabel+' )'
         title  = self.windowTitle+' - '+text.upper()
 
-        fftPlot = self.getPlotFFTFromRef(self.plotRef)
+        fftPlot = self.getPlotFromRef(self.plotRef, 'fft')
         if fftPlot is not None:
             fftPlot.close()
         
@@ -656,6 +662,64 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                      livePlot       = False,
                      progressBarKey = None,
                      zLabel         = None)
+
+
+
+    ####################################
+    #
+    #           Method to related to calculus
+    #
+    ####################################
+
+
+
+    def clickDerivative(self) -> None:
+        """
+        Method called when user click on the derivative checkbox.
+        Add a plot containing the derivative of the chosen data.
+        """
+
+        x = self.selectedX
+        y = np.gradient(self.selectedY, self.selectedX)
+
+        xLabel  = self.plotItem.axes['bottom']['item'].labelText
+        yLabel  = self.plotItem.axes['left']['item'].labelText
+        
+        xName = xLabel.split('[')[0][:-1]
+        yName = yLabel.split('[')[0][:-1]
+        
+        xUnit = xLabel.split('[')[1][:-1]
+        yUnit = yLabel.split('[')[1][:-1]
+        
+        yLabel  = '∂('+yName+')/∂('+xName+') ['+yUnit+'/'+xUnit+']'
+        title   = self.windowTitle+' - derivative'
+        curveId = yLabel+'derivative'
+        
+        # Is there already a derivative plot associated to the plot1d
+        plot = self.getPlotFromRef(self.plotRef, 'derivative')
+        if plot is not None:
+            plot.updatePlotDataItem(x         = x,
+                                    y         = y,
+                                    curveId   = curveId,
+                                    autoRange = True)
+        # If not, we create one
+        else:
+            self.addPlot(plotRef        = self.plotRef+'derivative',
+                         data           = [x, y],
+                         xLabel         = xLabel,
+                         yLabel         = yLabel,
+                         cleanCheckBox  = self.cleanCheckBox,
+                         plotTitle      = title,
+                         windowTitle    = title,
+                         runId          = 1,
+                         linkedTo2dPlot = False,
+                         curveId        = curveId,
+                         curveLegend    = yLabel,
+                         curveLabel     = yLabel,
+                         timestampXAxis = False,
+                         livePlot       = False,
+                         progressBarKey = None,
+                         zLabel         = None)
 
 
 
@@ -710,7 +774,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Id of the curve.
             See getCurveId from MainApp
         """
-
+        
         # Update the style of the display plotDataItem
         self.updatePlotDataItemStyle(curveId)
 
@@ -724,6 +788,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # If a filtering curve is already displayed, we update it
         if 'filtering' in list(self.curves.keys()):
             self.radioButtonFilteringtState()
+            
+        # If a derivative curve is already displayed, we update it
+        plot = self.getPlotFromRef(self.plotRef, 'derivative')
+        if plot is not None:
+            self.clickDerivative()
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
         lineItem.mouseHovering  = False
@@ -843,7 +912,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             # Get data to display with a different style
             x, y = self.getSelectedData(curveId)
 
-            self.addPlotDataItem(x, y, curveId+'-selection', '', '', showInLegend=False)
+            self.addPlotDataItem(x            = x,
+                                 y            = y,
+                                 curveId      = curveId+'-selection',
+                                 curveLabel   = self.curves[curveId].curveLabel,
+                                 curveLegend  = self.curves[curveId].curveLegend,
+                                 showInLegend = False)
 
 
             # Apply new style
@@ -899,7 +973,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 radioButton.setCheckable(True)
 
 
-            fftplot = self.getPlotFFTFromRef(self.plotRef)
+            fftplot = self.getPlotFromRef(self.plotRef, 'fft')
             if fftplot is not None:
                 fftplot.close()
 

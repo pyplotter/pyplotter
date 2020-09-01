@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>987</width>
-    <height>389</height>
+    <height>425</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -244,6 +244,28 @@
               <property name="bottomMargin">
                <number>1</number>
               </property>
+              <item>
+               <widget class="QGroupBox" name="groupBoxCalculus">
+                <property name="title">
+                 <string>Calculus</string>
+                </property>
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <item>
+                  <widget class="QCheckBox" name="checkBoxDerivative">
+                   <property name="font">
+                    <font>
+                     <weight>50</weight>
+                     <bold>false</bold>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>Derivative</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
               <item>
                <widget class="QGroupBox" name="groupBoxFFT">
                 <property name="enabled">

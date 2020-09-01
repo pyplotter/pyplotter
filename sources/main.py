@@ -1633,7 +1633,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               cleanCheckBox  = cleanCheckBox,
                               plotRef        = plotRef,
                               addPlot        = self.addPlot,
-                              getPlotFFTFromRef  = self.getPlotFFTFromRef,
+                              getPlotFromRef = self.getPlotFromRef,
                               curveId        = curveId,
                               curveLegend    = curveLegend,
                               livePlot       = livePlot,
@@ -1746,8 +1746,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-
-    def getPlotFFTFromRef(self, plotRef : str) -> Union[Plot1dApp, None]:
+    def getPlotFromRef(self, plotRef   : str,
+                             curveType : str) -> Union[Plot1dApp, None]:
         """
         Return the 1d plot containing the FFT of a 1d plot.
 
@@ -1755,9 +1755,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         ----------
         plotRef : str
             Reference of the 1d plot from which the data comes from.
+        curveType : str ['fft', 'derivative']
+            curveType of the data looked for
         """
 
-        ref = plotRef+'fft'
+        ref = plotRef+curveType
 
         if ref in self._plotRefs.keys():
             return self._plotRefs[ref]
