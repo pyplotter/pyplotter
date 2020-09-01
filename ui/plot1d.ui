@@ -251,7 +251,7 @@
                 </property>
                 <layout class="QHBoxLayout" name="horizontalLayout_3">
                  <item>
-                  <widget class="QCheckBox" name="checkBoxDerivative">
+                  <widget class="QCheckBox" name="checkBoxDifferentiate">
                    <property name="font">
                     <font>
                      <weight>50</weight>
@@ -259,7 +259,20 @@
                     </font>
                    </property>
                    <property name="text">
-                    <string>Derivative</string>
+                    <string>differentiate</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBoxIntegrate">
+                   <property name="font">
+                    <font>
+                     <weight>50</weight>
+                     <bold>false</bold>
+                    </font>
+                   </property>
+                   <property name="text">
+                    <string>integrate</string>
                    </property>
                   </widget>
                  </item>

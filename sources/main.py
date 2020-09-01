@@ -974,8 +974,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         plotRefs = [plot for plot in self._plotRefs.keys()]
+        # plot1d window open from a plo1d window are taken care by the plot1d itself
+        # we so remove them from the selection
         plotRefs = [plotRef for plotRef in plotRefs if 'fft' not in plotRef]
         plotRefs = [plotRef for plotRef in plotRefs if 'derivative' not in plotRef]
+        plotRefs = [plotRef for plotRef in plotRefs if 'primitive' not in plotRef]
+        
+        # Close everything
         [self._plotRefs[plotRef].o() for plotRef in plotRefs]
 
 
@@ -985,9 +990,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                             runId       : int,
                             label       : str) -> None:
         """
-        Method called by the QDialog plot when the user close the plot window.
-        We propagate that event to the mainWindow to uncheck the checkbox and
-        clean the reference, see self._plotRefs.
+        Method called by the plot1d or plot2d plot when the user close the plot
+        window. We propagate that event to the mainWindow to uncheck the
+        checkbox and clean the reference, see self._plotRefs.
 
         Parameters:
         plotRef : str
@@ -1695,7 +1700,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         If the data plot window is open, close it.
         Then remove the reference of the plot window from self._plotRefs.
         
-        Once the data are plotted, run updateList1dCurvesLabels.
+        Once the data are closed, run updateList1dCurvesLabels.
 
         Parameters
         ----------

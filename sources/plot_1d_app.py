@@ -5,6 +5,7 @@ import numpy as np
 import pyqtgraph as pg
 from typing import List, Union
 import inspect
+from scipy.integrate import cumtrapz
 
 
 from ui.plot1d import Ui_Dialog
@@ -95,7 +96,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxLogY.stateChanged.connect(self.checkBoxLogState)
         self.checkBoxSymbol.stateChanged.connect(self.checkBoxSymbolState)
 
-        self.checkBoxDerivative.clicked.connect(self.clickDerivative)
+        self.checkBoxDifferentiate.clicked.connect(self.clickDifferentiate)
+        self.checkBoxIntegrate.clicked.connect(self.clickIntegrate)
         
         self.radioButtonFFT.clicked.connect(lambda:self.clickFFT(self.radioButtonFFT))
         self.radioButtonFFTnoDC.clicked.connect(lambda:self.clickFFT(self.radioButtonFFTnoDC))
@@ -218,7 +220,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if self.filteringWindow is not None:
             self.filteringWindow.close()
 
-        for curveType in ['fft', 'derivative']:
+        for curveType in ['fft', 'derivative', 'primitive']:
             plot = self.getPlotFromRef(self.plotRef, curveType)
             if plot is not None:
                 plot.close()
@@ -672,14 +674,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def clickDerivative(self) -> None:
+    def clickDifferentiate(self) -> None:
         """
         Method called when user click on the derivative checkbox.
         Add a plot containing the derivative of the chosen data.
         """
-
-        x = self.selectedX
-        y = np.gradient(self.selectedY, self.selectedX)
 
         xLabel  = self.plotItem.axes['bottom']['item'].labelText
         yLabel  = self.plotItem.axes['left']['item'].labelText
@@ -694,31 +693,124 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         title   = self.windowTitle+' - derivative'
         curveId = yLabel+'derivative'
         
-        # Is there already a derivative plot associated to the plot1d
-        plot = self.getPlotFromRef(self.plotRef, 'derivative')
-        if plot is not None:
-            plot.updatePlotDataItem(x         = x,
-                                    y         = y,
-                                    curveId   = curveId,
-                                    autoRange = True)
-        # If not, we create one
+        # If user wants to plot the derivative, we add a new plotWindow
+        if self.checkBoxDifferentiate.isChecked():
+            
+            x = self.selectedX
+            y = np.gradient(self.selectedY, self.selectedX)
+            
+            # Is there already a derivative plot associated to the plot1d
+            plot = self.getPlotFromRef(self.plotRef, 'derivative')
+            if plot is not None:
+                plot.updatePlotDataItem(x         = x,
+                                        y         = y,
+                                        curveId   = curveId,
+                                        autoRange = True)
+            # If not, we create one
+            else:
+                
+                def buffer(**kwargs):
+                    """
+                    Function called when a derivative plot is closed.
+                    Uncheck its associated checkbox and called the usual close
+                    function
+                    """
+                    
+                    self.checkBoxDifferentiate.setChecked(False)
+                    self.cleanCheckBox(**kwargs)
+                    
+                self.addPlot(plotRef        = self.plotRef+'derivative',
+                             data           = [x, y],
+                             xLabel         = xLabel,
+                             yLabel         = yLabel,
+                             cleanCheckBox  = buffer,
+                             plotTitle      = title,
+                             windowTitle    = title,
+                             runId          = 1,
+                             linkedTo2dPlot = False,
+                             curveId        = curveId,
+                             curveLegend    = yLabel,
+                             curveLabel     = yLabel,
+                             timestampXAxis = False,
+                             livePlot       = False,
+                             progressBarKey = None,
+                             zLabel         = None)
+        # Otherwise, we close the existing one
         else:
-            self.addPlot(plotRef        = self.plotRef+'derivative',
-                         data           = [x, y],
-                         xLabel         = xLabel,
-                         yLabel         = yLabel,
-                         cleanCheckBox  = self.cleanCheckBox,
-                         plotTitle      = title,
-                         windowTitle    = title,
-                         runId          = 1,
-                         linkedTo2dPlot = False,
-                         curveId        = curveId,
-                         curveLegend    = yLabel,
-                         curveLabel     = yLabel,
-                         timestampXAxis = False,
-                         livePlot       = False,
-                         progressBarKey = None,
-                         zLabel         = None)
+            plot = self.getPlotFromRef(self.plotRef, 'derivative')
+            if plot is not None:
+                plot.close()
+
+
+
+    def clickIntegrate(self) -> None:
+        """
+        Method called when user click on the integrate checkbox.
+        Add a plot containing the primitive of the chosen data.
+        """
+
+        xLabel  = self.plotItem.axes['bottom']['item'].labelText
+        yLabel  = self.plotItem.axes['left']['item'].labelText
+        
+        xName = xLabel.split('[')[0][:-1]
+        yName = yLabel.split('[')[0][:-1]
+        
+        xUnit = xLabel.split('[')[1][:-1]
+        yUnit = yLabel.split('[')[1][:-1]
+        
+        yLabel  = '∫ '+yName+'  d '+xName+' ['+yUnit+' x '+xUnit+']'
+        title   = self.windowTitle+' - primitive'
+        curveId = yLabel+'primitive'
+        
+
+        # If user wants to plot the primitive, we add a new plotWindow
+        if self.checkBoxIntegrate.isChecked():
+            
+            x = self.selectedX
+            y = cumtrapz(self.selectedY, self.selectedX, initial=0)
+            
+            # Is there already a primitive plot associated to the plot1d
+            plot = self.getPlotFromRef(self.plotRef, 'primitive')
+            if plot is not None:
+                plot.updatePlotDataItem(x         = x,
+                                        y         = y,
+                                        curveId   = curveId,
+                                        autoRange = True)
+            # If not, we create one
+            else:
+                
+                def buffer(**kwargs):
+                    """
+                    Function called when a primitive plot is closed.
+                    Uncheck its associated checkbox and called the usual close
+                    function
+                    """
+                    
+                    self.checkBoxIntegrate.setChecked(False)
+                    self.cleanCheckBox(**kwargs)
+                    
+                    
+                self.addPlot(plotRef        = self.plotRef+'primitive',
+                             data           = [x, y],
+                             xLabel         = xLabel,
+                             yLabel         = yLabel,
+                             cleanCheckBox  = buffer,
+                             plotTitle      = title,
+                             windowTitle    = title,
+                             runId          = 1,
+                             linkedTo2dPlot = False,
+                             curveId        = curveId,
+                             curveLegend    = yLabel,
+                             curveLabel     = yLabel,
+                             timestampXAxis = False,
+                             livePlot       = False,
+                             progressBarKey = None,
+                             zLabel         = None)
+        # Otherwise, we close the existing one
+        else:
+            plot = self.getPlotFromRef(self.plotRef, 'primitive')
+            if plot is not None:
+                plot.close()
 
 
 
@@ -791,7 +883,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # If a derivative curve is already displayed, we update it
         plot = self.getPlotFromRef(self.plotRef, 'derivative')
         if plot is not None:
-            self.clickDerivative()
+            self.clickDifferentiate()
+            
+        # If a primitive curve is already displayed, we update it
+        plot = self.getPlotFromRef(self.plotRef, 'primitive')
+        if plot is not None:
+            self.clickIntegrate()
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
         lineItem.mouseHovering  = False
