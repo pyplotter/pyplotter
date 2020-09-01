@@ -17,7 +17,7 @@ Open your anaconda powershell and install all the necesseray packages
 conda install pyqtgraph=0.11
 conda install pandas pyopengl
 conda install -c conda-forge  scikit-rf
-pip install lmfit
+pip install lmfit qdarkstyle
 ```
 
 

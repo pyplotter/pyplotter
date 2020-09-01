@@ -30,7 +30,7 @@ from sources.plot_1d_app import Plot1dApp
 from sources.plot_2d_app import Plot2dApp
 from ui import main
 
-pg.setConfigOption('background', config['pyqtgraphBackgroundColor'])
+pg.setConfigOption('background', config['styles'][config['style']]['pyqtgraphBackgroundColor'])
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
 pg.setConfigOption('antialias', config['plot1dAntialias'])
 
@@ -944,7 +944,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         elif text=='Ready':
             self.statusBar.setStyleSheet('color: green; font-weight: bold;')
         else:
-            self.statusBar.setStyleSheet('color: '+config['dialogTextColor']+'; font-weight: normal;')
+            self.statusBar.setStyleSheet('color: '+config['styles'][config['style']]['dialogTextColor']+'; font-weight: normal;')
 
         self.statusBar.showMessage(text)
 

@@ -99,9 +99,15 @@
             <property name="enabled">
              <bool>false</bool>
             </property>
-            <property name="maximumSize">
+            <property name="minimumSize">
              <size>
               <width>25</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>40</width>
               <height>30</height>
              </size>
             </property>

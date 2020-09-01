@@ -63,19 +63,30 @@ config = {
 
 
 # Layout parameters
-'blackBackground' : True,
 'dialogWindowSize' : (1.618*500, 500),
-'dialogBackgroundColor'    : '#272822',
-'pyqtgraphBackgroundColor' : '#272822',
-'dialogTextColor'          : '#ffffff',
-'pyqtgraphTitleTextColor'  : '#ffffff',
-'pyqtgraphxLabelTextColor' : '#ffffff',
-'pyqtgraphyLabelTextColor' : '#ffffff',
-'pyqtgraphzLabelTextColor' : '#ffffff',
-'pyqtgraphxAxisTicksColor' : '#ffffff',
-'pyqtgraphyAxisTicksColor' : '#ffffff',
-'pyqtgraphzAxisTicksColor' : '#ffffff',
 'sweptParameterSeparator' : " <span style='font-weight: bold; color: #eb272e;'>vs</span> ",
+
+'style' : 'qdarkstyle', # Must match an available style below
+'styles' : {'qdarkstyle' : {'dialogBackgroundColor'    : '#272822',
+                            'pyqtgraphBackgroundColor' : '#272822',
+                            'dialogTextColor'          : '#ffffff',
+                            'pyqtgraphTitleTextColor'  : '#ffffff',
+                            'pyqtgraphxLabelTextColor' : '#ffffff',
+                            'pyqtgraphyLabelTextColor' : '#ffffff',
+                            'pyqtgraphzLabelTextColor' : '#ffffff',
+                            'pyqtgraphxAxisTicksColor' : '#ffffff',
+                            'pyqtgraphyAxisTicksColor' : '#ffffff',
+                            'pyqtgraphzAxisTicksColor' : '#ffffff'},
+            'white' : {'dialogBackgroundColor'    : '#ffffff',
+                       'pyqtgraphBackgroundColor' : '#ffffff',
+                       'dialogTextColor'          : '#000000',
+                       'pyqtgraphTitleTextColor'  : '#000000',
+                       'pyqtgraphxLabelTextColor' : '#000000',
+                       'pyqtgraphyLabelTextColor' : '#000000',
+                       'pyqtgraphzLabelTextColor' : '#000000',
+                       'pyqtgraphxAxisTicksColor' : '#000000',
+                       'pyqtgraphyAxisTicksColor' : '#000000',
+                       'pyqtgraphzAxisTicksColor' : '#000000'}},
 
 
 # Plot parameters

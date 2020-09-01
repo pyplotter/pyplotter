@@ -110,7 +110,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         self.setWindowTitle(str(windowTitle))
 
-        self.plotItem.setTitle(title=str(title), color=config['pyqtgraphTitleTextColor'])
+        self.plotItem.setTitle(title=str(title), color=config['styles'][config['style']]['pyqtgraphTitleTextColor'])
 
         # To make the GUI faster
         self.plotItem.disableAutoRange()
@@ -118,14 +118,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if config['plot1dGrid']:
             self.plotItem.showGrid(x=True, y=True)
 
-        self.plotItem.setLabel('bottom', xLabel, color=config['pyqtgraphxLabelTextColor'])
-        self.plotItem.setLabel('left', yLabel, color=config['pyqtgraphyLabelTextColor'])
+        self.plotItem.setLabel('bottom', xLabel, color=config['styles'][config['style']]['pyqtgraphxLabelTextColor'])
+        self.plotItem.setLabel('left', yLabel, color=config['styles'][config['style']]['pyqtgraphyLabelTextColor'])
 
-        self.plotItem.getAxis('bottom').setPen(config['pyqtgraphxAxisTicksColor'])
-        self.plotItem.getAxis('left').setPen(config['pyqtgraphyAxisTicksColor'])
+        self.plotItem.getAxis('bottom').setPen(config['styles'][config['style']]['pyqtgraphxAxisTicksColor'])
+        self.plotItem.getAxis('left').setPen(config['styles'][config['style']]['pyqtgraphyAxisTicksColor'])
 
-        self.setStyleSheet("background-color: "+str(config['dialogBackgroundColor'])+";")
-        self.setStyleSheet("color: "+str(config['dialogTextColor'])+";")
+        self.setStyleSheet("background-color: "+str(config['styles'][config['style']]['dialogBackgroundColor'])+";")
+        self.setStyleSheet("color: "+str(config['styles'][config['style']]['dialogTextColor'])+";")
 
 
         # If the xaxis used timestamp, we use a dedicated axisItem
@@ -379,20 +379,20 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             if len(self.curves)>1 and len(np.unique(np.array([curve.curveLabel[:-1].split('[')[-1] for curve in self.curves.values()])))==1:
                 self.plotItem.setLabel('left',
                                         '['+self.curves[list(self.curves.keys())[0]].curveLabel[:-1].split('[')[-1]+']',
-                                        color=config['pyqtgraphyLabelTextColor'])
+                                        color=config['styles'][config['style']]['pyqtgraphyLabelTextColor'])
             
             # We check of the share the same label
             elif len(np.unique(np.array([curve.curveLabel for curve in self.curves.values()])))>1:
                 self.plotItem.setLabel('left',
                                         '[a.u]',
-                                        color=config['pyqtgraphyLabelTextColor'])
+                                        color=config['styles'][config['style']]['pyqtgraphyLabelTextColor'])
                                         
 
             # If there is only one plotDataItem or if the plotDataItems share the same label
             else:
                 self.plotItem.setLabel('left',
                                        self.curves[list(self.curves.keys())[0]].curveLabel,
-                                       color=config['pyqtgraphyLabelTextColor'])
+                                       color=config['styles'][config['style']]['pyqtgraphyLabelTextColor'])
 
 
 

@@ -96,24 +96,24 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.setImageView()
 
         # Axes label
-        self.plotItem.setTitle(title=title, color=config['pyqtgraphTitleTextColor'])
+        self.plotItem.setTitle(title=title, color=config['styles'][config['style']]['pyqtgraphTitleTextColor'])
         self.plotItem.showGrid(x=True, y=True)
-        self.plotItem.setLabel('bottom', xLabel, color=config['pyqtgraphxLabelTextColor'])
-        self.plotItem.setLabel('left', yLabel, color=config['pyqtgraphyLabelTextColor'])
+        self.plotItem.setLabel('bottom', xLabel, color=config['styles'][config['style']]['pyqtgraphxLabelTextColor'])
+        self.plotItem.setLabel('left', yLabel, color=config['styles'][config['style']]['pyqtgraphyLabelTextColor'])
         
         # The only reliable way I have found to correctly display the zLabel
         # is by using a Qlabel from the GUI
         self.plot2dzLabel.setText(zLabel)
 
         # Style
-        self.plotItem.getAxis('bottom').setPen(config['pyqtgraphxAxisTicksColor'])
-        self.plotItem.getAxis('left').setPen(config['pyqtgraphyAxisTicksColor'])
-        self.histWidget.item.axis.setPen(config['pyqtgraphzAxisTicksColor'])
+        self.plotItem.getAxis('bottom').setPen(config['styles'][config['style']]['pyqtgraphxAxisTicksColor'])
+        self.plotItem.getAxis('left').setPen(config['styles'][config['style']]['pyqtgraphyAxisTicksColor'])
+        self.histWidget.item.axis.setPen(config['styles'][config['style']]['pyqtgraphzAxisTicksColor'])
 
         self.setWindowTitle(windowTitle)
 
-        self.setStyleSheet("background-color: "+str(config['dialogBackgroundColor'])+";")
-        self.setStyleSheet("color: "+str(config['dialogTextColor'])+";")
+        self.setStyleSheet("background-color: "+str(config['styles'][config['style']]['dialogBackgroundColor'])+";")
+        self.setStyleSheet("color: "+str(config['styles'][config['style']]['dialogTextColor'])+";")
 
 
         # Connect UI
@@ -255,8 +255,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         
         # A bug happens when labels contain scientific notation, i.e. 1e9
         # That number does not follow the label, I didn't succeed to solve it
-        self.plotItem.setLabel('bottom', self.xLabel, color=config['pyqtgraphxLabelTextColor'])
-        self.plotItem.setLabel('left', self.yLabel, color=config['pyqtgraphyLabelTextColor'])
+        self.plotItem.setLabel('bottom', self.xLabel, color=config['styles'][config['style']]['pyqtgraphxLabelTextColor'])
+        self.plotItem.setLabel('left', self.yLabel, color=config['styles'][config['style']]['pyqtgraphyLabelTextColor'])
 
         self.updateImageItem(self.y, self.x, self.z.T)
 
