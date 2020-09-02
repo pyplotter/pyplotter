@@ -226,13 +226,23 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         Update the displayed colormap
         """
+        
+        # If user wants swapped image
+        if self.checkBoxSwapxy.isChecked():
 
-        self.x  = x
-        self.y  = y
-        self.z  = z
+            self.x  = y
+            self.y  = x
+            self.z  = z.T
+            
+        else:
+
+            self.x  = x
+            self.y  = y
+            self.z  = z
 
         self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
         self.setImageView()
+
 
 
     ####################################
