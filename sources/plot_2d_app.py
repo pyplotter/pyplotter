@@ -228,7 +228,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         
         # If user wants swapped image
-        if self.checkBoxSwapxy.isChecked():
+        if self.checkBoxSwapxy.isChecked() and self.livePlot:
 
             self.x  = y
             self.y  = x
@@ -253,11 +253,16 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxSwapxyState(self, b):
+    def checkBoxSwapxyState(self, b: int) -> None:
         """
         When user want to swap the x and y axis
+        
+        Parameters
+        ----------
+        b : int
+            State of the box.
         """
-
+        
         ## We swap the x and y axis of the colormap
         t = self.xLabel
         self.xLabel = self.yLabel
