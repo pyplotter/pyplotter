@@ -1680,7 +1680,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               plotRef         = plotRef,
                               addPlot         = self.addPlot,
                               removePlot      = self.removePlot,
-                              getPlotSliceFromRef = self.getPlotSliceFromRef,
+                              getPlotFromRef = self.getPlotFromRef,
                               livePlot        = livePlot)
 
                 self._plotRefs[plotRef] = p

@@ -20,7 +20,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     """
 
     def __init__(self, x, y, z, title, xLabel, yLabel, zLabel, windowTitle,
-                runId, cleanCheckBox, plotRef, addPlot, removePlot, getPlotSliceFromRef, livePlot=False, parent=None):
+                runId, cleanCheckBox, plotRef, addPlot, removePlot, getPlotFromRef, livePlot=False, parent=None):
         super(Plot2dApp, self).__init__(parent)
 
         self.setupUi(self)
@@ -48,7 +48,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Used for data slicing
         self.addPlot         = addPlot
         self.removePlot      = removePlot
-        self.getPlotSliceFromRef = getPlotSliceFromRef
+        self.getPlotFromRef = getPlotFromRef
         
         # If the plot is displaying a qcodes run that is periodically updated
         self.livePlot       = livePlot
@@ -303,7 +303,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     def getPlotRefFromSliceOrientation(self, sliceOrientation : str) -> Union[str, None]:
         """
         Return the 1d plot containing the slice data of this 2d plot.
-        Is based on the getPlotSliceFromRef from MainApp but swap orientation when
+        Is based on the getPlotFromRef from MainApp but swap orientation when
         checkBoxSwapxy is checked.
 
         Parameters
@@ -314,11 +314,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         if self.checkBoxSwapxy.isChecked():
             if sliceOrientation=='vertical':
-                return self.getPlotSliceFromRef(self.plotRef, 'horizontal')
+                return self.getPlotFromRef(self.plotRef, 'horizontal')
             else:
-                return self.getPlotSliceFromRef(self.plotRef, 'vertical')
+                return self.getPlotFromRef(self.plotRef, 'vertical')
         else:
-            return self.getPlotSliceFromRef(self.plotRef, sliceOrientation)
+            return self.getPlotFromRef(self.plotRef, sliceOrientation)
 
 
 
@@ -841,19 +841,41 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def cleanCheckBoxExtraction(self, windowTitle, runId):
+    def cleanCheckBoxExtraction(self, plotRef     : str=None,
+                                      windowTitle : str=None,
+                                      runId       : int=None,
+                                      label       : str=None) -> None:
+        """
+        Method called by the plot1d created with the extraction interaction.
+        Uncheck the extraction checboxes.
+        This method must follow the cleanCheckBox signature, see MainApp.
+
+        Parameters
+        ----------
+        plotRef : str
+            Reference of the plot, see getplotRef.
+        windowTitle : str
+            Window title, see getWindowTitle.
+        runId : int
+            Data run id of the database.
+        label : str
+            Label of the dependent parameter.
+        """
 
         self.checkBoxMaximum.setChecked(False)
         self.checkBoxMinimum.setChecked(False)
 
 
 
-    def checkBoxExtractionState(self):
+    def checkBoxExtractionState(self) -> None:
         """
-        Called when user click on one of the extraction button
-        Extract data and launch them in a dedicated 1d plot
+        Called when user click on one of the extraction button.
+        Extract data and launch them in a dedicated 1d plot.
         """
         
+        ## Depending of the wanted extraction we get the data and labels
+        # If no extraction is wanter the extraction plot window is closed and the
+        # function stop there.
         ys     = []
         labels = []
         if self.checkBoxMaximum.isChecked() and self.checkBoxMinimum.isChecked():
@@ -868,47 +890,50 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             ys.append(self.y[np.nanargmin(self.z, axis=1)])
             labels.append('minimum')
         else:
-            self.extractionWindow.close()
-            self.extractionWindow = None
+            self.removePlot(plotRef=self.plotRef+'extraction', label='')
             return
 
-        # First click, we launch a new window
-        if self.extractionWindow is None:
-            self.extractionWindow  = Plot1dApp(x              = self.x,
-                                               y              = ys[0],
-                                               title          = self.title,
-                                               xLabel         = self.xLabel,
-                                               yLabel         = self.yLabel,
-                                               windowTitle    = self.windowTitle+' - Extraction',
-                                               runId          = self.runId,
-                                               cleanCheckBox  = self.cleanCheckBoxExtraction,
-                                               curveId        = labels[0],
-                                               linkedTo2dPlot = False,
-                                               curveLegend    = labels[0])
-            self.extractionWindow.show()
-        elif len(self.extractionWindow.curves) == 1:
+
+        ## First click, we launch a new window
+        plot = self.getPlotFromRef(self.plotRef, 'extraction')
+        
+        # If no existing extraction plot window, we launch one.
+        if plot is None:
             
-            if labels[0] != list(self.extractionWindow.curves.keys())[0]:
+            self.addPlot(data           = [self.x, ys[0]],
+                         plotTitle      = self.title,
+                         xLabel         = self.xLabel,
+                         yLabel         = self.yLabel,
+                         windowTitle    = self.windowTitle+' - Extraction',
+                         runId          = self.runId,
+                         cleanCheckBox  = self.cleanCheckBoxExtraction,
+                         plotRef        = self.plotRef+'extraction',
+                         curveId        = labels[0],
+                         linkedTo2dPlot = False,
+                         curveLegend    = labels[0])
+        elif len(plot.curves) == 1:
+            
+            if labels[0] != list(plot.curves.keys())[0]:
                 
-                self.extractionWindow.addPlotDataItem(x           = self.x,
-                                                    y           = ys[0],
-                                                    curveId     = labels[0],
-                                                    curveLabel  = self.yLabel,
-                                                    curveLegend = labels[0])
+                plot.addPlotDataItem(x           = self.x,
+                                     y           = ys[0],
+                                     curveId     = labels[0],
+                                     curveLabel  = self.yLabel,
+                                     curveLegend = labels[0])
             else:
                 
-                self.extractionWindow.addPlotDataItem(x           = self.x,
-                                                    y           = ys[1],
-                                                    curveId     = labels[1],
-                                                    curveLabel  = self.yLabel,
-                                                    curveLegend = labels[1])
+                plot.addPlotDataItem(x           = self.x,
+                                     y           = ys[1],
+                                     curveId     = labels[1],
+                                     curveLabel  = self.yLabel,
+                                     curveLegend = labels[1])
 
-        elif len(self.extractionWindow.curves) == 2:
+        elif len(plot.curves) == 2:
             
             if labels[0] == 'maximum':
-                self.extractionWindow.removePlotDataItem('minimum')
+                plot.removePlotDataItem('minimum')
             else:
-                self.extractionWindow.removePlotDataItem('maximum')
+                plot.removePlotDataItem('maximum')
 
 
 
