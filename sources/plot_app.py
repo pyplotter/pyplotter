@@ -144,20 +144,33 @@ class PlotApp(object):
         if blank:
             self.labelCoordinate.setText('')
         else:
+            
+            spaceX = ''
+            spaceY = ''
+            if self.mousePos[0]>0:
+                spaceX = '&nbsp;'
+            if self.mousePos[1]>0:
+                spaceY = '&nbsp;'
+            
+            
             if self.plotType == '1d':
 
                 if self.timestampXAxis:
                     x = datetime.datetime.utcfromtimestamp(self.mousePos[0]).strftime('%Y-%m-%d %H:%M:%S')
-                    self.labelCoordinate.setText('x : {:}, y : {:.{nbDecimal}e}'.format(x, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
+                    self.labelCoordinate.setText('x: {:}<br/>y: {}{:.{nbDecimal}e}'.format(spaceX, x, spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
                 else:
-                    self.labelCoordinate.setText('x : {:.{nbDecimal}e}, y : {:.{nbDecimal}e}'.format(self.mousePos[0], self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
+                    self.labelCoordinate.setText('x: {}{:.{nbDecimal}e}<br/>y: {}{:.{nbDecimal}e}'.format(spaceX, self.mousePos[0],spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
             elif self.plotType == '2d':
 
                 n = np.abs(self.x-self.mousePos[0]).argmin()
                 m = np.abs(self.y-self.mousePos[1]).argmin()
                 z = self.z[n,m]
+                
+                spaceZ = ''
+                if z>0:
+                    spaceZ = '&nbsp;'
 
-                self.labelCoordinate.setText('x : {:.{nbDecimal}e}, y : {:.{nbDecimal}e}, z : {:.{nbDecimal}e}'.format(self.mousePos[0], self.mousePos[1], z, nbDecimal=config['plotCoordinateNbNumber']))
+                self.labelCoordinate.setText('x: {}{:.{nbDecimal}e}<br/>y: {}{:.{nbDecimal}e}<br/>z: {}{:.{nbDecimal}e}'.format(spaceX, self.mousePos[0], spaceY, self.mousePos[1], spaceZ, z, nbDecimal=config['plotCoordinateNbNumber']))
             else:
                 raise ValueError('plotType unknown')
 

@@ -447,7 +447,7 @@
               </size>
              </property>
              <property name="text">
-              <string/>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;x:&lt;br/&gt;y:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
            </item>

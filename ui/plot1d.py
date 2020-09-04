@@ -209,7 +209,6 @@ class Ui_Dialog(object):
         self.verticalLayoutInteraction.addItem(spacerItem)
         self.labelCoordinate = QtWidgets.QLabel(self.tabInteraction)
         self.labelCoordinate.setMinimumSize(QtCore.QSize(125, 0))
-        self.labelCoordinate.setText("")
         self.labelCoordinate.setObjectName("labelCoordinate")
         self.verticalLayoutInteraction.addWidget(self.labelCoordinate)
         self.verticalLayout.addLayout(self.verticalLayoutInteraction)
@@ -241,6 +240,7 @@ class Ui_Dialog(object):
         self.radioButtonIFFT.setText(_translate("Dialog", "IFFT"))
         self.groupBoxFilering.setTitle(_translate("Dialog", "Filtering"))
         self.groupBoxFit.setTitle(_translate("Dialog", "Fit"))
+        self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("Dialog", "Interaction"))
 
 from plot_widget import PlotWidget
