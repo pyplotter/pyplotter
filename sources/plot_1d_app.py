@@ -62,9 +62,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # If the plot is displaying a qcodes run that is periodically updated
         self.livePlot = livePlot
 
-        # Keep reference of FFT
-        # self.fftwindow = []
-
         # Reference to QDialog which will contains fit info
         self.fitWindow = None
 

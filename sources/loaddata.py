@@ -115,15 +115,18 @@ class LoadDataThread(QtCore.QRunnable):
             # 2d plot
             elif len(paramsIndependent)==2:
 
+                # Find the effective x and y axis, see findXYIndex
+                xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
+                
                 # We try to load data
                 # if there is none, we return an empty array
                 try:
-                    # Find the effective x and y axis, see findXYIndex
-                    xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
-                    data = self.shapeData2d(d[paramsIndependent[xi]['name']], d[paramsIndependent[yi]['name']], d[paramsDependent['name']])
+                    
+                    data = self.shapeData2d(d[paramsIndependent[xi]['name']],
+                                            d[paramsIndependent[yi]['name']],
+                                            d[paramsDependent['name']])
                 except:
-                    # Find the effective x and y axis, see findXYIndex
-                    xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
+                    
                     # We have to send [0,1] for the z axis when no data to avoid bug with the histogram
                     data = np.array([0, 1]), np.array([0, 1]), np.array([[0, 1],[0, 1]])
 
@@ -222,7 +225,6 @@ class LoadDataThread(QtCore.QRunnable):
                 i+=1
             
             zz = z
-        # If not (like a auto freq measurement )
         else:
 
             self.signals.setStatusBarMessage.emit('Irregular grid detected, shapping 2d data', False)

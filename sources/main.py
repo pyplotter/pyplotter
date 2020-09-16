@@ -1656,10 +1656,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                     curveLegend = yLabel
 
                 self._plotRefs[plotRef].addPlotDataItem(x           = data[0],
-                                                    y           = data[1],
-                                                    curveId     = curveId,
-                                                    curveLabel  = curveLabel,
-                                                    curveLegend = curveLegend)
+                                                        y           = data[1],
+                                                        curveId     = curveId,
+                                                        curveLabel  = curveLabel,
+                                                        curveLegend = curveLegend)
             
 
         # 2D plot
