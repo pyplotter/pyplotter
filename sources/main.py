@@ -1131,12 +1131,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def getWindowTitle(self) -> str:
+    def getWindowTitle(self, runId: int=None) -> str:
         """
         Return a title which will be used as a plot window title.
         """
 
-        return self._currentDatabase
+        if config['displayRunIdInPlotTitle']:
+            return self._currentDatabase+' - '+str(runId)
+        else:
+            return self._currentDatabase
 
 
 
@@ -1603,12 +1606,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
         # If some parameters are not given, we find then from the GUI
+        if runId is None:
+            runId = int(self.getRunId())
         if plotTitle is None:
             plotTitle = self.getPlotTitle()
         if windowTitle is None:
-            windowTitle = self.getWindowTitle()
-        if runId is None:
-            runId = int(self.getRunId())
+            windowTitle = self.getWindowTitle(runId=runId)
         if cleanCheckBox is None:
             cleanCheckBox = self.cleanCheckBox
         if livePlot is None:

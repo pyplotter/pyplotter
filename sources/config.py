@@ -14,8 +14,13 @@ config = {
 'authorizedExtension' : ['db', 'csv', 's2p'], 
 # Will not be displayed, usefull for some windows file
 'forbiddenFile' : ['Thumbs.db'], 
-# If False the path is displayed
+
+# If False the path is displayed in the plot title
 'displayOnlyDbNameInPlotTitle' : False, 
+# If True the the run id is added to the window title
+'displayRunIdInPlotTitle' : True, 
+
+# Gives the downloading file percentage must progressed to be displayed
 'displayedDownloadQcodesPercentage' : 5, # int
 
 # Message to display when station has not been defined in a qcodes experiment
