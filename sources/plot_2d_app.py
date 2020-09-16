@@ -550,7 +550,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 curveId = self.getCurveId()
 
                 self.addPlot(data           = [sliceX, sliceY],
-                             plotTitle      = self.title,
+                             plotTitle      = self.title+" <span style='color: red; font-weight: bold;'>Extrapolated data</span>",
                              xLabel         = xLabel,
                              yLabel         = yLabel,
                              windowTitle    = self.windowTitle+' - '+self.sliceOrientation+' slice',
