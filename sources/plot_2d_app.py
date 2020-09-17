@@ -577,22 +577,16 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # associated with the cut.
         if ySlice is None:
             
-            dx = np.gradient(self.x)
-            x = np.linspace(self.x[0]+dx[0], self.x[-1]-dx[-1], len(self.x))
-            
-            n = np.abs(x-xSlice).argmin()
+            n = np.abs(self.x-xSlice).argmin()
             sliceX      = self.y
             sliceY      = self.z[n]
-            sliceLegend = x[n]
+            sliceLegend = self.x[n]
         else:
             
-            dy = np.gradient(self.y)
-            y = np.linspace(self.y[0]+dy[0], self.y[-1]-dy[-1], len(self.y))
-            
-            n = np.abs(y-ySlice).argmin()
+            n = np.abs(self.y-ySlice).argmin()
             sliceX      = self.x
             sliceY      = self.z[:,n]
-            sliceLegend = y[n]
+            sliceLegend = self.y[n]
         
         if isinstance(sliceLegend, np.ndarray):
             sliceLegend = sliceLegend[0]
