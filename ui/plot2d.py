@@ -32,6 +32,7 @@ class Ui_Dialog(object):
         self.verticalLayoutHist.addWidget(self.plot2dzLabel)
         self.horizontalLayout.addLayout(self.verticalLayoutHist)
         self.tabWidget = QtWidgets.QTabWidget(Dialog)
+        self.tabWidget.setMaximumSize(QtCore.QSize(250, 16777215))
         self.tabWidget.setObjectName("tabWidget")
         self.tabInteraction = QtWidgets.QWidget()
         self.tabInteraction.setObjectName("tabInteraction")
