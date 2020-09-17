@@ -257,10 +257,10 @@ class LoadDataThread(QtCore.QRunnable):
         if moreThanOneColumn:
             
             dx = np.gradient(xx)/2.
-            xx = np.linspace(xx[0]-dx[0], xx[-1]+2.*dx[-1], len(xx))
+            xx = np.linspace(xx[0]-dx[0], xx[-1]+dx[-1], len(xx))
 
             dy = np.gradient(yy)/2.
-            yy = np.linspace(yy[0]-dy[0], yy[-1]+2.*dy[-1], len(yy))
+            yy = np.linspace(yy[0]-dy[0], yy[-1]+dy[-1], len(yy))
         
         return xx, yy, zz
 

@@ -29,7 +29,8 @@ config = {
 # Authorized OpenGL
 # Make pyqtgraph faster but may cause issues on some computers
 # If you encounter issues with opengl, set this to False.
-'pyqtgraphOpenGL' : True,
+# 20200917 - set to False due to some missing data
+'pyqtgraphOpenGL' : False,
 
 # Live plot
 'livePlotTimer' : 1, # In second
