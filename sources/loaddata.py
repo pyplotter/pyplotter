@@ -245,23 +245,14 @@ class LoadDataThread(QtCore.QRunnable):
 
         
         # If there is only one point in x or y, we artificialy create more
-        moreThanOneColumn = True
+        # moreThanOneColumn = True
         if len(xx)==1:
             xx = np.array([xx[0]-0.1, xx[0]+0.1])
-            moreThanOneColumn = False
+            # moreThanOneColumn = False
         if len(yy)==1:
             yy = np.array([yy[0]-0.1, yy[0]+0.1])
-            moreThanOneColumn = False
+            # moreThanOneColumn = False
 
-        # If there is more than one column, we center the colored rectangles
-        if moreThanOneColumn:
-            
-            dx = np.gradient(xx)/2.
-            xx = np.linspace(xx[0]-dx[0], xx[-1]+dx[-1], len(xx))
-
-            dy = np.gradient(yy)/2.
-            yy = np.linspace(yy[0]-dy[0], yy[-1]+dy[-1], len(yy))
-        
         return xx, yy, zz
 
 

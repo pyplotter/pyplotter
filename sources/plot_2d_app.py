@@ -2,7 +2,7 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
-from typing import Union, List
+from typing import Union, List, Callable
 import inspect
 import uuid
 
@@ -19,8 +19,66 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     Class to handle ploting in 2d.
     """
 
-    def __init__(self, x, y, z, title, xLabel, yLabel, zLabel, windowTitle,
-                runId, cleanCheckBox, plotRef, addPlot, removePlot, getPlotFromRef, livePlot=False, parent=None):
+    def __init__(self, x              : np.ndarray,
+                       y              : np.ndarray,
+                       z              : np.ndarray,
+                       title          : str,
+                       xLabel         : str,
+                       yLabel         : str,
+                       zLabel         : str,
+                       windowTitle    : str,
+                       runId          : int,
+                       cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None],
+                       plotRef        : str,
+                       addPlot        : Callable,
+                       removePlot     : Callable,
+                       getPlotFromRef : Callable,
+                       livePlot       : bool=False,
+                       parent         = None):
+        """
+        Class handling the plot of 2d data, i.e. colormap.
+        Since pyqtgraph does not handle non regular image, there could be funny
+        stuff happening.
+        The class allows interactivity with the colormap in particular some data
+        treatment launch 1dplot through the main app to keep plot references
+        updated, see Plot1dApp.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Data along the x axis, 1d array.
+        y : np.ndarray
+            Data along the y axis, 1d array.
+        z : np.ndarray
+            Data along the z axis, 2d array.
+        title : str
+            Plot title.
+        xLabel : str
+            Label along the x axis.
+        yLabel : str
+            Label along the y axis.
+        zLabel : str
+            Label along the z axis.
+        windowTitle : str
+            Window title.
+        runId : int
+            Id of rht QCoDeS run.
+        cleanCheckBox : Callable[[str, str, int, Union[str, list]], None]
+            Function called when the window is closed.
+        plotRef : str
+            Reference of the plot
+        addPlot : Callable
+            Function from the mainApp used to launched 1d plot and keep plot
+            reference updated.
+        removePlot : Callable
+            Function from the mainApp used to remove 1d plot and keep plot
+            reference updated.
+        getPlotFromRef : Callable
+            Function from the mainApp used to access the different plots.
+        livePlot : bool, optional
+            Is the current plot a livePlot, by default False
+        parent : , optional
+        """
         super(Plot2dApp, self).__init__(parent)
 
         self.setupUi(self)
@@ -208,13 +266,26 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def setImageView(self):
+    def setImageView(self) -> None:
+        """
+        Set the image using the current x, y and z attribut of the object.
+        If there is more than one column or row, recalculate the axis to center
+        the colored rectangles.
+        """
 
+        # If there is more than one column, we center the colored rectangles
+        if len(self.x)>1:
+            dx = np.gradient(self.x)/2.
+            x = np.linspace(self.x[0]-dx[0], self.x[-1]+dx[-1], len(self.x))
+        if len(self.y)>1:
+            dy = np.gradient(self.y)/2.
+            y = np.linspace(self.y[0]-dy[0], self.y[-1]+dy[-1], len(self.y))
+    
         # Set the image view
-        xscale = (self.x[-1]-self.x[0])/len(self.x)
-        yscale = (self.y[-1]-self.y[0])/len(self.y)
+        xscale = (x[-1]-x[0])/len(x)
+        yscale = (y[-1]-y[0])/len(y)
         self.imageView.setImage(img   = self.z,
-                                pos   = [self.x[0], self.y[0]],
+                                pos   = [x[0], y[0]],
                                 scale = [xscale, yscale])
         self.imageView.view.invertY(False)
         self.imageView.view.setAspectLocked(False)
@@ -505,15 +576,23 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Depending on the slice we return the x and y axis data and the legend
         # associated with the cut.
         if ySlice is None:
-            n = np.abs(self.x-xSlice).argmin()
+            
+            dx = np.gradient(self.x)
+            x = np.linspace(self.x[0]+dx[0], self.x[-1]-dx[-1], len(self.x))
+            
+            n = np.abs(x-xSlice).argmin()
             sliceX      = self.y
             sliceY      = self.z[n]
-            sliceLegend = self.x[n]
+            sliceLegend = x[n]
         else:
-            n = np.abs(self.y-ySlice).argmin()
+            
+            dy = np.gradient(self.y)
+            y = np.linspace(self.y[0]+dy[0], self.y[-1]-dy[-1], len(self.y))
+            
+            n = np.abs(y-ySlice).argmin()
             sliceX      = self.x
             sliceY      = self.z[:,n]
-            sliceLegend = self.y[n]
+            sliceLegend = y[n]
         
         if isinstance(sliceLegend, np.ndarray):
             sliceLegend = sliceLegend[0]
