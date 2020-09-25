@@ -53,15 +53,49 @@ class ImportCSV:
         if filePath[-3:].lower()=='csv':
 
             try:
-
+                
+                ## Guess comment character
+                # We check if there is no comment on the csv file by guessing
+                # if the first character of the first line is part of a float
+                # number.
+                # If there is comment c will contain the comment character
+                # otherwise it will return None.
                 f = open(filePath, 'r')
-                # Get the comment character
                 c = f.readline()[0]
                 f.close()
+                if c.isnumeric() or c == '+' or c == '-':
+                    c = None
+                
+                ## Determine the csv file header
+                if c is None:
+                    header = None
+                else:
+                    f = open(filePath, 'r')
+                    header = 0
+                    d = f.readline()
+                    while d[0] == c:
+                        d = f.readline()
+                        header += 1
+                f.close()
+                
+                ## Guess delimiter character
+                f = open(filePath, 'r')
+                for i in range(10):
+                    d = f.readline()
+                f.close()
+                delimiter = None
+                if ',' in d:
+                    delimiter = ','
+                else:
+                    delimiter = ' '
 
-                df = pd.read_csv(filePath, comment=c)
-                independentParameter = df.columns[0]
-                columnsName = df.columns[1:]
+                # Get the data as panda dataframe
+                df = pd.read_csv(filePath, comment=c, sep=delimiter, header=header)
+                
+                # Get the column name as string
+                independentParameter = str(df.columns[0])
+                columnsName = df.columns[1:].astype(str)
+                
                 x = df.values[:,0]
                 ys = df.values.T[1:]
             except Exception as e:
