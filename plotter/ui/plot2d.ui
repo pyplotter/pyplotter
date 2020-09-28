@@ -666,13 +666,13 @@
   <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
-   <header>plot_widget</header>
+   <header>..ui.plot_widget</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>HistogramLUTWidget</class>
    <extends>QWidget</extends>
-   <header>histogram_lut_widget</header>
+   <header>..ui.histogram_lut_widget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -6,8 +6,8 @@ import pyqtgraph as pg
 import pyqtgraph.functions as fn
 import pyqtgraph.debug as debug
 
-from sources.config import config
-from ui.plot_widget import PlotWidget
+from .config import config
+from ..ui.plot_widget import PlotWidget
 
 
 

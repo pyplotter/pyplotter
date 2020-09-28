@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>987</width>
-    <height>407</height>
+    <height>420</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -465,7 +465,7 @@
   <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
-   <header>plot_widget</header>
+   <header>..ui.plot_widget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -16,7 +16,7 @@ from pyqtgraph.graphicsItems.VTickGroup import VTickGroup
 from pyqtgraph.SignalProxy import SignalProxy
 from pyqtgraph import debug
 
-from sources.pcolormeshitem import PColorMeshItem
+from .pcolormeshitem import PColorMeshItem
 
 # from ..graphicsItems.ImageItem import *
 # from ..graphicsItems.ROI import *

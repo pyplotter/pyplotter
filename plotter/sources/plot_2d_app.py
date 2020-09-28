@@ -6,11 +6,11 @@ from typing import Union, List, Callable
 import inspect
 import uuid
 
-from ui.plot2d import Ui_Dialog
-import sources.palettes as palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
-from sources.plot_app import PlotApp
-from sources.config import config
-import sources.fit as fit
+from ..ui.plot2d import Ui_Dialog
+from . import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
+from .plot_app import PlotApp
+from .config import config
+from . import fit
 
 
 
@@ -82,6 +82,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         super(Plot2dApp, self).__init__(parent)
 
         self.setupUi(self)
+        
+        # Must be set on False, see
+        # https://github.com/pyqtgraph/pyqtgraph/issues/1371
+        self.widget.useOpenGL(False)
         
         # Allow resize of the plot window
         self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|

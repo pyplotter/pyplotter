@@ -5,7 +5,7 @@ import lmfit
 from scipy.signal import hilbert
 from typing import Tuple, Union
 
-from sources.config import config
+from .config import config
 
 
 

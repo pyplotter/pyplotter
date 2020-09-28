@@ -7,7 +7,7 @@ from qcodes.dataset.sqlite.database import connect
 from qcodes.dataset.sqlite.connection import ConnectionPlus
 from typing import Callable, Tuple, List
 
-from sources.config import config
+from .config import config
 
 
 class QcodesDatabase:

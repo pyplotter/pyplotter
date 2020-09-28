@@ -1,7 +1,6 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
 import os
-import json
 from pprint import pformat
 from typing import Generator, Union, Callable, List
 import uuid
@@ -18,23 +17,24 @@ except AttributeError:
     import pyqtgraph as pg
 
 
-from sources.importcsv import ImportCSV
-from sources.importbluefors import ImportBlueFors
-from sources.qcodesdatabase import QcodesDatabase
-from sources.runpropertiesextra import RunPropertiesExtra
-from sources.mytablewidgetitem import MyTableWidgetItem
-from sources.importdatabase import ImportDatabaseThread
-from sources.loaddata import LoadDataThread
-from sources.config import config
-from sources.plot_1d_app import Plot1dApp
-from sources.plot_2d_app import Plot2dApp
-from ui import main
+from .importcsv import ImportCSV
+from .importbluefors import ImportBlueFors
+from .qcodesdatabase import QcodesDatabase
+from .runpropertiesextra import RunPropertiesExtra
+from .mytablewidgetitem import MyTableWidgetItem
+from .importdatabase import ImportDatabaseThread
+from .loaddata import LoadDataThread
+from .config import config
+from .plot_1d_app import Plot1dApp
+from .plot_2d_app import Plot2dApp
+from ..ui import main
 
 pg.setConfigOption('background', config['styles'][config['style']]['pyqtgraphBackgroundColor'])
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
 pg.setConfigOption('antialias', config['plot1dAntialias'])
 
-
+# Get the folder path for pictures
+PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../ui/pictures/')
 
 class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
@@ -248,7 +248,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 # If looks like a BlueFors log folder
                 if self.importblueFors.isBlueForsFolder(file):
                     item =  QtGui.QTableWidgetItem(file)
-                    item.setIcon(QtGui.QIcon('ui/pictures/bluefors.png'))
+                    item.setIcon(QtGui.QIcon(PICTURESPATH+'bluefors.png'))
 
                     self.tableWidgetFolder.insertRow(row)
                     self.tableWidgetFolder.setItem(row, 0, item)
@@ -257,9 +257,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 else:   
                     item =  QtGui.QTableWidgetItem(file)
                     if file in config['enhancedFolder']:
-                        item.setIcon(QtGui.QIcon('ui/pictures/folderEnhanced.png'))
+                        item.setIcon(QtGui.QIcon(PICTURESPATH+'folderEnhanced.png'))
                     else:
-                        item.setIcon(QtGui.QIcon('ui/pictures/folder.png'))
+                        item.setIcon(QtGui.QIcon(PICTURESPATH+'folder.png'))
                     self.tableWidgetFolder.insertRow(row)
                     self.tableWidgetFolder.setItem(row, 0, item)
                     row += 1
@@ -277,24 +277,24 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                         if file_extension.lower() == 'csv':
                             item =  QtGui.QTableWidgetItem(file)
-                            item.setIcon(QtGui.QIcon('ui/pictures/csv.png'))
+                            item.setIcon(QtGui.QIcon(PICTURESPATH+'csv.png'))
                         elif file_extension.lower() == 's2p':
                             item =  QtGui.QTableWidgetItem(file)
-                            item.setIcon(QtGui.QIcon('ui/pictures/s2p.png'))
+                            item.setIcon(QtGui.QIcon(PICTURESPATH+'s2p.png'))
                         elif DatabaseAlreadyOpened and file in databaseStared:
                             item =  QtGui.QTableWidgetItem(file)
-                            item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
+                            item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpenedStared.png'))
                             item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
                         elif DatabaseAlreadyOpened:
                             item =  QtGui.QTableWidgetItem(file)
-                            item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
+                            item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpened.png'))
                             item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
                         elif file in databaseStared:
                             item =  QtGui.QTableWidgetItem(file)
-                            item.setIcon(QtGui.QIcon('ui/pictures/databaseStared.png'))
+                            item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseStared.png'))
                         else:
                             item =  QtGui.QTableWidgetItem(file)
-                            item.setIcon(QtGui.QIcon('ui/pictures/database.png'))
+                            item.setIcon(QtGui.QIcon(PICTURESPATH+'database.png'))
                         self.tableWidgetFolder.insertRow(row)
                         self.tableWidgetFolder.setItem(row, 0, item)
                         
@@ -387,11 +387,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 currentRow = self.tableWidgetFolder.currentIndex().row()
                 item = self.tableWidgetFolder.item(currentRow, 0)
-                item.setIcon(QtGui.QIcon('ui/pictures/databaseOpenedStared.png'))
+                item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpenedStared.png'))
             else:
                 currentRow = self.tableWidgetFolder.currentIndex().row()
                 item = self.tableWidgetFolder.item(currentRow, 0)
-                item.setIcon(QtGui.QIcon('ui/pictures/databaseOpened.png'))
+                item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpened.png'))
 
         # Disable interactivity
         self.checkBoxHidden.setChecked(False)
@@ -452,14 +452,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         # If the run has been stared by an user
         if int(runId) in self.getRunStared():
-            itemRunId.setIcon(QtGui.QIcon('ui/pictures/star.png'))
+            itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'star.png'))
             itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runStaredColor'])))
         # If the user has hidden a row
         elif int(runId) in self.getRunHidden():
-            itemRunId.setIcon(QtGui.QIcon('ui/pictures/trash.png'))
+            itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'trash.png'))
             itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
         else:
-            itemRunId.setIcon(QtGui.QIcon('ui/pictures/empty.png'))
+            itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'empty.png'))
         
         self.tableWidgetDataBase.setItem(rowPosition, 0, itemRunId)
         self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem('-'.join(str(i) for i in dim)+'d'))
@@ -516,11 +516,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
             currentRow = self.tableWidgetFolder.currentIndex().row()
             item = self.tableWidgetFolder.item(currentRow, 0)
-            item.setIcon(QtGui.QIcon('ui/pictures/databaseStared.png'))
+            item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseStared.png'))
         else:
             currentRow = self.tableWidgetFolder.currentIndex().row()
             item = self.tableWidgetFolder.item(currentRow, 0)
-            item.setIcon(QtGui.QIcon('ui/pictures/database.png'))
+            item.setIcon(QtGui.QIcon(PICTURESPATH+'database.png'))
 
         self.enableLivePlot(True)
 

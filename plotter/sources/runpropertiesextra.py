@@ -3,8 +3,8 @@ from PyQt5 import QtGui, QtWidgets
 import os
 import json
 
-from sources.config import config
-from sources.mytablewidgetitem import MyTableWidgetItem
+from .config import config
+from .mytablewidgetitem import MyTableWidgetItem
 
 class RunPropertiesExtra:
 
@@ -234,7 +234,7 @@ class RunPropertiesExtra:
 
                 # We remove the star from the row
                 item = MyTableWidgetItem(str(runId))
-                item.setIcon(QtGui.QIcon('ui/pictures/empty.png'))
+                item.setIcon(QtGui.QIcon(PATH+'empty.png'))
                 self.tableWidgetDataBase.setItem(row, 0, item)
 
                 # We update the json
@@ -245,14 +245,14 @@ class RunPropertiesExtra:
                 if len(self.getRunStared())==0:
                     for row in range(self.tableWidgetFolder.rowCount()):
                         if self._currentDatabase == self.tableWidgetFolder.item(row, 0).text():
-                            self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon('ui/pictures/database.png'))
+                            self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon(PATH+'database.png'))
 
             # If the user wants to stared the run
             else:
 
                 # We put a star in the row
                 item = MyTableWidgetItem(str(runId))
-                item.setIcon(QtGui.QIcon('ui/pictures/star.png'))
+                item.setIcon(QtGui.QIcon(PATH+'star.png'))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runStaredColor'])))
                 self.tableWidgetDataBase.setItem(row, 0, item)
 
@@ -262,7 +262,7 @@ class RunPropertiesExtra:
                 # If the database containing the stared run is displayed, we star it
                 for row in range(self.tableWidgetFolder.rowCount()):
                     if self._currentDatabase == self.tableWidgetFolder.item(row, 0).text():
-                        self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon('ui/pictures/databaseStared.png'))
+                        self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon(PATH+'databaseStared.png'))
 
 
 
@@ -276,7 +276,7 @@ class RunPropertiesExtra:
             if runId in self.getRunHidden():
                 
                 item = MyTableWidgetItem(str(runId))
-                item.setIcon(QtGui.QIcon('ui/pictures/empty.png'))
+                item.setIcon(QtGui.QIcon(PATH+'empty.png'))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
                 self.tableWidgetDataBase.setItem(row, 0, item)
 
@@ -287,7 +287,7 @@ class RunPropertiesExtra:
 
                 # We modify the item and hide the row
                 item = MyTableWidgetItem(str(runId))
-                item.setIcon(QtGui.QIcon('ui/pictures/trash.png'))
+                item.setIcon(QtGui.QIcon(PATH+'trash.png'))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
                 self.tableWidgetDataBase.setItem(row, 0, item)
 

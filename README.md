@@ -1,25 +1,9 @@
 # Plotter
 
-A data browser and vizualizer for QCoDes database, CVS, s2p and BlueFors logging files. The purpose of the plotter is to make data exploration as simple and fast as possible. You should never waste time to plot some raw, do some simple fit, ... and that's why the plotter do it for you.
+A data browser and vizualizer for QCoDes database, csv, s2p and BlueFors logging files. The purpose of the plotter is to make data exploration as simple and fast as possible. You should never waste time to plot some raw, do some simple fit, ... and that's why the plotter do it for you.
 
 
 ## Getting Started
-
-
-### Prerequisites
-
-You need [QCoDeS](https://qcodes.github.io/Qcodes/) to be installed, see the [wiki](https://codev-tuleap.intra.cea.fr/plugins/mediawiki/wiki/qusi/index.php?title=Get_Started#How_to_get_started_with_qcodes).
-
-The plotter requires few packages to work.
-Open your anaconda powershell and install all the necesseray packages
-
-```bash
-conda install pyqtgraph=0.11
-conda install pandas pyopengl
-conda install -c conda-forge  scikit-rf
-pip install lmfit qdarkstyle
-```
-
 
 ### Installation
 
@@ -28,6 +12,7 @@ The easiest way is to clone the repository where you want to download the plotte
 ```bash
 git clone https://codev-tuleap.intra.cea.fr/plugins/git/qusi/plotter
 cd plotter
+pip install -e .
 ```
 
 Before launching the software, open the `config` file located in `plotter/sources/config.py`. You should see the wollowing lines:
@@ -43,10 +28,11 @@ Theses lines are used as default path. You may however chose another default pat
 git commit sources/config.py
 ```
 
-Congrats, the plotter is ready to be used. Launch the plotter with
+Congrats, the plotter is ready to be used.
+To launch the plotter, open an anaconda powershell and type
 
 ```bash
-python plotter.py
+plotter
 ```
 
 ## Use

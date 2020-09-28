@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1024, 766)
+        MainWindow.resize(1024, 771)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -311,4 +311,4 @@ class Ui_MainWindow(object):
         self.labelMetadata.setText(_translate("MainWindow", "Browse metadata run:"))
         self.labelFilter.setText(_translate("MainWindow", "Filter:"))
 
-from qtablewidgetkey import QTableWidgetKey
+from ..ui.qtablewidgetkey import QTableWidgetKey

@@ -3,7 +3,7 @@ from PyQt5 import QtCore
 import numpy as np
 from typing import Callable, Tuple
 
-from sources.qcodesdatabase import QcodesDatabase
+from .qcodesdatabase import QcodesDatabase
 
 
 

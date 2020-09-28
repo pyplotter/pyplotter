@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from typing import Callable, Optional, List
 
-from sources.config import config
-from ui.qtablewidgetkey import QTableWidgetKey
+from .config import config
+from ..ui.qtablewidgetkey import QTableWidgetKey
 
 
 

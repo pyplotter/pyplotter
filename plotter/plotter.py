@@ -3,8 +3,8 @@ from PyQt5 import QtWidgets
 import sys
 
 
-from sources.main import MainApp
-from sources.config import config
+from .sources.main import MainApp
+from .sources.config import config
 
 def main():
     
@@ -15,11 +15,7 @@ def main():
         import qdarkstyle
         
         app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-    
-    # First we launch the login app to ask ids
-    # login = LoginApp()
-    # if login.exec_() == QtWidgets.QDialog.Accepted:
-    # We open the main app with the open connection object
+
     main_app = MainApp()
     main_app.show()
     app.exec_()

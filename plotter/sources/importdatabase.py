@@ -1,7 +1,5 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore
-import sys
-import os
 from typing import Callable
 
 

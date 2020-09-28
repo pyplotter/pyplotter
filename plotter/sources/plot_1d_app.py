@@ -8,12 +8,12 @@ import inspect
 from scipy.integrate import cumtrapz
 
 
-from ui.plot1d import Ui_Dialog
-from sources.config import config
-from sources.plot_app import PlotApp
-import sources.fit as fit
-import sources.filtering as filtering
-from sources.DateAxisItem import DateAxisItem
+from ..ui.plot1d import Ui_Dialog
+from .config import config
+from .plot_app import PlotApp
+from . import fit
+from . import filtering
+from .DateAxisItem import DateAxisItem
 
 
 

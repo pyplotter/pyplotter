@@ -343,5 +343,5 @@ class Ui_Dialog(object):
         self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:<br/>z:</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("Dialog", "Interaction"))
 
-from histogram_lut_widget import HistogramLUTWidget
-from plot_widget import PlotWidget
+from ..ui.histogram_lut_widget import HistogramLUTWidget
+from ..ui.plot_widget import PlotWidget
