@@ -2,7 +2,8 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
-from typing import Union, List, Callable
+from pyqtgraph.GraphicsScene.mouseEvents import MouseClickEvent
+from typing import Union, Tuple, Callable
 import inspect
 import uuid
 
@@ -297,9 +298,20 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def updateImageItem(self, x, y, z):
+    def updateImageItem(self, x: np.ndarray,
+                              y: np.ndarray,
+                              z: np.ndarray) -> None:
         """
-        Update the displayed colormap
+        Update the displayed colormap.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Data along the x axis, 1d array.
+        y : np.ndarray
+            Data along the y axis, 1d array.
+        z : np.ndarray
+            Data along the z axis, 2d array.
         """
         
         # If user wants swapped image
@@ -315,7 +327,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.y  = y
             self.z  = z
 
-        self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
+        self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(),
+                                       max=z[~np.isnan(z)].max())
         self.setImageView()
 
 
@@ -375,7 +388,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def getPlotRefFromSliceOrientation(self, sliceOrientation : str) -> Union[str, None]:
+    def getPlotRefFromSliceOrientation(self, sliceOrientation: str) -> Union[str, None]:
         """
         Return the 1d plot containing the slice data of this 2d plot.
         Is based on the getPlotFromRef from MainApp but swap orientation when
@@ -397,9 +410,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def getInfinityLineOrientation(self, lineItem):
+    def getInfinityLineOrientation(self, lineItem: pg.InfiniteLine) -> str:
         """
         Return the orientation of the infinityLine depending of its angle.
+
+        Parameters
+        ----------
+        InfinitylineItem : pg.InifiniteLine
+            InfinitylineItem currently being dragged.
         """
         
         if int(lineItem.angle%180)==0:
@@ -412,9 +430,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def radioBoxSliceChanged(self, b):
+    def radioBoxSliceChanged(self, b: int) -> None:
         """
-        Method called when user change the data slice orientation
+        Method called when user change the data slice orientation.
         """
 
         if self.radioButtonSliceHorizontal.isChecked():
@@ -424,9 +442,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
     @staticmethod
-    def getCurveId():
+    def getCurveId() -> str:
         """
-        Create a unique id for every data slice
+        Return a unique id for every data slice.
         """
 
         return str(uuid.uuid1())
@@ -461,14 +479,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def addInifiteLine(self, curveId):
+    def addInifiteLine(self, curveId: str) -> pg.InfiniteLine:
         """
         Method call when user create a slice of the data.
         Create an infiniteLine on the 2d plot and connect a drag signal on it.
 
         Parameters
         ----------
-        curveId :
+        curveId : str
             ID of the curve associated to the data slice
         """
         
@@ -508,7 +526,15 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def removeInifiteLine(self, curveId):
+    def removeInfiniteLine(self, curveId: str) -> None:
+        """
+        Remove InifiniteLine from the plot and from memory.
+
+        Parameters
+        ----------
+        curveId : str
+            [description]
+        """
         self.plotItem.removeItem(self.infiniteLines[curveId])
         del self.infiniteLines[curveId]
 
@@ -521,7 +547,21 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         Called when a linked 1dPlot is closed.
         Has to have the same signature as cleanCheckBox, see MainApp.
+
+        Parameters
+        ----------
+        plotRef : str
+            Reference of the plot, see getplotRef.
+        windowTitle : str
+            Window title, see getWindowTitle.
+        runId : int
+            Data run id of the database.
+        label : Union[str, list]
+            Label of the dependent parameter.
+            Will be empty for signal from Plot1dApp since this parameter is only
+            usefull for Plot2dApp.
         """
+        
         
         # We clean the reference of the linked 1d plot
         if 'vertical' in plotRef:
@@ -535,7 +575,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             if val.angle == searchedAngle:
                 keyToRemove.append(key)
         
-        [self.removeInifiteLine(key) for key in keyToRemove]
+        [self.removeInfiniteLine(key) for key in keyToRemove]
 
         # If the close 1d plot window had many curves
         if isinstance(label, list):
@@ -546,7 +586,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def getDataSlice(self, InfinitylineItem: pg.InfiniteLine=None) -> List[np.ndarray]:
+    def getDataSlice(self, InfinitylineItem: pg.InfiniteLine=None) -> Tuple[np.ndarray]:
         """
         Return a vertical or horizontal data slice
 
@@ -599,11 +639,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def plotItemDoubleClicked(self, e):
+    def plotItemDoubleClicked(self, e) -> None:
         """
         When a use double click on the 2D plot, we create a slice of the colormap
         """
-
+        
         # If double click is detected and mouse is over the viewbox, we launch
         # a 1d plot corresponding to a data slice
         if e._double and self.isMouseOverView():
@@ -672,7 +712,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     if len(self.getPlotRefFromSliceOrientation(self.sliceOrientation).curves)>1:
                     # if len(self.infiniteLines)>1:
                         self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(clickedCurveId)
-                        self.removeInifiteLine(clickedCurveId)
+                        self.removeInfiniteLine(clickedCurveId)
                     # If there is only one slice, we close the linked 1d plot
                     # which will remove the associated infiniteLine
                     else:
@@ -689,9 +729,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxDerivativeXState(self, cb):
+    def checkBoxDerivativeXState(self, cb: QtWidgets.QCheckBox) -> None:
         """
         Handle events when user wants to derivate along x.
+
+        Parameters
+        ----------
+        cb : QtWidgets.QCheckBox
+            Checkbox being checked.
         """
         
         if cb.isChecked():
@@ -710,9 +755,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxDerivativeYState(self, cb):
+    def checkBoxDerivativeYState(self, cb: QtWidgets.QCheckBox) -> None:
         """
         Handle events when user wants to derivate along y.
+
+        Parameters
+        ----------
+        cb : QtWidgets.QCheckBox
+            Checkbox being checked.
         """
         
         if cb.isChecked():
@@ -731,12 +781,16 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxDerivativeXYState(self, cb):
+    def checkBoxDerivativeXYState(self, cb: QtWidgets.QCheckBox) -> None:
         """
         Handle events when user wants the gradient.
           ____________________
         \/ (d/dx)^2 + (d/dy)^2
-
+        
+        Parameters
+        ----------
+        cb : QtWidgets.QCheckBox
+            Checkbox being checked.
         """
         
         if cb.isChecked():
@@ -755,7 +809,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-
     ####################################
     #
     #           Subtraction
@@ -764,9 +817,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxSubtractAverageXState(self, cb):
+    def checkBoxSubtractAverageXState(self, cb: QtWidgets.QCheckBox) -> None:
         """
-        Handle events when user wants to subtract average alon x axis
+        Handle events when user wants to subtract average along x axis
+        
+        Parameters
+        ----------
+        cb : QtWidgets.QCheckBox
+            Checkbox being checked.
         """
         
         if cb.isChecked():
@@ -779,9 +837,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxSubtractAverageYState(self, cb):
+    def checkBoxSubtractAverageYState(self, cb: QtWidgets.QCheckBox) -> None:
         """
-        Handle events when user wants to subtract average alon x axis
+        Handle events when user wants to subtract average along y axis
+        
+        Parameters
+        ----------
+        cb : QtWidgets.QCheckBox
+            Checkbox being checked.
         """
         
         if cb.isChecked():
@@ -802,18 +865,28 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def comboBoxcmChanged(self, index):
+    def comboBoxcmChanged(self, index:int) -> None:
         """
-        Method called when user clicked on the comboBox
+        Method called when user clicks on the colorbar comboBox
+
+        Parameters
+        ----------
+        index : int
+            index of the colorbar
         """
         
         self.cbcmInvert(self.checkBoxInvert)
 
 
 
-    def cbcmInvert(self, b):
+    def cbcmInvert(self, b: QtWidgets.QCheckBox) -> None:
         """
-        Handle the event of the user clicking the inverted button for the colorbar.
+        Method called when user clicks the inverted colormap checkbox.
+
+        Parameters
+        ----------
+        b : QtWidgets.QCheckBox
+            Invert colormap checkbox.
         """
         
         if b.isChecked():
@@ -825,9 +898,13 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def setColorMap(self, cm):
+    def setColorMap(self, cm: str) -> None:
         """
-        Set the colormap of the imageItem from the colormap name
+        Set the colormap of the imageItem from the colormap name.
+        See the palettes file.
+
+        Parameters
+        ----------
         cm : str
             colormap name
         """
@@ -852,9 +929,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def cbIsoCurve(self, b):
+    def cbIsoCurve(self, b: QtWidgets.QCheckBox) -> None:
         """
-        Hande the event of the user clicking the inverted button for the colorbar.
+        Method called when user clicks on the Draw isocurve checkbox.
+
+        Parameters
+        ----------
+        b : QtWidgets.QCheckBox
+            Draw isocurve checkbox
         """
 
         # If the user uncheck the box, we hide the items
@@ -899,7 +981,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def draggedIsoLine(self):
+    def draggedIsoLine(self) -> None:
         """
         Method called when user drag the iso line display on the histogram.
         By simply updating the value of the isoCurve, the plotItem will update
@@ -1017,6 +1099,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     ####################################
     #
     #           Method to related to fit
+    #           TODO: . There is no fit model currently so the code
+    #                   is most certainly not working.. 
     #
     ####################################
 
@@ -1094,10 +1178,20 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-def hex_to_rgba(value):
+def hex_to_rgba(value: str) -> Tuple[int]:
     """
-    Convert hex color to rgba color
+    Convert hex color to rgba color.
     From: https://stackoverflow.com/questions/29643352/converting-hex-to-rgb-value-in-python/29643643
+
+    Parameters
+    ----------
+    value : str
+        hexagonal color to be converted in rgba.
+
+    Returns
+    -------
+    Tuple[int]
+        rgba calculated from the hex color.
     """
     value = value.lstrip('#')
     lv = len(value)

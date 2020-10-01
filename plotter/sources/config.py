@@ -13,7 +13,7 @@ config = {
 # Other files will not appear in the plotter
 'authorizedExtension' : ['db', 'csv', 's2p'], 
 # Will not be displayed, usefull for some windows file
-'forbiddenFile' : ['thumbs.db'], 
+'forbiddenFile' : ['thumbs.db', 'Thumbs.db'], 
 
 # If False the path is displayed in the plot title
 'displayOnlyDbNameInPlotTitle' : False, 
