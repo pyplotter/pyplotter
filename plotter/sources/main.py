@@ -1008,7 +1008,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # If the closed curve is currently being displayed in the parameter table
-        if self._currentDatabase == windowTitle and self.getRunId() == runId:
+        if self.getWindowTitle(runId) == windowTitle and self.getRunId() == runId:
             
             # If 1d plot
             if self._plotRefs[plotRef].plotType=='1d':
@@ -1730,7 +1730,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         elif self._plotRefs[plotRef].plotType=='2d':
             self._plotRefs[plotRef].o()
             del(self._plotRefs[plotRef])
-
 
 
 
