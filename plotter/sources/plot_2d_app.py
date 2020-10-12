@@ -285,7 +285,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if len(self.y)>1:
             dy = np.gradient(self.y)/2.
             y = np.linspace(self.y[0]-dy[0], self.y[-1]+dy[-1], len(self.y))
-    
         # Set the image view
         xscale = (x[-1]-x[0])/len(x)
         yscale = (y[-1]-y[0])/len(y)

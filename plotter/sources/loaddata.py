@@ -253,6 +253,11 @@ class LoadDataThread(QtCore.QRunnable):
             yy = np.array([yy[0]-0.1, yy[0]+0.1])
             # moreThanOneColumn = False
 
+        # We filtered out the npinf and -np.inf data and replaced them by np.nan
+        # This is done to allow display by the pyqtgraph viewbox.
+        zz[zz== np.inf] = np.nan
+        zz[zz==-np.inf] = np.nan
+        
         return xx, yy, zz
 
 
