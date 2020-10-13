@@ -10,7 +10,7 @@ def main():
     
     app = QtWidgets.QApplication(sys.argv)
     
-    if config['style']=='qdarkstyle':
+    if config['style']!='white':
         
         import qdarkstyle
         
