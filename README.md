@@ -151,7 +151,7 @@ KeyError: 2
 
 To solve the issue, just update your QCoDeS verion:
 ```bash
-pip --upgrade qcodes
+pip install --upgrade qcodes
 ```
 
 ## Authors
