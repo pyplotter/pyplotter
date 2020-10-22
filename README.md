@@ -121,11 +121,44 @@ When at least two curves are plotted, an "Add curves" tab will appear allowing u
 
 ![addCurve](doc/addCurve_01.gif)
 
-### Authors
+
+## Known issues
+
+### Read data taken by a newer QCoDeS version
+
+QCoDeS ensures backward but not forward compatibility for the data which means that a database taken by a version "i" de QCoDeS can be read by another version "j" of QCoDeS only if "j>i".
+Otherwise the plotter will most likely have error like the following one:
+```bash
+Traceback (most recent call last):
+  File "s:\132-pheliqs\132.05-lateqs\edumur\scripts\plotter\plotter\sources\loaddata.py", line 89, in run
+    d = self.getParameterData(self.runId, paramsDependent['name'], self.signals.updateProgressBar, self.progressBarKey)
+  File "s:\132-pheliqs\132.05-lateqs\edumur\scripts\plotter\plotter\sources\qcodesdatabase.py", line 743, in getParameterData
+    ds =  load_by_id(run_id=int(runId), conn=conn)
+  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\data_set.py", line 1228, in load_by_id
+    d = DataSet(conn=conn, run_id=run_id)
+  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\data_set.py", line 295, in __init__
+    run_desc = self._get_run_description_from_db()
+  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\data_set.py", line 559, in _get_run_description_from_db
+    return serial.from_json_to_current(desc_str)
+  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\descriptions\versioning\serialization.py", line 115, in from_json_to_current
+    return from_dict_to_current(json.loads(json_str))
+  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\descriptions\versioning\serialization.py", line 70, in from_dict_to_current
+    desc = from_dict_to_native(dct)
+  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\descriptions\versioning\serialization.py", line 63, in from_dict_to_native
+    return run_describers[dct['version']]._from_dict(dct)
+KeyError: 2
+```
+
+To solve the issue, just update your QCoDeS verion:
+```bash
+pip --upgrade qcodes
+```
+
+## Authors
 
 * **Etienne Dumur** -*main developer*- etienne.dumur@gmail.com
 
-### License
+## License
 
 Surely free but I have to chose one.
 
