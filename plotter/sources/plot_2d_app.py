@@ -151,24 +151,34 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Embed the plot item in the graphics layout
         self.plotItem.vb.addItem(self.imageItem)
 
+        # Allow ticklabels to be changed
+        font=QtGui.QFont()
+        font.setPixelSize(config['tickLabelFontSize'])
 
         # Create a histogram item linked to the imageitem
         self.histWidget.setImageItem(self.imageItem)
         self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
+        self.histWidget.axis.setTickFont(font)
 
         self.setImageView()
 
+        
         # Axes label
         self.plotItem.setTitle(title=title, color=config['styles'][config['style']]['pyqtgraphTitleTextColor'])
         self.plotItem.showGrid(x=True, y=True)
-        self.plotItem.setLabel('bottom', xLabel, color=config['styles'][config['style']]['pyqtgraphxLabelTextColor'])
-        self.plotItem.setLabel('left', yLabel, color=config['styles'][config['style']]['pyqtgraphyLabelTextColor'])
+        self.plotItem.setLabel('bottom', xLabel, **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                                    'font-size' : str(config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel('left',   yLabel, **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                                    'font-size' : str(config['axisLabelFontSize'])+'pt'})
         
         # The only reliable way I have found to correctly display the zLabel
         # is by using a Qlabel from the GUI
         self.plot2dzLabel.setText(zLabel)
+        self.plot2dzLabel.setFont(font)
 
         # Style
+        self.plotItem.getAxis('bottom').setTickFont(font)
+        self.plotItem.getAxis('left').setTickFont(font)
         self.plotItem.getAxis('bottom').setPen(config['styles'][config['style']]['pyqtgraphxAxisTicksColor'])
         self.plotItem.getAxis('left').setPen(config['styles'][config['style']]['pyqtgraphyAxisTicksColor'])
         self.histWidget.item.axis.setPen(config['styles'][config['style']]['pyqtgraphzAxisTicksColor'])

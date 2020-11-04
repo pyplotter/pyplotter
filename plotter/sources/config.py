@@ -102,7 +102,10 @@ config = {
                        'pyqtgraphxAxisTicksColor' : '#000000',
                        'pyqtgraphyAxisTicksColor' : '#000000',
                        'pyqtgraphzAxisTicksColor' : '#000000'}},
-
+# Font size of the axis and tick labels
+# Handy if user wants to have larger font
+'axisLabelFontSize' : 12,
+'tickLabelFontSize' : 12,
 
 # Plot parameters
 # To avoid heavy calculations and consequently lag, we limit the colormap to a
