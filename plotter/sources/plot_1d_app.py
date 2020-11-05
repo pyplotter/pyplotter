@@ -42,6 +42,57 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        timestampXAxis : bool=False,
                        livePlot       : bool=False,
                        parent         = None):
+        """
+        Class handling the plot of 1d data.
+        Allow some quick data treatment.
+        A plot can be a slice of a 2d plot.
+        A Plot can be a livePlot, i.e. being currently measured.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Data along the x axis, 1d array.
+        y : np.ndarray
+            Data along the y axis, 1d array.
+        title : str
+            Plot title.
+        xLabelText : str
+            Label text along the x axis.
+        xLabelUnits : str
+            Label units along the x axis.
+        yLabelText : str
+            Label text along the y axis.
+        yLabelUnits : str
+            Label units along the y axis.
+        windowTitle : str
+            Window title.
+        runId : int
+            Id of the QCoDeS run.
+        cleanCheckBox : Callable[[str, str, int, Union[str, list]], None]
+            Function called when the window is closed.
+        plotRef : str
+            Reference of the plot
+        addPlot : Callable
+            Function from the mainApp used to launched 1d plot and keep plot
+            reference updated.
+        getPlotFromRef : Callable
+            Function from the mainApp used to remove 1d plot and keep plot
+            reference updated.
+        linkedTo2dPlot : bool, optional
+            If the 1d plot is a slice from a 2d plot, by default False
+        curveId : Optional[str], optional
+            Id of the curve being plot, see getCurveId in the mainApp., by default None
+        curveLegend : Optional[str], optional
+            Label of the curve legend.
+            If None, is the same as yLabelText, by default None
+        timestampXAxis : bool, optional
+            If yes, the x axis becomes a pyqtgraph DateAxisItem.
+            See pyqtgraph doc about DateAxisItem, by default False
+        livePlot : bool, optional
+            If the plot is a livePlot one, by default False
+        parent : [type], optional
+            [description], by default None
+        """
         super(Plot1dApp, self).__init__(parent)
         
         self.setupUi(self)
@@ -375,6 +426,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     def removePlotDataItem(self, curveId: str) -> None:
         """
         Remove a PlotDataItem identified via its "curveId"
+
+        Parameters
+        ----------
+        curveId : str
+            Id of the curve.
+            See getCurveId from MainApp
         """
 
         # If no curve will be displayed, we close the QDialog
@@ -491,9 +548,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Is called by the Main object when the user plots a new 1d curve.
         Build a list of checkbox related to every already plotted curve and
         display it in the curve tab.
-        """
         
-
+        Parameters
+        ----------
+        plots : List[Plot1dApp]
+            List containing all the 1d plot window currently displayed.
+        """
 
         # Is there at least one another curve to be shown in the new tab
         isThere = False
@@ -541,8 +601,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                         plot.runId != self.runId or
                         curveId not in self.curves):
                         cb = QtWidgets.QCheckBox()
-                        label = plot.windowTitle+\
-                                ' - '+str(plot.runId)+'\n'+\
+                        label = plot.windowTitle+'\n'+\
                                 plot.curves[curveId].curveLabel
 
                         cb.setText(label)
@@ -572,6 +631,15 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         Called when user click on the checkbox of the curves tab.
         Add or remove curve in the plot window.
+
+        Parameters
+        ----------
+        state : bool
+            State of the checkbox button.
+        curveId : str
+            Id of the curve related to the checkbox, see getCurveId in the mainApp.
+        plot : Plot1dApp
+            Plot1dApp where the curve comes from.
         """
         
         if state:
@@ -580,6 +648,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                  y           = plot.curves[curveId].yData,
                                  curveId     = curveId,
                                  curveLabel  = plot.curves[curveId].curveLabel,
+                                 curveUnits  = plot.curves[curveId].curveUnits,
                                  curveLegend = plot.curves[curveId].curveLabel)
 
         else:

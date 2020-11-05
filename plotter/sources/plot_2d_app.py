@@ -66,7 +66,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         windowTitle : str
             Window title.
         runId : int
-            Id of rht QCoDeS run.
+            Id of the QCoDeS run.
         cleanCheckBox : Callable[[str, str, int, Union[str, list]], None]
             Function called when the window is closed.
         plotRef : str
