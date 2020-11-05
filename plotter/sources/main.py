@@ -688,7 +688,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         else:
             
             self.removePlot(plotRef = plotRef,
-                            label   = self.getDependentLabel(paramDependent))
+                            label   = paramDependent['name'])
         
 
 
@@ -1451,8 +1451,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     def updatePlot(self, plotRef        : str,
                          progressBarKey : str,
                          data           : list,
-                         xLabel         : str,
-                         yLabel         : str,
+                         xLabelText     : str,
+                         xLabelUnits    : str,
+                         yLabelText     : str,
+                         yLabelUnits    : str,
                          zLabel         : str=None) -> None:
         """
         Methods called in live plot mode to update plot.
@@ -1485,17 +1487,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if len(data)==2:
 
             self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
-                                                   y           = data[1],
-                                                   curveId     = self.getCurveId(yLabel),
-                                                   curveLegend = None,
-                                                   autoRange   = True)
+                                                       y           = data[1],
+                                                       curveId     = self.getCurveId(yLabel),
+                                                       curveLegend = None,
+                                                       autoRange   = True)
         # 2d plot
         elif len(data)==3:
 
             # We update the 2d plot data
             self._plotRefs[plotRef].updateImageItem(x=data[0],
-                                                y=data[1],
-                                                z=data[2])
+                                                    y=data[1],
+                                                    z=data[2])
 
             # If there are slices, we update them as well
             # plotSlice = self.getPlotSliceFromRef(plotRef)
@@ -1516,10 +1518,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 # We update the slice data
                 plotSlice.updatePlotDataItem(x           = sliceX,
-                                                y           = sliceY,
-                                                curveId     = curveId,
-                                                curveLegend = sliceLegend,
-                                                autoRange   = True)
+                                             y           = sliceY,
+                                             curveId     = curveId,
+                                             curveLegend = sliceLegend,
+                                             autoRange   = True)
 
         self.setStatusBarMessage('Ready')
 
@@ -1531,9 +1533,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     def addPlotFromThread(self, plotRef        : str,
                                 progressBarKey : str,
                                 data           : List[np.ndarray],
-                                xLabel         : str,
-                                yLabel         : str,
-                                zLabel         : str) -> None:
+                                xLabelText     : str,
+                                xLabelUnits    : str,
+                                yLabelText     : str,
+                                yLabelUnits    : str,
+                                zLabelText     : str,
+                                zLabelUnits    : str) -> None:
         """
         Call from loaddata thread.
         Just past the argument to the addPlot method.
@@ -1542,17 +1547,22 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         self.addPlot(plotRef        = plotRef,
                      data           = data,
-                     xLabel         = xLabel,
-                     yLabel         = yLabel,
-                     zLabel         = zLabel,
+                     xLabelText     = xLabelText,
+                     xLabelUnits    = xLabelUnits,
+                     yLabelText     = yLabelText,
+                     yLabelUnits    = yLabelUnits,
+                     zLabelText     = zLabelText,
+                     zLabelUnits    = zLabelUnits,
                      progressBarKey = progressBarKey)
 
 
 
     def addPlot(self, plotRef        : str,
                       data           : List[np.ndarray],
-                      xLabel         : str,
-                      yLabel         : str,
+                      xLabelText     : str,
+                      xLabelUnits    : str,
+                      yLabelText     : str,
+                      yLabelUnits    : str,
 
                       cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None]=None,
                       plotTitle      : str  = None,
@@ -1562,10 +1572,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                       curveId        : str  = None,
                       curveLegend    : str  = None,
                       curveLabel     : str  = None,
+                      curveUnits     : str  = None,
                       timestampXAxis : bool = False,
                       livePlot       : bool = None,
                       progressBarKey : str  = None,
-                      zLabel         : str  = None) -> None:
+                      zLabelText     : str  = None,
+                      zLabelUnits    : str  = None) -> None:
         """
         Methods called once the data are downloaded to add a plot of the data.
         Discriminate between 1d and 2d plot through the length of data list.
@@ -1624,7 +1636,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             
             # Specific 1d optional parameter
             if curveId is None:
-                curveId = self.getCurveId(yLabel)
+                curveId = self.getCurveId(yLabelText)
             if timestampXAxis is None:
                 timestampXAxis = self.importblueFors.isBlueForsFolder(self._currentDatabase)
             
@@ -1636,8 +1648,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 p = Plot1dApp(x              = data[0],
                               y              = data[1],
                               title          = plotTitle,
-                              xLabel         = xLabel,
-                              yLabel         = yLabel,
+                              xLabelText     = xLabelText,
+                              xLabelUnits    = xLabelUnits,
+                              yLabelText     = yLabelText,
+                              yLabelUnits    = yLabelUnits,
                               windowTitle    = windowTitle,
                               runId          = runId,
                               cleanCheckBox  = cleanCheckBox,
@@ -1654,14 +1668,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             else:
                 
                 if curveLabel is None:
-                    curveLabel = yLabel
+                    curveLabel = yLabelText
+                if curveUnits is None:
+                    curveUnits = yLabelUnits
                 if curveLegend is None:
-                    curveLegend = yLabel
+                    curveLegend = yLabelText
 
                 self._plotRefs[plotRef].addPlotDataItem(x           = data[0],
                                                         y           = data[1],
                                                         curveId     = curveId,
                                                         curveLabel  = curveLabel,
+                                                        curveUnits  = curveUnits,
                                                         curveLegend = curveLegend)
             
 
@@ -1674,16 +1691,19 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               y               = data[1],
                               z               = data[2],
                               title           = plotTitle,
-                              xLabel          = xLabel,
-                              yLabel          = yLabel,
-                              zLabel          = zLabel,
+                              xLabelText      = xLabelText,
+                              xLabelUnits     = xLabelUnits,
+                              yLabelText      = yLabelText,
+                              yLabelUnits     = yLabelUnits,
+                              zLabelText      = zLabelText,
+                              zLabelUnits     = zLabelUnits,
                               windowTitle     = windowTitle,
                               runId           = runId,
                               cleanCheckBox   = cleanCheckBox,
                               plotRef         = plotRef,
                               addPlot         = self.addPlot,
                               removePlot      = self.removePlot,
-                              getPlotFromRef = self.getPlotFromRef,
+                              getPlotFromRef  = self.getPlotFromRef,
                               livePlot        = livePlot)
 
                 self._plotRefs[plotRef] = p
@@ -1713,7 +1733,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Label of the data to be removed, usefull for 1d plot.
             See getDependentLabel for qcodes data
         """
-        
+
         if self._plotRefs[plotRef].plotType=='1d':
             # If there is more than one curve, we remove one curve
             if len(self._plotRefs[plotRef].curves) > 1:

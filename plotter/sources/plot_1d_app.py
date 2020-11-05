@@ -3,7 +3,7 @@ from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
-from typing import List, Union
+from typing import List, Union, Callable, Optional
 import inspect
 from scipy.integrate import cumtrapz
 
@@ -23,12 +23,25 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     """
 
 
-    def __init__(self, x, y, title, xLabel, yLabel, windowTitle, runId,
-                cleanCheckBox, plotRef, addPlot, getPlotFromRef,
-                linkedTo2dPlot=False, curveId=None, curveLegend=None,
-                timestampXAxis=False,
-                livePlot=False,
-                parent=None):
+    def __init__(self, x              : np.ndarray,
+                       y              : np.ndarray,
+                       title          : str,
+                       xLabelText     : str,
+                       xLabelUnits    : str,
+                       yLabelText     : str,
+                       yLabelUnits    : str,
+                       windowTitle    : str,
+                       runId          : int,
+                       cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None],
+                       plotRef        : str,
+                       addPlot        : Callable,
+                       getPlotFromRef : Callable,
+                       linkedTo2dPlot : bool=False,
+                       curveId        : Optional[str]=None,
+                       curveLegend    : Optional[str]=None,
+                       timestampXAxis : bool=False,
+                       livePlot       : bool=False,
+                       parent         = None):
         super(Plot1dApp, self).__init__(parent)
         
         self.setupUi(self)
@@ -120,10 +133,16 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if config['plot1dGrid']:
             self.plotItem.showGrid(x=True, y=True)
 
-        self.plotItem.setLabel('bottom', xLabel, **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                                    'font-size' : str(config['axisLabelFontSize'])+'pt'})
-        self.plotItem.setLabel('left',   yLabel, **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                                    'font-size' : str(config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel(axis='bottom',
+                               text=xLabelText,
+                               units=xLabelUnits,
+                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel(axis='left',  
+                               text=yLabelText,
+                               units=yLabelUnits,
+                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                      'font-size' : str(config['axisLabelFontSize'])+'pt'})
 
 
         font=QtGui.QFont()
@@ -144,12 +163,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Display initial data curve
         if curveLegend is None:
-            curveLegend = yLabel
+            curveLegend = yLabelText
 
         self.addPlotDataItem(x           = x,
                              y           = y,
                              curveId     = curveId,
-                             curveLabel  = yLabel,
+                             curveLabel  = yLabelText,
+                             curveUnits  = yLabelUnits,
                              curveLegend = curveLegend)
 
         # AutoRange only after the first data item is added
@@ -168,7 +188,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
     @property
-    def xLabel(self) -> str:
+    def xLabelText(self) -> str:
 
         if hasattr(self, 'plotItem'):
             return self.plotItem.axes['bottom']['item'].labelText
@@ -178,7 +198,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
     @property
-    def yLabel(self) -> str:
+    def yLabelText(self) -> str:
 
         if hasattr(self, 'plotItem'):
             return self.plotItem.axes['left']['item'].labelText
@@ -307,6 +327,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                               y            : np.ndarray,
                               curveId      : str,
                               curveLabel   : str,
+                              curveUnits   : str,
                               curveLegend  : str,
                               showInLegend : bool=True) -> None:
         """
@@ -323,6 +344,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             See getCurveId from MainApp
         curveLabel : str
             y label of the curve.
+        curveUnits : str
+            y units of the curve.
         curveLegend : str
             Legend label of the curve.
         showInLegend : bool
@@ -338,12 +361,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Create usefull attribute
         self.curves[curveId].colorIndex   = colorIndex
         self.curves[curveId].curveLabel   = curveLabel
+        self.curves[curveId].curveUnits   = curveUnits
         self.curves[curveId].curveLegend  = curveLegend
         self.curves[curveId].showInLegend = showInLegend
 
         # Update the display information
         self.updateLegend()
-        self.updateLabel()
+        self.updateyLabel()
         self.updateListDataPlotItem(curveId)
 
 
@@ -363,7 +387,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
             # Update the display information
             self.updateLegend()
-            self.updateLabel()
+            self.updateyLabel()
 
             # Update the list of plotDataItem
             for radioButton in self.plotDataItemButtonGroup.buttons():
@@ -373,11 +397,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def updateLabel(self):
+    def updateyLabel(self) -> None:
         """
-        Update the ylabel of the plotItem.
-        If there is one dataPlotItem the displayed ylabel is the data ylabel.
-        If many dataPlotItem, the ylabel is "[a.u]".
+        Update the ylabel of the plotItem, only if linkedTo2dPlot is False.
+        There are 4 cases depending of the number of dataPlotItem:
+            1. If there is 1: the displayed ylabel is the data ylabel.
+            2. If there are more than 1 with the same unit: the unit is displayed.
+            3. If there are more than 1 with different unit: the unit "a.u" displayed.
+            4. If there is 2 and one is the selection curve: we change nothing.
         """
         
         # The label is changed only of we are not display slices of a 2d plot
@@ -388,17 +415,21 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 pass
             # If there is more than one plotDataItem
             # We check of the share the same unit
-            elif len(self.curves)>1 and len(np.unique(np.array([curve.curveLabel[:-1].split('[')[-1] for curve in self.curves.values()])))==1:
-                self.plotItem.setLabel('left',
-                                        '['+self.curves[list(self.curves.keys())[0]].curveLabel[:-1].split('[')[-1]+']')
+            elif len(self.curves)>1 and len(set(curve.curveUnits for curve in self.curves.values()))==1:
+                self.plotItem.setLabel(axis ='left',
+                                       text ='',
+                                       units=self.curves[list(self.curves.keys())[0]].curveUnits)
             # We check of the share the same label
-            elif len(np.unique(np.array([curve.curveLabel for curve in self.curves.values()])))>1:
-                self.plotItem.setLabel('left',
-                                        '[a.u]')
+            elif len(set(curve.curveLabel for curve in self.curves.values()))>1:
+                self.plotItem.setLabel(axis ='left',
+                                       text ='',
+                                       units='a.u')
             # If there is only one plotDataItem or if the plotDataItems share the same label
             else:
-                self.plotItem.setLabel('left',
-                                       self.curves[list(self.curves.keys())[0]].curveLabel)
+                self.plotItem.setLabel(axis ='left',
+                                       text =self.curves[list(self.curves.keys())[0]].curveLabel,
+                                       units=self.curves[list(self.curves.keys())[0]].curveUnits)
+
 
 
     def updateLegend(self) -> None:
@@ -637,8 +668,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             x = x[x>=0]
             text = 'ifft'
 
-        xLabel = '1/'+self.plotItem.axes['bottom']['item'].labelText
-        yLabel = text.upper()+'( '+self.selectedLabel+' )'
+        xLabelText  = '1/'+self.plotItem.axes['bottom']['item'].labelText
+        xLabelUnits = '1/'+self.plotItem.axes['bottom']['item'].labelUnits
+        yLabelText  = text.upper()+'( '+self.selectedLabel+' )'
+        yLabelUnits = self.selectedUnits+'/'+self.plotItem.axes['bottom']['item'].labelUnits
         title  = self.windowTitle+' - '+text.upper()
 
         fftPlot = self.getPlotFromRef(self.plotRef, 'fft')
@@ -647,20 +680,20 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         
         self.addPlot(plotRef        = self.plotRef+'fft',
                      data           = [x, y],
-                     xLabel         = xLabel,
-                     yLabel         = yLabel,
+                     xLabelText     = xLabelText,
+                     xLabelUnits    = xLabelUnits,
+                     yLabelText     = yLabelText,
+                     yLabelUnits    = yLabelUnits,
                      cleanCheckBox  = self.cleanCheckBox,
                      plotTitle      = title,
                      windowTitle    = title,
                      runId          = 1,
                      linkedTo2dPlot = False,
-                     curveId        = yLabel,
-                     curveLegend    = yLabel,
-                     curveLabel     = yLabel,
+                     curveId        = yLabelText,
+                     curveLegend    = yLabelText,
+                     curveLabel     = yLabelText,
                      timestampXAxis = False,
-                     livePlot       = False,
-                     progressBarKey = None,
-                     zLabel         = None)
+                     livePlot       = False)
 
 
 
@@ -677,19 +710,16 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Method called when user click on the derivative checkbox.
         Add a plot containing the derivative of the chosen data.
         """
-
-        xLabel  = self.plotItem.axes['bottom']['item'].labelText
-        yLabel  = self.plotItem.axes['left']['item'].labelText
         
-        xName = xLabel.split('[')[0][:-1]
-        yName = yLabel.split('[')[0][:-1]
+        # Get xLabel information
+        xLabelText  = self.plotItem.axes['bottom']['item'].labelText
+        xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
         
-        xUnit = xLabel.split('[')[1][:-1]
-        yUnit = yLabel.split('[')[1][:-1]
-        
-        yLabel  = '∂('+yName+')/∂('+xName+') ['+yUnit+'/'+xUnit+']'
-        title   = self.windowTitle+' - derivative'
-        curveId = yLabel+'derivative'
+        # Build new curve information
+        yLabelText  = '∂('+self.selectedLabel+')/∂('+xLabelText+')'
+        yLabelUnits = self.selectedUnits+'/'+xLabelUnits
+        title       = self.windowTitle+' - derivative'
+        curveId     = self.selectedLabel+'derivative'
         
         # If user wants to plot the derivative, we add a new plotWindow
         if self.checkBoxDifferentiate.isChecked():
@@ -719,20 +749,20 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     
                 self.addPlot(plotRef        = self.plotRef+'derivative',
                              data           = [x, y],
-                             xLabel         = xLabel,
-                             yLabel         = yLabel,
+                             xLabelText     = xLabelText,
+                             xLabelUnits    = xLabelUnits,
+                             yLabelText     = yLabelText,
+                             yLabelUnits    = yLabelUnits,
                              cleanCheckBox  = buffer,
                              plotTitle      = title,
                              windowTitle    = title,
                              runId          = 1,
                              linkedTo2dPlot = False,
                              curveId        = curveId,
-                             curveLegend    = yLabel,
-                             curveLabel     = yLabel,
+                             curveLegend    = yLabelText,
+                             curveLabel     = yLabelText,
                              timestampXAxis = False,
-                             livePlot       = False,
-                             progressBarKey = None,
-                             zLabel         = None)
+                             livePlot       = False)
         # Otherwise, we close the existing one
         else:
             plot = self.getPlotFromRef(self.plotRef, 'derivative')
@@ -747,18 +777,15 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Add a plot containing the primitive of the chosen data.
         """
 
-        xLabel  = self.plotItem.axes['bottom']['item'].labelText
-        yLabel  = self.plotItem.axes['left']['item'].labelText
+        # Get xLabel information
+        xLabelText  = self.plotItem.axes['bottom']['item'].labelText
+        xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
         
-        xName = xLabel.split('[')[0][:-1]
-        yName = yLabel.split('[')[0][:-1]
-        
-        xUnit = xLabel.split('[')[1][:-1]
-        yUnit = yLabel.split('[')[1][:-1]
-        
-        yLabel  = '∫ '+yName+'  d '+xName+' ['+yUnit+' x '+xUnit+']'
+        # Build new curve information
+        yLabelText  = '∫ '+self.selectedLabel+'  d '+xLabelText
+        yLabelUnits = self.selectedUnits+' x '+xLabelUnits
         title   = self.windowTitle+' - primitive'
-        curveId = yLabel+'primitive'
+        curveId = self.selectedLabel+'primitive'
         
 
         # If user wants to plot the primitive, we add a new plotWindow
@@ -790,20 +817,20 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     
                 self.addPlot(plotRef        = self.plotRef+'primitive',
                              data           = [x, y],
-                             xLabel         = xLabel,
-                             yLabel         = yLabel,
+                             xLabelText     = xLabelText,
+                             xLabelUnits    = xLabelUnits,
+                             yLabelText     = yLabelText,
+                             yLabelUnits    = yLabelUnits,
                              cleanCheckBox  = buffer,
                              plotTitle      = title,
                              windowTitle    = title,
                              runId          = 1,
                              linkedTo2dPlot = False,
                              curveId        = curveId,
-                             curveLegend    = yLabel,
-                             curveLabel     = yLabel,
+                             curveLegend    = yLabelText,
+                             curveLabel     = yLabelText,
                              timestampXAxis = False,
-                             livePlot       = False,
-                             progressBarKey = None,
-                             zLabel         = None)
+                             livePlot       = False)
         # Otherwise, we close the existing one
         else:
             plot = self.getPlotFromRef(self.plotRef, 'primitive')
@@ -1005,6 +1032,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                  y            = y,
                                  curveId      = curveId+'-selection',
                                  curveLabel   = self.curves[curveId].curveLabel,
+                                 curveUnits   = self.curves[curveId].curveUnits,
                                  curveLegend  = 'Selection',
                                  showInLegend = True)
 
@@ -1073,6 +1101,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.selectedX     = self.curves[radioButton.curveId].xData
             self.selectedY     = self.curves[radioButton.curveId].yData
             self.selectedLabel = self.curves[radioButton.curveId].curveLabel
+            self.selectedUnits = self.curves[radioButton.curveId].curveUnits
 
             # The addInfiniteLine method has be launched before the update
             self.updateSelectionInifiteLine(radioButton.curveId)
@@ -1163,6 +1192,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              y           = y,
                              curveId     = 'fit',
                              curveLabel  = self.selectedLabel,
+                             curveUnits  = self.selectedUnits,
                              curveLegend = obj.displayedLegend(params))
 
 
@@ -1202,6 +1232,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              y           = y,
                              curveId     = 'filtering',
                              curveLabel  = self.selectedLabel,
+                             curveUnits  = self.selectedUnits,
                              curveLegend = legend)
 
 

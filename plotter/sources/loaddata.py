@@ -14,7 +14,12 @@ class LoadDataSignal(QtCore.QObject):
 
 
     # When the run method is done
-    done = QtCore.pyqtSignal(str, str, tuple, str, str, str)
+    # Signature
+    # plotRef: str, progressBarKey: str, data: tuple
+    # xLabelText: str, xLabelUnits: str,
+    # yLabelText: str, yLabelUnits: str,
+    # zLabelText: str, zLabelUnits: str,
+    done = QtCore.pyqtSignal(str, str, tuple, str, str, str, str, str, str)
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
     # Signal to update the progress bar
@@ -107,9 +112,12 @@ class LoadDataThread(QtCore.QRunnable):
                     data = np.array([np.nan]), np.array([np.nan])
 
 
-                xLabel = self.getDependentLabel(paramsIndependent[0])
-                yLabel = self.getDependentLabel(paramsDependent)
-                zLabel = ''
+                xLabelText  = paramsIndependent[0]['name']
+                xLabelUnits = paramsIndependent[0]['unit']
+                yLabelText  = paramsDependent['name']
+                yLabelUnits = paramsDependent['unit']
+                zLabelText  = ''
+                zLabelUnits = ''
 
 
             # 2d plot
@@ -131,13 +139,17 @@ class LoadDataThread(QtCore.QRunnable):
                     data = np.array([0, 1]), np.array([0, 1]), np.array([[0, 1],[0, 1]])
 
 
-                xLabel = self.getDependentLabel(paramsIndependent[xi])
-                yLabel = self.getDependentLabel(paramsIndependent[yi])
-                zLabel = self.getDependentLabel(paramsDependent)
+
+                xLabelText  = paramsIndependent[xi]['name']
+                xLabelUnits = paramsIndependent[xi]['unit']
+                yLabelText  = paramsIndependent[yi]['name']
+                yLabelUnits = paramsIndependent[yi]['unit']
+                zLabelText  = paramsDependent['name']
+                zLabelUnits = paramsDependent['unit']
 
 
         # Signal to launched a plot with the downloaded data
-        self.signals.done.emit(self.plotRef, self.progressBarKey, data, xLabel, yLabel, zLabel)
+        self.signals.done.emit(self.plotRef, self.progressBarKey, data, xLabelText, xLabelUnits, yLabelText, yLabelUnits, zLabelText, zLabelUnits)
 
 
 

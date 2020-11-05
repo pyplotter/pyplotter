@@ -24,9 +24,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        y              : np.ndarray,
                        z              : np.ndarray,
                        title          : str,
-                       xLabel         : str,
-                       yLabel         : str,
-                       zLabel         : str,
+                       xLabelText     : str,
+                       xLabelUnits    : str,
+                       yLabelText     : str,
+                       yLabelUnits    : str,
+                       zLabelText     : str,
+                       zLabelUnits    : str,
                        windowTitle    : str,
                        runId          : int,
                        cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None],
@@ -98,9 +101,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.x             = x
         self.y             = y
         self.z             = z
-        self.xLabel        = xLabel
-        self.yLabel        = yLabel
-        self.zLabel        = zLabel
+        self.xLabelText    = xLabelText
+        self.xLabelUnits   = xLabelUnits
+        self.yLabelText    = yLabelText
+        self.yLabelUnits   = yLabelUnits
+        self.zLabelText    = zLabelText
+        self.zLabelUnits   = zLabelUnits
         self.title         = title
         self.windowTitle   = windowTitle
         self.runId         = runId
@@ -166,14 +172,20 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Axes label
         self.plotItem.setTitle(title=title, color=config['styles'][config['style']]['pyqtgraphTitleTextColor'])
         self.plotItem.showGrid(x=True, y=True)
-        self.plotItem.setLabel('bottom', xLabel, **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                                    'font-size' : str(config['axisLabelFontSize'])+'pt'})
-        self.plotItem.setLabel('left',   yLabel, **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                                    'font-size' : str(config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel(axis='bottom',
+                               text=xLabelText,
+                               units=xLabelUnits,
+                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                                'font-size' : str(config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel(axis='left',  
+                               text=yLabelText,
+                               units=yLabelUnits,
+                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                                'font-size' : str(config['axisLabelFontSize'])+'pt'})
         
         # The only reliable way I have found to correctly display the zLabel
         # is by using a Qlabel from the GUI
-        self.plot2dzLabel.setText(zLabel)
+        self.plot2dzLabel.setText(zLabelText+' ('+zLabelUnits+')')
         self.plot2dzLabel.setFont(font)
 
         # Style
@@ -251,7 +263,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.cleanCheckBox(plotRef     = self.plotRef,
                            windowTitle = self.windowTitle,
                            runId       = self.runId,
-                           label      = self.zLabel)
+                           label      = self.zLabelText)
 
         # If user created data slice, we close the linked 1d plot
         if self.getPlotRefFromSliceOrientation('vertical') is not None:
@@ -361,14 +373,20 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         
         ## We swap the x and y axis of the colormap
-        t = self.xLabel
-        self.xLabel = self.yLabel
-        self.yLabel = t
+        t = self.xLabelText
+        self.xLabelText = self.yLabelText
+        self.yLabelText = t
         
-        # A bug happens when labels contain scientific notation, i.e. 1e9
-        # That number does not follow the label, I didn't succeed to solve it
-        self.plotItem.setLabel('bottom', self.xLabel, color=config['styles'][config['style']]['pyqtgraphxLabelTextColor'])
-        self.plotItem.setLabel('left', self.yLabel, color=config['styles'][config['style']]['pyqtgraphyLabelTextColor'])
+        t = self.xLabelUnits
+        self.xLabelUnits = self.yLabelUnits
+        self.yLabelUnits = t
+        
+        self.plotItem.setLabel(axis='bottom',
+                               text=self.xLabelText,
+                               units=self.xLabelUnits)
+        self.plotItem.setLabel(axis='left',
+                               text=self.yLabelText,
+                               units=self.yLabelUnits)
 
         self.updateImageItem(self.y, self.x, self.z.T)
 
@@ -435,7 +453,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             lineOrientation = 'vertical'
 
         return lineOrientation
-
 
 
 
@@ -662,11 +679,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
             # The xLabel of the 1d plot depends on the slice orientation
             if self.sliceOrientation == 'vertical':
-                xLabel = self.yLabel
+                xLabelText  = self.yLabelText
+                xLabelUnits = self.yLabelUnits
             else:
-                xLabel = self.xLabel
+                xLabelText  = self.xLabelText
+                xLabelUnits = self.xLabelUnits
 
-            yLabel = self.zLabel
+            yLabelText  = self.zLabelText
+            yLabelUnits = self.zLabelUnits
 
             # If nbCurve is 1, we create the 1d plot window
             # if self.linked1dPlots[self.sliceOrientation] is None:
@@ -677,8 +697,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
                 self.addPlot(data           = [sliceX, sliceY],
                              plotTitle      = self.title+" <span style='color: red; font-weight: bold;'>Extrapolated data</span>",
-                             xLabel         = xLabel,
-                             yLabel         = yLabel,
+                             xLabelText     = xLabelText,
+                             xLabelUnits    = xLabelUnits,
+                             yLabelText     = yLabelText,
+                             yLabelUnits    = yLabelUnits,
                              windowTitle    = self.windowTitle+' - '+self.sliceOrientation+' slice',
                              runId          = self.runId,
                              cleanCheckBox  = self.cleanInfiniteLine,
@@ -707,10 +729,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
                     self.addPlot(plotRef     = self.plotRef+self.sliceOrientation,
                                  data        = [sliceX, sliceY],
-                                 xLabel      = xLabel,
-                                 yLabel      = self.zLabel,
+                                 xLabelText  = xLabelText,
+                                 xLabelUnits = xLabelUnits,
+                                 yLabelText  = self.zLabelText,
+                                 yLabelUnits = self.zLabelUnits,
                                  curveId     = curveId,
-                                 curveLabel  = self.zLabel,
+                                 curveLabel  = self.zLabelText,
                                  curveLegend = sliceLegend)
 
                     self.addInifiteLine(curveId)
@@ -757,8 +781,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
             self.z_backupx = self.z
             self.z = np.gradient(self.z, self.x, axis=0)
+            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.xLabelUnits+')')
         else: 
             self.z = self.z_backupx
+            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+')')
 
         self.updateImageItem(self.x, self.y, self.z)
 
@@ -783,8 +809,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
             self.z_backupy = self.z
             self.z = np.gradient(self.z, self.y, axis=1)
+            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.yLabelUnits+')')
         else: 
             self.z = self.z_backupy
+            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+')')
 
         self.updateImageItem(self.x, self.y, self.z)
 
@@ -811,8 +839,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
             self.z_backupz = self.z
             self.z = np.sqrt(np.gradient(self.z, self.x, axis=0)**2. + np.gradient(self.z, self.y, axis=1)**2.)
+            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+' x √('+self.xLabelUnits+'² + '+self.yLabelUnits+'²)')
         else: 
             self.z = self.z_backupz
+            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+')')
 
         self.updateImageItem(self.x, self.y, self.z)
 
@@ -1070,8 +1100,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             
             self.addPlot(data           = [self.x, ys[0]],
                          plotTitle      = self.title,
-                         xLabel         = self.xLabel,
-                         yLabel         = self.yLabel,
+                         xLabelText     = self.xLabelText,
+                         xLabelUnits    = self.xLabelUnits,
+                         yLabelText     = self.yLabelText,
+                         yLabelUnits    = self.yLabelUnits,
                          windowTitle    = self.windowTitle+' - Extraction',
                          runId          = self.runId,
                          cleanCheckBox  = self.cleanCheckBoxExtraction,
@@ -1086,14 +1118,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 plot.addPlotDataItem(x           = self.x,
                                      y           = ys[0],
                                      curveId     = labels[0],
-                                     curveLabel  = self.yLabel,
+                                     curveLabel  = self.yLabelText,
                                      curveLegend = labels[0])
             else:
                 
                 plot.addPlotDataItem(x           = self.x,
                                      y           = ys[1],
                                      curveId     = labels[1],
-                                     curveLabel  = self.yLabel,
+                                     curveLabel  = self.yLabelText,
                                      curveLegend = labels[1])
 
         elif len(plot.curves) == 2:
