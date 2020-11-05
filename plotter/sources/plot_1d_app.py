@@ -554,7 +554,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         plots : List[Plot1dApp]
             List containing all the 1d plot window currently displayed.
         """
-
+        print('--')
+        print(self.plotRef)
         # Is there at least one another curve to be shown in the new tab
         isThere = False
         for plot in plots:
@@ -567,7 +568,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     curveId not in self.curves):
                     
                     isThere = True
-
 
         # If there is, we build the GUI
         if isThere:
@@ -624,6 +624,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             if hasattr(self, 'tabCurves'):
                 self.tabWidget.removeTab(1)
+                del(self.tabCurves)
 
 
 
