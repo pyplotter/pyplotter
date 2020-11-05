@@ -1455,7 +1455,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                          xLabelUnits    : str,
                          yLabelText     : str,
                          yLabelUnits    : str,
-                         zLabel         : str=None) -> None:
+                         zLabelText     : str=None,
+                         yzabelUnits    : str=None) -> None:
         """
         Methods called in live plot mode to update plot.
         This method must have the same signature as addPlot.
@@ -1469,13 +1470,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         data : list
             For 1d plot: [xData, yData]
             For 2d plot: [xData, yData, zData]
-        xLabel : str
-            Label for the xAxis, see getDependentLabel for qcodes data.
-        yxLabel : str
-            Label for the yAxis, see getDependentLabel for qcodes data.
-        zLabel : str, default None
+        xLabelText : str
+            Label text for the xAxis.
+        xLabelUnits : str
+            Label units for the xAxis.
+        yLabelText : str
+            Label text for the yAxis.
+        yLabelUnits : str
+            Label units for the yAxis.
+        zLabelText : str, default None
             Only for 2d data.
-            Label for the zAxis, see getDependentLabel for qcodes data.
+            Label units for the zAxis.
+        zLabelUnits : str, default None
+            Only units 2d data.
+            Label text for the zAxis.
         """
         
         
@@ -1594,13 +1602,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         data : list
             For 1d plot: [xData, yData]
             For 2d plot: [xData, yData, zData]
-        xLabel : str
-            Label for the xAxis, see getDependentLabel for qcodes data.
-        yxLabel : str
-            Label for the yAxis, see getDependentLabel for qcodes data.
-        zLabel : str, default None
+        xLabelText : str
+            Label text for the xAxix.
+        xLabelUnits : str
+            Label units for the xAxix.
+        yLabelText : str
+            Label text for the yAxix.
+        yLabelUnits : str
+            Label units for the yAxix.
+        zLabelText : str, default None
             Only for 2d data.
-            Label for the zAxis, see getDependentLabel for qcodes data.
+            Label text for the zAxis.
+        zLabelUnits : str, default None
+            Only for 2d data.
+            Label units for the zAxis.
         """
 
         # If the method is called from a thread with a progress bar, we remove
@@ -1833,8 +1848,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                 plotRef,
                                 progressBarKey,
                                 self.qcodesDatabase.getParameterData,
-                                self.qcodesDatabase.getParameterInfo,
-                                self.getDependentLabel)
+                                self.qcodesDatabase.getParameterInfo)
         # Connect signals
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
         worker.signals.updateProgressBar.connect(self.updateProgressBar)

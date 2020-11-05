@@ -36,8 +36,7 @@ class LoadDataThread(QtCore.QRunnable):
                        plotRef            : str,
                        progressBarKey     : str,
                        getParameterData   : Callable[[int, str, Callable], dict],
-                       getParameterInfo   : Callable[[int], list],
-                       getDependentLabel  : Callable[[dict], str]) -> None:
+                       getParameterInfo   : Callable[[int], list]) -> None:
         """
         Thread used to get data for a 1d or 2d plot from a runId.
 
@@ -58,10 +57,7 @@ class LoadDataThread(QtCore.QRunnable):
         getParameterInfo : func
             Method from QcodesDatabase class initialized in the main thread
             with the current database file location.
-            See QcodesDatabase for more details. 
-        getDependentLabel : func
-            Method from Main class.
-            Return a label from a qcodes dependent parameter. 
+            See QcodesDatabase for more details.
         """
 
         super(LoadDataThread, self).__init__()
@@ -74,7 +70,6 @@ class LoadDataThread(QtCore.QRunnable):
         self.progressBarKey     = progressBarKey
         self.getParameterData   = getParameterData
         self.getParameterInfo   = getParameterInfo
-        self.getDependentLabel  = getDependentLabel
         
 
         self.signals = LoadDataSignal() 

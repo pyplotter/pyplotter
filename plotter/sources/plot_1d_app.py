@@ -554,8 +554,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         plots : List[Plot1dApp]
             List containing all the 1d plot window currently displayed.
         """
-        print('--')
-        print(self.plotRef)
+        
         # Is there at least one another curve to be shown in the new tab
         isThere = False
         for plot in plots:
