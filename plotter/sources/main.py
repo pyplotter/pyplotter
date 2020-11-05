@@ -106,7 +106,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         
         # Flag
-        self._dataDowloading = False
+        self._dataDowloadingFlag = False
         self._progressBars = {}
 
         self._currentDatabase    = None
@@ -415,7 +415,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
         worker.signals.addRow.connect(self.dataBaseClickedAddRow)
         worker.signals.updateProgressBar.connect(self.updateProgressBar)
-        worker.signals.done.connect(self.dataBaseClickedDone)
+        worker.signals.updateDatabase.connect(self.dataBaseClickedDone)
 
         # Execute the thread
         self.threadpool.start(worker)
@@ -1288,7 +1288,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         # If we have to update the data of a livePlot
         # and if we are not already downlading data
-        if self._livePlotFetchData and not self._dataDowloading:
+        if self._livePlotFetchData and not self._dataDowloadingFlag:
 
             runId = int(self.getNbTotalRun())
             
@@ -1482,7 +1482,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
             self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
                                                        y           = data[1],
-                                                       curveId     = self.getCurveId(yLabel),
+                                                       curveId     = self.getCurveId(yLabelText),
                                                        curveLegend = None,
                                                        autoRange   = True)
         # 2d plot
@@ -1520,7 +1520,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.setStatusBarMessage('Ready')
 
         # Flag
-        self._dataDowloading = False
+        self._dataDowloadingFlag = False
 
 
 
@@ -1714,7 +1714,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.updateList1dCurvesLabels()
 
         # Flag
-        self._dataDowloading = False
+        self._dataDowloadingFlag = False
 
 
 
@@ -1823,7 +1823,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # Flag
-        self._dataDowloading = True
+        self._dataDowloadingFlag = True
 
         progressBarKey = self.addProgressBarInStatusBar()
         
@@ -1835,8 +1835,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                 self.qcodesDatabase.getParameterData,
                                 self.qcodesDatabase.getParameterInfo)
         # Connect signals
+        # To update the status bar
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
+        # To update the progress bar
         worker.signals.updateProgressBar.connect(self.updateProgressBar)
+        # To signal data download as done but with empty database
+        # Useful when starting liveplot
+        worker.signals.updateDataEmpty.connect(self.updateDataEmpty)
 
         # If the live plot mode is on, we have to update the plot instead
         # of adding a new plot
@@ -1851,20 +1856,32 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 if self._plotRefs[plotRef].plotType=='1d':
 
                     if curveId in self._plotRefs[plotRef].curves.keys():
-                        worker.signals.done.connect(self.updatePlot)
+                        worker.signals.updateDataFull.connect(self.updatePlot)
                     else:
-                        worker.signals.done.connect(self.addPlotFromThread)
+                        worker.signals.updateDataFull.connect(self.addPlotFromThread)
                 else:
 
-                    if paramDependentLabel == self._plotRefs[plotRef].zLabel:
-                        worker.signals.done.connect(self.updatePlot)
+                    if paramDependentLabel == self._plotRefs[plotRef].zLabelText:
+                        worker.signals.updateDataFull.connect(self.updatePlot)
                     else:
-                        worker.signals.done.connect(self.addPlotFromThread)
+                        worker.signals.updateDataFull.connect(self.addPlotFromThread)
             else:
-                worker.signals.done.connect(self.addPlotFromThread)
+                worker.signals.updateDataFull.connect(self.addPlotFromThread)
         else:
-            worker.signals.done.connect(self.addPlotFromThread)
+            worker.signals.updateDataFull.connect(self.addPlotFromThread)
 
         # Execute the thread
         self.threadpool.start(worker)
 
+
+
+    def updateDataEmpty(self) -> None:
+        """
+        Method called by LoadDataThread when the data download is done but the
+        database is empty.
+        We signal the data downloading being done by setting the flag False.
+        This will allow the next live plot iteration to try downloading the data
+        again.
+        """
+        
+        self._dataDowloadingFlag = False
