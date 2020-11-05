@@ -592,7 +592,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             cb = QtWidgets.QCheckBox()
 
             # We check if that parameter is already plotted
-            if self.isParameterPlotted(self.getDependentLabel(dependent)):
+            if self.isParameterPlotted(dependent['name']):
                 cb.setChecked(True)
 
             self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem(str(runId)))
@@ -841,20 +841,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def getDependentLabel(self, paramDependent : dict) -> str:
-        """
-        Return a label from a qcodes dependent parameter.
-
-        Parameters
-        ----------
-        paramDependent : dict
-            Qcodes dependent parameter.
-        """
-
-        return paramDependent['name']+' ['+paramDependent['unit']+']'
-
-
-
     def isParameterPlotted(self, parameterLabel : str) -> bool:
         """
         Return True when the displayed parameter is currently plotted.
@@ -878,7 +864,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                             return True
                 if plot.plotType=='2d':
                     if dataRef in plot.plotRef:
-                        if plot.zLabel == parameterLabel:
+                        if plot.zLabelText == parameterLabel:
                             return True
 
         return False
@@ -1209,7 +1195,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         if len(paramDependent['depends_on'])==2:
-            return dataRef+self.getDependentLabel(paramDependent)
+            return dataRef+paramDependent['name']
         else:
             return dataRef
 
@@ -1746,7 +1732,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Reference of the plot.
         label : str, default None
             Label of the data to be removed, usefull for 1d plot.
-            See getDependentLabel for qcodes data
         """
 
         if self._plotRefs[plotRef].plotType=='1d':
@@ -1860,7 +1845,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 paramsDependent = self.qcodesDatabase.getListDependentFromRunId(runId)
                 paramDependentDict = [i for i in paramsDependent if i['name']==dependentParamName][0]
-                paramDependentLabel = self.getDependentLabel(paramDependentDict)
+                paramDependentLabel = paramDependentDict['name']
                 curveId = self.getCurveId(paramDependentLabel)
 
                 if self._plotRefs[plotRef].plotType=='1d':
