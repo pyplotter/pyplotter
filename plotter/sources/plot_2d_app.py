@@ -2,6 +2,7 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
+import pyqtgraph.opengl as gl
 from pyqtgraph.GraphicsScene.mouseEvents import MouseClickEvent
 from typing import Union, Tuple, Callable
 import inspect
@@ -200,6 +201,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxDerivativeX.stateChanged.connect(lambda : self.checkBoxDerivativeXState(self.checkBoxDerivativeX))
         self.checkBoxDerivativeY.stateChanged.connect(lambda : self.checkBoxDerivativeYState(self.checkBoxDerivativeY))
         self.checkBoxDerivativeXY.stateChanged.connect(lambda : self.checkBoxDerivativeXYState(self.checkBoxDerivativeXY))
+        self.pushButton3d.clicked.connect(self.launched3d)
 
 
         # Add fitting function to the GUI
@@ -270,6 +272,39 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def o(self):
         self.close()
+
+
+
+    ####################################
+    #
+    #           Method to launch a 3d plot
+    #
+    ####################################
+
+
+    def launched3d(self):
+        """
+        Called when used click on pushButton3d.
+        Launch a new pyqtgraph window with a OpenGL surfacePlotItem.
+        
+        This is just a funny feature.
+        """
+        
+        
+
+        ## Create a GL View widget to display data
+        w = gl.GLViewWidget()
+        w.show()
+        w.setWindowTitle(self.windowTitle)
+        w.setCameraPosition(distance=3)
+        
+        # Linearly scale all data from 0 to 1
+        x = (self.x - np.nanmin(self.x))/(np.nanmax(self.x) - np.nanmin(self.x))
+        y = (self.y - np.nanmin(self.y))/(np.nanmax(self.y) - np.nanmin(self.y))
+        z = (self.z - np.nanmin(self.z))/(np.nanmax(self.z) - np.nanmin(self.z))
+        
+        p = gl.GLSurfacePlotItem(x=x, y=y, z=z, shader='shaded', smooth=False)
+        w.addItem(p)
 
 
 
