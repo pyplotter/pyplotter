@@ -14,11 +14,19 @@ class LoadDataSignal(QtCore.QObject):
 
 
     # When the run method is done
-    done = QtCore.pyqtSignal(str, str, tuple, str, str, str)
+    # Signature
+    # plotRef: str, progressBarKey: str, data: tuple
+    # xLabelText: str, xLabelUnits: str,
+    # yLabelText: str, yLabelUnits: str,
+    # zLabelText: str, zLabelUnits: str,
+    updateDataFull = QtCore.pyqtSignal(str, str, tuple, str, str, str, str, str, str)
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
     # Signal to update the progress bar
     updateProgressBar = QtCore.pyqtSignal(str, int)
+    # Signal when the data download is done but the database is empty
+    # Useful for the starting of the liveplot
+    updateDataEmpty = QtCore.pyqtSignal()
 
 
 
@@ -31,8 +39,7 @@ class LoadDataThread(QtCore.QRunnable):
                        plotRef            : str,
                        progressBarKey     : str,
                        getParameterData   : Callable[[int, str, Callable], dict],
-                       getParameterInfo   : Callable[[int], list],
-                       getDependentLabel  : Callable[[dict], str]) -> None:
+                       getParameterInfo   : Callable[[int], list]) -> None:
         """
         Thread used to get data for a 1d or 2d plot from a runId.
 
@@ -53,10 +60,7 @@ class LoadDataThread(QtCore.QRunnable):
         getParameterInfo : func
             Method from QcodesDatabase class initialized in the main thread
             with the current database file location.
-            See QcodesDatabase for more details. 
-        getDependentLabel : func
-            Method from Main class.
-            Return a label from a qcodes dependent parameter. 
+            See QcodesDatabase for more details.
         """
 
         super(LoadDataThread, self).__init__()
@@ -69,7 +73,6 @@ class LoadDataThread(QtCore.QRunnable):
         self.progressBarKey     = progressBarKey
         self.getParameterData   = getParameterData
         self.getParameterInfo   = getParameterInfo
-        self.getDependentLabel  = getDependentLabel
         
 
         self.signals = LoadDataSignal() 
@@ -87,29 +90,25 @@ class LoadDataThread(QtCore.QRunnable):
         paramsDependent, paramsIndependent = self.getParameterInfo(self.runId, self.dependentParamName)
         
         d = self.getParameterData(self.runId, paramsDependent['name'], self.signals.updateProgressBar, self.progressBarKey)
-
-        # If getParameterData failed, we return None value which will prevent
-        # data to be plotted while raising no error
-        if d is None:
-            data   = None
-            xLabel = None
-            yLabel = None
+        
+        # If getParameterData failed, or the database is empty we emit a specific
+        # signal which will flag the data download as done without launching a
+        # new plot window
+        if d is None or len(d)==0:
+            self.signals.updateDataEmpty.emit()
         else:
 
             # 1d plot
             if len(paramsIndependent)==1:
                 
-                # We try to load data
-                # if there is none, we return an empty array
-                try:
-                    data = d[paramsIndependent[0]['name']], d[paramsDependent['name']]
-                except:
-                    data = np.array([np.nan]), np.array([np.nan])
+                data = d[paramsIndependent[0]['name']], d[paramsDependent['name']]
 
-
-                xLabel = self.getDependentLabel(paramsIndependent[0])
-                yLabel = self.getDependentLabel(paramsDependent)
-                zLabel = ''
+                xLabelText  = paramsIndependent[0]['name']
+                xLabelUnits = paramsIndependent[0]['unit']
+                yLabelText  = paramsDependent['name']
+                yLabelUnits = paramsDependent['unit']
+                zLabelText  = ''
+                zLabelUnits = ''
 
 
             # 2d plot
@@ -120,24 +119,20 @@ class LoadDataThread(QtCore.QRunnable):
                 
                 # We try to load data
                 # if there is none, we return an empty array
-                try:
-                    
-                    data = self.shapeData2d(d[paramsIndependent[xi]['name']],
-                                            d[paramsIndependent[yi]['name']],
-                                            d[paramsDependent['name']])
-                except:
-                    
-                    # We have to send [0,1] for the z axis when no data to avoid bug with the histogram
-                    data = np.array([0, 1]), np.array([0, 1]), np.array([[0, 1],[0, 1]])
+                data = self.shapeData2d(d[paramsIndependent[xi]['name']],
+                                        d[paramsIndependent[yi]['name']],
+                                        d[paramsDependent['name']])
+
+                xLabelText  = paramsIndependent[xi]['name']
+                xLabelUnits = paramsIndependent[xi]['unit']
+                yLabelText  = paramsIndependent[yi]['name']
+                yLabelUnits = paramsIndependent[yi]['unit']
+                zLabelText  = paramsDependent['name']
+                zLabelUnits = paramsDependent['unit']
 
 
-                xLabel = self.getDependentLabel(paramsIndependent[xi])
-                yLabel = self.getDependentLabel(paramsIndependent[yi])
-                zLabel = self.getDependentLabel(paramsDependent)
-
-
-        # Signal to launched a plot with the downloaded data
-        self.signals.done.emit(self.plotRef, self.progressBarKey, data, xLabel, yLabel, zLabel)
+            # Signal to launched a plot with the downloaded data
+            self.signals.updateDataFull.emit(self.plotRef, self.progressBarKey, data, xLabelText, xLabelUnits, yLabelText, yLabelUnits, zLabelText, zLabelUnits)
 
 
 

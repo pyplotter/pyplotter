@@ -106,7 +106,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         
         # Flag
-        self._dataDowloading = False
+        self._dataDowloadingFlag = False
         self._progressBars = {}
 
         self._currentDatabase    = None
@@ -415,7 +415,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
         worker.signals.addRow.connect(self.dataBaseClickedAddRow)
         worker.signals.updateProgressBar.connect(self.updateProgressBar)
-        worker.signals.done.connect(self.dataBaseClickedDone)
+        worker.signals.updateDatabase.connect(self.dataBaseClickedDone)
 
         # Execute the thread
         self.threadpool.start(worker)
@@ -592,7 +592,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             cb = QtWidgets.QCheckBox()
 
             # We check if that parameter is already plotted
-            if self.isParameterPlotted(self.getDependentLabel(dependent)):
+            if self.isParameterPlotted(dependent['name']):
                 cb.setChecked(True)
 
             self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem(str(runId)))
@@ -688,7 +688,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         else:
             
             self.removePlot(plotRef = plotRef,
-                            label   = self.getDependentLabel(paramDependent))
+                            label   = paramDependent['name'])
         
 
 
@@ -841,20 +841,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def getDependentLabel(self, paramDependent : dict) -> str:
-        """
-        Return a label from a qcodes dependent parameter.
-
-        Parameters
-        ----------
-        paramDependent : dict
-            Qcodes dependent parameter.
-        """
-
-        return paramDependent['name']+' ['+paramDependent['unit']+']'
-
-
-
     def isParameterPlotted(self, parameterLabel : str) -> bool:
         """
         Return True when the displayed parameter is currently plotted.
@@ -878,7 +864,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                             return True
                 if plot.plotType=='2d':
                     if dataRef in plot.plotRef:
-                        if plot.zLabel == parameterLabel:
+                        if plot.zLabelText == parameterLabel:
                             return True
 
         return False
@@ -1209,7 +1195,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         if len(paramDependent['depends_on'])==2:
-            return dataRef+self.getDependentLabel(paramDependent)
+            return dataRef+paramDependent['name']
         else:
             return dataRef
 
@@ -1302,7 +1288,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         # If we have to update the data of a livePlot
         # and if we are not already downlading data
-        if self._livePlotFetchData and not self._dataDowloading:
+        if self._livePlotFetchData and not self._dataDowloadingFlag:
 
             runId = int(self.getNbTotalRun())
             
@@ -1451,9 +1437,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     def updatePlot(self, plotRef        : str,
                          progressBarKey : str,
                          data           : list,
-                         xLabel         : str,
-                         yLabel         : str,
-                         zLabel         : str=None) -> None:
+                         xLabelText     : str,
+                         xLabelUnits    : str,
+                         yLabelText     : str,
+                         yLabelUnits    : str,
+                         zLabelText     : str=None,
+                         yzabelUnits    : str=None) -> None:
         """
         Methods called in live plot mode to update plot.
         This method must have the same signature as addPlot.
@@ -1467,13 +1456,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         data : list
             For 1d plot: [xData, yData]
             For 2d plot: [xData, yData, zData]
-        xLabel : str
-            Label for the xAxis, see getDependentLabel for qcodes data.
-        yxLabel : str
-            Label for the yAxis, see getDependentLabel for qcodes data.
-        zLabel : str, default None
+        xLabelText : str
+            Label text for the xAxis.
+        xLabelUnits : str
+            Label units for the xAxis.
+        yLabelText : str
+            Label text for the yAxis.
+        yLabelUnits : str
+            Label units for the yAxis.
+        zLabelText : str, default None
             Only for 2d data.
-            Label for the zAxis, see getDependentLabel for qcodes data.
+            Label units for the zAxis.
+        zLabelUnits : str, default None
+            Only units 2d data.
+            Label text for the zAxis.
         """
         
         
@@ -1485,17 +1481,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if len(data)==2:
 
             self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
-                                                   y           = data[1],
-                                                   curveId     = self.getCurveId(yLabel),
-                                                   curveLegend = None,
-                                                   autoRange   = True)
+                                                       y           = data[1],
+                                                       curveId     = self.getCurveId(yLabelText),
+                                                       curveLegend = None,
+                                                       autoRange   = True)
         # 2d plot
         elif len(data)==3:
 
             # We update the 2d plot data
             self._plotRefs[plotRef].updateImageItem(x=data[0],
-                                                y=data[1],
-                                                z=data[2])
+                                                    y=data[1],
+                                                    z=data[2])
 
             # If there are slices, we update them as well
             # plotSlice = self.getPlotSliceFromRef(plotRef)
@@ -1516,24 +1512,27 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 # We update the slice data
                 plotSlice.updatePlotDataItem(x           = sliceX,
-                                                y           = sliceY,
-                                                curveId     = curveId,
-                                                curveLegend = sliceLegend,
-                                                autoRange   = True)
+                                             y           = sliceY,
+                                             curveId     = curveId,
+                                             curveLegend = sliceLegend,
+                                             autoRange   = True)
 
         self.setStatusBarMessage('Ready')
 
         # Flag
-        self._dataDowloading = False
+        self._dataDowloadingFlag = False
 
 
 
     def addPlotFromThread(self, plotRef        : str,
                                 progressBarKey : str,
                                 data           : List[np.ndarray],
-                                xLabel         : str,
-                                yLabel         : str,
-                                zLabel         : str) -> None:
+                                xLabelText     : str,
+                                xLabelUnits    : str,
+                                yLabelText     : str,
+                                yLabelUnits    : str,
+                                zLabelText     : str,
+                                zLabelUnits    : str) -> None:
         """
         Call from loaddata thread.
         Just past the argument to the addPlot method.
@@ -1542,17 +1541,22 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         self.addPlot(plotRef        = plotRef,
                      data           = data,
-                     xLabel         = xLabel,
-                     yLabel         = yLabel,
-                     zLabel         = zLabel,
+                     xLabelText     = xLabelText,
+                     xLabelUnits    = xLabelUnits,
+                     yLabelText     = yLabelText,
+                     yLabelUnits    = yLabelUnits,
+                     zLabelText     = zLabelText,
+                     zLabelUnits    = zLabelUnits,
                      progressBarKey = progressBarKey)
 
 
 
     def addPlot(self, plotRef        : str,
                       data           : List[np.ndarray],
-                      xLabel         : str,
-                      yLabel         : str,
+                      xLabelText     : str,
+                      xLabelUnits    : str,
+                      yLabelText     : str,
+                      yLabelUnits    : str,
 
                       cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None]=None,
                       plotTitle      : str  = None,
@@ -1562,10 +1566,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                       curveId        : str  = None,
                       curveLegend    : str  = None,
                       curveLabel     : str  = None,
+                      curveUnits     : str  = None,
                       timestampXAxis : bool = False,
                       livePlot       : bool = None,
                       progressBarKey : str  = None,
-                      zLabel         : str  = None) -> None:
+                      zLabelText     : str  = None,
+                      zLabelUnits    : str  = None) -> None:
         """
         Methods called once the data are downloaded to add a plot of the data.
         Discriminate between 1d and 2d plot through the length of data list.
@@ -1582,13 +1588,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         data : list
             For 1d plot: [xData, yData]
             For 2d plot: [xData, yData, zData]
-        xLabel : str
-            Label for the xAxis, see getDependentLabel for qcodes data.
-        yxLabel : str
-            Label for the yAxis, see getDependentLabel for qcodes data.
-        zLabel : str, default None
+        xLabelText : str
+            Label text for the xAxix.
+        xLabelUnits : str
+            Label units for the xAxix.
+        yLabelText : str
+            Label text for the yAxix.
+        yLabelUnits : str
+            Label units for the yAxix.
+        zLabelText : str, default None
             Only for 2d data.
-            Label for the zAxis, see getDependentLabel for qcodes data.
+            Label text for the zAxis.
+        zLabelUnits : str, default None
+            Only for 2d data.
+            Label units for the zAxis.
         """
 
         # If the method is called from a thread with a progress bar, we remove
@@ -1624,7 +1637,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             
             # Specific 1d optional parameter
             if curveId is None:
-                curveId = self.getCurveId(yLabel)
+                curveId = self.getCurveId(yLabelText)
             if timestampXAxis is None:
                 timestampXAxis = self.importblueFors.isBlueForsFolder(self._currentDatabase)
             
@@ -1636,8 +1649,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 p = Plot1dApp(x              = data[0],
                               y              = data[1],
                               title          = plotTitle,
-                              xLabel         = xLabel,
-                              yLabel         = yLabel,
+                              xLabelText     = xLabelText,
+                              xLabelUnits    = xLabelUnits,
+                              yLabelText     = yLabelText,
+                              yLabelUnits    = yLabelUnits,
                               windowTitle    = windowTitle,
                               runId          = runId,
                               cleanCheckBox  = cleanCheckBox,
@@ -1654,14 +1669,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             else:
                 
                 if curveLabel is None:
-                    curveLabel = yLabel
+                    curveLabel = yLabelText
+                if curveUnits is None:
+                    curveUnits = yLabelUnits
                 if curveLegend is None:
-                    curveLegend = yLabel
+                    curveLegend = yLabelText
 
                 self._plotRefs[plotRef].addPlotDataItem(x           = data[0],
                                                         y           = data[1],
                                                         curveId     = curveId,
                                                         curveLabel  = curveLabel,
+                                                        curveUnits  = curveUnits,
                                                         curveLegend = curveLegend)
             
 
@@ -1674,16 +1692,19 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               y               = data[1],
                               z               = data[2],
                               title           = plotTitle,
-                              xLabel          = xLabel,
-                              yLabel          = yLabel,
-                              zLabel          = zLabel,
+                              xLabelText      = xLabelText,
+                              xLabelUnits     = xLabelUnits,
+                              yLabelText      = yLabelText,
+                              yLabelUnits     = yLabelUnits,
+                              zLabelText      = zLabelText,
+                              zLabelUnits     = zLabelUnits,
                               windowTitle     = windowTitle,
                               runId           = runId,
                               cleanCheckBox   = cleanCheckBox,
                               plotRef         = plotRef,
                               addPlot         = self.addPlot,
                               removePlot      = self.removePlot,
-                              getPlotFromRef = self.getPlotFromRef,
+                              getPlotFromRef  = self.getPlotFromRef,
                               livePlot        = livePlot)
 
                 self._plotRefs[plotRef] = p
@@ -1693,7 +1714,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.updateList1dCurvesLabels()
 
         # Flag
-        self._dataDowloading = False
+        self._dataDowloadingFlag = False
 
 
 
@@ -1711,9 +1732,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Reference of the plot.
         label : str, default None
             Label of the data to be removed, usefull for 1d plot.
-            See getDependentLabel for qcodes data
         """
-        
+
         if self._plotRefs[plotRef].plotType=='1d':
             # If there is more than one curve, we remove one curve
             if len(self._plotRefs[plotRef].curves) > 1:
@@ -1803,7 +1823,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         # Flag
-        self._dataDowloading = True
+        self._dataDowloadingFlag = True
 
         progressBarKey = self.addProgressBarInStatusBar()
         
@@ -1813,11 +1833,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                 plotRef,
                                 progressBarKey,
                                 self.qcodesDatabase.getParameterData,
-                                self.qcodesDatabase.getParameterInfo,
-                                self.getDependentLabel)
+                                self.qcodesDatabase.getParameterInfo)
         # Connect signals
+        # To update the status bar
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
+        # To update the progress bar
         worker.signals.updateProgressBar.connect(self.updateProgressBar)
+        # To signal data download as done but with empty database
+        # Useful when starting liveplot
+        worker.signals.updateDataEmpty.connect(self.updateDataEmpty)
 
         # If the live plot mode is on, we have to update the plot instead
         # of adding a new plot
@@ -1826,26 +1850,38 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 paramsDependent = self.qcodesDatabase.getListDependentFromRunId(runId)
                 paramDependentDict = [i for i in paramsDependent if i['name']==dependentParamName][0]
-                paramDependentLabel = self.getDependentLabel(paramDependentDict)
+                paramDependentLabel = paramDependentDict['name']
                 curveId = self.getCurveId(paramDependentLabel)
 
                 if self._plotRefs[plotRef].plotType=='1d':
 
                     if curveId in self._plotRefs[plotRef].curves.keys():
-                        worker.signals.done.connect(self.updatePlot)
+                        worker.signals.updateDataFull.connect(self.updatePlot)
                     else:
-                        worker.signals.done.connect(self.addPlotFromThread)
+                        worker.signals.updateDataFull.connect(self.addPlotFromThread)
                 else:
 
-                    if paramDependentLabel == self._plotRefs[plotRef].zLabel:
-                        worker.signals.done.connect(self.updatePlot)
+                    if paramDependentLabel == self._plotRefs[plotRef].zLabelText:
+                        worker.signals.updateDataFull.connect(self.updatePlot)
                     else:
-                        worker.signals.done.connect(self.addPlotFromThread)
+                        worker.signals.updateDataFull.connect(self.addPlotFromThread)
             else:
-                worker.signals.done.connect(self.addPlotFromThread)
+                worker.signals.updateDataFull.connect(self.addPlotFromThread)
         else:
-            worker.signals.done.connect(self.addPlotFromThread)
+            worker.signals.updateDataFull.connect(self.addPlotFromThread)
 
         # Execute the thread
         self.threadpool.start(worker)
 
+
+
+    def updateDataEmpty(self) -> None:
+        """
+        Method called by LoadDataThread when the data download is done but the
+        database is empty.
+        We signal the data downloading being done by setting the flag False.
+        This will allow the next live plot iteration to try downloading the data
+        again.
+        """
+        
+        self._dataDowloadingFlag = False

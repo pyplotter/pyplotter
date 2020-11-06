@@ -11,7 +11,7 @@ class ImportDatabaseSignal(QtCore.QObject):
 
 
     # When the run method is done
-    done = QtCore.pyqtSignal(str, bool, int)
+    updateDatabase = QtCore.pyqtSignal(str, bool, int)
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
     # Signal used to add a row in the database table
@@ -78,7 +78,7 @@ class ImportDatabaseThread(QtCore.QRunnable):
                                      self.progressBarKey)
 
         # Signal that the whole database has been looked at
-        self.signals.done.emit(self.progressBarKey, False, nbTotalRun)
+        self.signals.updateDatabase.emit(self.progressBarKey, False, nbTotalRun)
 
 
 
