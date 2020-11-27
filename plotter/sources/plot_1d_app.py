@@ -150,6 +150,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.initFitGUI()
         # Add filtering function to the GUI
         self.initFilteringGUI()
+        
+        # Initialize font size spin button with the config file
+        self.spinBoxFontSize.setValue(config['axisLabelFontSize'])
 
 
         # Connect UI
@@ -164,6 +167,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.radioButtonFFTnoDC.clicked.connect(lambda:self.clickFFT(self.radioButtonFFTnoDC))
         self.radioButtonIFFT.clicked.connect(lambda:self.clickFFT(self.radioButtonIFFT))
 
+        self.spinBoxFontSize.valueChanged.connect(self.clickFontSize)
 
         # Add a radio button for each model of the list
         self.plotDataItemButtonGroup = QtWidgets.QButtonGroup()
@@ -698,6 +702,33 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             for dataPlotItem in self.plotItem.listDataItems():
                 dataPlotItem.setSymbol(None)
+
+
+
+    def clickFontSize(self) -> None:
+        """
+        Called when user click on the spinBoxFontSize button.
+        Modify the size of the label and ticks label accordingly to
+        the button number.
+        Modify the config file so that other plot window launched
+        afterwards have the same fontsize.
+        """
+        
+
+        config['axisLabelFontSize'] = int(self.spinBoxFontSize.value())
+        config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
+        
+        self.plotItem.setLabel(axis='bottom',
+                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel(axis='left',
+                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+
+        font=QtGui.QFont()
+        font.setPixelSize(config['tickLabelFontSize'])
+        self.plotItem.getAxis('bottom').setTickFont(font)
+        self.plotItem.getAxis('left').setTickFont(font)
 
 
 

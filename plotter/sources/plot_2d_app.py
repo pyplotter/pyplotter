@@ -142,7 +142,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Reference to the fit window
         self.extractiofitWindow = None
 
-
+        # Initialize font size spin button with the config file
+        self.spinBoxFontSize.setValue(config['axisLabelFontSize'])
 
 
         # Get plotItem from the widget
@@ -214,6 +215,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxDerivativeY.stateChanged.connect(lambda : self.checkBoxDerivativeYState(self.checkBoxDerivativeY))
         self.checkBoxDerivativeXY.stateChanged.connect(lambda : self.checkBoxDerivativeXYState(self.checkBoxDerivativeXY))
         self.pushButton3d.clicked.connect(self.launched3d)
+        self.spinBoxFontSize.valueChanged.connect(self.clickFontSize)
 
 
         # Add fitting function to the GUI
@@ -439,6 +441,36 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                             curveId))
 
         self.radioButtonSliceHorizontal.toggle()
+
+
+
+    def clickFontSize(self) -> None:
+        """
+        Called when user click on the spinBoxFontSize button.
+        Modify the size of the label and ticks label accordingly to
+        the button number.
+        Modify the config file so that other plot window launched
+        afterwards have the same fontsize.
+        """
+        
+
+        config['axisLabelFontSize'] = int(self.spinBoxFontSize.value())
+        config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
+        
+        self.plotItem.setLabel(axis='bottom',
+                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel(axis='left',
+                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+
+        font=QtGui.QFont()
+        font.setPixelSize(config['tickLabelFontSize'])
+        self.plotItem.getAxis('bottom').setTickFont(font)
+        self.plotItem.getAxis('left').setTickFont(font)
+        
+        self.plot2dzLabel.setFont(font)
+        self.histWidget.axis.setTickFont(font)
 
 
 
