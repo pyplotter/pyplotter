@@ -141,11 +141,13 @@ class ImportCSV:
             self.main.tableWidgetParameters.setItem(rowPosition, 5, QtGui.QTableWidgetItem(independentParameter))
 
             # Each checkbox at its own event attached to it
-            cb.toggled.connect(lambda cb      = cb,
-                                      xLabel  = independentParameter,
-                                      yLabel  = columnName,
-                                      data    = (x, y),
-                                      plotRef = self.main.getDataRef(): self.csvParameterClicked(cb, xLabel, yLabel, data, plotRef))
+            cb.toggled.connect(lambda cb          = cb,
+                                      xLabelText  = independentParameter,
+                                      xLabelUnits = '',
+                                      yLabelText  = columnName,
+                                      yLabelUnits = '',
+                                      data        = (x, y),
+                                      plotRef     = self.main.getDataRef(): self.csvParameterClicked(cb, xLabelText, xLabelUnits, yLabelText, yLabelUnits, data, plotRef))
             
             i += 1
 
@@ -154,25 +156,30 @@ class ImportCSV:
 
 
 
-    def csvParameterClicked(self, cb      : QtWidgets.QCheckBox,
-                                  xLabel  : str,
-                                  yLabel  : str,
-                                  data    : tuple,
-                                  plotRef : str) -> None:
+    def csvParameterClicked(self, cb          : QtWidgets.QCheckBox,
+                                  xLabelText  : str,
+                                  xLabelUnits : str,
+                                  yLabelText  : str,
+                                  yLabelUnits : str,
+                                  data        : tuple,
+                                  plotRef     : str) -> None:
         """
-        Call when user click on a pameter from a csv file in the tableWidgetParameters.
+        Call when user click on a parameter from a csv file in the tableWidgetParameters.
         Launch a plot if user check a parameter and remove curve otherwise.
         """
         
         if cb:
 
-            self.main.addPlot(plotRef        = plotRef,
-                              data           = data,
-                              xLabel         = xLabel,
-                              yLabel         = yLabel)
+            self.main.addPlot(plotRef     = plotRef,
+                              data        = data,
+                              xLabelText  = xLabelText,
+                              xLabelUnits = xLabelUnits,
+                              yLabelText  = yLabelText,
+                              yLabelUnits = yLabelUnits)
             
         else:
 
-            self.main.removePlot(plotRef, yLabel)
+            self.main.removePlot(plotRef = plotRef,
+                                 label   = yLabelText)
 
 

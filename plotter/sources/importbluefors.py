@@ -222,10 +222,12 @@ class ImportBlueFors:
                     
                     name = 'ch'+str(i)+'_pressure'
                     
-                    self.addPlot(plotRef = plotRef,
-                                 data    = (df[name].index.astype(np.int64).values//1e9, df[name]),
-                                 xLabel  = 'Time',
-                                 yLabel  = config[fileName][name[:3]])
+                    self.addPlot(plotRef     = plotRef,
+                                 data        = (df[name].index.astype(np.int64).values//1e9, df[name]*1e-3),
+                                 xLabelText  = 'Time',
+                                 xLabelUnits = '',
+                                 yLabelText  = config[fileName][name[:3]]['labelText'],
+                                 yLabelUnits = config[fileName][name[:3]]['labelUnits'])
                 
                 # Once all is plotting we autorange
                 self._plotRefs[plotRef].plotItem.vb.autoRange()
@@ -244,10 +246,12 @@ class ImportBlueFors:
                 # There is a space before the day
                 df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
 
-                self.addPlot(plotRef = plotRef,
-                             data    = (df['y'].index.astype(np.int64).values//1e9, df['y']),
-                             xLabel  = 'Time',
-                             yLabel  = config[fileName])
+                self.addPlot(plotRef    = plotRef,
+                             data       = (df['y'].index.astype(np.int64).values//1e9, df['y']*1e-3),
+                             xLabelText = 'Time',
+                             xLabelUnits = '',
+                             yLabelText  = config[fileName]['labelText'],
+                             yLabelUnits = config[fileName]['labelUnits'])
 
 
         else:
