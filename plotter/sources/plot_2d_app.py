@@ -211,11 +211,13 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxSwapxy.stateChanged.connect(self.checkBoxSwapxyState)
         self.checkBoxSubtractAverageX.stateChanged.connect(lambda : self.checkBoxSubtractAverageXState(self.checkBoxSubtractAverageX))
         self.checkBoxSubtractAverageY.stateChanged.connect(lambda : self.checkBoxSubtractAverageYState(self.checkBoxSubtractAverageY))
-        self.checkBoxDerivativeX.stateChanged.connect(lambda : self.checkBoxDerivativeXState(self.checkBoxDerivativeX))
-        self.checkBoxDerivativeY.stateChanged.connect(lambda : self.checkBoxDerivativeYState(self.checkBoxDerivativeY))
-        self.checkBoxDerivativeXY.stateChanged.connect(lambda : self.checkBoxDerivativeXYState(self.checkBoxDerivativeXY))
         self.pushButton3d.clicked.connect(self.launched3d)
         self.spinBoxFontSize.valueChanged.connect(self.clickFontSize)
+        
+        # UI for the derivative combobox
+        for label in config['plot2dDerivative']:
+            self.comboBoxDerivative.addItem(label)
+        self.comboBoxDerivative.activated.connect(self.comboBoxDerivativeActivated)
 
 
         # Add fitting function to the GUI
@@ -829,7 +831,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxDerivativeXState(self, cb: QtWidgets.QCheckBox) -> None:
+    def comboBoxDerivativeActivated(self, i) -> None:
         """
         Handle events when user wants to derivate along x.
 
@@ -839,76 +841,31 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Checkbox being checked.
         """
         
-        if cb.isChecked():
-
-            if self.checkBoxDerivativeY.isChecked():
-                self.checkBoxDerivativeY.setChecked(False)
-            if self.checkBoxDerivativeXY.isChecked():
-                self.checkBoxDerivativeXY.setChecked(False)
-
-            self.z_backupx = self.z
-            self.z = np.gradient(self.z, self.x, axis=0)
+        label = str(self.comboBoxDerivative.currentText())
+        
+        # The first time the function is used, we save the original z data
+        if not hasattr(self, 'z_backup'):
+            self.z_backup = self.z
+        
+        # Depending on the asked derivative, we calculate the new z data and
+        # the new z label
+        if label=='∂z/∂x':
+            self.z = np.gradient(self.z_backup, self.x, axis=0)
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.xLabelUnits+')')
-        else: 
-            self.z = self.z_backupx
-            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+')')
-
-        self.updateImageItem(self.x, self.y, self.z)
-
-
-
-    def checkBoxDerivativeYState(self, cb: QtWidgets.QCheckBox) -> None:
-        """
-        Handle events when user wants to derivate along y.
-
-        Parameters
-        ----------
-        cb : QtWidgets.QCheckBox
-            Checkbox being checked.
-        """
-        
-        if cb.isChecked():
-
-            if self.checkBoxDerivativeX.isChecked():
-                self.checkBoxDerivativeX.setChecked(False)
-            if self.checkBoxDerivativeXY.isChecked():
-                self.checkBoxDerivativeXY.setChecked(False)
-
-            self.z_backupy = self.z
-            self.z = np.gradient(self.z, self.y, axis=1)
+        elif label=='∂z/∂y':
+            self.z = np.gradient(self.z_backup, self.y, axis=1)
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.yLabelUnits+')')
-        else: 
-            self.z = self.z_backupy
-            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+')')
-
-        self.updateImageItem(self.x, self.y, self.z)
-
-
-
-    def checkBoxDerivativeXYState(self, cb: QtWidgets.QCheckBox) -> None:
-        """
-        Handle events when user wants the gradient.
-          ____________________
-        \/ (d/dx)^2 + (d/dy)^2
-        
-        Parameters
-        ----------
-        cb : QtWidgets.QCheckBox
-            Checkbox being checked.
-        """
-        
-        if cb.isChecked():
-
-            if self.checkBoxDerivativeX.isChecked():
-                self.checkBoxDerivativeX.setChecked(False)
-            if self.checkBoxDerivativeY.isChecked():
-                self.checkBoxDerivativeY.setChecked(False)
-
-            self.z_backupz = self.z
-            self.z = np.sqrt(np.gradient(self.z, self.x, axis=0)**2. + np.gradient(self.z, self.y, axis=1)**2.)
+        elif label=='√((∂z/∂x)² + (∂z/∂y)²)':
+            self.z = np.sqrt(np.gradient(self.z_backup, self.x, axis=0)**2. + np.gradient(self.z_backup, self.y, axis=1)**2.)
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+' x √('+self.xLabelUnits+'² + '+self.yLabelUnits+'²)')
+        elif label=='∂²z/∂x²':
+            self.z = np.gradient(np.gradient(self.z_backup, self.x, axis=0), self.x, axis=0)
+            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.xLabelUnits+'²)')
+        elif label=='∂²z/∂y²':
+            self.z = np.gradient(np.gradient(self.z_backup, self.y, axis=1), self.y, axis=1)
+            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.yLabelUnits+'²)')
         else: 
-            self.z = self.z_backupz
+            self.z = self.z_backup
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+')')
 
         self.updateImageItem(self.x, self.y, self.z)

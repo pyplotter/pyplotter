@@ -140,6 +140,14 @@ config = {
 'plot1dSymbol' : ['o', 's', 't', 'd', '+'],
 'plot1dAntialias' : False,
 'plot2dcm' : 'Viridis', # Default colormap
+# List of derivative for 2d plot
+# Each new entry should also be coded in the comboBoxDerivativeActivated method
+# see plot_2d_app.py.
+'plot2dDerivative' : ['∂z/∂x',
+                      '∂z/∂y',
+                      '√((∂z/∂x)² + (∂z/∂y)²)',
+                      '∂²z/∂x²',
+                      '∂²z/∂y²'],
 'plot1dColors': [(227,  26,  28), 
                  ( 51, 160,  44), 
                  (255, 127,   0), 
