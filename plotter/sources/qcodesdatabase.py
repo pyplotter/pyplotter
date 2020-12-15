@@ -511,72 +511,62 @@ class QcodesDatabase:
         # In order to display a progress of the info gathering, we need the
         # number of runs to be downloaded.
         conn, cur = self.openDatabase()
-
         cur.execute("SELECT MAX(run_id) FROM runs")
         rows = cur.fetchall()
         
         if progressBarUpdate is None:
-            
             callEvery = None
         else:
-
-            callEvery = int(rows[0]['max(run_id)']/100*6*config['displayedDownloadQcodesPercentage'])
+            # 25 is a magic number to get a progressBar close to 100%
+            callEvery = int(rows[0]['max(run_id)']*25/100*config['displayedDownloadQcodesPercentage'])
 
         self.closeDatabase(conn, cur)
-
-
-
         # We download the run info while updating the progress bar
         conn, cur = self.openDatabase(callEvery=callEvery)
 
-        # Get runs infos
-        cur.execute("SELECT run_id, exp_id, name, completed_timestamp, run_timestamp, result_table_name, run_description FROM 'runs'")
 
+        ## Get runs infos
+        cur.execute("SELECT run_id, exp_id, name, completed_timestamp, run_timestamp, result_table_name, run_description FROM 'runs'")
         runInfos = cur.fetchall()
         result_table_names = [row['result_table_name'] for row in runInfos]
         runIds = [str(row['run_id']) for row in runInfos]
 
-        self.closeDatabase(conn, cur)
-
-        # Initialize again the progress bar for the second query
-        self.progressBarValue  = 0
-
-        if progressBarUpdate is None:
-            
-            callEvery = None
-        else:
-            callEvery = int(len(result_table_names)/100*6*config['displayedDownloadQcodesPercentage'])
-
-
-        # We download the number of records per run while updating the progress bar
-        conn, cur = self.openDatabase(callEvery=callEvery)
+        ## Get runs records
+        # If there is more than maximumRunPerRequest runs in the database, we 
+        # split the request in as many subrequests as necessary.
+        # recors will then contains a list of sqlite3.Row object containing the
+        # reply of each subrequest.
+        records = []
+        for slice in range(len(result_table_names)//config['maximumRunPerRequest']+1):
+            request = 'SELECT '
+            for result_table_name, runId in zip(result_table_names[slice*config['maximumRunPerRequest']:(slice+1)*config['maximumRunPerRequest']], runIds[slice*config['maximumRunPerRequest']:(slice+1)*config['maximumRunPerRequest']]):
+                request += '(SELECT MAX(id) FROM "'+result_table_name+'") AS runId'+runId+','
+            cur.execute(request[:-1])
+            records.append(cur.fetchall()[0])
 
 
-        # Get runs records
-        request = 'SELECT '
-        for result_table_name, runId in zip(result_table_names, runIds):
-            request += '(SELECT MAX(id) FROM "'+result_table_name+'") AS runId'+runId+','
-
-        cur.execute(request[:-1])
-        records = cur.fetchall()[0]
-
-
-        # Get experiments Infos
+        ## Get experiments infos
         cur.execute("SELECT  exp_id, name, sample_name FROM 'experiments'")
         experimentInfos = cur.fetchall()
-        
         self.closeDatabase(conn, cur)
 
+
+        # Transform all previous sqlite3.Row object obtained previously into
+        # a nice dict.
+        # The dict is created be first going through all subrequests and then
+        # through sqlite3.Row objects.
         infos = {}
-        for runInfo, runRecords in zip(runInfos, records):
-            infos[runInfo['run_id']] = {'nb_independent_parameter' : self.getNbIndependentFromRow(runInfo),
-                                        'nb_dependent_parameter' : self.getNbDependentFromRow(runInfo),
-                                        'experiment_name' : experimentInfos[runInfo['exp_id']-1]['name'],
-                                        'sample_name' : experimentInfos[runInfo['exp_id']-1]['sample_name'],
-                                        'run_name' : runInfo['name'],
-                                        'started' : self.timestamp2string(runInfo['run_timestamp']),
-                                        'completed' : self.timestamp2string(runInfo['completed_timestamp']),
-                                        'records' : runRecords}
+        for slice in range(len(result_table_names)//config['maximumRunPerRequest']+1):
+            for runInfo, runRecords in zip(runInfos[slice*config['maximumRunPerRequest']:(slice+1)*config['maximumRunPerRequest']], records[slice]):
+                infos[runInfo['run_id']] = {'nb_independent_parameter' : self.getNbIndependentFromRow(runInfo),
+                                            'nb_dependent_parameter' : self.getNbDependentFromRow(runInfo),
+                                            'experiment_name' : experimentInfos[runInfo['exp_id']-1]['name'],
+                                            'sample_name' : experimentInfos[runInfo['exp_id']-1]['sample_name'],
+                                            'run_name' : runInfo['name'],
+                                            'started' : self.timestamp2string(runInfo['run_timestamp']),
+                                            'completed' : self.timestamp2string(runInfo['completed_timestamp']),
+                                            'records' : runRecords}
+
 
         return infos
 
@@ -726,20 +716,3 @@ class QcodesDatabase:
         self.closeDatabase(conn, cur)
 
         return d
-
-
-
-
-# # a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\edumur_test.db"
-# a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\bluelagoon\2020\20200623_20200226_NbN01_A1\data\experiments.db"
-# # a = r"S:\132-PHELIQS\132.05-LATEQS\132.05.01-QuantumSilicon\experiments.db"
-# q = QcodesDatabase()
-# q.databasePath = a
-
-# # d = q.getRunInfos(3)
-# # d = q.getIndependentDependentSnapshotFromRunId(3)
-# d = q.getParameterData(103, 'vna1_TR1_Magnitude')
-
-# # print(q.getRunInfos2())
-
-# # print(qc.dataset.sqlite.queries.get_run_infos(q.conn))

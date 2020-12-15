@@ -20,6 +20,10 @@ config = {
 # If True the the run id is added to the window title
 'displayRunIdInPlotTitle' : True, 
 
+# Maximum number of runs being treated on the same SQL request
+# Should be somwhere below 2020
+'maximumRunPerRequest' : 2000, # int
+
 # Gives the downloading file percentage must progressed to be displayed
 'displayedDownloadQcodesPercentage' : 5, # int
 
