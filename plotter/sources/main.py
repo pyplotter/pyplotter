@@ -5,6 +5,7 @@ from pprint import pformat
 from typing import Generator, Union, Callable, List
 import uuid
 import numpy as np
+import time
 import sys 
 sys.path.append('ui')
 
@@ -413,7 +414,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         # Connect signals
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
-        worker.signals.addRow.connect(self.dataBaseClickedAddRow)
+        worker.signals.addRows.connect(self.dataBaseClickedAddRows)
         worker.signals.updateProgressBar.connect(self.updateProgressBar)
         worker.signals.updateDatabase.connect(self.dataBaseClickedDone)
 
@@ -422,56 +423,58 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def dataBaseClickedAddRow(self, runId          : str,
-                                    dim            : list,
-                                    experimentName : str,
-                                    sampleName     : str,
-                                    runName        : str,
-                                    started        : str,
-                                    completed      : str,
-                                    runRecords     : str,
-                                    progress       : int,
-                                    nbTotalRun     : int,
-                                    progressBarKey : str) -> None:
+    def dataBaseClickedAddRows(self, lrunId          : List[int],
+                                     ldim            : List[str],
+                                     lexperimentName : List[str],
+                                     lsampleName     : List[str],
+                                     lrunName        : List[str],
+                                     lstarted        : List[str],
+                                     lcompleted      : List[str],
+                                     lrunRecords     : List[str],
+                                     nbTotalRun     : int,
+                                     progressBarKey : str) -> None:
         """
         Called by another thread to fill the database table.
-        Each call add one line in the table.
+        Each call add n rows into the table.
         """
         
-        rowPosition = self.tableWidgetDataBase.rowCount()
+        # We go through all lists of parameters and for each list element, we add
+        # a row in the table
+        for (runId, dim, experimentName, sampleName, runName, started, completed,
+             runRecords) in zip(lrunId,
+             ldim, lexperimentName, lsampleName, lrunName, lstarted, lcompleted,
+             lrunRecords):
 
-        if rowPosition==0:
-            self.statusBar.clearMessage()
+            if runId==1:
+                self.statusBar.clearMessage()
+                self.tableWidgetDataBase.setRowCount(nbTotalRun)
 
-        self.updateProgressBar(progressBarKey, progress, text='Displaying database: run '+runId+'/'+str(nbTotalRun))
+            self.updateProgressBar(progressBarKey, int(runId/nbTotalRun*100), text='Displaying database: run '+str(runId)+'/'+str(nbTotalRun))
+            
+            itemRunId = MyTableWidgetItem(str(runId))
+            
+            # If the run has been stared by an user
+            if runId in self.getRunStared():
+                itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'star.png'))
+                itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runStaredColor'])))
+            # If the user has hidden a row
+            elif runId in self.getRunHidden():
+                itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'trash.png'))
+                itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
+            else:
+                itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'empty.png'))
+            
+            self.tableWidgetDataBase.setItem(runId-1, 0, itemRunId)
+            self.tableWidgetDataBase.setItem(runId-1, 1, QtGui.QTableWidgetItem(dim))
+            self.tableWidgetDataBase.setItem(runId-1, 2, QtGui.QTableWidgetItem(experimentName))
+            self.tableWidgetDataBase.setItem(runId-1, 3, QtGui.QTableWidgetItem(sampleName))
+            self.tableWidgetDataBase.setItem(runId-1, 4, QtGui.QTableWidgetItem(runName))
+            self.tableWidgetDataBase.setItem(runId-1, 5, QtGui.QTableWidgetItem(started))
+            self.tableWidgetDataBase.setItem(runId-1, 6, QtGui.QTableWidgetItem(completed))
+            self.tableWidgetDataBase.setItem(runId-1, 7, MyTableWidgetItem(runRecords))
 
-        # Create new row
-        self.tableWidgetDataBase.insertRow(rowPosition)
-        
-        itemRunId = MyTableWidgetItem(runId)
-        
-        # If the run has been stared by an user
-        if int(runId) in self.getRunStared():
-            itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'star.png'))
-            itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runStaredColor'])))
-        # If the user has hidden a row
-        elif int(runId) in self.getRunHidden():
-            itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'trash.png'))
-            itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
-        else:
-            itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'empty.png'))
-        
-        self.tableWidgetDataBase.setItem(rowPosition, 0, itemRunId)
-        self.tableWidgetDataBase.setItem(rowPosition, 1, QtGui.QTableWidgetItem('-'.join(str(i) for i in dim)+'d'))
-        self.tableWidgetDataBase.setItem(rowPosition, 2, QtGui.QTableWidgetItem(experimentName))
-        self.tableWidgetDataBase.setItem(rowPosition, 3, QtGui.QTableWidgetItem(sampleName))
-        self.tableWidgetDataBase.setItem(rowPosition, 4, QtGui.QTableWidgetItem(runName))
-        self.tableWidgetDataBase.setItem(rowPosition, 5, QtGui.QTableWidgetItem(started))
-        self.tableWidgetDataBase.setItem(rowPosition, 6, QtGui.QTableWidgetItem(completed))
-        self.tableWidgetDataBase.setItem(rowPosition, 7, MyTableWidgetItem(runRecords))
-
-        if int(runId) in self.getRunHidden():
-            self.tableWidgetDataBase.setRowHidden(rowPosition, True)
+            if runId in self.getRunHidden():
+                self.tableWidgetDataBase.setRowHidden(runId, True)
 
 
 

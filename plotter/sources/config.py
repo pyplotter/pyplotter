@@ -27,6 +27,9 @@ config = {
 # Gives the downloading file percentage must progressed to be displayed
 'displayedDownloadQcodesPercentage' : 5, # int
 
+# Number of runs to be transferred at the same time when displaying a database
+'NbRunEmit' : 100, # int
+
 # Message to display when station has not been defined in a qcodes experiment
 'defaultSnapshot' : '<span style="color: red; font-weight: bold;">Station undefined, you fool</span>',
 

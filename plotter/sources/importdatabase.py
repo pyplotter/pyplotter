@@ -3,6 +3,7 @@ from PyQt5 import QtCore
 from typing import Callable
 
 
+from .config import config
 
 class ImportDatabaseSignal(QtCore.QObject):
     """
@@ -14,8 +15,8 @@ class ImportDatabaseSignal(QtCore.QObject):
     updateDatabase = QtCore.pyqtSignal(str, bool, int)
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
-    # Signal used to add a row in the database table
-    addRow = QtCore.pyqtSignal(str, list, str, str, str, str, str, str, int, int, str)
+    # Signal used to add n rows in the database table
+    addRows = QtCore.pyqtSignal(list, list, list, list, list, list, list, list, int, str)
     # Signal used to update the progress bar
     updateProgressBar = QtCore.pyqtSignal(str, int)
 
@@ -63,19 +64,64 @@ class ImportDatabaseThread(QtCore.QRunnable):
         # Going through the database here
         self.signals.setStatusBarMessage.emit('Loading database', False)
         nbTotalRun = len(runInfos)
+        
+        
+        # We go through the runs info and build list to be transferred to the main 
+        # thread. Every config['NbRunEmit'] a signal is emitted and the list are
+        # empty and the process starts again until all info have been stransferred.
+        runId           = []
+        dim             = []
+        experimentName  = []
+        sampleName      = []
+        runName         = []
+        started         = []
+        completed       = []
+        runRecords      = []
         for key, val in runInfos.items(): 
-
-            self.signals.addRow.emit(str(key),
-                                     val['nb_independent_parameter'],
-                                     val['experiment_name'],
-                                     val['sample_name'],
-                                     val['run_name'],
-                                     val['started'],
-                                     val['completed'],
-                                     str(val['records']),
-                                     key/nbTotalRun*100,
-                                     nbTotalRun,
-                                     self.progressBarKey)
+            
+            runId.append(key)
+            dim.append('-'.join(str(i) for i in val['nb_independent_parameter'])+'d')
+            experimentName.append(val['experiment_name'])
+            sampleName.append(val['sample_name'])
+            runName.append(val['run_name'])
+            started.append(val['started'])
+            completed.append(val['completed'])
+            runRecords.append(str(val['records']))
+            
+            # If we reach enough data, we emit the signal.
+            if key%config['NbRunEmit']==0:
+                self.signals.addRows.emit(runId,
+                                         dim,
+                                         experimentName,
+                                         sampleName,
+                                         runName,
+                                         started,
+                                         completed,
+                                         runRecords,
+                                         nbTotalRun,
+                                         self.progressBarKey)
+                
+                runId           = []
+                dim             = []
+                experimentName  = []
+                sampleName      = []
+                runName         = []
+                started         = []
+                completed       = []
+                runRecords      = []
+        
+        # If there is still information to be transferred, we do so
+        if len(runId)!=0:
+            self.signals.addRows.emit(runId,
+                                      dim,
+                                      experimentName,
+                                      sampleName,
+                                      runName,
+                                      started,
+                                      completed,
+                                      runRecords,
+                                      nbTotalRun,
+                                      self.progressBarKey)
 
         # Signal that the whole database has been looked at
         self.signals.updateDatabase.emit(self.progressBarKey, False, nbTotalRun)
