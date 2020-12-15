@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1024</width>
-    <height>771</height>
+    <height>563</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,6 +17,9 @@
    <layout class="QVBoxLayout" name="verticalLayout_4">
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_3">
+      <property name="bottomMargin">
+       <number>1</number>
+      </property>
       <item>
        <layout class="QHBoxLayout" name="TopHorizontalLayout">
         <item>
@@ -137,8 +140,8 @@
        <widget class="QSplitter" name="splitter">
         <property name="minimumSize">
          <size>
-          <width>1000</width>
-          <height>690</height>
+          <width>0</width>
+          <height>482</height>
          </size>
         </property>
         <property name="orientation">
@@ -148,6 +151,12 @@
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
            <widget class="QSplitter" name="splitter_2">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
             <property name="orientation">
              <enum>Qt::Vertical</enum>
             </property>
