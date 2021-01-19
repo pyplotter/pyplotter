@@ -113,7 +113,15 @@ class LoadDataThread(QtCore.QRunnable):
 
             # 2d plot
             elif len(paramsIndependent)==2:
-
+                
+                # for qcodes version >0.18, 2d data are return as a 2d array
+                # to keep code backward compatible, we transform it back to
+                # 1d array.
+                if d[paramsIndependent[1]['name']].ndim==2:
+                    d[paramsIndependent[0]['name']] = d[paramsIndependent[0]['name']].flatten()
+                    d[paramsIndependent[1]['name']] = d[paramsIndependent[1]['name']].flatten()
+                    d[paramsDependent['name']]      = d[paramsDependent['name']].flatten()
+                
                 # Find the effective x and y axis, see findXYIndex
                 xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
                 

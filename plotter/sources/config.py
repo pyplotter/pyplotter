@@ -7,7 +7,7 @@ config = {
 # The soft will not allowed to go above that path
 'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
 # Default display path, should be at least the root
-'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon/',
+'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon/bluelagoon/2021/2021014_RNBN7_BA5_35_S8_XXL_AAEE2_W9\data',
 # Folder having these names will be colored, easier to browse
 'enhancedFolder' : ['bluelagoon','Cryoconcept', 'RF4K_stick', 'smurf', 'Tritonito', 'data', '2020'],
 # Other files will not appear in the plotter
