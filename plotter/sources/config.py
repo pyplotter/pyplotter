@@ -5,15 +5,25 @@ config = {
 
 # Do not put "/" after ":" in the two following paths
 # The soft will not allowed to go above that path
-'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
+'root' : 'Q:/',
 # Default display path, should be at least the root
-'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon/',
+'path' : 'Q:/',
 # Folder having these names will be colored, easier to browse
-'enhancedFolder' : ['bluelagoon','Cryoconcept', 'RF4K_stick', 'smurf', 'Tritonito', 'triton', 'data', '2021'],
+'enhancedFolder' : ['bluelagoon',
+                    'Cryoconcept',
+                    'RF4K_stick',
+                    'smurf',
+                    'Tritonito',
+                    'triton',
+                    'data',
+                    '2021'],
 # Other files will not appear in the plotter
-'authorizedExtension' : ['db', 'csv', 's2p'], 
+'authorizedExtension' : ['db',
+                         'csv',
+                         's2p'], 
 # Will not be displayed, usefull for some windows file
-'forbiddenFile' : ['thumbs.db', 'Thumbs.db'], 
+'forbiddenFile' : ['thumbs.db',
+                   'Thumbs.db'], 
 
 # If False the path is displayed in the plot title
 'displayOnlyDbNameInPlotTitle' : False, 
