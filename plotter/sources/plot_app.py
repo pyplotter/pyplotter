@@ -43,10 +43,10 @@ class PlotApp(object):
         Return True/False when the mouse enters/leaves by the PlotWidget.
         """
         
-        if event.type() == QtCore.QEvent.Enter:
+        if event.type()==QtCore.QEvent.Enter:
             self.widgetHovered = True
             return True
-        elif event.type() == QtCore.QEvent.Leave:
+        elif event.type()==QtCore.QEvent.Leave:
             self.widgetHovered = False
         return False
 
@@ -153,18 +153,18 @@ class PlotApp(object):
                 spaceY = '&nbsp;'
             
             
-            if self.plotType == '1d':
+            if self.plotType=='1d':
 
                 if self.timestampXAxis:
                     x = datetime.datetime.utcfromtimestamp(self.mousePos[0]).strftime('%Y-%m-%d %H:%M:%S')
                     self.labelCoordinate.setText('x: {:}<br/>y: {}{:.{nbDecimal}e}'.format(spaceX, x, spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
                 else:
                     self.labelCoordinate.setText('x: {}{:.{nbDecimal}e}<br/>y: {}{:.{nbDecimal}e}'.format(spaceX, self.mousePos[0],spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
-            elif self.plotType == '2d':
+            elif self.plotType=='2d':
 
-                n = np.abs(self.x-self.mousePos[0]).argmin()
-                m = np.abs(self.y-self.mousePos[1]).argmin()
-                z = self.z[n,m]
+                n = np.abs(self.xData-self.mousePos[0]).argmin()
+                m = np.abs(self.yData-self.mousePos[1]).argmin()
+                z = self.zData[n,m]
                 
                 spaceZ = ''
                 if z>0:
@@ -211,7 +211,7 @@ class PlotApp(object):
 
         # if the plot is a 2dplot, there is a possibility that the user mouse is
         # above an infiniteLine, if so, we remove the crosshair
-        if self.plotType == '2d':
+        if self.plotType=='2d':
             for line in list(self.infiniteLines.values()):
                 if line.mouseHovering:
                     remove = True
@@ -220,13 +220,13 @@ class PlotApp(object):
         if not remove and self.vLine is None:
             # Build the crosshair style
 
-            if config['crossHairLineStyle'] == 'solid':
+            if config['crossHairLineStyle']=='solid':
                 lineStyle = QtCore.Qt.SolidLine 
-            elif config['crossHairLineStyle'] == 'dashed':
+            elif config['crossHairLineStyle']=='dashed':
                 lineStyle = QtCore.Qt.DashLine  
-            elif config['crossHairLineStyle'] == 'dotted':
+            elif config['crossHairLineStyle']=='dotted':
                 lineStyle = QtCore.Qt.DotLine  
-            elif config['crossHairLineStyle'] == 'dashed-dotted':
+            elif config['crossHairLineStyle']=='dashed-dotted':
                 lineStyle = QtCore.Qt.DashDotLine
             else:
                 raise ValueError('Config parameter "crossHairLineStyle" not recognize')

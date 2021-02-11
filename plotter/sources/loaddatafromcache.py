@@ -1,151 +1,82 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore
 import numpy as np
-from typing import Callable, Tuple
-
-from .qcodesdatabase import QcodesDatabase
+from typing import Tuple
 
 
 
-class LoadDataSignal(QtCore.QObject):
+class LoadDataFromCacheSignal(QtCore.QObject):
     """
-    Class containing the signal of the LoadDataThread, see below
+    Class containing the signal of the LoadDataFromCacheThread, see below
     """
 
-
-    # When the run method is done
-    # Signature
-    # plotRef: str, progressBarKey: str, data: tuple
-    # xLabelText: str, xLabelUnits: str,
-    # yLabelText: str, yLabelUnits: str,
-    # zLabelText: str, zLabelUnits: str,
-    updateDataFull = QtCore.pyqtSignal(str, str, tuple, str, str, str, str, str, str)
-    # Signal used to update the status bar
-    setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
-    # Signal to update the progress bar
-    updateProgressBar = QtCore.pyqtSignal(str, int)
-    # Signal when the data download is done but the database is empty
-    # Useful for the starting of the liveplot
-    updateDataEmpty = QtCore.pyqtSignal()
+    dataLoaded = QtCore.pyqtSignal(str, tuple, str)
 
 
 
 
-class LoadDataThread(QtCore.QRunnable):
+class LoadDataFromCacheThread(QtCore.QRunnable):
 
 
-    def __init__(self, runId              : int,
-                       dependentParamName : str,
-                       plotRef            : str,
-                       progressBarKey     : str,
-                       getParameterData   : Callable[[int, str, Callable], dict],
-                       getParameterInfo   : Callable[[int], list]) -> None:
+    def __init__(self, plotRef : str,
+                       dataDict: np.ndarray,
+                       xLabelText:str,
+                       yLabelText:str,
+                       zLabelText:str) -> None:
         """
-        Thread used to get data for a 1d or 2d plot from a runId.
 
         Parameters
         ----------
-        runId : int
-            run id from which the data are downloaded
-        dependentParamName : str
-            Name of the dependent parameter from which data will be downloaded.
-        plotRef : str
-            Reference of the curve.
-        progressBarKey : str
-            Key to the progress bar in the dict progressBars.
-        getParameterData : func
-            Method from QcodesDatabase class initialized in the main thread
-            with the current database file location.
-            See QcodesDatabase for more details. 
-        getParameterInfo : func
-            Method from QcodesDatabase class initialized in the main thread
-            with the current database file location.
-            See QcodesDatabase for more details.
         """
 
-        super(LoadDataThread, self).__init__()
+        super(LoadDataFromCacheThread, self).__init__()
 
-        self.qcodesDatabase = QcodesDatabase()
-
-        self.runId              = runId
-        self.dependentParamName = dependentParamName
-        self.plotRef            = plotRef
-        self.progressBarKey     = progressBarKey
-        self.getParameterData   = getParameterData
-        self.getParameterInfo   = getParameterInfo
+        self.plotRef    = plotRef
+        self.dataDict   = dataDict
+        self.xLabelText = xLabelText
+        self.yLabelText = yLabelText
+        self.zLabelText = zLabelText
         
-
-        self.signals = LoadDataSignal() 
+        self.signals = LoadDataFromCacheSignal() 
 
 
 
     @QtCore.pyqtSlot()
     def run(self) -> None:
         """
-        Download the data and launch a plot
         """
-
-        self.signals.setStatusBarMessage.emit('Extracting data from database', False)
-
-        paramsDependent, paramsIndependent = self.getParameterInfo(self.runId, self.dependentParamName)
         
-        d = self.getParameterData(self.runId, paramsDependent['name'], self.signals.updateProgressBar, self.progressBarKey)
-        
-        # If getParameterData failed, or the database is empty we emit a specific
-        # signal which will flag the data download as done without launching a
-        # new plot window
-        if d is None or len(d)==0:
-            self.signals.updateDataEmpty.emit()
+        # It takes some iteration for the cache to start having data
+        # We check here if there is data in the cache
+        if self.zLabelText=='':
+            if len(self.dataDict[self.yLabelText])==0:
+                data = ([],[])
+            else:
+                d = self.dataDict[self.yLabelText]
+                data = (d[self.xLabelText], d[self.yLabelText])
         else:
-
-            # 1d plot
-            if len(paramsIndependent)==1:
-                
-                data = d[paramsIndependent[0]['name']], d[paramsDependent['name']]
-
-                xLabelText  = paramsIndependent[0]['name']
-                xLabelUnits = paramsIndependent[0]['unit']
-                yLabelText  = paramsDependent['name']
-                yLabelUnits = paramsDependent['unit']
-                zLabelText  = ''
-                zLabelUnits = ''
-
-
-            # 2d plot
-            elif len(paramsIndependent)==2:
-                
-                # for qcodes version >0.18, 2d data are return as a 2d array
-                # to keep code backward compatible, we transform it back to
-                # 1d array.
-                if d[paramsIndependent[1]['name']].ndim==2:
-                    d[paramsIndependent[0]['name']] = d[paramsIndependent[0]['name']].flatten()
-                    d[paramsIndependent[1]['name']] = d[paramsIndependent[1]['name']].flatten()
-                    d[paramsDependent['name']]      = d[paramsDependent['name']].flatten()
+            if len(self.dataDict[self.zLabelText])==0:
+                data = (np.array([0., 1.]),
+                        np.array([0., 1.]),
+                        np.array([[0., 1.],
+                                  [0., 1.]]))
+            else:
+                d = self.dataDict[self.zLabelText]
+                data = (d[self.xLabelText],
+                        d[self.yLabelText],
+                        d[self.zLabelText].flatten())
                 
                 # Find the effective x and y axis, see findXYIndex
-                xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
-                
-                # We try to load data
-                # if there is none, we return an empty array
-                data = self.shapeData2d(d[paramsIndependent[xi]['name']],
-                                        d[paramsIndependent[yi]['name']],
-                                        d[paramsDependent['name']])
+                xi, yi = self.findXYAxesIndex(data[1])
+                # Shapped the 2d Data
+                data = self.shapeData2d(data[xi], data[yi], data[2])
 
-                xLabelText  = paramsIndependent[xi]['name']
-                xLabelUnits = paramsIndependent[xi]['unit']
-                yLabelText  = paramsIndependent[yi]['name']
-                yLabelUnits = paramsIndependent[yi]['unit']
-                zLabelText  = paramsDependent['name']
-                zLabelUnits = paramsDependent['unit']
-
-
-            # Signal to launched a plot with the downloaded data
-            self.signals.updateDataFull.emit(self.plotRef, self.progressBarKey, data, xLabelText, xLabelUnits, yLabelText, yLabelUnits, zLabelText, zLabelUnits)
+        self.signals.dataLoaded.emit(self.plotRef, data, self.yLabelText)
 
 
 
     @staticmethod
-    def findXYIndex(y: np.ndarray) -> Tuple[int]:
+    def findXYAxesIndex(y: np.ndarray) -> Tuple[int]:
         """
         Find effective "x" column
         The x column is defined as the column where the independent parameter
@@ -168,10 +99,10 @@ class LoadDataThread(QtCore.QRunnable):
             return 0, 1
 
 
-
-    def shapeData2d(self, x: np.ndarray,
-                          y: np.ndarray,
-                          z: np.ndarray) -> Tuple[np.ndarray]:
+    @staticmethod
+    def shapeData2d(x: np.ndarray,
+                    y: np.ndarray,
+                    z: np.ndarray) -> Tuple[np.ndarray]:
         """
         Shape the data for a 2d plot but mainly handled all kind of data error/missing/...
 
@@ -179,10 +110,6 @@ class LoadDataThread(QtCore.QRunnable):
         and z as a 2d array.
         In case of non regular grid, the y axis is approximated.
         """
-
-
-        self.signals.setStatusBarMessage.emit('Shapping 2d data for display', False)
-
 
         # Nb points in the 1st dimension
         xn = len(np.unique(x))
@@ -229,8 +156,6 @@ class LoadDataThread(QtCore.QRunnable):
             
             zz = z
         else:
-
-            self.signals.setStatusBarMessage.emit('Irregular grid detected, shapping 2d data', False)
 
             xx = x[:,0]
             
@@ -280,8 +205,6 @@ class LoadDataThread(QtCore.QRunnable):
             z2d : 2d np.array
                 Value of the polygons
         """
-        self.signals.setStatusBarMessage.emit('Shapping 2d data for display', False)
-
 
         ## Treat the data depending on their shape
         # We get the number of point in the x and y dimension

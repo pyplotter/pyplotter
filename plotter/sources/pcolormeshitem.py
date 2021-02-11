@@ -164,10 +164,10 @@ class PColorMeshItem(GraphicsObject):
         if self.qpicture is None:
             shapeChanged = True
 
-        if len(args) == 0 and self.z is None:
+        if len(args)==0 and self.z is None:
             print('return')
             return
-        elif len(args) == 0:
+        elif len(args)==0:
             print('x', self.x)
             pass
         elif len(args)==1:
@@ -193,18 +193,18 @@ class PColorMeshItem(GraphicsObject):
 
             w = Point(x-o).length()
             h = Point(y-o).length()
-            if w == 0 or h == 0:
+            if w==0 or h==0:
                 self.qpicture = None
                 return
             xds = max(1, int(1.0 / w))
             yds = max(1, int(1.0 / h))
-            axes = [1, 0] if self.axisOrder == 'row-major' else [0, 1]
+            axes = [1, 0] if self.axisOrder=='row-major' else [0, 1]
             z = fn.downsample(self.z, xds, axis=axes[0])
             z = fn.downsample(z, yds, axis=axes[1])
             self._lastDownsample = (xds, yds)
 
             # Check if downsampling reduced the z size to zero due to inf values.
-            if z.size == 0:
+            if z.size==0:
                 return
         else:
             z = self.z
@@ -361,19 +361,19 @@ class PColorMeshItem(GraphicsObject):
 
         This method is also used when automatically computing levels.
         """
-        if self.z is None or self.z.size == 0:
+        if self.z is None or self.z.size==0:
             return None, None
-        if step == 'auto':
+        if step=='auto':
             step = (max(1, int(np.ceil(self.z.shape[0] / targetImageSize))),
                     max(1, int(np.ceil(self.z.shape[1] / targetImageSize))))
         if np.isscalar(step):
             step = (step, step)
         stepData = self.z[::step[0], ::step[1]]
 
-        if isinstance(bins, str) and bins == 'auto':
+        if isinstance(bins, str) and bins=='auto':
             mn = np.nanmin(stepData)
             mx = np.nanmax(stepData)
-            if mx == mn:
+            if mx==mn:
                 # degenerate image, arange will fail
                 mx += 1
             if np.isnan(mn) or np.isnan(mx):
@@ -387,7 +387,7 @@ class PColorMeshItem(GraphicsObject):
                 # for float data, let numpy select the bins.
                 bins = np.linspace(mn, mx, 500)
 
-            if len(bins) == 0:
+            if len(bins)==0:
                 bins = [mn, mx]
 
         kwds['bins'] = bins

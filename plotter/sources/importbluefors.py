@@ -83,7 +83,7 @@ class ImportBlueFors:
 
 
     @staticmethod
-    def isBlueForsFolder(folderName : str) -> bool:
+    def isBlueForsFolder(folderName : Optional[str]=None) -> bool:
         """
         Return True if a string follow blueFors log folder name pattern.
 
@@ -97,13 +97,16 @@ class ImportBlueFors:
         bool
             Return True if a string follow blueFors log folder name pattern.
         """
-    
-        return len(folderName.split('-'))==3 and all([len(i)==2 for i in folderName.split('-')]) == True
+
+        if folderName is None:
+            return False
+        else:
+            return len(folderName.split('-'))==3 and all([len(i)==2 for i in folderName.split('-')])==True
 
 
 
     @staticmethod
-    def clearTableWidet(tableWidget : QtWidgets.QTableWidget) -> None:
+    def clearTableWidget(tableWidget : QtWidgets.QTableWidget) -> None:
         """
         Method to remove all row from a table widget.
         When this function is called, it should be followed by:
@@ -135,8 +138,8 @@ class ImportBlueFors:
         ## Fill the tableWidgetParameters with the run parameters
 
         # Clean GUI
-        self.clearTableWidet(self.tableWidgetDataBase)
-        self.clearTableWidet(self.tableWidgetParameters)
+        self.clearTableWidget(self.tableWidgetDataBase)
+        self.clearTableWidget(self.tableWidgetParameters)
         self.tableWidgetDataBase.setSortingEnabled(True)
         self.tableWidgetParameters.setSortingEnabled(True)
         self.textEditMetadata.clear()
@@ -202,7 +205,7 @@ class ImportBlueFors:
             self.setStatusBarMessage('Loading BlueFors data')
             
             # Maxigauges file (all pressure gauges)
-            if fileName == 'maxigauge':
+            if fileName=='maxigauge':
 
                 df = pd.read_csv(filePath,
                                 delimiter=',',
@@ -256,7 +259,7 @@ class ImportBlueFors:
 
         else:
             
-            if fileName == 'maxigauge':
+            if fileName=='maxigauge':
                 for i in range(1, 7):
                     name = 'ch'+str(i)+'_pressure'
                     self.removePlot(plotRef = plotRef,

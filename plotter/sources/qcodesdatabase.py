@@ -3,6 +3,7 @@ import time
 import sqlite3
 import json
 from qcodes.dataset import load_by_id
+from qcodes.dataset.data_set import DataSet
 from qcodes.dataset.sqlite.database import connect
 from qcodes.dataset.sqlite.connection import ConnectionPlus
 from typing import Callable, Tuple, List
@@ -148,7 +149,6 @@ class QcodesDatabase:
         """
 
         return time.strftime(fmt, time.localtime(timestamp))
-
 
 
 
@@ -401,6 +401,7 @@ class QcodesDatabase:
 
 
 
+
     def getParameterInfo(self, runId         : int,
                                parameterName : str) -> Tuple[dict, List[dict]]:
         """
@@ -441,8 +442,6 @@ class QcodesDatabase:
         dependences = [j for i in param['depends_on'] for j in d['interdependencies']['paramspecs'] if j['name']==i]
 
         return param, dependences
-
-
 
 
 
@@ -716,3 +715,19 @@ class QcodesDatabase:
         self.closeDatabase(conn, cur)
 
         return d
+
+
+
+
+    def load_by_id(self, runId: int) -> DataSet:
+        
+        # We download the data while updating the progress bar
+        conn, cur = self.openDatabase()
+        
+        ds =  load_by_id(run_id=runId, conn=conn)
+
+        
+        conn.commit()
+        # self.closeDatabase(conn, cur)
+
+        return ds

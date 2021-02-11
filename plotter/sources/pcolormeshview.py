@@ -214,17 +214,17 @@ class PColorMeshView(QtGui.QWidget):
         profiler()
         
         if axes is None:
-            x,y = (0, 1) if self.imageItem.axisOrder == 'col-major' else (1, 0)
+            x,y = (0, 1) if self.imageItem.axisOrder=='col-major' else (1, 0)
             
-            if img.ndim == 2:
+            if img.ndim==2:
                 self.axes = {'t': None, 'x': x, 'y': y, 'c': None}
-            elif img.ndim == 3:
+            elif img.ndim==3:
                 # Ambiguous case; make a guess
                 if img.shape[2] <= 4:
                     self.axes = {'t': None, 'x': x, 'y': y, 'c': 2}
                 else:
                     self.axes = {'t': 0, 'x': x+1, 'y': y+1, 'c': None}
-            elif img.ndim == 4:
+            elif img.ndim==4:
                 # Even more ambiguous; just assume the default
                 self.axes = {'t': 0, 'x': x+1, 'y': y+1, 'c': 3}
             else:
@@ -274,7 +274,7 @@ class PColorMeshView(QtGui.QWidget):
             if len(self.tVals) > 1:
                 start = self.tVals.min()
                 stop = self.tVals.max() + abs(self.tVals[-1] - self.tVals[0]) * 0.02
-            elif len(self.tVals) == 1:
+            elif len(self.tVals)==1:
                 start = self.tVals[0] - 0.5
                 stop = self.tVals[0] + 0.5
             else:
@@ -310,7 +310,7 @@ class PColorMeshView(QtGui.QWidget):
         This can also be accessed by pressing the spacebar."""
         #print "play:", rate
         self.playRate = rate
-        if rate == 0:
+        if rate==0:
             self.playTimer.stop()
             return
             
@@ -356,19 +356,19 @@ class PColorMeshView(QtGui.QWidget):
         
     def keyPressEvent(self, ev):
         #print ev.key()
-        if ev.key() == QtCore.Qt.Key_Space:
-            if self.playRate == 0:
+        if ev.key()==QtCore.Qt.Key_Space:
+            if self.playRate==0:
                 fps = (self.getProcessedImage().shape[0]-1) / (self.tVals[-1] - self.tVals[0])
                 self.play(fps)
                 #print fps
             else:
                 self.play(0)
             ev.accept()
-        elif ev.key() == QtCore.Qt.Key_Home:
+        elif ev.key()==QtCore.Qt.Key_Home:
             self.setCurrentIndex(0)
             self.play(0)
             ev.accept()
-        elif ev.key() == QtCore.Qt.Key_End:
+        elif ev.key()==QtCore.Qt.Key_End:
             self.setCurrentIndex(self.getProcessedImage().shape[0]-1)
             self.play(0)
             ev.accept()
@@ -397,24 +397,24 @@ class PColorMeshView(QtGui.QWidget):
             QtGui.QWidget.keyReleaseEvent(self, ev)
         
     def evalKeyState(self):
-        if len(self.keysPressed) == 1:
+        if len(self.keysPressed)==1:
             key = list(self.keysPressed.keys())[0]
-            if key == QtCore.Qt.Key_Right:
+            if key==QtCore.Qt.Key_Right:
                 self.play(20)
                 self.jumpFrames(1)
                 self.lastPlayTime = ptime.time() + 0.2  ## 2ms wait before start
                                                         ## This happens *after* jumpFrames, since it might take longer than 2ms
-            elif key == QtCore.Qt.Key_Left:
+            elif key==QtCore.Qt.Key_Left:
                 self.play(-20)
                 self.jumpFrames(-1)
                 self.lastPlayTime = ptime.time() + 0.2
-            elif key == QtCore.Qt.Key_Up:
+            elif key==QtCore.Qt.Key_Up:
                 self.play(-100)
-            elif key == QtCore.Qt.Key_Down:
+            elif key==QtCore.Qt.Key_Down:
                 self.play(100)
-            elif key == QtCore.Qt.Key_PageUp:
+            elif key==QtCore.Qt.Key_PageUp:
                 self.play(-1000)
-            elif key == QtCore.Qt.Key_PageDown:
+            elif key==QtCore.Qt.Key_PageDown:
                 self.play(1000)
         else:
             self.play(0)
@@ -529,7 +529,7 @@ class PColorMeshView(QtGui.QWidget):
         if self.axes['t'] is None:
             # Average across y-axis of ROI
             data = data.mean(axis=axes[1])
-            if axes == (1,0): ## we're in row-major order mode -- there's probably a better way to do this slicing dynamically, but I've not figured it out yet.
+            if axes==(1,0): ## we're in row-major order mode -- there's probably a better way to do this slicing dynamically, but I've not figured it out yet.
                 coords = coords[:,0,:] - coords[:,0,0:1]
             else: #default to old way
                 coords = coords[:,:,0] - coords[:,0:1,0] 
@@ -540,10 +540,10 @@ class PColorMeshView(QtGui.QWidget):
             xvals = self.tVals
 
         # Handle multi-channel data
-        if data.ndim == 1:
+        if data.ndim==1:
             plots = [(xvals, data, 'w')]
-        if data.ndim == 2:
-            if data.shape[1] == 1:
+        if data.ndim==2:
+            if data.shape[1]==1:
                 colors = 'w'
             else:
                 colors = 'rgbw'
@@ -575,11 +575,11 @@ class PColorMeshView(QtGui.QWidget):
             
         cax = self.axes['c']
         if cax is None:
-            if data.size == 0:
+            if data.size==0:
                 return [(0, 0)]
             return [(float(nanmin(data)), float(nanmax(data)))]
         else:
-            if data.size == 0:
+            if data.size==0:
                 return [(0, 0)] * data.shape[-1]
             return [(float(nanmin(data.take(i, axis=cax))), 
                      float(nanmax(data.take(i, axis=cax)))) for i in range(data.shape[-1])]
@@ -603,7 +603,7 @@ class PColorMeshView(QtGui.QWidget):
         if div:
             norm = norm.astype(np.float32)
             
-        if self.ui.normTimeRangeCheck.isChecked() and image.ndim == 3:
+        if self.ui.normTimeRangeCheck.isChecked() and image.ndim==3:
             (sind, start) = self.timeIndex(self.normRgn.lines[0])
             (eind, end) = self.timeIndex(self.normRgn.lines[1])
             #print start, end, sind, eind
@@ -614,7 +614,7 @@ class PColorMeshView(QtGui.QWidget):
             else:
                 norm -= n
                 
-        if self.ui.normFrameCheck.isChecked() and image.ndim == 3:
+        if self.ui.normFrameCheck.isChecked() and image.ndim==3:
             n = image.mean(axis=1).mean(axis=1)
             n.shape = n.shape + (1, 1)
             if div:
@@ -622,7 +622,7 @@ class PColorMeshView(QtGui.QWidget):
             else:
                 norm -= n
             
-        if self.ui.normROICheck.isChecked() and image.ndim == 3:
+        if self.ui.normROICheck.isChecked() and image.ndim==3:
             n = self.normRoi.getArrayRegion(norm, self.imageItem, (1, 2)).mean(axis=1).mean(axis=1)
             n = n[:,np.newaxis,np.newaxis]
             #print start, end, sind, eind
@@ -654,7 +654,7 @@ class PColorMeshView(QtGui.QWidget):
             self.ui.histogram.setHistogramRange(self.levelMin, self.levelMax)
         
         # Transpose image into order expected by ImageItem
-        if self.imageItem.axisOrder == 'col-major':
+        if self.imageItem.axisOrder=='col-major':
             axorder = ['t', 'x', 'y', 'c']
         else:
             axorder = ['t', 'y', 'x', 'c']
@@ -727,7 +727,7 @@ class PColorMeshView(QtGui.QWidget):
         fileName = QtGui.QFileDialog.getSaveFileName()
         if isinstance(fileName, tuple):
             fileName = fileName[0]  # Qt4/5 API difference
-        if fileName == '':
+        if fileName=='':
             return
         self.export(str(fileName))
         

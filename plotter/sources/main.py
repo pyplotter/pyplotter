@@ -2,11 +2,11 @@
 from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
 import os
 from pprint import pformat
-from typing import Generator, Union, Callable, List
+from typing import Generator, Union, Callable, List, Tuple
 import uuid
 import numpy as np
 import time
-import sys 
+import sys
 sys.path.append('ui')
 
 # Correct bug with pyqtgraph and python3.8 by replacing function name
@@ -25,6 +25,7 @@ from .runpropertiesextra import RunPropertiesExtra
 from .mytablewidgetitem import MyTableWidgetItem
 from .importdatabase import ImportDatabaseThread
 from .loaddata import LoadDataThread
+from .loaddatafromcache import LoadDataFromCacheThread
 from .config import config
 from .plot_1d_app import Plot1dApp
 from .plot_2d_app import Plot2dApp
@@ -64,9 +65,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.tableWidgetDataBase.keyPressed.connect(self.tableWidgetDataBasekeyPress)
         self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
         
-        self.checkBoxLivePlot.toggled.connect(self.livePlotToggle)
+        self.pushButtonLivePlot.clicked.connect(self.livePlotPushButton)
         self.spinBoxLivePlot.setValue(int(config['livePlotTimer']))
         self.spinBoxLivePlot.valueChanged.connect(self.livePlotSpinBoxChanged)
+        
         self.checkBoxHidden.stateChanged.connect(lambda : self.checkBoxHiddenState(self.checkBoxHidden))
 
         self.lineEditFilter.textChanged.connect(self.lineEditFilterTextEdited)
@@ -112,7 +114,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         self._currentDatabase    = None
         self._oldTotalRun        = None
-        self._livePlotMode       = False
         self._livePlotFetchData  = False
         self._livePlotTimer      = None
 
@@ -187,7 +188,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         for i, text in enumerate(path):
 
             # Build button text depending of where we are
-            if text == root[-1]:
+            if text==root[-1]:
                 bu_text = 'root'
             elif text not in root:
                 bu_text = text
@@ -229,16 +230,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         databaseStared = self.getDatabaseStared()
 
         ## Display the current dir content
-        self.clearTableWidet(self.tableWidgetFolder)
+        self.clearTableWidget(self.tableWidgetFolder)
         self.tableWidgetFolder.setSortingEnabled(True)
         row = 0
         for file in sorted(os.listdir(self.currentPath), reverse=True): 
             
             abs_filename = os.path.join(self.currentPath, file)
             file_extension = os.path.splitext(abs_filename)[-1][1:]
-
-            
-            
 
             # Only display folder and Qcodes database
             # Add icon depending of the item type
@@ -276,10 +274,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                             if subfile==file[:-2]+'db-wal':
                                 DatabaseAlreadyOpened = True
 
-                        if file_extension.lower() == 'csv':
+                        if file_extension.lower()=='csv':
                             item =  QtGui.QTableWidgetItem(file)
                             item.setIcon(QtGui.QIcon(PICTURESPATH+'csv.png'))
-                        elif file_extension.lower() == 's2p':
+                        elif file_extension.lower()=='s2p':
                             item =  QtGui.QTableWidgetItem(file)
                             item.setIcon(QtGui.QIcon(PICTURESPATH+'s2p.png'))
                         elif DatabaseAlreadyOpened and file in databaseStared:
@@ -306,9 +304,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                         self.tableWidgetFolder.setItem(row, 1, fileSizeItem)
                         row += 1
                     
-
-        self.enableLivePlot(False)
-
         # Allow item event again
         self._folderUpdating = False
 
@@ -330,7 +325,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # Get current item
             currentRow = self.tableWidgetFolder.currentIndex().row()
             self._currentDatabase =  self.tableWidgetFolder.model().index(currentRow, 0).data()
-
             nextPath = os.path.join(self.currentPath, self._currentDatabase)
 
             # If the folder is a BlueFors folder
@@ -380,19 +374,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         self.databaseClicking = True
+        
+        # We show the database is now opened
+        if self.isDatabaseStared():
 
-        if not self._livePlotMode:
-            
-            # We show the database is now opened
-            if self.isDatabaseStared():
-
-                currentRow = self.tableWidgetFolder.currentIndex().row()
-                item = self.tableWidgetFolder.item(currentRow, 0)
-                item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpenedStared.png'))
-            else:
-                currentRow = self.tableWidgetFolder.currentIndex().row()
-                item = self.tableWidgetFolder.item(currentRow, 0)
-                item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpened.png'))
+            currentRow = self.tableWidgetFolder.currentIndex().row()
+            item = self.tableWidgetFolder.item(currentRow, 0)
+            item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpenedStared.png'))
+        else:
+            currentRow = self.tableWidgetFolder.currentIndex().row()
+            item = self.tableWidgetFolder.item(currentRow, 0)
+            item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpened.png'))
 
         # Disable interactivity
         self.checkBoxHidden.setChecked(False)
@@ -402,7 +394,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.labelCurrentDataBase.setText(self._currentDatabase[:-3])
 
         # Remove all previous row in the table
-        self.clearTableWidet(self.tableWidgetDataBase)
+        self.clearTableWidget(self.tableWidgetDataBase)
 
         self.qcodesDatabase.databasePath = os.path.join(self.currentPath, self._currentDatabase)
 
@@ -500,6 +492,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         if not error:
             self.tableWidgetDataBase.setSortingEnabled(True)
+            self.tableWidgetDataBase.sortItems(0, QtCore.Qt.DescendingOrder)
 
             # Enable database interaction
             self.checkBoxHidden.setEnabled(True)
@@ -513,7 +506,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Done 
         self.databaseClicking = False
 
-
         # We show the database is now closed
         if self.isDatabaseStared():
 
@@ -524,8 +516,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             currentRow = self.tableWidgetFolder.currentIndex().row()
             item = self.tableWidgetFolder.item(currentRow, 0)
             item.setIcon(QtGui.QIcon(PICTURESPATH+'database.png'))
-
-        self.enableLivePlot(True)
 
 
 
@@ -562,30 +552,23 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         runId = self.getRunId()
         experimentName = self.getRunExperimentName()
 
-        if self._livePlotMode:
-            runId = str(self.nbTotalRun)
-        else:
-            runId = str(self.getRunId())
+        runId = str(self.getRunId())
 
         self.setStatusBarMessage('Loading run parameters')
-
 
         # Get independent parameters list without the independent parameters
         # Get parameters list without the independent parameters
         dependentList, snapshotDict = self.qcodesDatabase.getDependentSnapshotFromRunId(runId)
 
 
-        # ds = self.qcodesDatabase.getDatasetFromRunId(int(self.getRunId()))
-
         ## Update label
         self.labelCurrentRun.setText(runId)
         self.labelCurrentMetadata.setText(runId)
 
 
-
         ## Fill the tableWidgetParameters with the run parameters
 
-        self.clearTableWidet(self.tableWidgetParameters)
+        self.clearTableWidget(self.tableWidgetParameters)
         for dependent in dependentList:
             
             rowPosition = self.tableWidgetParameters.rowCount()
@@ -683,7 +666,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 self.setStatusBarMessage('Plotter does not handle data whose dim>2', error=True)
                 return
             else:
-
                 self.getData(plotRef            = plotRef,
                              dependentParamName = dependentParamName)
 
@@ -692,7 +674,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             
             self.removePlot(plotRef = plotRef,
                             label   = paramDependent['name'])
-        
+
 
 
     ###########################################################################
@@ -867,7 +849,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                             return True
                 if plot.plotType=='2d':
                     if dataRef in plot.plotRef:
-                        if plot.zLabelText == parameterLabel:
+                        if plot.zLabelText==parameterLabel:
                             return True
 
         return False
@@ -902,7 +884,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
     @staticmethod
-    def clearTableWidet(tableWidget : QtWidgets.QTableWidget) -> None:
+    def clearTableWidget(tableWidget : QtWidgets.QTableWidget) -> None:
         """
         Method to remove all row from a table widget.
         When this function is called, it should be followed by:
@@ -995,32 +977,40 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Will be empty for signal from Plot1dApp since this parameter is only
             usefull for Plot2dApp.
         """
-
-        # If the closed curve is currently being displayed in the parameter table
-        if self.getWindowTitle(runId) == windowTitle and self.getRunId() == runId:
-            
-            # If 1d plot
-            if self._plotRefs[plotRef].plotType=='1d':
-            
-                # If the current displayed parameters correspond to the one which has
-                # been closed, we uncheck all the checkbox listed in the table
-                for row in range(self.tableWidgetParameters.rowCount()):
-                    widget = self.tableWidgetParameters.cellWidget(row, 2)
-                    widget.setChecked(False)
-            # If 2d plot
-            else:
-                # We uncheck only the plotted parameter
-                targetedZaxis = label.split('[')[0][:-1]
-                for row in range(self.tableWidgetParameters.rowCount()):
-                    if targetedZaxis == self.tableWidgetParameters.item(row, 3).text():
+        
+        # If the close plot window is a liveplot one
+        if plotRef in self.getLivePlotRef():
+            if hasattr(self, '_livePlotDataSet'):
+                if self._plotRefs[plotRef].plotType=='1d':
+                    labels = [i.curveLabel for i in self._plotRefs[plotRef].curves.values()]
+                    [self.removePlot(plotRef, label) for label in labels]
+                else:
+                    self.removePlot(plotRef, label)
+                del(self._livePlotDataSet)
+        else:
+            if self.getWindowTitle(runId)==windowTitle and self.getRunId()==runId:
+                
+                # If 1d plot
+                if self._plotRefs[plotRef].plotType=='1d':
+                
+                    # If the current displayed parameters correspond to the one which has
+                    # been closed, we uncheck all the checkbox listed in the table
+                    for row in range(self.tableWidgetParameters.rowCount()):
                         widget = self.tableWidgetParameters.cellWidget(row, 2)
                         widget.setChecked(False)
+                # If 2d plot
+                else:
+                    # We uncheck only the plotted parameter
+                    for row in range(self.tableWidgetParameters.rowCount()):
+                        if label==self.tableWidgetParameters.item(row, 3).text():
+                            widget = self.tableWidgetParameters.cellWidget(row, 2)
+                            widget.setChecked(False)
 
-        # Unchecking the checkbox automatically called the removeplot method
-        # However this method must be called even if the dependent parameter
-        # closed was not in the parameter table
-        else:
-            self.removePlot(plotRef, label)
+            # Unchecking the checkbox automatically called the removeplot method
+            # However this method must be called even if the dependent parameter
+            # closed was not in the parameter table
+            else:
+                self.removePlot(plotRef, label)
 
 
 
@@ -1034,32 +1024,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def getNbTotalRun(self, refresh_db: bool=False) -> int:
-        """
-        Return the total number of run in current database
-
-        Parameters
-        ----------
-        refresh_db : bool, default False
-            If False return the total number of run currently displayed.
-            If True make a sql query to the db to get the total number of run.
-        """
-
-        if refresh_db:
-            self.nbTotalRun = self.qcodesDatabase.getNbTotalRun()
-
-        return self.nbTotalRun
-
-
-
-    def getRunId(self) -> int:
+    def getRunId(self, livePlot: bool=False) -> int:
         """
         Return the current selected run id.
         if Live plot mode, return the total number of run.
         """
 
-        if self._livePlotMode:
-            return self.getNbTotalRun()
+        if livePlot:
+            return self._livePlotRunId
         else:
 
             # If not in liveplot mode we get the runId from the gui to avoid
@@ -1084,7 +1056,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def getCurveId(self, label: str) -> str:
+    def getCurveId(self, label: str,
+                         livePlot: bool=False) -> str:
         """
         Return an id for a curve in a plot.
         Should be unique for every curve.
@@ -1093,9 +1066,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         ----------
         label : str
             Parameter label from which the curveId is obtained.
+        livePlot : bool
+            If the plot displaying the curve is a liveplot
         """ 
-
-        return os.path.abspath(self._currentDatabase)+str(self.getRunId())+str(label)
+        
+        if livePlot:
+            return self._livePlotPath+str(self._livePlotRunId)+str(label)
+        else:
+            return self._currentDatabase+str(self.getRunId())+str(label)
 
 
 
@@ -1105,60 +1083,72 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if Live plot mode, return the experiment name of the last recorded run.
         """
         
-        
-        if self._livePlotMode:
+        currentRow = self.tableWidgetDataBase.currentIndex().row()
+        experimentName =  self.tableWidgetDataBase.model().index(currentRow, 2).data()
+        if experimentName is None:
+            experimentName = self.tableWidgetParameters.item(0, 1).text()
 
-            return self.qcodesDatabase.getExperimentNameLastId()
-        else:
-            currentRow = self.tableWidgetDataBase.currentIndex().row()
-            experimentName =  self.tableWidgetDataBase.model().index(currentRow, 2).data()
-            if experimentName is None:
-                
-                experimentName = self.tableWidgetParameters.item(0, 1).text()
-
-            return str(experimentName)
+        return str(experimentName)
 
 
 
-    def getWindowTitle(self, runId: int=None) -> str:
+    def getWindowTitle(self, runId: int=None, livePlot:bool=False) -> str:
         """
         Return a title which will be used as a plot window title.
         """
-
         if config['displayRunIdInPlotTitle']:
-            return self._currentDatabase+' - '+str(runId)
+            if livePlot:
+                return os.path.basename(self._livePlotPath)+' - '+str(self._livePlotRunId)
+            else:
+                return str(self._currentDatabase)+' - '+str(runId)
         else:
-            return self._currentDatabase
+            if livePlot:
+                return os.path.basename(self._livePlotPath)
+            else:
+                return str(self._currentDatabase)
 
 
 
-    def getPlotTitle(self) -> str:
+    def getPlotTitle(self, livePlot:bool=False) -> str:
         """
         Return a plot title in a normalize way displaying the folders and
         file name.
         """
-
-        # If BlueFors log files
-        if self.importblueFors.isBlueForsFolder(self._currentDatabase):
-            return self._currentDatabase
-        # If csv or s2p files we return the filename without the extension
-        elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
-            return self._currentDatabase[:-4]
-        else:
+        
+        if livePlot:
             # If user only wants the database path
             if config['displayOnlyDbNameInPlotTitle']:
-                title = self._currentDatabase
+                title = os.path.basename(self._livePlotPath)
             # If user wants the database path
             else:
-                title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
-                title = '/'.join(title)
+                title = os.path.basename(self._livePlotPath)
+            return title+'<br>'+str(self._livePlotRunId)+' - '+self._livePlotDataSet.exp_name+config['livePlotTitleAppend']
 
-            title = title+'<br>'+str(self.getRunId())+' - '+self.getRunExperimentName()
-            return title
+        else:
+            # If no database have been selected ever
+            if self._currentDatabase is None:
+                return ''
+            # If BlueFors log files
+            elif self.importblueFors.isBlueForsFolder(self._currentDatabase):
+                return self._currentDatabase
+            # If csv or s2p files we return the filename without the extension
+            elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
+                return self._currentDatabase[:-4]
+            else:
+                # If user only wants the database path
+                if config['displayOnlyDbNameInPlotTitle']:
+                    title = self._currentDatabase
+                # If user wants the database path
+                else:
+                    title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
+                    title = '/'.join(title)
+
+                title = title+'<br>'+str(self.getRunId())+' - '+self.getRunExperimentName()
+                return title
 
 
 
-    def getDataRef(self) -> str:
+    def getDataRef(self, livePlot: bool=False) -> str:
         """
         Return a reference for the data.
         This should be unique for a given set of data.
@@ -1166,20 +1156,24 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         runid.
         """
 
-        path = os.path.normpath(os.path.abspath(self._currentDatabase)).replace('\\', '')
-        
-        # If BlueFors log files
-        if self.importblueFors.isBlueForsFolder(self._currentDatabase):
-            return path
-        # If csv or s2p files we return the filename without the extension
-        elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
-            return path
+        if livePlot:
+            return self._livePlotPath + str(self._livePlotRunId)
         else:
-            return path+str(self.getRunId())
+            path = os.path.abspath(self._currentDatabase)
+            
+            # If BlueFors log files
+            if self.importblueFors.isBlueForsFolder(self._currentDatabase):
+                return path
+            # If csv or s2p files we return the filename without the extension
+            elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
+                return path
+            else:
+                return path+str(self.getRunId())
 
 
 
-    def getPlotRef(self, dataRef: str, paramDependent: dict) -> str:
+    def getPlotRef(self, dataRef        : str,
+                         paramDependent : dict) -> str:
         """
         Return a reference for a plot window.
         Handle the difference between 1d plot and 2d plot.
@@ -1213,198 +1207,310 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     ###########################################################################
 
 
-    def enableLivePlot(self, enable: bool) -> None:
-        """
-        Enable or disable GUI for the liveplotting mode
-        Useful when the GUI is busy and we do not want user to go to liveplot
-        mode.
-        """
 
-        if enable:
-            self.checkBoxLivePlot.setEnabled(True)
-            self.spinBoxLivePlot.setEnabled(True)
-            self.labelLivePlot.setEnabled(True)
-            self.labelLivePlot2.setEnabled(True)
-            self.labelLivePlotDataBase.setEnabled(True)
-            self.labelLivePlotDataBase.setText(self._currentDatabase[:-3])
-        else:
-            self.checkBoxLivePlot.setEnabled(False)
-            self.spinBoxLivePlot.setEnabled(False)
-            self.labelLivePlot.setEnabled(False)
-            self.labelLivePlot2.setEnabled(False)
-            self.labelLivePlotDataBase.setEnabled(False)
-            self.labelLivePlotDataBase.setText('')
-
-
-
-    def getLivePlotRef(self) -> Union[None, str]:
+    def getLivePlotRef(self) -> list:
         """
-        Return the reference of the live plot window.
-        If no live plot are displayed, return None.
+        Return a list of the live plot windows references.
+        Return an empty list if no liveplot window
         """
-        
-        
+        refs = []
         # We get which open plot window is the liveplot one
         for ref, plot in self._plotRefs.items():
             if plot.livePlot:
-                return ref
+                refs.append(ref)
+        
+        return refs
 
 
 
-    def livePlotUpdate(self):
-
-        # If user selected database
-        if self._currentDatabase is not None:
-
-            # Check if database has one more run
-            # if there is a new run, we launch a plot
-            if self._oldTotalRun is not None:
-
-                nbtotalRun = self.getNbTotalRun(True)
-                if self._oldTotalRun != nbtotalRun:
-                    
-                    # We refresh the database display
-                    self.dataBaseClicked()
-                    
-                    databaseUpdated = False
-                    while not databaseUpdated:
-                        QtTest.QTest.qWait(500)
-                        try:
-                            self.runClicked()
-                            databaseUpdated = True
-                        except:
-                            pass
-
-
-                    # We click on the third parameter, which will launch a plot
-                    self.parameterCellClicked(0,2)
-
-                    # We update the total number of run
-                    self._oldTotalRun = nbtotalRun
-
-                    # We save the fact that we have to update an existing live plot
-                    self._livePlotFetchData = True
-
-            else:
-                self._oldTotalRun = self.getNbTotalRun(True)
-
-
-        # If we have to update the data of a livePlot
-        # and if we are not already downlading data
-        if self._livePlotFetchData and not self._dataDowloadingFlag:
-
-            runId = int(self.getNbTotalRun())
-            
-            self.setStatusBarMessage('Fetching data')
-
-            # We get which open plot window is the liveplot one
-            livePlotRef = self.getLivePlotRef()
-            
-            # If there is no live plot, because user closed it/them for example
-            # We relaunch a live plot of the first parameters
-            if livePlotRef is None:
-                self.parameterCellClicked(0,2)
-            
-            # If the live plot is a 1d plot
-            elif self._plotRefs[livePlotRef].plotType == '1d':
-                
-                # We get which parameters has to be updated
-                for row in range(self.tableWidgetParameters.rowCount()):
-                    widget = self.tableWidgetParameters.cellWidget(row, 2)
-                    
-                    # For every checked parameter, we update the data
-                    if widget.isChecked():
-                        
-                        dependentParamName = self.tableWidgetParameters.item(row, 3).text()
-                        self.getData(livePlotRef, dependentParamName)
-
-            # If the live plot is a 2d plot
-            else:
-                # We get which parameters has to be updated
-                for row in range(self.tableWidgetParameters.rowCount()):
-                    widget = self.tableWidgetParameters.cellWidget(row, 2)
-                    
-                    # For every checked parameter, we update the data
-                    if widget.isChecked():
-
-                        dependentParamName = self.tableWidgetParameters.item(row, 3).text()
-                        self.getData(livePlotRef, dependentParamName)
-
-            self.setStatusBarMessage('Plot updating')
-
-            # If the run is done
-            if self.qcodesDatabase.isRunCompleted(runId):
-
-                self.setStatusBarMessage('Run done')
-
-                # We remove the livePlotFlag attached to the plot window
-                livePlotRef = self.getLivePlotRef()
-                if livePlotRef in self._plotRefs:
-                    self._plotRefs[livePlotRef].livePlot = False
-
-                # We cancel the need to update the plot
-                self._livePlotFetchData = False
-
-                # We update the database to display the completed and records info
-                self.dataBaseClicked()
-
-
-
-    def livePlotToggle(self):
+    def livePlotUpdatePlotData(self, plotRef        : str,
+                                     data           : tuple,
+                                     yLabelText     : str) -> None:
         """
-        When the user click the checkbox launching the liveplot mode
+        Methods called in live plot mode to update plot.
+        This method must have the same signature as addPlot.
+
+        Parameters
+        ----------
+        plotRef : str
+            Reference of the plot, see getDataRef.
+        data : tuple
+            For 1d plot: (xData, yData)
+            For 2d plot: (xData, yData, zData)
+        yLabelText : str
+            Label text for the yAxis.
         """
 
-        if self.checkBoxLivePlot.isChecked():
-            
-            # Launch the liveplot mode
-            self._livePlotMode = True
+        # 1d plot
+        if len(data)==2:
+            self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
+                                                       y           = data[1],
+                                                       curveId     = self.getCurveId(yLabelText, livePlot=True),
+                                                       curveLegend = None,
+                                                       autoRange   = True)
+        # 2d plot
+        elif len(data)==3:
+            self._plotRefs[plotRef].livePlotUpdate(x=data[0],
+                                                   y=data[1],
+                                                   z=data[2])
 
-            # We call the liveplot function once manually to be sure it has been
-            # initialized properly
-            self.livePlotUpdate()
-            
-            # Disable browsing
-            self.tableWidgetFolder.setEnabled(False)
-            self.tableWidgetDataBase.setEnabled(False)
-            widgets = (self.labelPath.itemAt(i).widget() for i in range(self.labelPath.count())) 
-            for widget in widgets:
-                widget.setEnabled(False)
+            # If there are slices, we update them as well
+            # plotSlice = self.getPlotSliceFromRef(plotRef)
+            # if plotSlice is not None:
+            for curveId, lineItem in self._plotRefs[plotRef].infiniteLines.items():
 
-            # Launch a Qt timer which will periodically check if a new run is
-            # launched
-            self._livePlotTimer = QtCore.QTimer()
-            self._livePlotTimer.timeout.connect(self.livePlotUpdate)
-            self._livePlotTimer.setInterval(self.spinBoxLivePlot.value()*1000)
-            self._livePlotTimer.start()
+                # We find its orientation
+                if lineItem.angle==90:
+                    sliceOrientation = 'vertical'
+                else:
+                    sliceOrientation = 'horizontal'
+
+                # We need the data of the slice
+                sliceX, sliceY, sliceLegend = self._plotRefs[plotRef].getDataSlice(lineItem)
+
+                # Get the 1d plot of the slice
+                plotSlice = self._plotRefs[plotRef].getPlotRefFromSliceOrientation(sliceOrientation)
+
+                # We update the slice data
+                plotSlice.updatePlotDataItem(x           = sliceX,
+                                             y           = sliceY,
+                                             curveId     = curveId,
+                                             curveLegend = sliceLegend,
+                                             autoRange   = True)
+
+
+
+    def livePlotGetPlotParameters(self) -> List[list]:
+        """
+        Gather the information from the current live plot dataset and sort them
+        into iterables.
+        """
+        
+        # Get dataset params
+        paramsIndependent = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)==0]
+        paramsDependent   = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)!=0]
+        
+        # We prepare the plot window parameters depending on the plot dimension
+        if len(paramsIndependent)>2:
+            return
+        elif len(paramsIndependent)==2:
+            xLabelText   = [paramsIndependent[0].label for i in paramsDependent]
+            xLabelUnits  = [paramsIndependent[0].unit for i in paramsDependent]
+            yLabelTexts  = [paramsIndependent[1].label for i in paramsDependent]
+            yLabelUnitss = [paramsIndependent[1].unit for i in paramsDependent]
+            zLabelTexts  = [i.label for i in paramsDependent]
+            zLabelUnitss = [i.unit for i in paramsDependent]
+            plotRefs     = [self.getDataRef(livePlot=True)+i.name for i in paramsDependent]
+        else: 
+            xLabelText   = [paramsIndependent[0].label for i in paramsDependent]
+            xLabelUnits  = [paramsIndependent[0].unit for i in paramsDependent]
+            yLabelTexts  = [i.label for i in paramsDependent]
+            yLabelUnitss = [i.unit for i in paramsDependent]
+            zLabelTexts  = ['' for i in paramsDependent]
+            zLabelUnitss = ['' for i in paramsDependent]
+            plotRefs     = [self.getDataRef(livePlot=True) for i in paramsDependent]
+            
+        return xLabelText, xLabelUnits, yLabelTexts, yLabelUnitss, zLabelTexts, zLabelUnitss, plotRefs
+
+
+
+    def livePlotLaunchPlot(self) -> None:
+        """
+        Method called by the livePlotUpdate method.
+        Obtain the info of the current live plot dataset cache, treat them and
+        send them to the addPlot method.
+        """
+
+        #    1d.  We launch a plot window with all the dependent parameters
+        #         plotted as plotDataItem.
+        #    2d.  We launch as many plot window as dependent parameters.
+        # Get dataset params
+        paramsIndependent = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)==0]
+        
+        plotTitle   = self.getPlotTitle(livePlot=True)
+        windowTitle = self.getWindowTitle(runId=self._livePlotRunId,
+                                            livePlot=True)
+        
+        for xLabelText, xLabelUnits, yLabelText, yLabelUnits, zLabelText, zLabelUnits, plotRef in zip(*self.livePlotGetPlotParameters()):
+            # Only the first dependent parameter is displayed per default
+            if yLabelText==paramsIndependent[0].label:
+                hidden = False
+            else:
+                hidden = True
+            
+            # Create empty data for the plot window launching
+            if zLabelText=='':
+                data = [[],[]]
+            else:
+                data = [np.array([0., 1.]),
+                        np.array([0., 1.]),
+                        np.array([[0., 1.],
+                                  [0., 1.]])]
+            
+            self.addPlot(plotRef        = plotRef,
+                         data           = data,
+                         xLabelText     = xLabelText,
+                         xLabelUnits    = xLabelUnits,
+                         yLabelText     = yLabelText,
+                         yLabelUnits    = yLabelUnits,
+                         zLabelText     = zLabelText,
+                         zLabelUnits    = zLabelUnits,
+                         cleanCheckBox  = self.cleanCheckBox,
+                         plotTitle      = plotTitle,
+                         windowTitle    = windowTitle,
+                         runId          = self._livePlotRunId,
+                         linkedTo2dPlot = False,
+                         curveId        = self.getCurveId(label=yLabelText, livePlot=True),
+                         timestampXAxis = False,
+                         livePlot       = True,
+                         hidden         = hidden)
+
+
+
+    def livePlotUpdatePlot(self) -> None:
+        """
+        Method called by livePlotUpdate.
+        Obtain the info of the current live plot dataset cache, treat them and
+        send them to the livePlotUpdatePlotData method.
+        """
+        
+        # Get dataset params
+        paramsIndependent = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)==0]
+        
+        for xLabelText, xLabelUnits, yLabelText, yLabelUnits, zLabelText, zLabelUnits, plotRef in zip(*self.livePlotGetPlotParameters()):
+            
+            worker = LoadDataFromCacheThread(plotRef,
+                                       self._livePlotDataSet.cache.data(),
+                                       xLabelText,
+                                       yLabelText,
+                                       zLabelText)
+            
+            worker.signals.dataLoaded.connect(self.livePlotUpdatePlotData)
+
+            # Execute the thread
+            self.threadpool.start(worker)
+        
+        # We keep track of the last number of results, see below why
+        self._livePlotLastNbResults = self._livePlotDataSet.number_of_results
+
+
+
+    def livePlotUpdate(self) -> None:
+        """
+        Method called periodically by a QTimer.
+        1. Obtain the last runId of the livePlotDatabase
+        2. If this run is not marked as completed, load its dataset and plot its
+           parameters
+        3. Update the plots until the run is marked completed
+        4. When the run is completed, remove its dataset from memory
+        """
+        
+        # We get the last run id of the database
+        self._livePlotRunId = self._livePlotDatabase.getNbTotalRun()
+        # While the run is not completed, we update the plot
+        if not self._livePlotDatabase.isRunCompleted(self._livePlotRunId):
+            
+            ## 1. We get the livePlot dataset
+            # We access the db only once.
+            # The next iteration will access the cache of the dataset.
+            if not hasattr(self, '_livePlotDataSet'):
+                self._livePlotDataSet = self._livePlotDatabase.load_by_id(self._livePlotRunId)
+            ## 2. If at least one active livePlot window is missing
+            if len(self.getLivePlotRef())!=len(self._livePlotDatabase.getListIndependentFromRunId(self._livePlotRunId)):
+                self.livePlotLaunchPlot()
+            ## 3. If an active livePlot window is detected
+            else:
+                self.livePlotUpdatePlot()
+            
+        
         else:
-            
-            # Stop live plot mode
-            self._livePlotMode = False
-
-            # Enable browsing again
-            self.tableWidgetFolder.setEnabled(True)
-            self.tableWidgetDataBase.setEnabled(True)
-            widgets = (self.labelPath.itemAt(i).widget() for i in range(self.labelPath.count())) 
-            for widget in widgets:
-                widget.setEnabled(True)
-
-            # Stop the Q1 timer
-            self._livePlotTimer.stop()
-            self._livePlotTimer.deleteLater()
-            self._livePlotTimer = None
+            # If the livePlot has been completed since the last method's call
+            if hasattr(self, '_livePlotDataSet'):
+                
+                # Sometimes the database is marked as completed by the cache does
+                # not contains the last block of data. To go around that we keep
+                # track of the las number of results and compare it to the current one.
+                if self._livePlotLastNbResults!=self._livePlotDataSet.number_of_results:
+                    
+                    # We update the plot one last time so that the display curved is complete
+                    self.livePlotUpdatePlot()
+                    
+                elif self._livePlotLastNbResults==self._livePlotDataSet.number_of_results:
+                    # We mark all completed livePlot as not livePlot anymore
+                    for plotRef in self.getLivePlotRef():
+                        title = self._plotRefs[plotRef].plotItem.titleLabel.text
+                        self._plotRefs[plotRef].plotItem.setTitle(title.replace(config['livePlotTitleAppend'], ''))
+                        self._plotRefs[plotRef].livePlot = False
+                    
+                    del(self._livePlotDataSet)
 
 
 
     def livePlotSpinBoxChanged(self, val):
         """
-        When user modify the the spin box associated to the live plot timer
+        When user modify the spin box associated to the live plot timer.
+        When val==0, stop the liveplot monitoring.
         """
-
+        
         # If a Qt timer is running, we modify it following the user input.
         if self._livePlotTimer is not None:
             
+            # If the timer is 0, we stopped the liveplot
+            if val==0:
+                self._livePlotTimer.stop()
+                self._livePlotTimer.deleteLater()
+                self._livePlotTimer = None
+                
+                self.labelLivePlotDataBase.setText('')
+                self.groupBoxLivePlot.setStyleSheet('QGroupBox:title{color: white}')
+                self.setStatusBarMessage('LivePlot disable')
+                del(self._livePlotPath)
+                del(self._livePlotDatabase)
+                if hasattr(self, '_livePlotDataSet'):
+                    del(self._livePlotDataSet)
+            else:
+                self._livePlotTimer.setInterval(val)
+
+
+
+    def livePlotPushButton(self) -> None:
+        """
+        Call when user click on the 'LivePlot' button.
+        Allow user to chose any available qcodes database in his computer.
+        This database will be monitored and any new run will be plotted.
+        """
+        
+        fname = QtWidgets.QFileDialog.getOpenFileName(self,
+                                                      'Open QCoDeS database', 
+                                                      self.currentPath,
+                                                      'QCoDeS database (*.db).')
+        
+        if fname[0]!='':
+            self._livePlotPath = os.path.abspath(fname[0])
+            self._livePlotDataBaseName = os.path.basename(fname[0])[:-3]
+            self.labelLivePlotDataBase.setText(self._livePlotDataBaseName)
+            self.groupBoxLivePlot.setStyleSheet('QGroupBox:title{color: green}')
+
+            self.labelLivePlotDataBase.adjustSize()
+            self.setStatusBarMessage('LivePlot enable for: {}.'.format(self._livePlotDataBaseName))
+            self.statusBar.setStyleSheet('color: green; font-weight: bold;')
+            
+            self._livePlotDatabase = QcodesDatabase(self.setStatusBarMessage)
+            self._livePlotDatabase.databasePath = self._livePlotPath
+
+            # We call the liveplot function once manually to be sure it has been
+            # initialized properly
+            self.livePlotUpdate()
+
+            # Launch a Qt timer which will periodically check if a new run is
+            # launched
+            # If the user disable the livePlot previously
+            if self.spinBoxLivePlot.value()==0:
+                self.spinBoxLivePlot.setValue(1)
+            self._livePlotTimer = QtCore.QTimer()
+            self._livePlotTimer.timeout.connect(self.livePlotUpdate)
             self._livePlotTimer.setInterval(self.spinBoxLivePlot.value()*1000)
+            self._livePlotTimer.start()
 
 
 
@@ -1434,96 +1540,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
             # Send the list to every 1d plot windows
             [plot.updatePlottedCurvesList(plots) for plot in plots]
-
-
-
-    def updatePlot(self, plotRef        : str,
-                         progressBarKey : str,
-                         data           : list,
-                         xLabelText     : str,
-                         xLabelUnits    : str,
-                         yLabelText     : str,
-                         yLabelUnits    : str,
-                         zLabelText     : str=None,
-                         yzabelUnits    : str=None) -> None:
-        """
-        Methods called in live plot mode to update plot.
-        This method must have the same signature as addPlot.
-
-        Parameters
-        ----------
-        plotRef : str
-            Reference of the plot, see getDataRef.
-        progressBarKey : str
-            Key to the progress bar in the dict progressBars.
-        data : list
-            For 1d plot: [xData, yData]
-            For 2d plot: [xData, yData, zData]
-        xLabelText : str
-            Label text for the xAxis.
-        xLabelUnits : str
-            Label units for the xAxis.
-        yLabelText : str
-            Label text for the yAxis.
-        yLabelUnits : str
-            Label units for the yAxis.
-        zLabelText : str, default None
-            Only for 2d data.
-            Label units for the zAxis.
-        zLabelUnits : str, default None
-            Only units 2d data.
-            Label text for the zAxis.
-        """
-        
-        
-        if progressBarKey in self._progressBars:
-            self.removeProgressBar(progressBarKey)
-
-
-        # 1d plot
-        if len(data)==2:
-
-            self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
-                                                       y           = data[1],
-                                                       curveId     = self.getCurveId(yLabelText),
-                                                       curveLegend = None,
-                                                       autoRange   = True)
-        # 2d plot
-        elif len(data)==3:
-
-            # We update the 2d plot data
-            self._plotRefs[plotRef].updateImageItem(x=data[0],
-                                                    y=data[1],
-                                                    z=data[2])
-
-            # If there are slices, we update them as well
-            # plotSlice = self.getPlotSliceFromRef(plotRef)
-            # if plotSlice is not None:
-            for curveId, lineItem in self._plotRefs[plotRef].infiniteLines.items():
-
-                # We find its orientation
-                if lineItem.angle == 90:
-                    sliceOrientation = 'vertical'
-                else:
-                    sliceOrientation = 'horizontal'
-
-                # We need the data of the slice
-                sliceX, sliceY, sliceLegend = self._plotRefs[plotRef].getDataSlice(lineItem)
-
-                # Get the 1d plot of the slice
-                plotSlice = self._plotRefs[plotRef].getPlotRefFromSliceOrientation(sliceOrientation)
-
-                # We update the slice data
-                plotSlice.updatePlotDataItem(x           = sliceX,
-                                             y           = sliceY,
-                                             curveId     = curveId,
-                                             curveLegend = sliceLegend,
-                                             autoRange   = True)
-
-        self.setStatusBarMessage('Ready')
-
-        # Flag
-        self._dataDowloadingFlag = False
 
 
 
@@ -1568,10 +1584,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                       linkedTo2dPlot : bool = False,
                       curveId        : str  = None,
                       curveLegend    : str  = None,
+                      hidden         : bool = False,
                       curveLabel     : str  = None,
                       curveUnits     : str  = None,
                       timestampXAxis : bool = False,
-                      livePlot       : bool = None,
+                      livePlot       : bool = False,
                       progressBarKey : str  = None,
                       zLabelText     : str  = None,
                       zLabelUnits    : str  = None) -> None:
@@ -1630,12 +1647,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             windowTitle = self.getWindowTitle(runId=runId)
         if cleanCheckBox is None:
             cleanCheckBox = self.cleanCheckBox
-        if livePlot is None:
-            livePlot = self._livePlotMode
 
             
         # 1D plot
-        if len(data) == 2:
+        if len(data)==2:
 
             
             # Specific 1d optional parameter
@@ -1683,11 +1698,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                                         curveId     = curveId,
                                                         curveLabel  = curveLabel,
                                                         curveUnits  = curveUnits,
-                                                        curveLegend = curveLegend)
+                                                        curveLegend = curveLegend,
+                                                        hidden      = hidden)
             
 
         # 2D plot
-        elif len(data) == 3:
+        elif len(data)==3:
             
             # Determine if we should open a new Plot2dApp
             if plotRef not in self._plotRefs:
@@ -1736,11 +1752,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         label : str, default None
             Label of the data to be removed, usefull for 1d plot.
         """
-
+        
         if self._plotRefs[plotRef].plotType=='1d':
             # If there is more than one curve, we remove one curve
             if len(self._plotRefs[plotRef].curves) > 1:
-                curveId = [key for key in self._plotRefs[plotRef].curves.keys() if label in key][0]
+                for curveId, plotDataItem in self._plotRefs[plotRef].curves.items():
+                    if label==plotDataItem.curveLabel:
+                        break
                 self._plotRefs[plotRef].removePlotDataItem(curveId=curveId)
             # If there is one curve we close the plot window
             else:
@@ -1842,36 +1860,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
         # To update the progress bar
         worker.signals.updateProgressBar.connect(self.updateProgressBar)
-        # To signal data download as done but with empty database
-        # Useful when starting liveplot
+        # If data download failed
         worker.signals.updateDataEmpty.connect(self.updateDataEmpty)
-
-        # If the live plot mode is on, we have to update the plot instead
-        # of adding a new plot
-        if self._livePlotMode:
-            if plotRef in self._plotRefs.keys():
-
-                paramsDependent = self.qcodesDatabase.getListDependentFromRunId(runId)
-                paramDependentDict = [i for i in paramsDependent if i['name']==dependentParamName][0]
-                paramDependentLabel = paramDependentDict['name']
-                curveId = self.getCurveId(paramDependentLabel)
-
-                if self._plotRefs[plotRef].plotType=='1d':
-
-                    if curveId in self._plotRefs[plotRef].curves.keys():
-                        worker.signals.updateDataFull.connect(self.updatePlot)
-                    else:
-                        worker.signals.updateDataFull.connect(self.addPlotFromThread)
-                else:
-
-                    if paramDependentLabel == self._plotRefs[plotRef].zLabelText:
-                        worker.signals.updateDataFull.connect(self.updatePlot)
-                    else:
-                        worker.signals.updateDataFull.connect(self.addPlotFromThread)
-            else:
-                worker.signals.updateDataFull.connect(self.addPlotFromThread)
-        else:
-            worker.signals.updateDataFull.connect(self.addPlotFromThread)
+        # When data download is done
+        worker.signals.updateDataFull.connect(self.addPlotFromThread)
 
         # Execute the thread
         self.threadpool.start(worker)

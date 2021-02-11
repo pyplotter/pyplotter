@@ -99,9 +99,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         self.plotType = '2d'
 
-        self.x             = x
-        self.y             = y
-        self.z             = z
+        self.xData         = x
+        self.yData         = y
+        self.zData         = z
+        self.xDataRef      = x # To keep track of all operation done on the z data
+        self.yDataRef      = y # To keep track of all operation done on the z data
+        self.zDataRef      = z # To keep track of all operation done on the z data
         self.xLabelText    = xLabelText
         self.xLabelUnits   = xLabelUnits
         self.yLabelText    = yLabelText
@@ -130,6 +133,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Store the isoCurve and isoLine object
         self.isoCurve = None
         self.isoLine  = None
+
+        self.axesIsSwapped = False
 
         # Store the references to linked 1d plots, object created when user
         # create a slice of data
@@ -209,8 +214,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxMaximum.stateChanged.connect(self.checkBoxExtractionState)
         self.checkBoxMinimum.stateChanged.connect(self.checkBoxExtractionState)
         self.checkBoxSwapxy.stateChanged.connect(self.checkBoxSwapxyState)
-        self.checkBoxSubtractAverageX.stateChanged.connect(lambda : self.checkBoxSubtractAverageXState(self.checkBoxSubtractAverageX))
-        self.checkBoxSubtractAverageY.stateChanged.connect(lambda : self.checkBoxSubtractAverageYState(self.checkBoxSubtractAverageY))
+        self.checkBoxSubtractAverageX.stateChanged.connect(self.checkBoxSubtractAverageXState)
+        self.checkBoxSubtractAverageY.stateChanged.connect(self.checkBoxSubtractAverageYState)
         self.pushButton3d.clicked.connect(self.launched3d)
         self.spinBoxFontSize.valueChanged.connect(self.clickFontSize)
         
@@ -233,7 +238,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         indexViridis = 0
         for cm in [i for i in palettes.all_palettes.keys() if i[-2:] !='_r']:
             self.comboBoxcm.addItem(cm)
-            if cm == config['plot2dcm']:
+            if cm==config['plot2dcm']:
                 indexViridis = index
             
             index += 1
@@ -298,6 +303,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     ####################################
 
 
+
     def launched3d(self):
         """
         Called when used click on pushButton3d.
@@ -315,12 +321,55 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         w.setCameraPosition(distance=3)
         
         # Linearly scale all data from 0 to 1
-        x = (self.x - np.nanmin(self.x))/(np.nanmax(self.x) - np.nanmin(self.x))
-        y = (self.y - np.nanmin(self.y))/(np.nanmax(self.y) - np.nanmin(self.y))
-        z = (self.z - np.nanmin(self.z))/(np.nanmax(self.z) - np.nanmin(self.z))
+        x = (self.xData - np.nanmin(self.xData))/(np.nanmax(self.xData) - np.nanmin(self.xData))
+        y = (self.yData - np.nanmin(self.yData))/(np.nanmax(self.yData) - np.nanmin(self.yData))
+        z = (self.zData - np.nanmin(self.zData))/(np.nanmax(self.zData) - np.nanmin(self.zData))
         
         p = gl.GLSurfacePlotItem(x=x, y=y, z=z, shader='shaded', smooth=False)
         w.addItem(p)
+
+
+
+    ####################################
+    #
+    #           livePlot
+    #
+    ####################################
+
+
+
+    def livePlotUpdate(self, x: np.ndarray,
+                             y: np.ndarray,
+                             z: np.ndarray) -> None:
+        """
+        Update the displayed colormap
+
+        Parameters
+        ----------
+        x : np.ndarray
+            Data along the x axis, 1d array.
+        y : np.ndarray
+            Data along the y axis, 1d array.
+        z : np.ndarray
+            Data along the z axis, 2d array.
+        """
+
+
+        self.xData    = x
+        self.yData    = y
+        self.zData    = z
+        self.xDataRef = x
+        self.yDataRef = y
+        self.zDataRef = z
+        
+        
+        self.checkBoxSubtractAverageXState()
+        self.checkBoxSubtractAverageYState()
+        
+        self.comboBoxDerivativeActivated(None)
+        
+        self.checkBoxSwapxyState(1)
+
 
 
 
@@ -334,24 +383,29 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def setImageView(self) -> None:
         """
-        Set the image using the current x, y and z attribut of the object.
+        Set the image using the current x, y and z attributes of the object.
         If there is more than one column or row, recalculate the axis to center
         the colored rectangles.
         """
-
         # If there is more than one column, we center the colored rectangles
-        if len(self.x)>1:
-            dx = np.gradient(self.x)/2.
-            x = np.linspace(self.x[0]-dx[0], self.x[-1]+dx[-1], len(self.x))
-        if len(self.y)>1:
-            dy = np.gradient(self.y)/2.
-            y = np.linspace(self.y[0]-dy[0], self.y[-1]+dy[-1], len(self.y))
+        if len(self.xData)>1:
+            dx = np.gradient(self.xData)/2.
+            x = np.linspace(self.xData[0]-dx[0], self.xData[-1]+dx[-1], len(self.xData))
+        else:
+            x = self.xData
+            
+        if len(self.yData)>1:
+            dy = np.gradient(self.yData)/2.
+            y = np.linspace(self.yData[0]-dy[0], self.yData[-1]+dy[-1], len(self.yData))
+        else:
+            y = self.yData
+        
         # Set the image view
-        xscale = (x[-1]-x[0])/len(x)
-        yscale = (y[-1]-y[0])/len(y)
-        self.imageView.setImage(img   = self.z,
+        xScale = (x[-1]-x[0])/len(x)
+        yScale = (y[-1]-y[0])/len(y)
+        self.imageView.setImage(img   = self.zData,
                                 pos   = [x[0], y[0]],
-                                scale = [xscale, yscale])
+                                scale = [xScale, yScale])
         self.imageView.view.invertY(False)
         self.imageView.view.setAspectLocked(False)
         self.imageView.autoRange()
@@ -373,19 +427,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         z : np.ndarray
             Data along the z axis, 2d array.
         """
-        
-        # If user wants swapped image
-        if self.checkBoxSwapxy.isChecked() and self.livePlot:
 
-            self.x  = y
-            self.y  = x
-            self.z  = z.T
-            
-        else:
-
-            self.x  = x
-            self.y  = y
-            self.z  = z
+        self.xData  = x
+        self.yData  = y
+        self.zData  = z
 
         self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(),
                                        max=z[~np.isnan(z)].max())
@@ -411,38 +456,35 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             State of the box.
         """
         
-        ## We swap the x and y axis of the colormap
-        t = self.xLabelText
-        self.xLabelText = self.yLabelText
-        self.yLabelText = t
         
-        t = self.xLabelUnits
-        self.xLabelUnits = self.yLabelUnits
-        self.yLabelUnits = t
-        
-        self.plotItem.setLabel(axis='bottom',
-                               text=self.xLabelText,
-                               units=self.xLabelUnits)
-        self.plotItem.setLabel(axis='left',
-                               text=self.yLabelText,
-                               units=self.yLabelUnits)
+        # If user wants to swap axes
+        if self.checkBoxSwapxy.isChecked():
+            # If axes are not already swapped
+            if self.xLabelText==self.plotItem.axes['bottom']['item'].labelText:
+                
+                self.plotItem.setLabel(axis='bottom',
+                                    text=self.yLabelText,
+                                    units=self.yLabelUnits)
+                self.plotItem.setLabel(axis='left',
+                                    text=self.xLabelText,
+                                    units=self.xLabelUnits)
+                
+                self.updateImageItem(self.yDataRef, self.xDataRef, self.zDataRef.T)
+                self.swapSlices()
+        # If user wants to unswap axes
+        else:
+            # If axes are not already unswap
+            if self.yLabelText==self.plotItem.axes['bottom']['item'].labelText:
 
-        self.updateImageItem(self.y, self.x, self.z.T)
-
-
-
-        ## We rotate all infiniteLines
-        for curveId, infLine in self.infiniteLines.items():
-            pos = infLine.getPos()
-            infLine.setAngle(infLine.angle + 90)
-            infLine.setPos((pos[1], pos[0]))
-
-            infLine.sigDragged.connect(lambda lineItem=infLine,
-                                        curveId=curveId:
-                                        self.dragSliceLine(lineItem,
-                                                            curveId))
-
-        self.radioButtonSliceHorizontal.toggle()
+                self.plotItem.setLabel(axis='bottom',
+                                    text=self.xLabelText,
+                                    units=self.xLabelUnits)
+                self.plotItem.setLabel(axis='left',
+                                    text=self.yLabelText,
+                                    units=self.yLabelUnits)
+                
+                self.updateImageItem(self.xDataRef, self.yDataRef, self.zDataRef)
+                self.swapSlices()
 
 
 
@@ -514,6 +556,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         ----------
         InfinitylineItem : pg.InifiniteLine
             InfinitylineItem currently being dragged.
+        
+        Return
+        ------
+        orientation : str
+            Either "horizontal" or "vertical".
         """
         
         if int(lineItem.angle%180)==0:
@@ -547,7 +594,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
     def dragSliceLine(self, InfinitylineItem : pg.InfiniteLine,
-                            curveId          : str) -> None:
+                            curveId          : str,
+                            lineOrientation  : str) -> None:
         """
         Method call when user drag a slice line.
 
@@ -563,7 +611,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         sliceX, sliceY, sliceLegend = self.getDataSlice(InfinitylineItem=InfinitylineItem)
         
         # We update the curve associated to the sliceLine
-        self.getPlotRefFromSliceOrientation(self.getInfinityLineOrientation(InfinitylineItem))\
+        self.getPlotFromRef(self.plotRef, lineOrientation)\
         .updatePlotDataItem(x           = sliceX,
                             y           = sliceY,
                             curveId     = curveId,
@@ -574,7 +622,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def addInifiteLine(self, curveId: str) -> pg.InfiniteLine:
+    def addInfiniteLine(self, curveId: str,
+                              sliceOrientation,
+                              position=None) -> pg.InfiniteLine:
         """
         Method call when user create a slice of the data.
         Create an infiniteLine on the 2d plot and connect a drag signal on it.
@@ -585,7 +635,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             ID of the curve associated to the data slice
         """
         
-        colorIndex = self.getPlotRefFromSliceOrientation(self.sliceOrientation).curves[curveId].colorIndex
+        colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation).curves[curveId].colorIndex
 
         pen = pg.mkPen(color=config['plot1dColors'][colorIndex],
                        width=config['crossHairLineWidth'],
@@ -595,13 +645,17 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        style=QtCore.Qt.DashLine)
 
         # When the user click we add a vertical and horizontale lines where he clicked.
-        if self.sliceOrientation == 'vertical':
+        if sliceOrientation=='vertical':
             angle = 90.
             pos = self.mousePos[0]
         else:
             angle = 0.
             pos = self.mousePos[1]
 
+        # If the position has been given it means we are swapping the axes.
+        if position is not None:
+            pos = position
+        
         t = pg.InfiniteLine(angle=angle, movable=True, pen=pen, hoverPen=hoverPen)
         t.setPos(pos)
 
@@ -610,9 +664,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # We attached a drag event to this line
         t.sigDragged.connect(lambda lineItem=t,
                                     curveId=curveId,
-                                    lineOrientation=self.sliceOrientation:
+                                    lineOrientation=sliceOrientation:
                                     self.dragSliceLine(lineItem,
-                                                        curveId))
+                                                        curveId,
+                                                        lineOrientation))
 
 
         self.infiniteLines[curveId] = t
@@ -631,7 +686,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             [description]
         """
         self.plotItem.removeItem(self.infiniteLines[curveId])
-        del self.infiniteLines[curveId]
+        del(self.infiniteLines[curveId])
 
 
 
@@ -667,7 +722,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # We remove all the associated infiniteLine
         keyToRemove = []
         for key, val in self.infiniteLines.items():
-            if val.angle == searchedAngle:
+            if val.angle==searchedAngle:
                 keyToRemove.append(key)
         
         [self.removeInfiniteLine(key) for key in keyToRemove]
@@ -677,7 +732,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             [self.removePlot(plotRef, l) for l in label]
         else:
             self.removePlot(plotRef, label)
-
 
 
 
@@ -700,14 +754,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # When InfinitylineItem is None, We are creating the dataSlice
         if InfinitylineItem is None:
-            if self.sliceOrientation == 'vertical':
+            if self.sliceOrientation=='vertical':
                 xSlice = self.mousePos[0]
             else:
                 ySlice = self.mousePos[1]
         # Otherwise the dataSlice exist and return its position depending of its
         # orientation
         else:
-            if self.getInfinityLineOrientation(InfinitylineItem) == 'vertical':
+            if self.getInfinityLineOrientation(InfinitylineItem)=='vertical':
                 xSlice = InfinitylineItem.value()
             else:
                 ySlice = InfinitylineItem.value()
@@ -716,16 +770,16 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # associated with the cut.
         if ySlice is None:
             
-            n = np.abs(self.x-xSlice).argmin()
-            sliceX      = self.y
-            sliceY      = self.z[n]
-            sliceLegend = self.x[n]
+            n = np.abs(self.xData-xSlice).argmin()
+            sliceX      = self.yData
+            sliceY      = self.zData[n]
+            sliceLegend = self.xData[n]
         else:
             
-            n = np.abs(self.y-ySlice).argmin()
-            sliceX      = self.x
-            sliceY      = self.z[:,n]
-            sliceLegend = self.y[n]
+            n = np.abs(self.yData-ySlice).argmin()
+            sliceX      = self.xData
+            sliceY      = self.zData[:,n]
+            sliceLegend = self.yData[n]
         
         if isinstance(sliceLegend, np.ndarray):
             sliceLegend = sliceLegend[0]
@@ -746,80 +800,158 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             # Get the data of the slice
             sliceX, sliceY, sliceLegend = self.getDataSlice()
 
-            # The xLabel of the 1d plot depends on the slice orientation
-            if self.sliceOrientation == 'vertical':
-                xLabelText  = self.yLabelText
-                xLabelUnits = self.yLabelUnits
-            else:
-                xLabelText  = self.xLabelText
-                xLabelUnits = self.xLabelUnits
-
-            yLabelText  = self.zLabelText
-            yLabelUnits = self.zLabelUnits
-
             # If nbCurve is 1, we create the 1d plot window
-            # if self.linked1dPlots[self.sliceOrientation] is None:
             if self.getPlotRefFromSliceOrientation(self.sliceOrientation) is None:
 
-
-                curveId = self.getCurveId()
-
-                self.addPlot(data           = [sliceX, sliceY],
-                             plotTitle      = self.title+" <span style='color: red; font-weight: bold;'>Extrapolated data</span>",
-                             xLabelText     = xLabelText,
-                             xLabelUnits    = xLabelUnits,
-                             yLabelText     = yLabelText,
-                             yLabelUnits    = yLabelUnits,
-                             windowTitle    = self.windowTitle+' - '+self.sliceOrientation+' slice',
-                             runId          = self.runId,
-                             cleanCheckBox  = self.cleanInfiniteLine,
-                             plotRef        = self.plotRef+self.sliceOrientation,
-                             curveId        = curveId,
-                             linkedTo2dPlot = True,
-                             curveLegend    = sliceLegend)
-                             
-                self.addInifiteLine(curveId)
+                self.addSlice(data        = [sliceX, sliceY],
+                              curveLegend = sliceLegend)
+            # If not
+            # 1. The user doubleClicked on an infiniteLine and we remove it
+            # 2. The doubleClicked somewhere else on the map and we create another slice
             else:
                 
                 # We check if user double click on an infiniteLine
                 clickedCurveId = None
                 if self.getPlotRefFromSliceOrientation('vertical') is not None:
                     for curveId, curve in self.getPlotRefFromSliceOrientation('vertical').curves.items():
-                        if curve.curveLegend == sliceLegend:
+                        if curve.curveLegend==sliceLegend:
                             clickedCurveId = curveId
                 if self.getPlotRefFromSliceOrientation('horizontal') is not None:
                     for curveId, curve in self.getPlotRefFromSliceOrientation('horizontal').curves.items():
-                        if curve.curveLegend == sliceLegend:
+                        if curve.curveLegend==sliceLegend:
                             clickedCurveId = curveId
 
                 # If the user add a new infiniteLine
                 if clickedCurveId is None:
-                    curveId = self.getCurveId()
-
-                    self.addPlot(plotRef     = self.plotRef+self.sliceOrientation,
-                                 data        = [sliceX, sliceY],
-                                 xLabelText  = xLabelText,
-                                 xLabelUnits = xLabelUnits,
-                                 yLabelText  = self.zLabelText,
-                                 yLabelUnits = self.zLabelUnits,
-                                 curveId     = curveId,
-                                 curveLabel  = self.zLabelText,
-                                 curveLegend = sliceLegend)
-
-                    self.addInifiteLine(curveId)
+                    self.addSlice(data        = [sliceX, sliceY],
+                                  curveLegend = sliceLegend)
 
                 # We remove a slice
                 else:
                     # If there is more than one slice, we remove it and the associated curve
                     if len(self.getPlotRefFromSliceOrientation(self.sliceOrientation).curves)>1:
-                    # if len(self.infiniteLines)>1:
                         self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(clickedCurveId)
                         self.removeInfiniteLine(clickedCurveId)
                     # If there is only one slice, we close the linked 1d plot
                     # which will remove the associated infiniteLine
                     else:
                         self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(clickedCurveId)
-                        # self.linked1dPlots[self.sliceOrientation].removePlotDataItem(clickedCurveId)
+
+
+
+    def addSlice(self, data,
+                       curveLegend,
+                       sliceOrientation=None,
+                       plotRef=None,
+                       position=None) -> None:
+        
+        if sliceOrientation is None:
+            sliceOrientation = self.sliceOrientation
+        if plotRef is None:
+            plotRef = self.plotRef+sliceOrientation
+        
+        if sliceOrientation=='vertical':
+            xLabelText  = self.yLabelText
+            xLabelUnits = self.yLabelUnits
+        else:
+            xLabelText  = self.xLabelText
+            xLabelUnits = self.xLabelUnits
+
+        yLabelText  = self.zLabelText
+        yLabelUnits = self.zLabelUnits
+        
+        title = self.title+" <span style='color: red; font-weight: bold;'>Extrapolated data</span>"
+        windowTitle = self.windowTitle+' - '+sliceOrientation+' slice'
+        cleanCheckBox  = self.cleanInfiniteLine
+        runId          = self.runId
+        
+        # Should be called once for both addplot and addInfiniteLine
+        curveId = self.getCurveId()
+        
+        self.addPlot(data           = data,
+                     plotTitle      = title,
+                     xLabelText     = xLabelText,
+                     xLabelUnits    = xLabelUnits,
+                     yLabelText     = yLabelText,
+                     yLabelUnits    = yLabelUnits,
+                     windowTitle    = windowTitle,
+                     runId          = runId,
+                     cleanCheckBox  = cleanCheckBox,
+                     plotRef        = plotRef,
+                     curveId        = curveId,
+                     linkedTo2dPlot = True,
+                     curveLegend    = curveLegend)
+        
+        
+        self.addInfiniteLine(curveId,
+                             sliceOrientation,
+                             position)
+
+
+
+    def swapSlices(self) -> None:
+        """
+        1. Backup all slices information.
+            a. infinite line
+            b. plot1d attached to the slices
+        2. Add all vertical slices to the horizontale one and vice-versa
+        3. Remove all horizontale slices to vertical one and vice-versa
+        """
+        
+        # Store infiniteLine
+        inLineVerticals   = {}
+        inLineHorizontals = {}
+        for curveId, infLine in self.infiniteLines.items():
+            
+            if self.getInfinityLineOrientation(infLine)=='horizontal':
+                inLineHorizontals[curveId] = infLine.getPos()
+            else:
+                inLineVerticals[curveId] = infLine.getPos()
+        
+        # Store associated 1d plot
+        curvesHorizontals = {}
+        plotHorizontal = self.getPlotFromRef(self.plotRef, 'horizontal')
+        if plotHorizontal is not None:
+            for curveId, plotDataItem in plotHorizontal.curves.items():
+                
+                curvesHorizontals[curveId] = {'x' : plotDataItem.xData,
+                                              'y' : plotDataItem.yData,
+                                              'curveLegend' : plotDataItem.curveLegend}
+        
+        curvesVerticals = {}
+        plotVertical = self.getPlotFromRef(self.plotRef, 'vertical')
+        if plotVertical is not None:
+            for curveId, plotDataItem in plotVertical.curves.items():
+                
+                curvesVerticals[curveId] = {'x' : plotDataItem.xData,
+                                            'y' : plotDataItem.yData,
+                                            'curveLegend' : plotDataItem.curveLegend}
+
+        # Plot all horizontal slice into the vertical plot and vice-versa
+        if curvesHorizontals:
+            for plotData, infLineData in zip(curvesHorizontals.values(), inLineHorizontals.values()):
+                self.addSlice(data=[plotData['x'], plotData['y']],
+                            curveLegend=plotData['curveLegend'],
+                            sliceOrientation='vertical',
+                            plotRef=self.plotRef+'vertical',
+                            position=infLineData[1])
+        if curvesVerticals:
+            for plotData, infLineData in zip(curvesVerticals.values(), inLineVerticals.values()):
+                self.addSlice(data=[plotData['x'], plotData['y']],
+                            curveLegend=plotData['curveLegend'],
+                            sliceOrientation='horizontal',
+                            plotRef=self.plotRef+'horizontal',
+                            position=infLineData[0])
+        
+        # Remove old infinite lines and curves
+        if curvesHorizontals:
+            for curveId in curvesHorizontals.keys():
+                self.removeInfiniteLine(curveId)
+                self.getPlotFromRef(self.plotRef, 'horizontal').removePlotDataItem(curveId)
+        if curvesVerticals:
+            for curveId in curvesVerticals.keys():
+                self.removeInfiniteLine(curveId)
+                self.getPlotFromRef(self.plotRef, 'vertical').removePlotDataItem(curveId)
 
 
 
@@ -843,32 +975,28 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         
         label = str(self.comboBoxDerivative.currentText())
         
-        # The first time the function is used, we save the original z data
-        if not hasattr(self, 'z_backup'):
-            self.z_backup = self.z
-        
         # Depending on the asked derivative, we calculate the new z data and
         # the new z label
         if label=='∂z/∂x':
-            self.z = np.gradient(self.z_backup, self.x, axis=0)
+            self.zData = np.gradient(self.zDataRef, self.xData, axis=0)
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.xLabelUnits+')')
         elif label=='∂z/∂y':
-            self.z = np.gradient(self.z_backup, self.y, axis=1)
+            self.zData = np.gradient(self.zDataRef, self.yData, axis=1)
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.yLabelUnits+')')
         elif label=='√((∂z/∂x)² + (∂z/∂y)²)':
-            self.z = np.sqrt(np.gradient(self.z_backup, self.x, axis=0)**2. + np.gradient(self.z_backup, self.y, axis=1)**2.)
+            self.zData = np.sqrt(np.gradient(self.zDataRef, self.xData, axis=0)**2. + np.gradient(self.zDataRef, self.yData, axis=1)**2.)
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+' x √('+self.xLabelUnits+'² + '+self.yLabelUnits+'²)')
         elif label=='∂²z/∂x²':
-            self.z = np.gradient(np.gradient(self.z_backup, self.x, axis=0), self.x, axis=0)
+            self.zData = np.gradient(np.gradient(self.zDataRef, self.xData, axis=0), self.xData, axis=0)
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.xLabelUnits+'²)')
         elif label=='∂²z/∂y²':
-            self.z = np.gradient(np.gradient(self.z_backup, self.y, axis=1), self.y, axis=1)
+            self.zData = np.gradient(np.gradient(self.zDataRef, self.yData, axis=1), self.yData, axis=1)
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.yLabelUnits+'²)')
         else: 
-            self.z = self.z_backup
+            self.zData = self.zDataRef
             self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+')')
 
-        self.updateImageItem(self.x, self.y, self.z)
+        self.updateImageItem(self.xData, self.yData, self.zData)
 
 
 
@@ -880,43 +1008,31 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def checkBoxSubtractAverageXState(self, cb: QtWidgets.QCheckBox) -> None:
+    def checkBoxSubtractAverageXState(self) -> None:
         """
         Handle events when user wants to subtract average along x axis
-        
-        Parameters
-        ----------
-        cb : QtWidgets.QCheckBox
-            Checkbox being checked.
         """
         
-        if cb.isChecked():
-            self.averageX = np.mean(self.z, axis=0)
-            self.z -= self.averageX
+        if self.checkBoxSubtractAverageX.isChecked():
+            self.zData = self.zDataRef - np.nanmean(self.zDataRef, axis=0)
         else: 
-            self.z += self.averageX
+            self.zData = self.zDataRef
 
-        self.updateImageItem(self.x, self.y, self.z)
+        self.updateImageItem(self.xData, self.yData, self.zData)
 
 
 
-    def checkBoxSubtractAverageYState(self, cb: QtWidgets.QCheckBox) -> None:
+    def checkBoxSubtractAverageYState(self) -> None:
         """
         Handle events when user wants to subtract average along y axis
-        
-        Parameters
-        ----------
-        cb : QtWidgets.QCheckBox
-            Checkbox being checked.
         """
         
-        if cb.isChecked():
-            self.averageY = np.mean(self.z, axis=1)
-            self.z = (self.z.T -self.averageY).T
+        if self.checkBoxSubtractAverageY.isChecked():
+            self.zData = (self.zDataRef.T - np.nanmean(self.zDataRef, axis=1)).T
         else: 
-            self.z = (self.z.T +self.averageY).T
+            self.zData = self.zDataRef
 
-        self.updateImageItem(self.x, self.y, self.z)
+        self.updateImageItem(self.xData, self.yData, self.zData)
 
 
 
@@ -1003,7 +1119,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
 
         # If the user uncheck the box, we hide the items
-        if b == 0:
+        if b==0:
 
             self.isoCurve.hide()
             self.isoLine.hide()
@@ -1101,15 +1217,15 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         ys     = []
         labels = []
         if self.checkBoxMaximum.isChecked() and self.checkBoxMinimum.isChecked():
-            ys.append(self.y[np.nanargmin(self.z, axis=1)])
-            ys.append(self.y[np.nanargmax(self.z, axis=1)])
+            ys.append(self.yData[np.nanargmin(self.zData, axis=1)])
+            ys.append(self.yData[np.nanargmax(self.zData, axis=1)])
             labels.append('minimum')
             labels.append('maximum')
         elif self.checkBoxMaximum.isChecked():
-            ys.append(self.y[np.nanargmax(self.z, axis=1)])
+            ys.append(self.yData[np.nanargmax(self.zData, axis=1)])
             labels.append('maximum')
         elif self.checkBoxMinimum.isChecked():
-            ys.append(self.y[np.nanargmin(self.z, axis=1)])
+            ys.append(self.yData[np.nanargmin(self.zData, axis=1)])
             labels.append('minimum')
         else:
             self.removePlot(plotRef=self.plotRef+'extraction', label='')
@@ -1122,7 +1238,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # If no existing extraction plot window, we launch one.
         if plot is None:
             
-            self.addPlot(data           = [self.x, ys[0]],
+            self.addPlot(data           = [self.xData, ys[0]],
                          plotTitle      = self.title,
                          xLabelText     = self.xLabelText,
                          xLabelUnits    = self.xLabelUnits,
@@ -1135,26 +1251,26 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                          curveId        = labels[0],
                          linkedTo2dPlot = False,
                          curveLegend    = labels[0])
-        elif len(plot.curves) == 1:
+        elif len(plot.curves)==1:
             
             if labels[0] != list(plot.curves.keys())[0]:
                 
-                plot.addPlotDataItem(x           = self.x,
+                plot.addPlotDataItem(x           = self.xData,
                                      y           = ys[0],
                                      curveId     = labels[0],
                                      curveLabel  = self.yLabelText,
                                      curveLegend = labels[0])
             else:
                 
-                plot.addPlotDataItem(x           = self.x,
+                plot.addPlotDataItem(x           = self.xData,
                                      y           = ys[1],
                                      curveId     = labels[1],
                                      curveLabel  = self.yLabelText,
                                      curveLegend = labels[1])
 
-        elif len(plot.curves) == 2:
+        elif len(plot.curves)==2:
             
-            if labels[0] == 'maximum':
+            if labels[0]=='maximum':
                 plot.removePlotDataItem('minimum')
             else:
                 plot.removePlotDataItem('maximum')
@@ -1220,7 +1336,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Find which model has been chosed and instance it
         _class = getattr(fit, radioButton.fitModel)
-        obj = _class(self, self.x, self.y, self.z)
+        obj = _class(self, self.xData, self.yData, self.zData)
 
         # Do the fit
         x, y =  obj.ffit()

@@ -26,7 +26,7 @@ config = {
                    'Thumbs.db'], 
 
 # If False the path is displayed in the plot title
-'displayOnlyDbNameInPlotTitle' : False, 
+'displayOnlyDbNameInPlotTitle' : True, 
 # If True the the run id is added to the window title
 'displayRunIdInPlotTitle' : True, 
 
@@ -50,6 +50,9 @@ config = {
 
 # Live plot
 'livePlotTimer' : 1, # In second
+# Added to the plot title while a live plot is still measured.
+# Removed once the measurement is done.
+'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
 
 # Interactivity
 'keyPressedStared' : 's', # To star a run
