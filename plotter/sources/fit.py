@@ -63,11 +63,11 @@ class FitReportWindow(QtGui.QDialog):
             Event happening on the QLabel
         """
         
-        if event.type() == QtCore.QEvent.Enter:
+        if event.type()==QtCore.QEvent.Enter:
             
             QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
             return True
-        elif event.type() == QtCore.QEvent.Leave:
+        elif event.type()==QtCore.QEvent.Leave:
             
             QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         return False

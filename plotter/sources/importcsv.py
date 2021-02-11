@@ -38,8 +38,8 @@ class ImportCSV:
         ## Fill the tableWidgetParameters with the run parameters
 
         # Clean GUI
-        self.main.clearTableWidet(self.main.tableWidgetDataBase)
-        self.main.clearTableWidet(self.main.tableWidgetParameters)
+        self.main.clearTableWidget(self.main.tableWidgetDataBase)
+        self.main.clearTableWidget(self.main.tableWidgetParameters)
         self.main.tableWidgetDataBase.setSortingEnabled(True)
         self.main.tableWidgetParameters.setSortingEnabled(True)
         
@@ -63,7 +63,7 @@ class ImportCSV:
                 f = open(filePath, 'r')
                 c = f.readline()[0]
                 f.close()
-                if c.isnumeric() or c == '+' or c == '-':
+                if c.isnumeric() or c=='+' or c=='-':
                     c = None
                 
                 ## Determine the csv file header
@@ -73,7 +73,7 @@ class ImportCSV:
                     f = open(filePath, 'r')
                     header = 0
                     d = f.readline()
-                    while d[0] == c:
+                    while d[0]==c:
                         d = f.readline()
                         header += 1
                 f.close()

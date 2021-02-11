@@ -5,9 +5,9 @@ config = {
 
 # Do not put "/" after ":" in the two following paths
 # The soft will not allowed to go above that path
-'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
+'root' : 'C:/Users/ed261978/Desktop/edumur/scripts/plottr/doc/examples',
 # Default display path, should be at least the root
-'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon/',
+'path' : 'C:/Users/ed261978/Desktop/edumur/scripts/plottr/doc/examples',
 # Folder having these names will be colored, easier to browse
 'enhancedFolder' : ['bluelagoon','Cryoconcept', 'RF4K_stick', 'smurf', 'Tritonito', 'triton', 'data', '2021'],
 # Other files will not appear in the plotter
@@ -16,7 +16,7 @@ config = {
 'forbiddenFile' : ['thumbs.db', 'Thumbs.db'], 
 
 # If False the path is displayed in the plot title
-'displayOnlyDbNameInPlotTitle' : False, 
+'displayOnlyDbNameInPlotTitle' : True, 
 # If True the the run id is added to the window title
 'displayRunIdInPlotTitle' : True, 
 
@@ -40,6 +40,9 @@ config = {
 
 # Live plot
 'livePlotTimer' : 1, # In second
+# Added to the plot title while a live plot is still measured.
+# Removed once the measurement is done.
+'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
 
 # Interactivity
 'keyPressedStared' : 's', # To star a run

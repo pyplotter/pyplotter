@@ -16,7 +16,7 @@ WEEK_SPACING = 7 * DAY_SPACING
 MONTH_SPACING = 30 * DAY_SPACING
 YEAR_SPACING = 365 * DAY_SPACING
 
-if sys.platform == 'win32':
+if sys.platform=='win32':
     _epoch = datetime.utcfromtimestamp(0)
     def utcfromtimestamp(timestamp):
         return _epoch + timedelta(seconds=timestamp)
@@ -223,7 +223,7 @@ class DateAxisItem(pg.AxisItem):
     
     def tickStrings(self, values, scale, spacing):
         tickSpecs = self.zoomLevel.tickSpecs
-        tickSpec = next((s for s in tickSpecs if s.spacing == spacing), None)
+        tickSpec = next((s for s in tickSpecs if s.spacing==spacing), None)
         try:
             dates = [utcfromtimestamp(v - self.utcOffset) for v in values]
         except (OverflowError, ValueError, OSError):

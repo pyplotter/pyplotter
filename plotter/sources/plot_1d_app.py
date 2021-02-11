@@ -177,9 +177,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.radioButtonFitNone.setChecked(True)
 
 
-        self.setWindowTitle(str(windowTitle))
+        self.setWindowTitle(windowTitle)
 
-        self.plotItem.setTitle(title=str(title), color=config['styles'][config['style']]['pyqtgraphTitleTextColor'])
+        self.plotItem.setTitle(title=title,
+                               color=config['styles'][config['style']]['pyqtgraphTitleTextColor'])
 
         # To make the GUI faster
         self.plotItem.disableAutoRange()
@@ -228,7 +229,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              curveLegend = curveLegend)
 
         # AutoRange only after the first data item is added
-        self.plotItem.autoRange()
+        self.autoRange()
 
         # Should be initialize last
         PlotApp.__init__(self)
@@ -316,6 +317,58 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     ####################################
     #
+    #           Method related to the plotDataItem
+    #
+    ####################################
+
+
+    def getNotHiddenCurves(self) -> dict:
+        """
+        Obtain the dict of not hidden curves
+        """
+    
+        curvesNotHidden = {}
+        for curveId, plotDataItem in self.curves.items():
+            if not plotDataItem.hidden:
+                curvesNotHidden[curveId] = plotDataItem
+
+        return curvesNotHidden
+
+
+
+    def autoRange(self) -> None:
+        """
+        Autorange the plotItem based on the unHide plotDataItem.
+        """
+        
+        curvesNotHidden = self.getNotHiddenCurves()
+        
+        xRange = [1e99, -1e99]
+        yRange = [1e99, -1e99]
+        
+        for curveId, plotDataItem in curvesNotHidden.items():
+            
+            xRangeTemp = plotDataItem.dataBounds(0)
+            yRangeTemp = plotDataItem.dataBounds(1)
+            
+            if xRangeTemp[0] is not None and xRangeTemp[1] is not None and yRangeTemp[0] is not None and yRangeTemp[1] is not None:
+                
+                if xRangeTemp[0]<xRange[0]:
+                    xRange[0] = xRangeTemp[0]
+                if yRangeTemp[0]<yRange[0]:
+                    yRange[0] = yRangeTemp[0]
+                
+                if xRangeTemp[1]>xRange[1]:
+                    xRange[1] = xRangeTemp[1]
+                if yRangeTemp[1]>yRange[1]:
+                    yRange[1] = yRangeTemp[1]
+
+        self.plotItem.setRange(xRange=xRange, yRange=yRange)
+
+
+
+    ####################################
+    #
     #           Method to add, update, remove items
     #
     ####################################
@@ -374,7 +427,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.updateLegend()
 
         if autoRange:
-            self.plotItem.vb.autoRange()
+            self.autoRange()
 
 
 
@@ -384,7 +437,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                               curveLabel   : str,
                               curveUnits   : str,
                               curveLegend  : str,
-                              showInLegend : bool=True) -> None:
+                              showInLegend : bool=True,
+                              hidden       : bool=False) -> None:
         """
         Method adding a plotDataItem to the plotItem.
 
@@ -404,7 +458,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         curveLegend : str
             Legend label of the curve.
         showInLegend : bool
-            If data should be shown in the legend.
+            If the plotDataLegend should be shown in the legend.
+            Default True.
+        hidden : bool
+            If the plotDataItem is hidden.
+            Default False.
         """
 
         # Get the dataPlotItem color
@@ -419,17 +477,15 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.curves[curveId].curveUnits   = curveUnits
         self.curves[curveId].curveLegend  = curveLegend
         self.curves[curveId].showInLegend = showInLegend
+        self.curves[curveId].hidden       = hidden
 
-        # Update the display information
-        self.updateLegend()
-        self.updateyLabel()
         self.updateListDataPlotItem(curveId)
 
 
 
     def removePlotDataItem(self, curveId: str) -> None:
         """
-        Remove a PlotDataItem identified via its "curveId"
+        Remove a PlotDataItem identified via its "curveId".
 
         Parameters
         ----------
@@ -439,22 +495,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
 
         # If no curve will be displayed, we close the QDialog
-        if len(self.curves) == 1:
+        if len(self.curves)==1:
             self.o()
         else:
             # Remove the curve
             self.plotItem.removeItem(self.curves[curveId])
             del(self.curves[curveId])
 
-            # Update the display information
-            self.updateLegend()
-            self.updateyLabel()
-
-            # Update the list of plotDataItem
-            for radioButton in self.plotDataItemButtonGroup.buttons():
-                if radioButton.curveId == curveId:
-                    self.plotDataItemButtonGroup.removeButton(radioButton)
-                    radioButton.setParent(None)
+            self.updateListDataPlotItem(curveId)
 
 
 
@@ -466,36 +514,48 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             2. If there are more than 1 with the same unit: the unit is displayed.
             3. If there are more than 1 with different unit: the unit "a.u" displayed.
             4. If there is 2 and one is the selection curve: we change nothing.
+            5. If all curves are hidden, we display "None".
         """
+        
+        # Obtain the list of not hidden plotDataItem
+        curvesNotHidden = self.getNotHiddenCurves()
         
         # The label is changed only of we are not display slices of a 2d plot
         if not self.linkedTo2dPlot:
             
             # If there are two curves and on is the selection one, we change nothing
-            if len(self.curves)==2 and any(['selection' in curveId for curveId in self.curves.keys()]):
+            if len(curvesNotHidden)==2 and any(['selection' in curveId for curveId in curvesNotHidden.keys()]):
                 pass
             # If there is more than one plotDataItem
             # We check of the share the same unit
-            elif len(self.curves)>1 and len(set(curve.curveUnits for curve in self.curves.values()))==1:
+            elif len(curvesNotHidden)>1 and len(set(curve.curveUnits for curve in curvesNotHidden.values()))==1:
                 self.plotItem.setLabel(axis ='left',
                                        text ='',
-                                       units=self.curves[list(self.curves.keys())[0]].curveUnits)
+                                       units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveUnits)
             # We check of the share the same label
-            elif len(set(curve.curveLabel for curve in self.curves.values()))>1:
+            elif len(set(curve.curveLabel for curve in curvesNotHidden.values()))>1:
                 self.plotItem.setLabel(axis ='left',
                                        text ='',
                                        units='a.u')
             # If there is only one plotDataItem or if the plotDataItems share the same label
+            elif len(curvesNotHidden)==1:
+                self.plotItem.setLabel(axis ='left',
+                                       text =curvesNotHidden[list(curvesNotHidden.keys())[0]].curveLabel,
+                                       units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveUnits)
             else:
                 self.plotItem.setLabel(axis ='left',
-                                       text =self.curves[list(self.curves.keys())[0]].curveLabel,
-                                       units=self.curves[list(self.curves.keys())[0]].curveUnits)
+                                       text ='None',
+                                       units='')
 
 
 
     def updateLegend(self) -> None:
         """
         Update the legendItem of the plotItem.
+        Only plotDataItem with showInLegend==True and hidden==False are shown
+        To do so, we
+        1. Clear the legendItem.
+        2. Browse plotDataItem and add then to the freshly cleared legendItem.
         """
 
         self.legendItem.clear()
@@ -505,19 +565,20 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if len(self.curves)==1:
             if self.linkedTo2dPlot:
                 for curve in self.curves.values():
-                    if curve.showInLegend:
+                    if curve.showInLegend and not curve.hidden:
                         self.legendItem.addItem(curve, curve.curveLegend)
         elif len(self.curves) > 1:
             for curve in self.curves.values():
-                if curve.showInLegend:
+                if curve.showInLegend and not curve.hidden:
                     self.legendItem.addItem(curve, curve.curveLegend)
 
 
 
     def updateListDataPlotItem(self, curveId: str) -> None:
         """
-        Method called when a plotDataItem is added to the plotItem.
+        Method called when a plotDataItem is added or removed to the plotItem.
         Add a radioButton to allow the user to select the plotDataItem.
+        Add a checkBox to allow the user to hide the plotDataItem.
 
         Parameters
         ----------
@@ -528,14 +589,46 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Update list of plotDataItem only if the plotDataItem is not a fit
         if curveId not in ['fit', 'filtering']:
-            radioButton = QtWidgets.QRadioButton(self.curves[curveId].curveLabel)
-            
-            radioButton.curveId = curveId
             
             if 'selection' not in curveId:
-                self.plotDataItemButtonGroup.addButton(radioButton, len(self.plotDataItemButtonGroup.buttons()))
-                radioButton.clicked.connect(self.selectPlotDataItem)
-                self.verticalLayoutPlotDataItem.addWidget(radioButton)
+                # Add a radioButton to allow the user to select the plotDataItem.
+                # If there is already a button with curveId, we remove it
+                createButton = True
+                for radioButton in self.plotDataItemButtonGroup.buttons():
+                    if radioButton.curveId==curveId:
+                        self.plotDataItemButtonGroup.removeButton(radioButton)
+                        radioButton.setParent(None)
+                        createButton = False
+                # Otherwise, we create it
+                if createButton:
+                    radioButton = QtWidgets.QRadioButton(self.curves[curveId].curveLabel)
+                    radioButton.curveId = curveId
+                    self.plotDataItemButtonGroup.addButton(radioButton, len(self.plotDataItemButtonGroup.buttons()))
+                    radioButton.clicked.connect(self.selectPlotDataItem)
+                    self.verticalLayoutPlotDataItem.addWidget(radioButton)
+                
+                # Add a checkBox to allow the user to hide the plotDataItem.
+                # If there is already a button with curveId, we remove it
+                createButton = True
+                for i in range(self.verticalLayoutHide.count()):
+                    if self.verticalLayoutHide.itemAt(i) is not None:
+                        checkBox = self.verticalLayoutHide.itemAt(i).widget()
+                        if checkBox.curveId==curveId:
+                            self.verticalLayoutHide.removeWidget(checkBox)
+                            checkBox.setParent(None)
+                            createButton = False
+                # Otherwise, we create it
+                if createButton:
+                    checkBox = QtWidgets.QCheckBox(self.curves[curveId].curveLabel)
+                    checkBox.curveId = curveId
+                    checkBox.stateChanged.connect(lambda : self.hidePlotDataItem(checkBox))
+
+                    checkBox.setChecked(self.curves[curveId].hidden)
+                    self.verticalLayoutHide.addWidget(checkBox)
+
+        # We update displayed information
+        self.updateLegend()
+        self.updateyLabel()
 
 
 
@@ -729,6 +822,37 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         font.setPixelSize(config['tickLabelFontSize'])
         self.plotItem.getAxis('bottom').setTickFont(font)
         self.plotItem.getAxis('left').setTickFont(font)
+
+
+
+    def hidePlotDataItem(self, cb : QtWidgets.QCheckBox) -> None:
+        
+        curveId      = cb.curveId
+        plotDataItem = self.curves[curveId]
+        
+        # We get the interaction radioBox having the same curveId
+        radioBox = [i for i in [self.verticalLayoutPlotDataItem.itemAt(i).widget() for i in range(self.verticalLayoutPlotDataItem.count())] if i.curveId==curveId][0]
+        
+        if cb.isChecked():
+            
+            # if checkBox.isChecked():
+            plotDataItem.setAlpha(0, False)
+            plotDataItem.hidden = True
+            
+            # When the curve is hidden, we do not allow interaction with it
+            radioBox.setEnabled(False)
+        else:
+            # If the curve was previously hidden
+            if plotDataItem.hidden:
+                plotDataItem.hidden = False
+                plotDataItem.setAlpha(1, False)
+                
+                radioBox.setEnabled(True)
+        
+        # Update the display
+        self.updateyLabel()
+        self.updateLegend()
+        self.autoRange()
 
 
 
@@ -1054,8 +1178,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         
         # If we want to remove the selection infinite line
         if curveId is None:
-            self.plotItem.removeItem(self.infiniteLines['a'])
-            self.plotItem.removeItem(self.infiniteLines['b'])
+            if 'a' in self.infiniteLines.keys():
+                self.plotItem.removeItem(self.infiniteLines['a'])
+            if 'b' in self.infiniteLines.keys():
+                self.plotItem.removeItem(self.infiniteLines['b'])
         else:
             pen = pg.mkPen(color=(255, 255, 255),
                            width=config['crossHairLineWidth'],
@@ -1161,6 +1287,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         radioButton = self.plotDataItemButtonGroup.checkedButton()
 
+        self.updateSelectionInifiteLine(None)
+        self.updatePlotDataItemStyle(None)
+        checkBoxes = (self.verticalLayoutHide.itemAt(i).widget() for i in range(self.verticalLayoutHide.count()))
+        for checkBox in checkBoxes:
+            checkBox.setEnabled(True)
+
         # When user click None, we unselect everything
         if radioButton.curveId is None:
 
@@ -1192,11 +1324,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             if fftplot is not None:
                 fftplot.close()
 
-            self.updateSelectionInifiteLine(None)
-            self.updatePlotDataItemStyle(None)
             self.enableWhenPlotDataItemSelected(False)
 
         else:
+
+            checkBoxes = (self.verticalLayoutHide.itemAt(i).widget() for i in range(self.verticalLayoutHide.count()))
+            for checkBox in checkBoxes:
+                if checkBox.curveId==radioButton.curveId:
+                    checkBox.setEnabled(False)
 
             self.selectedX     = self.curves[radioButton.curveId].xData
             self.selectedY     = self.curves[radioButton.curveId].yData
@@ -1222,8 +1357,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Enable or not the GUI to interact with the selected curve.
         """
 
-        self.groupBoxCurveInteraction.setEnabled(enable)
         self.groupBoxFFT.setEnabled(enable)
+        self.groupBoxCalculus.setEnabled(enable)
+        self.groupBoxFiltering.setEnabled(enable)
         self.groupBoxFit.setEnabled(enable)
 
 

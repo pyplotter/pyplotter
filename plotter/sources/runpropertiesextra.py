@@ -228,7 +228,7 @@ class RunPropertiesExtra:
 
 
         # If user wants to star a run
-        if key == config['keyPressedStared'].lower():
+        if key==config['keyPressedStared'].lower():
 
             # If the run was already stared
             # We remove the star of the table
@@ -247,7 +247,7 @@ class RunPropertiesExtra:
                 # its icon
                 if len(self.getRunStared())==0:
                     for row in range(self.tableWidgetFolder.rowCount()):
-                        if self._currentDatabase == self.tableWidgetFolder.item(row, 0).text():
+                        if self._currentDatabase==self.tableWidgetFolder.item(row, 0).text():
                             self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon(PICTURESPATH+'database.png'))
 
             # If the user wants to stared the run
@@ -264,14 +264,14 @@ class RunPropertiesExtra:
 
                 # If the database containing the stared run is displayed, we star it
                 for row in range(self.tableWidgetFolder.rowCount()):
-                    if self._currentDatabase == self.tableWidgetFolder.item(row, 0).text():
+                    if self._currentDatabase==self.tableWidgetFolder.item(row, 0).text():
                         self.tableWidgetFolder.item(row, 0).setIcon(QtGui.QIcon(PICTURESPATH+'databaseStared.png'))
 
 
 
         
         # If user wants to hide a run
-        elif key == config['keyPressedHide'].lower():
+        elif key==config['keyPressedHide'].lower():
 
             # If the run was already hidden
             # We unhide the row
