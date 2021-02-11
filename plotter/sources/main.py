@@ -183,12 +183,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         path = os.path.normpath(self.currentPath).split(os.sep)
         root = os.path.normpath(config['root']).split(os.sep)
-
+        
         # Display path until root 
         for i, text in enumerate(path):
 
             # Build button text depending of where we are
-            if text==root[-1]:
+            if text==root[0]:
                 bu_text = 'root'
             elif text not in root:
                 bu_text = text

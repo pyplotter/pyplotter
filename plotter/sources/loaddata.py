@@ -117,7 +117,7 @@ class LoadDataThread(QtCore.QRunnable):
                 # for qcodes version >0.18, 2d data are return as a 2d array
                 # to keep code backward compatible, we transform it back to
                 # 1d array.
-                if d[paramsIndependent[1]['name']].ndim==2:
+                if d[paramsIndependent[1]['name']].ndim==2 or d[paramsIndependent[1]['name']].ndim==3:
                     d[paramsIndependent[0]['name']] = d[paramsIndependent[0]['name']].flatten()
                     d[paramsIndependent[1]['name']] = d[paramsIndependent[1]['name']].flatten()
                     d[paramsDependent['name']]      = d[paramsDependent['name']].flatten()
