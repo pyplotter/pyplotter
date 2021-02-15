@@ -1294,17 +1294,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if len(paramsIndependent)>2:
             return
         elif len(paramsIndependent)==2:
-            xLabelText   = [paramsIndependent[0].label for i in paramsDependent]
+            xLabelText   = [paramsIndependent[0].name for i in paramsDependent]
             xLabelUnits  = [paramsIndependent[0].unit for i in paramsDependent]
-            yLabelTexts  = [paramsIndependent[1].label for i in paramsDependent]
+            yLabelTexts  = [paramsIndependent[1].name for i in paramsDependent]
             yLabelUnitss = [paramsIndependent[1].unit for i in paramsDependent]
-            zLabelTexts  = [i.label for i in paramsDependent]
+            zLabelTexts  = [i.name for i in paramsDependent]
             zLabelUnitss = [i.unit for i in paramsDependent]
             plotRefs     = [self.getDataRef(livePlot=True)+i.name for i in paramsDependent]
         else: 
-            xLabelText   = [paramsIndependent[0].label for i in paramsDependent]
+            xLabelText   = [paramsIndependent[0].name for i in paramsDependent]
             xLabelUnits  = [paramsIndependent[0].unit for i in paramsDependent]
-            yLabelTexts  = [i.label for i in paramsDependent]
+            yLabelTexts  = [i.name for i in paramsDependent]
             yLabelUnitss = [i.unit for i in paramsDependent]
             zLabelTexts  = ['' for i in paramsDependent]
             zLabelUnitss = ['' for i in paramsDependent]
