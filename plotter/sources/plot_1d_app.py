@@ -703,8 +703,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                         cb.setText(label)
 
                         cb.toggled.connect(lambda state,
-                                                  curveId = curveId,
-                                                  plot    = plot: self.toggleNewPlot(state, curveId, plot))
+                                                  runId   = str(plot.runId),
+                                                  curveId = str(curveId),
+                                                  plot    = plot: self.toggleNewPlot(state, runId, curveId, plot))
                         
                         if curveId in self.curves.keys():
                             cb.setChecked(True)
@@ -724,7 +725,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def toggleNewPlot(self, state: bool, curveId: str, plot: Plot1dApp) -> None:
+    def toggleNewPlot(self, state: bool,
+                            runId: str,
+                            curveId: str,
+                            plot: Plot1dApp) -> None:
         """
         Called when user click on the checkbox of the curves tab.
         Add or remove curve in the plot window.
@@ -733,6 +737,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         ----------
         state : bool
             State of the checkbox button.
+        runId : str
+            Id of the qcodes run, 0 if the curve is not from qcodes.
         curveId : str
             Id of the curve related to the checkbox, see getCurveId in the mainApp.
         plot : Plot1dApp
@@ -740,13 +746,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         
         if state:
-
             self.addPlotDataItem(x           = plot.curves[curveId].xData,
                                  y           = plot.curves[curveId].yData,
                                  curveId     = curveId,
                                  curveLabel  = plot.curves[curveId].curveLabel,
                                  curveUnits  = plot.curves[curveId].curveUnits,
-                                 curveLegend = plot.curves[curveId].curveLabel)
+                                 curveLegend = '{} - {}'.format(runId, plot.curves[curveId].curveLabel))
 
         else:
             self.removePlotDataItem(curveId)
