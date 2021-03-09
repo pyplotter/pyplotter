@@ -466,7 +466,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             self.tableWidgetDataBase.setItem(runId-1, 7, MyTableWidgetItem(runRecords))
 
             if runId in self.getRunHidden():
-                self.tableWidgetDataBase.setRowHidden(runId, True)
+                self.tableWidgetDataBase.setRowHidden(runId-1, True)
 
 
 
