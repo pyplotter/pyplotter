@@ -4,6 +4,7 @@ import numpy as np
 from typing import Callable, Tuple
 
 from .qcodesdatabase import QcodesDatabase
+from qcodes.dataset.data_export import flatten_1D_data_for_plot
 
 
 
@@ -101,7 +102,8 @@ class LoadDataThread(QtCore.QRunnable):
             # 1d plot
             if len(paramsIndependent)==1:
                 
-                data = d[paramsIndependent[0]['name']], d[paramsDependent['name']]
+                data = (flatten_1D_data_for_plot(d[paramsIndependent[0]['name']]),
+                        flatten_1D_data_for_plot(d[paramsDependent['name']]))
 
                 xLabelText  = paramsIndependent[0]['name']
                 xLabelUnits = paramsIndependent[0]['unit']
@@ -118,9 +120,9 @@ class LoadDataThread(QtCore.QRunnable):
                 # to keep code backward compatible, we transform it back to
                 # 1d array.
                 if d[paramsIndependent[1]['name']].ndim==2 or d[paramsIndependent[1]['name']].ndim==3:
-                    d[paramsIndependent[0]['name']] = d[paramsIndependent[0]['name']].flatten()
-                    d[paramsIndependent[1]['name']] = d[paramsIndependent[1]['name']].flatten()
-                    d[paramsDependent['name']]      = d[paramsDependent['name']].flatten()
+                    d[paramsIndependent[0]['name']] = flatten_1D_data_for_plot(d[paramsIndependent[0]['name']])
+                    d[paramsIndependent[1]['name']] = flatten_1D_data_for_plot(d[paramsIndependent[1]['name']])
+                    d[paramsDependent['name']]      = flatten_1D_data_for_plot(d[paramsDependent['name']])
                 
                 # Find the effective x and y axis, see findXYIndex
                 xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
