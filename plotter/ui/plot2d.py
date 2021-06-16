@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\plot2d.ui'
+# Form implementation generated from reading ui file 'plot2d.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.2
 #
@@ -12,7 +12,7 @@ class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.setEnabled(True)
-        Dialog.resize(1004, 602)
+        Dialog.resize(1004, 615)
         Dialog.setSizeGripEnabled(False)
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(Dialog)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
@@ -96,6 +96,14 @@ class Ui_Dialog(object):
         self.checkBoxSwapxy.setFont(font)
         self.checkBoxSwapxy.setObjectName("checkBoxSwapxy")
         self.verticalLayout.addWidget(self.checkBoxSwapxy)
+        self.checkBoxAspectEqual = QtWidgets.QCheckBox(self.groupBoxDisplay)
+        font = QtGui.QFont()
+        font.setPointSize(8)
+        font.setBold(False)
+        font.setWeight(50)
+        self.checkBoxAspectEqual.setFont(font)
+        self.checkBoxAspectEqual.setObjectName("checkBoxAspectEqual")
+        self.verticalLayout.addWidget(self.checkBoxAspectEqual)
         self.checkBoxCrossHair = QtWidgets.QCheckBox(self.groupBoxDisplay)
         font = QtGui.QFont()
         font.setPointSize(8)
@@ -327,6 +335,7 @@ class Ui_Dialog(object):
         self.label.setText(_translate("Dialog", "colormap: "))
         self.checkBoxInvert.setText(_translate("Dialog", "Invert colormap"))
         self.checkBoxSwapxy.setText(_translate("Dialog", "Swap x/y"))
+        self.checkBoxAspectEqual.setText(_translate("Dialog", "equal aspect"))
         self.checkBoxCrossHair.setText(_translate("Dialog", "cross hair (fastest without)"))
         self.labelSpinBox.setText(_translate("Dialog", "Font size:"))
         self.groupBoxInteraction.setTitle(_translate("Dialog", "Map interaction"))

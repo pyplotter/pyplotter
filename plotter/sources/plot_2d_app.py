@@ -214,6 +214,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxMaximum.stateChanged.connect(self.checkBoxExtractionState)
         self.checkBoxMinimum.stateChanged.connect(self.checkBoxExtractionState)
         self.checkBoxSwapxy.stateChanged.connect(self.checkBoxSwapxyState)
+        self.checkBoxAspectEqual.stateChanged.connect(self.checkBoxAspectEqualState)
         self.checkBoxSubtractAverageX.stateChanged.connect(self.checkBoxSubtractAverageXState)
         self.checkBoxSubtractAverageY.stateChanged.connect(self.checkBoxSubtractAverageYState)
         self.pushButton3d.clicked.connect(self.launched3d)
@@ -443,6 +444,19 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     #           Method to related to display
     #
     ####################################
+
+
+    def checkBoxAspectEqualState(self, b: int) -> None:
+        """When user wants equal scaling on the x and y axis.
+
+        Args:
+            b (int): State of the box.
+        """
+        
+        if self.checkBoxAspectEqual.isChecked():
+            self.plotItem.vb.setAspectLocked(True)
+        else:
+            self.plotItem.vb.setAspectLocked(False)
 
 
 

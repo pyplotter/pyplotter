@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1004</width>
-    <height>602</height>
+    <height>615</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -190,6 +190,20 @@
                 </property>
                 <property name="text">
                  <string>Swap x/y</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="checkBoxAspectEqual">
+                <property name="font">
+                 <font>
+                  <pointsize>8</pointsize>
+                  <weight>50</weight>
+                  <bold>false</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>equal aspect</string>
                 </property>
                </widget>
               </item>
