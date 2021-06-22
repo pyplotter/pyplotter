@@ -3,8 +3,6 @@ from PyQt5 import QtGui, QtCore
 import numpy as np
 import datetime
 import pyqtgraph as pg
-import pyqtgraph.functions as fn
-import pyqtgraph.debug as debug
 
 from .config import config
 from ..ui.plot_widget import PlotWidget
@@ -71,13 +69,35 @@ class PlotApp(object):
         Return true if mouse is over the view of the plot.
         """
 
-        x = self.plotItem.getAxis('bottom').range
-        y = self.plotItem.getAxis('left').range
-        dx = (x[1]-x[0])/100.*config['plotShrinkActiveArea']
-        dy = (y[1]-y[0])/100.*config['plotShrinkActiveArea']
+        # We implement a workaround for the log mode of 1D plot.
+        # See: https://github.com/pyqtgraph/pyqtgraph/issues/1470#issuecomment-864568004
+        if self.plotType=='1d':
+            if self.checkBoxLogX.isChecked():
+                xmin = 10**self.plotItem.axes['bottom']['item'].range[0]
+                xmax = 10**self.plotItem.axes['bottom']['item'].range[1]
+            else:
+                xmin = self.plotItem.axes['bottom']['item'].range[0]
+                xmax = self.plotItem.axes['bottom']['item'].range[1]
+            if self.checkBoxLogY.isChecked():
+                ymin = 10**self.plotItem.axes['left']['item'].range[0]
+                ymax = 10**self.plotItem.axes['left']['item'].range[1]
+            else:
+                ymin = self.plotItem.axes['left']['item'].range[0]
+                ymax = self.plotItem.axes['left']['item'].range[1]
+        else:
+            xmin = self.plotItem.axes['bottom']['item'].range[0]
+            xmax = self.plotItem.axes['bottom']['item'].range[1]
+
+            ymin = self.plotItem.axes['left']['item'].range[0]
+            ymax = self.plotItem.axes['left']['item'].range[1]
         
-        if self.mousePos[0] > x[0]+dx and self.mousePos[0] < x[1]-dx \
-        and self.mousePos[1] > y[0]+dy and self.mousePos[1] < y[1]-dy \
+        xmax -= (xmax-xmin)/100
+        ymax -= (ymax-ymin)/100
+        
+        print(self.mousePos[0], xmin,self.mousePos[0] , xmax ,self.mousePos[1], ymin,self.mousePos[1] , ymax ,self.widgetHovered)
+        
+        if self.mousePos[0] > xmin and self.mousePos[0] < xmax \
+        and self.mousePos[1] > ymin and self.mousePos[1] < ymax \
         and self.widgetHovered:
             return True
         else:
@@ -101,8 +121,24 @@ class PlotApp(object):
 
         # Get mouse coordinates in "good" units
         pos = self.plotItem.vb.mapSceneToView(pos)
+        
+        # We implement a workaround for the log mode of 1D plot.
+        # See: https://github.com/pyqtgraph/pyqtgraph/issues/1470#issuecomment-864568004
+        if self.plotType=='1d':
+            if self.checkBoxLogX.isChecked():
+                x = 10**pos.x()
+            else:
+                x = pos.x()
+            if self.checkBoxLogY.isChecked():
+                y = 10**pos.y()
+            else:
+                y = pos.y()
+        else:
+            x = pos.x()
+            y = pos.y()
+        
         # Save it
-        self.mousePos = pos.x(), pos.y()
+        self.mousePos = x, y
 
         # If mouse is over the viewbox, we change cursor in crosshair
         # If mouse is not over the viewbox, we change back the crosshair in cursor and remove the crosshair
