@@ -94,8 +94,6 @@ class PlotApp(object):
         xmax -= (xmax-xmin)/100
         ymax -= (ymax-ymin)/100
         
-        print(self.mousePos[0], xmin,self.mousePos[0] , xmax ,self.mousePos[1], ymin,self.mousePos[1] , ymax ,self.widgetHovered)
-        
         if self.mousePos[0] > xmin and self.mousePos[0] < xmax \
         and self.mousePos[1] > ymin and self.mousePos[1] < ymax \
         and self.widgetHovered:
