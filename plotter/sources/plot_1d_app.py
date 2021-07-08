@@ -159,6 +159,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxLogX.stateChanged.connect(self.checkBoxLogState)
         self.checkBoxLogY.stateChanged.connect(self.checkBoxLogState)
         self.checkBoxSymbol.stateChanged.connect(self.checkBoxSymbolState)
+        self.checkBoxSplitYAxis.stateChanged.connect(self.checkBoxSplitYAxisState)
 
         self.checkBoxDifferentiate.clicked.connect(self.clickDifferentiate)
         self.checkBoxIntegrate.clicked.connect(self.clickIntegrate)
@@ -478,7 +479,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.curves[curveId].curveLegend  = curveLegend
         self.curves[curveId].showInLegend = showInLegend
         self.curves[curveId].hidden       = hidden
-
+        self.curves[curveId].mkpen        = mkpen
+        
         self.updateListDataPlotItem(curveId)
 
 
@@ -586,6 +588,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Id of the curve.
             See getCurveId from MainApp
         """
+
+        if len(self.curves)==2:
+            self.checkBoxSplitYAxis.setEnabled(True)
+        else:
+            self.checkBoxSplitYAxis.setEnabled(False)
 
         # Update list of plotDataItem only if the plotDataItem is not a fit
         if curveId not in ['fit', 'filtering']:
@@ -773,17 +780,25 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         which checkbox are checked.
         """
         
+        # If split y axis enable
+        if hasattr(self, 'curveRight'):
+            plotItems = [self.plotItem, self.curveRight]
+        else:
+            plotItems = [self.plotItem]
+        
         if self.checkBoxLogX.isChecked():
             if self.checkBoxLogY.isChecked():
-                self.plotItem.setLogMode(x=True, y=True)
+                [item.setLogMode(True, True) for item in plotItems]
             else:
-                self.plotItem.setLogMode(x=True, y=False)
+                [item.setLogMode(True, False) for item in plotItems]
         else:
             if self.checkBoxLogY.isChecked():
-                self.plotItem.setLogMode(x=False, y=True)
+                [item.setLogMode(False, True) for item in plotItems]
             else:
-                self.plotItem.setLogMode(x=False, y=False)
+                [item.setLogMode(False, False) for item in plotItems]
 
+        if hasattr(self, 'curveRight'):
+            self.vbRight.autoRange()
 
 
     def checkBoxSymbolState(self, b: QtWidgets.QCheckBox) -> None:
@@ -797,9 +812,99 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             for i, (key, curve) in enumerate(list(self.curves.items())):
                 if key != 'fit':
                     curve.setSymbol(config['plot1dSymbol'][i%len(config['plot1dSymbol'])])
+                    
+                    # If split y axis enable
+                    if hasattr(self, 'curveRight'):
+                        self.curveRight.setSymbol(config['plot1dSymbol'][i%len(config['plot1dSymbol'])])
+                        
         else:
-            for dataPlotItem in self.plotItem.listDataItems():
-                dataPlotItem.setSymbol(None)
+            for i, (key, curve) in enumerate(list(self.curves.items())):
+                if key != 'fit':
+                    curve.setSymbol(None)
+                
+            # If split y axis enable
+            if hasattr(self, 'curveRight'):
+                self.curveRight.setSymbol(None)
+
+
+
+
+    def checkBoxSplitYAxisState(self, b: QtWidgets.QCheckBox) -> None:
+        """
+        Method called when user click on the Symbol checkBox.
+        Put symbols on all plotDataItem except fit model.
+        """
+        
+        # Only work for two plotDataItem
+        if len(self.curves)==2:
+            
+            # Get the curveId for the curve linked to the left and right axis.
+            leftCurveId  = list(self.curves.keys())[0]
+            rightCurveId = list(self.curves.keys())[1]
+            
+            if self.checkBoxSplitYAxis.isChecked():
+                
+                self.groupBoxCurveInteraction.setEnabled(False)
+            
+                # Create an empty plotDataItem which will contain the right curve
+                self.curveRight = pg.PlotDataItem(pen=self.curves[rightCurveId].mkpen)
+                
+                # Create and set links for a second viewbox which will contains the right curve
+                self.vbRight = pg.ViewBox()
+                self.vbRight.setXLink(self.plotItem)
+                self.plotItem.scene().addItem(self.vbRight)
+                self.plotItem.showAxis('right')
+                self.plotItem.getAxis('right').linkToView(self.vbRight)
+                
+                # Remove the plotDataItem which will be on the second viewbox
+                self.plotItem.removeItem(self.curves[rightCurveId])
+                
+                # Remove the legendItem, now obsolete with the right axis
+                self.legendItem.clear()
+                
+                # Display the correct information on each axis about their curve
+                self.plotItem.setLabel(axis='left',
+                                    text=self.curves[leftCurveId].curveLabel,
+                                    units=self.curves[leftCurveId].curveUnits,
+                                    **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                        'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                self.plotItem.setLabel(axis='right',
+                                    text=self.curves[rightCurveId].curveLabel,
+                                    units=self.curves[rightCurveId].curveUnits,
+                                    **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
+                                        'font-size' : str(config['axisLabelFontSize'])+'pt'})
+
+                # Add the plotDataItem in the right viewbox
+                self.vbRight.addItem(self.curveRight)
+                self.curveRight.setData(self.curves[rightCurveId].xData, self.curves[rightCurveId].yData)
+                self.vbRight.setYRange(self.curves[rightCurveId].yData.min(), self.curves[rightCurveId].yData.max())
+                
+                # Sorcery to me, found here:
+                # https://stackoverflow.com/questions/29473757/pyqtgraph-multiple-y-axis-on-left-side
+                # If that's not here, the views are incorrect
+                def updateViews():
+                    self.vbRight.setGeometry(self.plotItem.getViewBox().sceneBoundingRect())
+                    self.vbRight.linkedViewChanged(self.plotItem.getViewBox(), self.vbRight.XAxis)
+                updateViews()
+                self.plotItem.getViewBox().sigResized.connect(updateViews)
+            else:
+                
+                self.groupBoxCurveInteraction.setEnabled(True)
+                
+                # Remove the right viewbox and other stuff done for the right axis
+                self.plotItem.hideAxis('right')
+                self.plotItem.scene().removeItem(self.vbRight)
+                self.plotItem.getViewBox().sigResized.disconnect()
+                del(self.vbRight)
+                del(self.curveRight)
+                
+                # Put back the left view box as it was before the split
+                self.plotItem.addItem(self.curves[rightCurveId])
+                
+                self.updateLegend()
+                self.updateyLabel()
+            
+            
 
 
 
