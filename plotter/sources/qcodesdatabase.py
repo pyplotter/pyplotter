@@ -6,7 +6,7 @@ from qcodes.dataset import load_by_id
 from qcodes.dataset.data_set import DataSet
 from qcodes.dataset.sqlite.database import connect
 from qcodes.dataset.sqlite.connection import ConnectionPlus
-from typing import Callable, Tuple, List
+from typing import Callable, Tuple, List, Optional
 
 from .config import config
 
@@ -489,10 +489,11 @@ class QcodesDatabase:
 
     def getRunInfos(self,
                     progressBarUpdate : Callable[[int], None]=None,
-                    progressBarKey    : str=None) -> dict:
+                    progressBarKey    : str=None) -> Optional[dict]:
         """
         Get a handfull of information about all the run of a database.
-
+        Return None if database is empty.
+        
         Parameters
         ----------
         progressBarUpdate : func
@@ -513,6 +514,12 @@ class QcodesDatabase:
         cur.execute("SELECT MAX(run_id) FROM runs")
         rows = cur.fetchall()
         
+        # In case the database is empty, we return None
+        if rows[0]['max(run_id)'] is None:
+            self.progressBarUpdate.emit(self.progressBarKey, 100)
+            return 
+            
+            
         if progressBarUpdate is None:
             callEvery = None
         else:

@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtTest
 from typing import Callable
 
 
@@ -60,6 +60,12 @@ class ImportDatabaseThread(QtCore.QRunnable):
         self.signals.setStatusBarMessage.emit('Gathered runs infos database', False)
         runInfos = self.getRunInfos(self.signals.updateProgressBar, self.progressBarKey)
 
+        # If database is empty
+        if runInfos is None:
+            self.signals.setStatusBarMessage.emit('Database empty', True)
+            QtTest.QTest.qWait(1000) # To let user see the error message
+            self.signals.updateDatabase.emit(self.progressBarKey, False, 0)
+            return
 
         # Going through the database here
         self.signals.setStatusBarMessage.emit('Loading database', False)
