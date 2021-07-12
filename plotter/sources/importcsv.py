@@ -135,10 +135,10 @@ class ImportCSV:
                 cb.setChecked(True)
 
             # We put a fake runId of value 0
-            self.main.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem('0'))
+            self.main.tableWidgetParameters.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem('0'))
             self.main.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
-            self.main.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(columnName))
-            self.main.tableWidgetParameters.setItem(rowPosition, 5, QtGui.QTableWidgetItem(independentParameter))
+            self.main.tableWidgetParameters.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(columnName))
+            self.main.tableWidgetParameters.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(independentParameter))
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda cb          = cb,

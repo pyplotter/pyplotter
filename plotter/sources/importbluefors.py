@@ -162,9 +162,9 @@ class ImportBlueFors:
                     cb.setChecked(True)
 
                 # We put a fake runId of value 0
-                self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem('0'))
+                self.tableWidgetParameters.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem('0'))
                 self.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
-                self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(fileName))
+                self.tableWidgetParameters.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(fileName))
 
                 # Each checkbox at its own event attached to it
                 cb.toggled.connect(lambda cb       = cb,

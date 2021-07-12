@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore, QtWidgets
 import numpy as np
 import datetime
 import pyqtgraph as pg
@@ -226,7 +226,7 @@ class PlotApp(object):
                 defaultCursor = QtCore.Qt.PointingHandCursor
 
         
-        QtGui.QApplication.setOverrideCursor(QtGui.QCursor(defaultCursor))
+        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(defaultCursor))
 
 
 
@@ -277,7 +277,7 @@ class PlotApp(object):
             self.vLine = vLine
             self.hLine = hLine
 
-            QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
+            QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
             
         # If the crosshair exist, and we want to remove it
         elif remove and self.vLine is not None:
@@ -287,7 +287,7 @@ class PlotApp(object):
             self.vLine = None
             self.hLine = None
 
-            QtGui.QApplication.setOverrideCursor(QtGui.QCursor(defaultCursor))
+            QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(defaultCursor))
             
 
         # Otherwise, we update its position

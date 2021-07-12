@@ -681,7 +681,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 self.tabCurves = QtWidgets.QWidget()
                 self.tabWidget.addTab(self.tabCurves, 'Add curves')
                 
-                self.tabLayout = QtGui.QVBoxLayout()
+                self.tabLayout = QtWidgets.QVBoxLayout()
                 self.tabCurves.setLayout(self.tabLayout)
             else:
 

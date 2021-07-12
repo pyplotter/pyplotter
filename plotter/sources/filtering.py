@@ -8,7 +8,7 @@ from scipy.signal import savgol_filter
 
 
 
-class SavitzkyGolayWindow(QtGui.QDialog):
+class SavitzkyGolayWindow(QtWidgets.QDialog):
 
 
 
@@ -39,7 +39,7 @@ class SavitzkyGolayWindow(QtGui.QDialog):
             See SavitzkyGolay class.
         """
         
-        QtGui.QDialog.__init__(self)
+        QtWidgets.QDialog.__init__(self)
 
         
         self.setMinimumSize(200, 200)
@@ -77,7 +77,7 @@ class SavitzkyGolayWindow(QtGui.QDialog):
         
 
 
-        layout = QtGui.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         layout.addLayout(layoutWindowLenght)
         layout.addLayout(layoutPolyorder)
 
@@ -206,7 +206,7 @@ class SavitzkyGolay:
             Array of the x axis.
         yFiltered : np.ndarray
             Array of the y axis.
-        filteringWindow :QtGui.QDialog
+        filteringWindow :QtWidgets.QDialog
             Window allowing user to modify filter parameters.
         legend : str
             Legend of the filtered curve.

@@ -11,7 +11,7 @@ from .config import config
 
 
 
-class FitReportWindow(QtGui.QDialog):
+class FitReportWindow(QtWidgets.QDialog):
 
 
 
@@ -26,7 +26,7 @@ class FitReportWindow(QtGui.QDialog):
             lmfit report.
         """
 
-        QtGui.QDialog.__init__(self)
+        QtWidgets.QDialog.__init__(self)
 
         
         label = QtWidgets.QLabel(report)
@@ -65,11 +65,11 @@ class FitReportWindow(QtGui.QDialog):
         
         if event.type()==QtCore.QEvent.Enter:
             
-            QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
+            QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
             return True
         elif event.type()==QtCore.QEvent.Leave:
             
-            QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         return False
 
 
@@ -146,7 +146,7 @@ class Fit1d(object):
             Array of the y axis from the fit procedure.
         p : lmfit.parameter.Parameters
             lmfit parameters.
-        fitReportWindow : QtGui.QDialog
+        fitReportWindow : QtWidgets.QDialog
             QDialog displaying lmfit report.
         """
 
@@ -1029,7 +1029,7 @@ class Fit2d(object):
             Array of the y axis from the fit procedure.
         p : lmfit.parameter.Parameters
             lmfit parameters.
-        fitReportWindow : QtGui.QDialog
+        fitReportWindow : QtWidgets.QDialog
             QDialog displaying lmfit report.
         """
 

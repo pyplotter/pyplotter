@@ -246,7 +246,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 
                 # If looks like a BlueFors log folder
                 if self.importblueFors.isBlueForsFolder(file):
-                    item =  QtGui.QTableWidgetItem(file)
+                    item =  QtWidgets.QTableWidgetItem(file)
                     item.setIcon(QtGui.QIcon(PICTURESPATH+'bluefors.png'))
 
                     self.tableWidgetFolder.insertRow(row)
@@ -254,7 +254,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                     row += 1
                 # Other folders
                 else:   
-                    item =  QtGui.QTableWidgetItem(file)
+                    item =  QtWidgets.QTableWidgetItem(file)
                     if file in config['enhancedFolder']:
                         item.setIcon(QtGui.QIcon(PICTURESPATH+'folderEnhanced.png'))
                     else:
@@ -275,30 +275,30 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                 DatabaseAlreadyOpened = True
 
                         if file_extension.lower()=='csv':
-                            item =  QtGui.QTableWidgetItem(file)
+                            item =  QtWidgets.QTableWidgetItem(file)
                             item.setIcon(QtGui.QIcon(PICTURESPATH+'csv.png'))
                         elif file_extension.lower()=='s2p':
-                            item =  QtGui.QTableWidgetItem(file)
+                            item =  QtWidgets.QTableWidgetItem(file)
                             item.setIcon(QtGui.QIcon(PICTURESPATH+'s2p.png'))
                         elif DatabaseAlreadyOpened and file in databaseStared:
-                            item =  QtGui.QTableWidgetItem(file)
+                            item =  QtWidgets.QTableWidgetItem(file)
                             item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpenedStared.png'))
                             item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
                         elif DatabaseAlreadyOpened:
-                            item =  QtGui.QTableWidgetItem(file)
+                            item =  QtWidgets.QTableWidgetItem(file)
                             item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseOpened.png'))
                             item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
                         elif file in databaseStared:
-                            item =  QtGui.QTableWidgetItem(file)
+                            item =  QtWidgets.QTableWidgetItem(file)
                             item.setIcon(QtGui.QIcon(PICTURESPATH+'databaseStared.png'))
                         else:
-                            item =  QtGui.QTableWidgetItem(file)
+                            item =  QtWidgets.QTableWidgetItem(file)
                             item.setIcon(QtGui.QIcon(PICTURESPATH+'database.png'))
                         self.tableWidgetFolder.insertRow(row)
                         self.tableWidgetFolder.setItem(row, 0, item)
                         
                         # Get file size in hman readable format
-                        fileSizeItem = QtGui.QTableWidgetItem(self.sizeof_fmt(os.path.getsize(abs_filename)))
+                        fileSizeItem = QtWidgets.QTableWidgetItem(self.sizeof_fmt(os.path.getsize(abs_filename)))
                         fileSizeItem.setTextAlignment(QtCore.Qt.AlignRight)
                         fileSizeItem.setTextAlignment(QtCore.Qt.AlignVCenter)
                         self.tableWidgetFolder.setItem(row, 1, fileSizeItem)
@@ -320,7 +320,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # We check if the signal is effectively called by user
         if not self._folderUpdating and self._guiInitialized:
             
-            QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
             # Get current item
             currentRow = self.tableWidgetFolder.currentIndex().row()
@@ -349,7 +349,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 self.dataBaseClicked()
 
             # Job done, we restor the usual cursor 
-            QtGui.QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
         
         # When the signal has been called at least once
         if not self._guiInitialized:
@@ -457,12 +457,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'empty.png'))
             
             self.tableWidgetDataBase.setItem(runId-1, 0, itemRunId)
-            self.tableWidgetDataBase.setItem(runId-1, 1, QtGui.QTableWidgetItem(dim))
-            self.tableWidgetDataBase.setItem(runId-1, 2, QtGui.QTableWidgetItem(experimentName))
-            self.tableWidgetDataBase.setItem(runId-1, 3, QtGui.QTableWidgetItem(sampleName))
-            self.tableWidgetDataBase.setItem(runId-1, 4, QtGui.QTableWidgetItem(runName))
-            self.tableWidgetDataBase.setItem(runId-1, 5, QtGui.QTableWidgetItem(started))
-            self.tableWidgetDataBase.setItem(runId-1, 6, QtGui.QTableWidgetItem(completed))
+            self.tableWidgetDataBase.setItem(runId-1, 1, QtWidgets.QTableWidgetItem(dim))
+            self.tableWidgetDataBase.setItem(runId-1, 2, QtWidgets.QTableWidgetItem(experimentName))
+            self.tableWidgetDataBase.setItem(runId-1, 3, QtWidgets.QTableWidgetItem(sampleName))
+            self.tableWidgetDataBase.setItem(runId-1, 4, QtWidgets.QTableWidgetItem(runName))
+            self.tableWidgetDataBase.setItem(runId-1, 5, QtWidgets.QTableWidgetItem(started))
+            self.tableWidgetDataBase.setItem(runId-1, 6, QtWidgets.QTableWidgetItem(completed))
             self.tableWidgetDataBase.setItem(runId-1, 7, MyTableWidgetItem(runRecords))
 
             if runId in self.getRunHidden():
@@ -581,11 +581,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if self.isParameterPlotted(dependent['name']):
                 cb.setChecked(True)
 
-            self.tableWidgetParameters.setItem(rowPosition, 0, QtGui.QTableWidgetItem(str(runId)))
-            self.tableWidgetParameters.setItem(rowPosition, 1, QtGui.QTableWidgetItem(str(experimentName)))
+            self.tableWidgetParameters.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(runId)))
+            self.tableWidgetParameters.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(str(experimentName)))
             self.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
-            self.tableWidgetParameters.setItem(rowPosition, 3, QtGui.QTableWidgetItem(dependent['name']))
-            self.tableWidgetParameters.setItem(rowPosition, 4, QtGui.QTableWidgetItem(dependent['unit']))
+            self.tableWidgetParameters.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(dependent['name']))
+            self.tableWidgetParameters.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(dependent['unit']))
 
 
             independentString = config['sweptParameterSeparator'].join(dependent['depends_on'])
