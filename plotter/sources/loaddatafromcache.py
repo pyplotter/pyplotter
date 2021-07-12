@@ -61,15 +61,37 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                         np.array([[0., 1.],
                                   [0., 1.]]))
             else:
-                d = self.dataDict[self.zLabelText]
-                data = (d[self.xLabelText],
-                        d[self.yLabelText],
-                        d[self.zLabelText].flatten())
                 
-                # Find the effective x and y axis, see findXYIndex
-                xi, yi = self.findXYAxesIndex(data[1])
-                # Shapped the 2d Data
-                data = self.shapeData2d(data[xi], data[yi], data[2])
+                d = self.dataDict[self.zLabelText]
+                
+                # For qcodes version >0.18, 2d data are return as a 2d array
+                # the z data are then returned as given by qcodes.
+                # We however have to find a x and y 1d array for the imageItem
+                # This is done by a simple linear interpolation between the
+                # max and minimum value of the x, y 2d array returned by qcodes.
+                # WILL NOT WORK for NON-LINEAR SPACED DATA
+                if d[self.zLabelText].ndim==2 or d[self.zLabelText].ndim==3:
+                    
+                    fx = np.sort(np.ravel(d[self.xLabelText][~np.isnan(d[self.xLabelText])]))
+                    fy = np.sort(np.ravel(d[self.yLabelText][~np.isnan(d[self.yLabelText])]))
+                    
+                    xx = np.linspace(fx.min(), fx.max(), d[self.zLabelText].shape[0])
+                    yy = np.linspace(fy.min(), fy.max(), d[self.zLabelText].shape[1])
+                    
+                    data = (xx,
+                            yy,
+                            d[self.zLabelText])
+                
+                else:
+                    data = (d[self.xLabelText],
+                            d[self.yLabelText],
+                            d[self.zLabelText])
+                    
+                    # Find the effective x and y axis, see findXYIndex
+                    xi, yi = self.findXYAxesIndex(data[1])
+                    
+                    # Shapped the 2d Data
+                    data = self.shapeData2d(data[xi], data[yi], data[2])
 
         self.signals.dataLoaded.emit(self.plotRef, data, self.yLabelText)
 
