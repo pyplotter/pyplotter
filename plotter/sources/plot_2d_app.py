@@ -170,7 +170,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Create a histogram item linked to the imageitem
         self.histWidget.setImageItem(self.imageItem)
-        self.histWidget.item.setLevels(min=z[~np.isnan(z)].astype(np.uint8).min(), max=z[~np.isnan(z)].astype(np.uint8).max())
+        self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
         self.histWidget.axis.setTickFont(font)
 
         self.setImageView()
@@ -404,7 +404,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Set the image view
         xScale = (x[-1]-x[0])/len(x)
         yScale = (y[-1]-y[0])/len(y)
-        self.imageView.setImage(img   = self.zData.astype(np.uint8),
+        self.imageView.setImage(img   = self.zData,
                                 pos   = [x[0], y[0]],
                                 scale = [xScale, yScale])
         self.imageView.view.invertY(False)
@@ -433,8 +433,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.yData  = y
         self.zData  = z
 
-        self.histWidget.item.setLevels(min=z[~np.isnan(z)].astype(np.uint8).min(),
-                                       max=z[~np.isnan(z)].astype(np.uint8).max())
+        self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(),
+                                       max=z[~np.isnan(z)].max())
         self.setImageView()
 
 
