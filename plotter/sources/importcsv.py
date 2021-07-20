@@ -29,11 +29,11 @@ class ImportCSV:
         self.main.lineEditFilter.setEnabled(False)
         self.main.labelFilter.setEnabled(False)
         
+        ## Update label
+        self.main.labelCurrentRun.clear()
+        self.main.labelCurrentMetadata.clear()
+        
         self.main.setStatusBarMessage('Loading '+filePath[-3:].lower()+' file')
-
-        # Get the file name
-        fileName = os.path.basename(os.path.normpath(filePath))
-
 
         ## Fill the tableWidgetParameters with the run parameters
 
@@ -125,13 +125,16 @@ class ImportCSV:
         i = 1
         for columnName, y in zip(columnsName, ys):
             
+            fakeParamDependent = {'depends_on' : [0],
+                                  'label' : columnName}
+            
             rowPosition = self.main.tableWidgetParameters.rowCount()
             self.main.tableWidgetParameters.insertRow(rowPosition)
 
             cb = QtWidgets.QCheckBox()
 
             # We check if that parameter is already plotted
-            if self.main.isParameterPlotted(columnName):
+            if self.main.isParameterPlotted(fakeParamDependent):
                 cb.setChecked(True)
 
             # We put a fake runId of value 0
@@ -140,6 +143,11 @@ class ImportCSV:
             self.main.tableWidgetParameters.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(columnName))
             self.main.tableWidgetParameters.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(independentParameter))
 
+            runId       = 0
+            curveId     = self.main.getCurveId(label=columnName, runId=runId, livePlot=False)
+            plotTitle   = self.main.getPlotTitle(livePlot=False)
+            windowTitle = self.main.getWindowTitle(runId=runId, livePlot=False)
+            
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda cb          = cb,
                                       xLabelText  = independentParameter,
@@ -147,10 +155,23 @@ class ImportCSV:
                                       yLabelText  = columnName,
                                       yLabelUnits = '',
                                       data        = (x, y),
-                                      plotRef     = self.main.getDataRef(): self.csvParameterClicked(cb, xLabelText, xLabelUnits, yLabelText, yLabelUnits, data, plotRef))
+                                      runId       = runId,
+                                      curveId     = curveId,
+                                      plotTitle   = plotTitle,
+                                      windowTitle = windowTitle,
+                                      plotRef     = self.main.getPlotRef(fakeParamDependent): self.csvParameterClicked(cb,
+                                                                                                                       xLabelText,
+                                                                                                                       xLabelUnits,
+                                                                                                                       yLabelText,
+                                                                                                                       yLabelUnits,
+                                                                                                                       data,
+                                                                                                                       runId,
+                                                                                                                       curveId,
+                                                                                                                       plotTitle,
+                                                                                                                       windowTitle,
+                                                                                                                       plotRef))
             
             i += 1
-
 
         self.main.setStatusBarMessage('Ready')
 
@@ -162,10 +183,27 @@ class ImportCSV:
                                   yLabelText  : str,
                                   yLabelUnits : str,
                                   data        : tuple,
+                                  runId       : int,
+                                  curveId     : str,
+                                  plotTitle   : str,
+                                  windowTitle : str,
                                   plotRef     : str) -> None:
         """
         Call when user click on a parameter from a csv file in the tableWidgetParameters.
         Launch a plot if user check a parameter and remove curve otherwise.
+
+        Args:
+            cb (QtWidgets.QCheckBox):  Clicked checkbox.
+            xLabelText (str): Label text for the xAxix.
+            xLabelUnits (str): Label units for the xAxix.
+            yLabelText (str): Label text for the yAxix.
+            yLabelUnits (str): Label units for the yAxix.
+            data (tuple): For 1d plot: [xData, yData]
+            runId (int): Data run id in the current database
+            curveId (str): Id of the curve, see getCurveId.
+            plotTitle (str): Plot title, see getPlotTitle.
+            windowTitle (str): Window title, see getWindowTitle.
+            plotRef (str): Reference of the plot, see getplotRef.
         """
         
         if cb:
@@ -175,11 +213,15 @@ class ImportCSV:
                               xLabelText  = xLabelText,
                               xLabelUnits = xLabelUnits,
                               yLabelText  = yLabelText,
-                              yLabelUnits = yLabelUnits)
+                              yLabelUnits = yLabelUnits,
+                              runId       = runId,
+                              curveId     = curveId,
+                              plotTitle   = plotTitle,
+                              windowTitle = windowTitle)
             
         else:
 
             self.main.removePlot(plotRef = plotRef,
-                                 label   = yLabelText)
+                                 curveId = curveId)
 
 

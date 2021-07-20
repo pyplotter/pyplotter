@@ -15,11 +15,12 @@ class LoadDataSignal(QtCore.QObject):
 
     # When the run method is done
     # Signature
+    # runId: int, curveId:str, plotTitle: str, windowTitle:str
     # plotRef: str, progressBarKey: str, data: tuple
     # xLabelText: str, xLabelUnits: str,
     # yLabelText: str, yLabelUnits: str,
     # zLabelText: str, zLabelUnits: str,
-    updateDataFull = QtCore.pyqtSignal(str, str, tuple, str, str, str, str, str, str)
+    updateDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
     # Signal to update the progress bar
@@ -35,6 +36,9 @@ class LoadDataThread(QtCore.QRunnable):
 
 
     def __init__(self, runId              : int,
+                       curveId            : str,
+                       plotTitle          : str,
+                       windowTitle        : str,
                        dependentParamName : str,
                        plotRef            : str,
                        progressBarKey     : str,
@@ -47,6 +51,12 @@ class LoadDataThread(QtCore.QRunnable):
         ----------
         runId : int
             run id from which the data are downloaded
+        curveId : str
+            Id of the curve, see getCurveId.
+        plotTitle : str
+            Plot title, see getPlotTitle.
+        windowTitle : str
+            Window title, see getWindowTitle.
         dependentParamName : str
             Name of the dependent parameter from which data will be downloaded.
         plotRef : str
@@ -68,6 +78,9 @@ class LoadDataThread(QtCore.QRunnable):
         self.qcodesDatabase = QcodesDatabase()
 
         self.runId              = runId
+        self.curveId            = curveId
+        self.plotTitle          = plotTitle
+        self.windowTitle        = windowTitle
         self.dependentParamName = dependentParamName
         self.plotRef            = plotRef
         self.progressBarKey     = progressBarKey
@@ -104,9 +117,9 @@ class LoadDataThread(QtCore.QRunnable):
                 data = (np.ravel(d[paramsIndependent[0]['name']]),
                         np.ravel(d[paramsDependent['name']]))
 
-                xLabelText  = paramsIndependent[0]['name']
+                xLabelText  = paramsIndependent[0]['label']
                 xLabelUnits = paramsIndependent[0]['unit']
-                yLabelText  = paramsDependent['name']
+                yLabelText  = paramsDependent['label']
                 yLabelUnits = paramsDependent['unit']
                 zLabelText  = ''
                 zLabelUnits = ''
@@ -132,16 +145,28 @@ class LoadDataThread(QtCore.QRunnable):
                                         d[paramsIndependent[yi]['name']],
                                         d[paramsDependent['name']])
 
-                xLabelText  = paramsIndependent[xi]['name']
+                xLabelText  = paramsIndependent[xi]['label']
                 xLabelUnits = paramsIndependent[xi]['unit']
-                yLabelText  = paramsIndependent[yi]['name']
+                yLabelText  = paramsIndependent[yi]['label']
                 yLabelUnits = paramsIndependent[yi]['unit']
-                zLabelText  = paramsDependent['name']
+                zLabelText  = paramsDependent['label']
                 zLabelUnits = paramsDependent['unit']
 
 
             # Signal to launched a plot with the downloaded data
-            self.signals.updateDataFull.emit(self.plotRef, self.progressBarKey, data, xLabelText, xLabelUnits, yLabelText, yLabelUnits, zLabelText, zLabelUnits)
+            self.signals.updateDataFull.emit(self.runId,
+                                             self.curveId,
+                                             self.plotTitle,
+                                             self.windowTitle,
+                                             self.plotRef,
+                                             self.progressBarKey,
+                                             data,
+                                             xLabelText,
+                                             xLabelUnits,
+                                             yLabelText,
+                                             yLabelUnits,
+                                             zLabelText,
+                                             zLabelUnits)
 
 
 

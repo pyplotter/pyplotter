@@ -55,7 +55,7 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
 
         labePolyorder = QtWidgets.QLabel('Polyorder: ')
 
-        layoutPolyorder = QtGui.QHBoxLayout()
+        layoutPolyorder = QtWidgets.QHBoxLayout()
         layoutPolyorder.addWidget(labePolyorder)
         layoutPolyorder.addWidget(spinBoxPolyorder)
 
@@ -71,7 +71,7 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
 
         labeWindowLength = QtWidgets.QLabel('Window length: ')
 
-        layoutWindowLenght = QtGui.QHBoxLayout()
+        layoutWindowLenght = QtWidgets.QHBoxLayout()
         layoutWindowLenght.addWidget(labeWindowLength)
         layoutWindowLenght.addWidget(spinBoxWindowLenght)
         

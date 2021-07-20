@@ -34,7 +34,7 @@ class FitReportWindow(QtWidgets.QDialog):
         label.installEventFilter(self)
         self.setMinimumSize(200, 200)
 
-        layout = QtGui.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.addWidget(label)
         self.setLayout(layout)
 

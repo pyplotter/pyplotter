@@ -1,8 +1,8 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
+from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 from pprint import pformat
-from typing import Generator, Union, Callable, List, Tuple
+from typing import Generator, Union, Callable, List
 import uuid
 import numpy as np
 import time
@@ -114,17 +114,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Handle connection and requests to qcodes database
         self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
         # Handle log files from bluefors fridges
-        self.importblueFors = ImportBlueFors(self._plotRefs,
-                                             self.lineEditFilter,
-                                             self.labelFilter,
-                                             self.tableWidgetDataBase,
-                                             self.tableWidgetParameters,
-                                             self.textEditMetadata,
-                                             self.setStatusBarMessage,
-                                             self.addPlot,
-                                             self.removePlot,
-                                             self.isParameterPlotted,
-                                             self.getDataRef)
+        self.importblueFors = ImportBlueFors(self)
         # Handle csv files
         self.importcsv      = ImportCSV(self)
 
@@ -544,9 +534,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         
         runId = self.getRunId()
+        runIdStr = str(runId)
         experimentName = self.getRunExperimentName()
-
-        runId = str(self.getRunId())
 
         self.setStatusBarMessage('Loading run parameters')
 
@@ -556,9 +545,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
         ## Update label
-        self.labelCurrentRun.setText(runId)
-        self.labelCurrentMetadata.setText(runId)
-
+        self.labelCurrentRun.setText(runIdStr)
+        self.labelCurrentMetadata.setText(runIdStr)
 
         ## Fill the tableWidgetParameters with the run parameters
 
@@ -572,25 +560,41 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             cb = QtWidgets.QCheckBox()
 
             # We check if that parameter is already plotted
-            if self.isParameterPlotted(dependent['name']):
+            if self.isParameterPlotted(dependent):
                 cb.setChecked(True)
 
-            self.tableWidgetParameters.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(str(runId)))
+            self.tableWidgetParameters.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(runIdStr))
             self.tableWidgetParameters.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(str(experimentName)))
             self.tableWidgetParameters.setCellWidget(rowPosition, 2, cb)
-            self.tableWidgetParameters.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(dependent['name']))
+            self.tableWidgetParameters.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(dependent['label']))
             self.tableWidgetParameters.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(dependent['unit']))
 
 
             independentString = config['sweptParameterSeparator'].join(dependent['depends_on'])
             self.tableWidgetParameters.setCellWidget(rowPosition, 5, QtWidgets.QLabel(independentString))
 
+            # Get info specific to the run
+            curveId     = self.getCurveId(label=dependent['label'], runId=runId, livePlot=False)
+            plotRef     = self.getPlotRef(paramDependent=dependent, livePlot=False)
+            plotTitle   = self.getPlotTitle(livePlot=False)
+            windowTitle = self.getWindowTitle(runId=runId, livePlot=False)
+            
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda state,
                                       dependentParamName = dependent['name'],
                                       runId              = runId,
+                                      curveId            = curveId,
+                                      plotTitle          = plotTitle,
+                                      windowTitle        = windowTitle,
                                       dependent          = dependent,
-                                      dataRef            = self.getDataRef(): self.parameterClicked(state, dependentParamName, runId, dependent, dataRef))
+                                      plotRef            = plotRef: self.parameterClicked(state,
+                                                                                          dependentParamName,
+                                                                                          runId,
+                                                                                          curveId,
+                                                                                          plotTitle,
+                                                                                          windowTitle,
+                                                                                          dependent,
+                                                                                          plotRef))
         
 
         self.tableWidgetParameters.setSortingEnabled(True)
@@ -629,8 +633,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                          state              : bool,
                          dependentParamName : str,
                          runId              : int,
+                         curveId            : str,
+                         plotTitle          : str,
+                         windowTitle        : str,
                          paramDependent     : dict,
-                         dataRef            : str) -> None:
+                         plotRef            : str) -> None:
         """
         Handle event when user clicked on data line.
         Either get data and display them or remove the data depending on state.
@@ -643,15 +650,19 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Name of the dependent parameter from which data will be downloaded.
         runId : int
             Data run id in the current database
+        curveId : str
+            Id of the curve, see getCurveId.
+        plotTitle : str
+            Plot title, see getPlotTitle.
+        windowTitle : str
+            Window title, see getWindowTitle.
         paramDependent : dict
             Dependent parameter the user wants to see the data.
             This should be a qcodes dependent parameter dict.
-        dataRef : str
-            Reference of the plot, see getDataRef.
+        plotRef : str
+            Reference to a plot window, see getPlotRef.
         """
         
-        plotRef = self.getPlotRef(dataRef, paramDependent)
-
         # If the checkbutton is checked, we downlad and plot the data
         if state:
             
@@ -660,14 +671,18 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 self.setStatusBarMessage('Plotter does not handle data whose dim>2', error=True)
                 return
             else:
-                self.getData(plotRef            = plotRef,
+                self.getData(runId              = runId,
+                             curveId            = curveId,
+                             plotTitle          = plotTitle,
+                             windowTitle        = windowTitle,
+                             plotRef            = plotRef,
                              dependentParamName = dependentParamName)
 
         # If the checkbox is unchecked, we remove the plotted data
         else:
             
             self.removePlot(plotRef = plotRef,
-                            label   = paramDependent['name'])
+                            curveId = curveId)
 
 
 
@@ -820,30 +835,30 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def isParameterPlotted(self, parameterLabel : str) -> bool:
+    def isParameterPlotted(self, paramDependent: dict) -> bool:
         """
         Return True when the displayed parameter is currently plotted.
 
         Parameters
         ----------
-        parameterLabel : str
-            Label of the dependent parameter we are checking.
+        paramDependent : dict
+            qcodes dictionary of a dependent parameter
         """
 
         if len(self._plotRefs) > 0:
-
-            dataRef = self.getDataRef()
+            
+            plotRef = self.getPlotRef(paramDependent)
             
             # We iterate over all plotWindow
             for plot in self._plotRefs.values():
                 
                 if plot.plotType=='1d':
-                    if dataRef in plot.plotRef:
-                        if parameterLabel in [curve.curveLegend for curve in plot.curves.values()]:
+                    if plotRef in plot.plotRef:
+                        if paramDependent['label'] in [curve.curveLabel for curve in plot.curves.values()]:
                             return True
                 if plot.plotType=='2d':
-                    if dataRef in plot.plotRef:
-                        if plot.zLabelText==parameterLabel:
+                    if plotRef in plot.plotRef:
+                        if plot.zLabelText==paramDependent['label']:
                             return True
 
         return False
@@ -976,10 +991,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if plotRef in self.getLivePlotRef():
             if hasattr(self, '_livePlotDataSet'):
                 if self._plotRefs[plotRef].plotType=='1d':
-                    labels = [i.curveLabel for i in self._plotRefs[plotRef].curves.values()]
-                    [self.removePlot(plotRef, label) for label in labels]
+                    curveIds = self._plotRefs[plotRef].curves.keys()
+                    [self.removePlot(plotRef, curveId) for curveId in curveIds]
                 else:
-                    self.removePlot(plotRef, label)
+                    self.removePlot(plotRef, '')
                 del(self._livePlotDataSet)
         else:
             if self.getWindowTitle(runId)==windowTitle and self.getRunId()==runId:
@@ -999,12 +1014,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                         if label==self.tableWidgetParameters.item(row, 3).text():
                             widget = self.tableWidgetParameters.cellWidget(row, 2)
                             widget.setChecked(False)
-
-            # Unchecking the checkbox automatically called the removeplot method
-            # However this method must be called even if the dependent parameter
-            # closed was not in the parameter table
-            else:
-                self.removePlot(plotRef, label)
 
 
 
@@ -1051,6 +1060,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
     def getCurveId(self, label: str,
+                         runId: int,
                          livePlot: bool=False) -> str:
         """
         Return an id for a curve in a plot.
@@ -1060,14 +1070,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         ----------
         label : str
             Parameter label from which the curveId is obtained.
+        runId : int
+            Id of the curve, see getCurveId.
         livePlot : bool
             If the plot displaying the curve is a liveplot
         """ 
         
         if livePlot:
-            return self._livePlotPath+str(self._livePlotRunId)+str(label)
+            return self._livePlotPath+str(runId)+str(label)
         else:
-            return self._currentDatabase+str(self.getRunId())+str(label)
+            return self._currentDatabase+str(runId)+str(label)
 
 
 
@@ -1142,42 +1154,18 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def getDataRef(self, livePlot: bool=False) -> str:
-        """
-        Return a reference for the data.
-        This should be unique for a given set of data.
-        Composed of the absolute path of the file and, for qcodes db, of the 
-        runid.
-        """
-
-        if livePlot:
-            return self._livePlotPath + str(self._livePlotRunId)
-        else:
-            path = os.path.abspath(self._currentDatabase)
-            
-            # If BlueFors log files
-            if self.importblueFors.isBlueForsFolder(self._currentDatabase):
-                return path
-            # If csv or s2p files we return the filename without the extension
-            elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
-                return path
-            else:
-                return path+str(self.getRunId())
-
-
-
-    def getPlotRef(self, dataRef        : str,
-                         paramDependent : dict) -> str:
+    def getPlotRef(self, paramDependent : dict,
+                         livePlot       : bool=False) -> str:
         """
         Return a reference for a plot window.
         Handle the difference between 1d plot and 2d plot.
         
         Parameters
         ----------
-        dataRef : str
-            Reference of the data, see getDataRef
         paramDependent : dict
             qcodes dictionary of a dependent parameter
+        livePlot : bool
+            True if livePlot window.
         
         Return
         ------
@@ -1185,10 +1173,25 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Unique reference for a plot window.
         """
 
-        if len(paramDependent['depends_on'])==2:
-            return dataRef+paramDependent['name']
+        if livePlot:
+            dataPath = self._livePlotPath + str(self._livePlotRunId)
         else:
-            return dataRef
+            path = os.path.abspath(self._currentDatabase)
+            
+            # If BlueFors log files
+            if self.importblueFors.isBlueForsFolder(self._currentDatabase):
+                dataPath = path
+            # If csv or s2p files we return the filename without the extension
+            elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
+                dataPath = path
+            else:
+                dataPath = path+str(self.getRunId())
+
+
+        if len(paramDependent['depends_on'])==2:
+            return dataPath+paramDependent['label']
+        else:
+            return dataPath
 
 
 
@@ -1239,7 +1242,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if len(data)==2:
             self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
                                                        y           = data[1],
-                                                       curveId     = self.getCurveId(yLabelText, livePlot=True),
+                                                       curveId     = self.getCurveId(yLabelText, self._livePlotRunId, livePlot=True),
                                                        curveLegend = None,
                                                        autoRange   = True)
         # 2d plot
@@ -1283,7 +1286,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Get dataset params
         paramsIndependent = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)==0]
         paramsDependent   = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)!=0]
-        
         # We prepare the plot window parameters depending on the plot dimension
         if len(paramsIndependent)>2:
             return
@@ -1294,7 +1296,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             yLabelUnitss = [paramsIndependent[1].unit for i in paramsDependent]
             zLabelTexts  = [i.name for i in paramsDependent]
             zLabelUnitss = [i.unit for i in paramsDependent]
-            plotRefs     = [self.getDataRef(livePlot=True)+i.name for i in paramsDependent]
+            plotRefs     = [self.getPlotRef(paramDependent={'depends_on' : [0,1], 'label' : i.label}, livePlot=True) for i in paramsDependent]
         else: 
             xLabelText   = [paramsIndependent[0].name for i in paramsDependent]
             xLabelUnits  = [paramsIndependent[0].unit for i in paramsDependent]
@@ -1302,7 +1304,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             yLabelUnitss = [i.unit for i in paramsDependent]
             zLabelTexts  = ['' for i in paramsDependent]
             zLabelUnitss = ['' for i in paramsDependent]
-            plotRefs     = [self.getDataRef(livePlot=True) for i in paramsDependent]
+            plotRefs     = [self.getPlotRef(paramDependent={'depends_on' : [0]}, livePlot=True) for i in paramsDependent]
             
         return xLabelText, xLabelUnits, yLabelTexts, yLabelUnitss, zLabelTexts, zLabelUnitss, plotRefs
 
@@ -1354,7 +1356,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                          windowTitle    = windowTitle,
                          runId          = self._livePlotRunId,
                          linkedTo2dPlot = False,
-                         curveId        = self.getCurveId(label=yLabelText, livePlot=True),
+                         curveId        = self.getCurveId(label=yLabelText, runId=self._livePlotRunId, livePlot=True),
                          timestampXAxis = False,
                          livePlot       = True,
                          hidden         = hidden)
@@ -1368,16 +1370,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         send them to the livePlotUpdatePlotData method.
         """
         
-        # Get dataset params
-        paramsIndependent = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)==0]
-        
         for xLabelText, xLabelUnits, yLabelText, yLabelUnits, zLabelText, zLabelUnits, plotRef in zip(*self.livePlotGetPlotParameters()):
             
             worker = LoadDataFromCacheThread(plotRef,
-                                       self._livePlotDataSet.cache.data(),
-                                       xLabelText,
-                                       yLabelText,
-                                       zLabelText)
+                                             self._livePlotDataSet.cache.data(),
+                                             xLabelText,
+                                             yLabelText,
+                                             zLabelText)
             
             worker.signals.dataLoaded.connect(self.livePlotUpdatePlotData)
 
@@ -1537,7 +1536,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def addPlotFromThread(self, plotRef        : str,
+    def addPlotFromThread(self, runId          : int,
+                                curveId        : str,
+                                plotTitle      : str,
+                                windowTitle    : str,
+                                plotRef        : str,
                                 progressBarKey : str,
                                 data           : List[np.ndarray],
                                 xLabelText     : str,
@@ -1560,6 +1563,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                      yLabelUnits    = yLabelUnits,
                      zLabelText     = zLabelText,
                      zLabelUnits    = zLabelUnits,
+                     runId          = runId,
+                     curveId        = curveId,
+                     plotTitle      = plotTitle,
+                     windowTitle    = windowTitle,
                      progressBarKey = progressBarKey)
 
 
@@ -1570,13 +1577,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                       xLabelUnits    : str,
                       yLabelText     : str,
                       yLabelUnits    : str,
-
+                      runId          : int,
+                      curveId        : str,
+                      plotTitle      : str,
+                      windowTitle    : str,
                       cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None]=None,
-                      plotTitle      : str  = None,
-                      windowTitle    : str  = None,
-                      runId          : int  = None,
                       linkedTo2dPlot : bool = False,
-                      curveId        : str  = None,
                       curveLegend    : str  = None,
                       hidden         : bool = False,
                       curveLabel     : str  = None,
@@ -1610,6 +1616,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Label text for the yAxix.
         yLabelUnits : str
             Label units for the yAxix.
+        runId : int
+            Data run id in the current database
+        curveId : str
+            Id of the curve, see getCurveId.
+        plotTitle : str
+            Plot title, see getPlotTitle.
+        windowTitle : str
+            Window title, see getWindowTitle.
         zLabelText : str, default None
             Only for 2d data.
             Label text for the zAxis.
@@ -1633,23 +1647,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
         # If some parameters are not given, we find then from the GUI
-        if runId is None:
-            runId = int(self.getRunId())
-        if plotTitle is None:
-            plotTitle = self.getPlotTitle()
-        if windowTitle is None:
-            windowTitle = self.getWindowTitle(runId=runId)
         if cleanCheckBox is None:
             cleanCheckBox = self.cleanCheckBox
 
-            
+        
         # 1D plot
         if len(data)==2:
-
             
             # Specific 1d optional parameter
-            if curveId is None:
-                curveId = self.getCurveId(yLabelText)
             if timestampXAxis is None:
                 timestampXAxis = self.importblueFors.isBlueForsFolder(self._currentDatabase)
             
@@ -1731,7 +1736,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def removePlot(self, plotRef: str, label: str=None) -> None:
+    def removePlot(self, plotRef: str,
+                         curveId: str) -> None:
         """
         Method call when data are remove from the GUI.
         If the data plot window is open, close it.
@@ -1742,17 +1748,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Parameters
         ----------
         plotRef : str
-            Reference of the plot.
-        label : str, default None
-            Label of the data to be removed, usefull for 1d plot.
+            Reference of the plot, see getPlotRef.
+        curveId : str
+            reference of the curve, see getCurveId
         """
         
         if self._plotRefs[plotRef].plotType=='1d':
             # If there is more than one curve, we remove one curve
             if len(self._plotRefs[plotRef].curves) > 1:
-                for curveId, plotDataItem in self._plotRefs[plotRef].curves.items():
-                    if label==plotDataItem.curveLabel:
-                        break
                 self._plotRefs[plotRef].removePlotDataItem(curveId=curveId)
             # If there is one curve we close the plot window
             else:
@@ -1822,7 +1825,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def getData(self, plotRef: str, dependentParamName: str) -> None:
+    def getData(self, runId              : int,
+                      curveId            : str,
+                      plotTitle          : str,
+                      windowTitle        : str,
+                      plotRef            : str,
+                      dependentParamName : str) -> None:
         """
         Called when user wants to plot qcodes data.
         Create a progress bar in the status bar.
@@ -1831,6 +1839,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         Parameters
         ----------
+        runId : int
+            Data run id in the current database
+        curveId : str
+            Id of the curve, see getCurveId.
+        plotTitle : str
+            Plot title, see getPlotTitle.
+        windowTitle : str
+            Window title, see getWindowTitle.
         plotRef : str
             Reference of the plot window.
         dependentParamName : str
@@ -1842,8 +1858,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         progressBarKey = self.addProgressBarInStatusBar()
         
-        runId = self.getRunId()
         worker = LoadDataThread(runId,
+                                curveId,
+                                plotTitle,
+                                windowTitle,
                                 dependentParamName,
                                 plotRef,
                                 progressBarKey,
