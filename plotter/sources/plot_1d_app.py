@@ -801,6 +801,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.vbRight.autoRange()
 
 
+
     def checkBoxSymbolState(self, b: QtWidgets.QCheckBox) -> None:
         """
         Method called when user click on the Symbol checkBox.
@@ -826,6 +827,21 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             if hasattr(self, 'curveRight'):
                 self.curveRight.setSymbol(None)
 
+
+
+    def splitAutoBtnClicked(self) -> None:
+        """
+        Method used to overwrite the standard "autoBtnClicked" of the PlotItem.
+        Simply allow, in the split mode view (see checkBoxSplitYAxisState), to
+        autorange the two viewbox at the same time.
+        """
+        if self.plotItem.autoBtn.mode == 'auto':
+            self.vbRight.setYRange(self.vbRight.addedItems[0].yData.min(), self.vbRight.addedItems[0].yData.max())
+            self.vbRight.setXRange(self.vbRight.addedItems[0].xData.min(), self.vbRight.addedItems[0].xData.max())
+            self.plotItem.enableAutoRange()
+            self.plotItem.autoBtn.hide()
+        else:
+            self.plotItem.disableAutoRange()
 
 
 
@@ -887,9 +903,18 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.vbRight.linkedViewChanged(self.plotItem.getViewBox(), self.vbRight.XAxis)
                 updateViews()
                 self.plotItem.getViewBox().sigResized.connect(updateViews)
+                
+                # We overwrite the autoRange button to make it work with
+                # both axis
+                self.plotItem.autoBtn.clicked.disconnect(self.plotItem.autoBtnClicked)
+                self.plotItem.autoBtn.clicked.connect(self.splitAutoBtnClicked)
             else:
                 
                 self.groupBoxCurveInteraction.setEnabled(True)
+                
+                # Restore the autoRange button original method
+                self.plotItem.autoBtn.clicked.disconnect(self.splitAutoBtnClicked)
+                self.plotItem.autoBtn.clicked.connect(self.plotItem.autoBtnClicked)
                 
                 # Remove the right viewbox and other stuff done for the right axis
                 self.plotItem.hideAxis('right')
@@ -903,8 +928,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 
                 self.updateLegend()
                 self.updateyLabel()
-            
-            
+
 
 
 
