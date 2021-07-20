@@ -76,14 +76,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         self.setStatusBarMessage('Ready')
 
-        # Default folder is the dataserver except if we are on test mode
-        if 'test' in os.listdir('.'):
-
-            self.currentPath = os.path.abspath(os.path.curdir)
-            config['path'] = self.currentPath
-            config['root'] = self.currentPath
         # If we are unable to detect the config folder, we switch in local mode
-        elif not os.path.isdir(os.path.normpath(config['path'])):
+        if not os.path.isdir(os.path.normpath(config['path'])):
             
             # Ask user to chose a path
             self.currentPath = QtWidgets.QFileDialog.getExistingDirectory(self,
