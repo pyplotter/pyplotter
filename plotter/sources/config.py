@@ -5,9 +5,9 @@ config = {
 
 # Do not put "/" after ":" in the two following paths
 # The soft will not allowed to go above that path
-'root' : 'C:',
+'root' : 'Q:/',
 # Default display path, should be at least the root
-'path' : 'C:/Users/ed261978/Desktop/edumur/scripts/plotter/plotter/test_folder',
+'path' : 'Q:/',
 # Folder having these names will be colored, easier to browse
 'enhancedFolder' : ['bluelagoon',
                     'Cryoconcept',
