@@ -72,8 +72,8 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                 # WILL NOT WORK for NON-LINEAR SPACED DATA
                 if d[self.zLabelText].ndim==2 or d[self.zLabelText].ndim==3:
                     
-                    fx = np.sort(np.ravel(d[self.xLabelText][~np.isnan(d[self.xLabelText])]))
-                    fy = np.sort(np.ravel(d[self.yLabelText][~np.isnan(d[self.yLabelText])]))
+                    fx = np.ravel(d[self.xLabelText][~np.isnan(d[self.xLabelText])])
+                    fy = np.ravel(d[self.yLabelText][~np.isnan(d[self.yLabelText])])
                     
                     xx = np.linspace(fx.min(), fx.max(), d[self.zLabelText].shape[0])
                     yy = np.linspace(fy.min(), fy.max(), d[self.zLabelText].shape[1])
