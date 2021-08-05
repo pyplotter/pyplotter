@@ -380,6 +380,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Remove all previous row in the table
         self.clearTableWidget(self.tableWidgetDataBase)
 
+        # Modify the resize mode so that the initial view has an optimized
+        # column width
+        self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+
         self.qcodesDatabase.databasePath = os.path.join(self.currentPath, self._currentDatabase)
 
         # Add a progress bar in the statusbar
@@ -477,6 +481,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if not error:
             self.tableWidgetDataBase.setSortingEnabled(True)
             self.tableWidgetDataBase.sortItems(0, QtCore.Qt.DescendingOrder)
+            self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.Interactive)
 
             # Enable database interaction
             self.checkBoxHidden.setEnabled(True)
