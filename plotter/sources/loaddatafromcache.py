@@ -77,10 +77,17 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                     
                     xx = np.linspace(fx.min(), fx.max(), d[self.zLabelText].shape[0])
                     yy = np.linspace(fy.min(), fy.max(), d[self.zLabelText].shape[1])
+                    zz = d[self.zLabelText]
+                    
+                    # we take care of data taken along decreasing axes
+                    if fx[1]<fx[0]:
+                        zz = zz[::-1,:]
+                    if fy[1]<fy[0]:
+                        zz = zz[:,::-1]
                     
                     data = (xx,
                             yy,
-                            d[self.zLabelText])
+                            zz)
                 
                 else:
                     data = (d[self.xLabelText],
