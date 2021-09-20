@@ -579,7 +579,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             self.tableWidgetParameters.setCellWidget(rowPosition, 5, QtWidgets.QLabel(independentString))
 
             # Get info specific to the run
-            curveId     = self.getCurveId(label=dependent['label'], runId=runId, livePlot=False)
+            curveId     = self.getCurveId(name=dependent['name'], runId=runId, livePlot=False)
             plotRef     = self.getPlotRef(paramDependent=dependent, livePlot=False)
             plotTitle   = self.getPlotTitle(livePlot=False)
             windowTitle = self.getWindowTitle(runId=runId, livePlot=False)
@@ -1064,7 +1064,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def getCurveId(self, label: str,
+    def getCurveId(self, name: str,
                          runId: int,
                          livePlot: bool=False) -> str:
         """
@@ -1073,8 +1073,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         Parameters
         ----------
-        label : str
-            Parameter label from which the curveId is obtained.
+        name : str
+            Parameter name from which the curveId is obtained.
         runId : int
             Id of the curve, see getCurveId.
         livePlot : bool
@@ -1082,9 +1082,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """ 
         
         if livePlot:
-            return self._livePlotPath+str(runId)+str(label)
+            return self._livePlotPath+str(runId)+str(name)
         else:
-            return self._currentDatabase+str(runId)+str(label)
+            return self._currentDatabase+str(runId)+str(name)
 
 
 
@@ -1194,7 +1194,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
         if len(paramDependent['depends_on'])==2:
-            return dataPath+paramDependent['label']
+            return dataPath+paramDependent['name']
         else:
             return dataPath
 
@@ -1227,7 +1227,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
     def livePlotUpdatePlotData(self, plotRef        : str,
                                      data           : tuple,
-                                     yLabelText     : str) -> None:
+                                     yParamName     : str) -> None:
         """
         Methods called in live plot mode to update plot.
         This method must have the same signature as addPlot.
@@ -1239,15 +1239,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         data : tuple
             For 1d plot: (xData, yData)
             For 2d plot: (xData, yData, zData)
-        yLabelText : str
-            Label text for the yAxis.
+        yParamName : str
+            Name of the y parameter.
         """
 
         # 1d plot
         if len(data)==2:
             self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
                                                        y           = data[1],
-                                                       curveId     = self.getCurveId(yLabelText, self._livePlotRunId, livePlot=True),
+                                                       curveId     = self.getCurveId(yParamName, self._livePlotRunId, livePlot=True),
                                                        curveLegend = None,
                                                        autoRange   = True)
         # 2d plot
@@ -1282,37 +1282,74 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def livePlotGetPlotParameters(self) -> List[list]:
+    def livePlotGetPlotParameters(self) -> None:
         """
         Gather the information from the current live plot dataset and sort them
         into iterables.
+        
+        Each dependent parameters must be treated independently since they
+        can each have a different number of independent parameters.
         """
         
         # Get dataset params
-        paramsIndependent = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)==0]
-        paramsDependent   = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)!=0]
-        # We prepare the plot window parameters depending on the plot dimension
-        if len(paramsIndependent)>2:
-            return
-        elif len(paramsIndependent)==2:
-            xLabelText   = [paramsIndependent[0].name for i in paramsDependent]
-            xLabelUnits  = [paramsIndependent[0].unit for i in paramsDependent]
-            yLabelTexts  = [paramsIndependent[1].name for i in paramsDependent]
-            yLabelUnitss = [paramsIndependent[1].unit for i in paramsDependent]
-            zLabelTexts  = [i.name for i in paramsDependent]
-            zLabelUnitss = [i.unit for i in paramsDependent]
-            plotRefs     = [self.getPlotRef(paramDependent={'depends_on' : [0,1], 'label' : i.label}, livePlot=True) for i in paramsDependent]
-        else: 
-            xLabelText   = [paramsIndependent[0].name for i in paramsDependent]
-            xLabelUnits  = [paramsIndependent[0].unit for i in paramsDependent]
-            yLabelTexts  = [i.name for i in paramsDependent]
-            yLabelUnitss = [i.unit for i in paramsDependent]
-            zLabelTexts  = ['' for i in paramsDependent]
-            zLabelUnitss = ['' for i in paramsDependent]
-            plotRefs     = [self.getPlotRef(paramDependent={'depends_on' : [0]}, livePlot=True) for i in paramsDependent]
+        paramsDependents   = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)!=0]
+        
+        xParamNames  = []
+        xParamLabels = []
+        xParamUnits  = []
+        yParamNames  = []
+        yParamLabels = []
+        yParamUnits  = []
+        zParamNames  = []
+        zParamLabels = []
+        zParamUnits  = []
+        plotRefs     = []
+        
+        # We calculate how many livePlot we should have
+        self._livePlotNbPlot  = 0
+        plot1dNotAlreadyAdded = True
+        
+        for paramsDependent in paramsDependents:
             
-        return xLabelText, xLabelUnits, yLabelTexts, yLabelUnitss, zLabelTexts, zLabelUnitss, plotRefs
+            # For each dependent parameter we them the parameter(s) they depend
+            # on.
+            depends_on = [i for i in paramsDependent.depends_on.split(', ')]
+            
+            param_x = [param for param in self._livePlotDataSet.get_parameters() if param.name==depends_on[0]][0]
+            xParamNames.append(param_x.name)
+            xParamLabels.append(param_x.label)
+            xParamUnits.append(param_x.unit)
+            
+            # For 2d plot
+            if len(depends_on)>1:
+                param_y = [param for param in self._livePlotDataSet.get_parameters() if param.name==depends_on[1]][0]
+                yParamNames.append(param_y.name)
+                yParamLabels.append(param_y.label)
+                yParamUnits.append(param_y.unit)
+                
+                zParamNames.append(paramsDependent.name)
+                zParamLabels.append(paramsDependent.label)
+                zParamUnits.append(paramsDependent.unit)
+                
+                plotRefs.append(self.getPlotRef(paramDependent={'depends_on' : [0, 1], 'name': paramsDependent.name}, livePlot=True))
+                self._livePlotNbPlot += 1
+            # For 1d plot
+            else:
+                yParamNames.append(paramsDependent.name)
+                yParamLabels.append(paramsDependent.label)
+                yParamUnits.append(paramsDependent.unit)
+                
+                zParamNames.append('')
+                zParamLabels.append('')
+                zParamUnits.append('')
 
+                plotRefs.append(self.getPlotRef(paramDependent={'depends_on' : [0]}, livePlot=True))
+                # We only add 1 1dplot for all 1d curves
+                if plot1dNotAlreadyAdded:
+                    self._livePlotNbPlot += 1
+                    plot1dNotAlreadyAdded = False
+        
+        self._livePlotGetPlotParameters = xParamNames, xParamLabels, xParamUnits, yParamNames, yParamLabels, yParamUnits, zParamNames, zParamLabels, zParamUnits, plotRefs
 
 
     def livePlotLaunchPlot(self) -> None:
@@ -1320,6 +1357,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Method called by the livePlotUpdate method.
         Obtain the info of the current live plot dataset cache, treat them and
         send them to the addPlot method.
+        
+        Each dependent parameters must be treated independently since they
+        can each have a different number of independent parameters.
         """
 
         #    1d.  We launch a plot window with all the dependent parameters
@@ -1332,15 +1372,18 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         windowTitle = self.getWindowTitle(runId=self._livePlotRunId,
                                             livePlot=True)
         
-        for xLabelText, xLabelUnits, yLabelText, yLabelUnits, zLabelText, zLabelUnits, plotRef in zip(*self.livePlotGetPlotParameters()):
+        # We get the liveplot parameters
+        self.livePlotGetPlotParameters()
+        
+        for xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef in zip(*self._livePlotGetPlotParameters):
             # Only the first dependent parameter is displayed per default
-            if yLabelText==paramsIndependent[0].label:
+            if yParamLabel==paramsIndependent[0].label:
                 hidden = False
             else:
                 hidden = True
             
             # Create empty data for the plot window launching
-            if zLabelText=='':
+            if zParamLabel=='':
                 data = [[],[]]
             else:
                 data = [np.array([0., 1.]),
@@ -1350,18 +1393,18 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             
             self.addPlot(plotRef        = plotRef,
                          data           = data,
-                         xLabelText     = xLabelText,
-                         xLabelUnits    = xLabelUnits,
-                         yLabelText     = yLabelText,
-                         yLabelUnits    = yLabelUnits,
-                         zLabelText     = zLabelText,
-                         zLabelUnits    = zLabelUnits,
+                         xLabelText     = xParamLabel,
+                         xLabelUnits    = xParamUnit,
+                         yLabelText     = yParamLabel,
+                         yLabelUnits    = yParamUnit,
+                         zLabelText     = zParamLabel,
+                         zLabelUnits    = zParamUnit,
                          cleanCheckBox  = self.cleanCheckBox,
                          plotTitle      = plotTitle,
                          windowTitle    = windowTitle,
                          runId          = self._livePlotRunId,
                          linkedTo2dPlot = False,
-                         curveId        = self.getCurveId(label=yLabelText, runId=self._livePlotRunId, livePlot=True),
+                         curveId        = self.getCurveId(name=yParamName, runId=self._livePlotRunId, livePlot=True),
                          timestampXAxis = False,
                          livePlot       = True,
                          hidden         = hidden)
@@ -1374,22 +1417,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Obtain the info of the current live plot dataset cache, treat them and
         send them to the livePlotUpdatePlotData method.
         """
-        
-        for xLabelText, xLabelUnits, yLabelText, yLabelUnits, zLabelText, zLabelUnits, plotRef in zip(*self.livePlotGetPlotParameters()):
-            
+        for xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef in zip(*self._livePlotGetPlotParameters):
             worker = LoadDataFromCacheThread(plotRef,
                                              self._livePlotDataSet.cache.data(),
-                                             xLabelText,
-                                             yLabelText,
-                                             zLabelText)
+                                             xParamName,
+                                             yParamName,
+                                             zParamName)
             
             worker.signals.dataLoaded.connect(self.livePlotUpdatePlotData)
 
             # Execute the thread
             self.threadpool.start(worker)
-        
-        # We keep track of the last number of results, see below why
-        self._livePlotLastNbResults = self._livePlotDataSet.number_of_results
 
 
 
@@ -1413,34 +1451,39 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # The next iteration will access the cache of the dataset.
             if not hasattr(self, '_livePlotDataSet'):
                 self._livePlotDataSet = self._livePlotDatabase.load_by_id(self._livePlotRunId)
-            ## 2. If at least one active livePlot window is missing
-            if len(self.getLivePlotRef())!=len(self._livePlotDatabase.getListIndependentFromRunId(self._livePlotRunId)):
+            ## 2. If we do not see the attribute attached to the lauched plot
+            if not hasattr(self, '_livePlotGetPlotParameters'):
+                self.livePlotLaunchPlot()
+            ## 2. If the user closed some or every liveplot windows
+            elif len(self.getLivePlotRef())!=self._livePlotNbPlot:
                 self.livePlotLaunchPlot()
             ## 3. If an active livePlot window is detected
             else:
                 self.livePlotUpdatePlot()
-            
         
         else:
             # If the livePlot has been completed since the last method's call
             if hasattr(self, '_livePlotDataSet'):
                 
-                # Sometimes the database is marked as completed by the cache does
-                # not contains the last block of data. To go around that we keep
-                # track of the las number of results and compare it to the current one.
-                if self._livePlotLastNbResults!=self._livePlotDataSet.number_of_results:
-                    
-                    # We update the plot one last time so that the display curved is complete
-                    self.livePlotUpdatePlot()
-                    
-                elif self._livePlotLastNbResults==self._livePlotDataSet.number_of_results:
-                    # We mark all completed livePlot as not livePlot anymore
-                    for plotRef in self.getLivePlotRef():
-                        title = self._plotRefs[plotRef].plotItem.titleLabel.text
-                        self._plotRefs[plotRef].plotItem.setTitle(title.replace(config['livePlotTitleAppend'], ''))
-                        self._plotRefs[plotRef].livePlot = False
-                    
+                # We precise that this is the last update
+                for plotRef in self.getLivePlotRef():
+                    title = self._plotRefs[plotRef].plotItem.titleLabel.text
+                    self._plotRefs[plotRef].plotItem.setTitle(title.replace(config['livePlotTitleAppend'], 'Last update'))
+                self.livePlotUpdatePlot()
+                
+                # We mark all completed livePlot as not livePlot anymore
+                for plotRef in self.getLivePlotRef():
+                    title = self._plotRefs[plotRef].plotItem.titleLabel.text
+                    self._plotRefs[plotRef].plotItem.setTitle(title.replace('Last update', ''))
+                    self._plotRefs[plotRef].livePlot = False
+
+                # Delete all liveplot attribute
+                if hasattr(self, '_livePlotDataSet'):
                     del(self._livePlotDataSet)
+                if hasattr(self, '_livePlotGetPlotParameters'):
+                    del(self._livePlotGetPlotParameters)
+                if hasattr(self, '_livePlotNbPlot'):
+                    del(self._livePlotNbPlot)
 
 
 

@@ -18,11 +18,11 @@ class LoadDataFromCacheSignal(QtCore.QObject):
 class LoadDataFromCacheThread(QtCore.QRunnable):
 
 
-    def __init__(self, plotRef : str,
-                       dataDict: np.ndarray,
-                       xLabelText:str,
-                       yLabelText:str,
-                       zLabelText:str) -> None:
+    def __init__(self, plotRef    : str,
+                       dataDict   : np.ndarray,
+                       xParamName : str,
+                       yParamName : str,
+                       zParamName : str) -> None:
         """
 
         Parameters
@@ -33,9 +33,9 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
 
         self.plotRef    = plotRef
         self.dataDict   = dataDict
-        self.xLabelText = xLabelText
-        self.yLabelText = yLabelText
-        self.zLabelText = zLabelText
+        self.xParamName = xParamName
+        self.yParamName = yParamName
+        self.zParamName = zParamName
         
         self.signals = LoadDataFromCacheSignal() 
 
@@ -48,36 +48,36 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
         
         # It takes some iteration for the cache to start having data
         # We check here if there is data in the cache
-        if self.zLabelText=='':
-            if len(self.dataDict[self.yLabelText])==0:
+        if self.zParamName=='':
+            if len(self.dataDict[self.yParamName])==0:
                 data = ([],[])
             else:
-                d = self.dataDict[self.yLabelText]
-                data = (d[self.xLabelText], d[self.yLabelText])
+                d = self.dataDict[self.yParamName]
+                data = (d[self.xParamName], d[self.yParamName])
         else:
-            if len(self.dataDict[self.zLabelText])==0:
+            if len(self.dataDict[self.zParamName])==0:
                 data = (np.array([0., 1.]),
                         np.array([0., 1.]),
                         np.array([[0., 1.],
                                   [0., 1.]]))
             else:
                 
-                d = self.dataDict[self.zLabelText]
+                d = self.dataDict[self.zParamName]
                 
-                # For qcodes version >0.18, 2d data are return as a 2d array
+                # For qcodes version >0.20, 2d data are return as a 2d array
                 # the z data are then returned as given by qcodes.
                 # We however have to find a x and y 1d array for the imageItem
                 # This is done by a simple linear interpolation between the
                 # max and minimum value of the x, y 2d array returned by qcodes.
                 # WILL NOT WORK for NON-LINEAR SPACED DATA
-                if d[self.zLabelText].ndim==2 or d[self.zLabelText].ndim==3:
+                if d[self.zParamName].ndim==2 or d[self.zParamName].ndim==3:
                     
-                    fx = np.ravel(d[self.xLabelText][~np.isnan(d[self.xLabelText])])
-                    fy = np.ravel(d[self.yLabelText][~np.isnan(d[self.yLabelText])])
+                    fx = np.ravel(d[self.xParamName][~np.isnan(d[self.xParamName])])
+                    fy = np.ravel(d[self.yParamName][~np.isnan(d[self.yParamName])])
                     
-                    xx = np.linspace(fx.min(), fx.max(), d[self.zLabelText].shape[0])
-                    yy = np.linspace(fy.min(), fy.max(), d[self.zLabelText].shape[1])
-                    zz = d[self.zLabelText]
+                    xx = np.linspace(fx.min(), fx.max(), d[self.zParamName].shape[0])
+                    yy = np.linspace(fy.min(), fy.max(), d[self.zParamName].shape[1])
+                    zz = d[self.zParamName]
                     
                     # we take care of data taken along decreasing axes
                     if fx[1]<fx[0]:
@@ -90,9 +90,9 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                             zz)
                 
                 else:
-                    data = (d[self.xLabelText],
-                            d[self.yLabelText],
-                            d[self.zLabelText])
+                    data = (d[self.xParamName],
+                            d[self.yParamName],
+                            d[self.zParamName])
                     
                     # Find the effective x and y axis, see findXYIndex
                     xi, yi = self.findXYAxesIndex(data[1])
@@ -100,7 +100,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                     # Shapped the 2d Data
                     data = self.shapeData2d(data[xi], data[yi], data[2])
 
-        self.signals.dataLoaded.emit(self.plotRef, data, self.yLabelText)
+        self.signals.dataLoaded.emit(self.plotRef, data, self.yParamName)
 
 
 
@@ -185,21 +185,17 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
             
             zz = z
         else:
-
             xx = x[:,0]
             
             # Create a bigger array containing sorted data in the same bases
             # New y axis containing all the previous y axes
-            yd = np.gradient(np.sort(y[0])).min()
+            yd = np.nanmin(np.gradient(np.sort(y[-1])))
             yy = np.arange(y[~np.isnan(y)].min(), y[~np.isnan(y)].max()+yd, yd)
-            
             # fit the z value to the new grid
             zz = np.full((len(xx), len(yy)), np.nan)
             for x_index in range(len(x)):
                 for y_index in range(len(y.T)):
                     zz[x_index,np.abs(yy-y[x_index, y_index]).argmin()] = z[x_index,y_index]
-                
-
         
         # If there is only one point in x or y, we artificialy create more
         # moreThanOneColumn = True
@@ -210,7 +206,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
             yy = np.array([yy[0]-0.1, yy[0]+0.1])
             # moreThanOneColumn = False
 
-        # We filtered out the npinf and -np.inf data and replaced them by np.nan
+        # We filtered out the np.inf and -np.inf data and replaced them by np.nan
         # This is done to allow display by the pyqtgraph viewbox.
         zz[zz== np.inf] = np.nan
         zz[zz==-np.inf] = np.nan
