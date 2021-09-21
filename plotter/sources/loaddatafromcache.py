@@ -3,6 +3,7 @@ from PyQt5 import QtCore
 import numpy as np
 from typing import Tuple
 
+from .config import config
 
 
 class LoadDataFromCacheSignal(QtCore.QObject):
@@ -100,7 +101,10 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                     xi, yi = self.findXYAxesIndex(data[1])
                     
                     # Shapped the 2d Data
-                    data = self.shapeData2d(data[xi], data[yi], data[2])
+                    if config['2dGridInterpolation']:
+                        data = self.make_grid(data[xi], data[yi], data[2])
+                    else:
+                        data = self.shapeData2d(data[xi], data[yi], data[2])
 
         self.signals.dataLoaded.emit(self.plotRef, data, self.yParamName, self.lastUpdate)
 
@@ -215,6 +219,24 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
         
         return xx, yy, zz
 
+
+    @staticmethod
+    def make_grid(x, y, z):
+        '''
+        Takes x, y, z values as lists and returns a 2D numpy array
+        https://stackoverflow.com/questions/30764955/python-numpy-create-2d-array-of-values-based-on-coordinates
+        '''
+        dx = abs(np.sort(np.unique(x))[1] - np.sort(np.unique(x))[0])
+        dy = abs(np.sort(np.unique(y))[1] - np.sort(np.unique(y))[0])
+        i = np.rint((x - min(x))/dx).astype(int)
+        j = np.rint((y - min(y))/dy).astype(int)
+        xx = np.nan * np.empty(len(np.unique(i)))
+        yy = np.nan * np.empty(len(np.unique(j)))
+        zz = np.nan * np.empty((len(np.unique(i)), len(np.unique(j))))
+        xx[i] = x
+        yy[j] = y
+        zz[i, j] = z
+        return xx, yy, zz
 
 
     def shapeData2dPolygon(self, x : np.array,

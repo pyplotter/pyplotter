@@ -4,6 +4,7 @@ import numpy as np
 from typing import Callable, Tuple
 
 from .qcodesdatabase import QcodesDatabase
+from .config import config
 
 
 
@@ -141,11 +142,17 @@ class LoadDataThread(QtCore.QRunnable):
                 
                 # We try to load data
                 # if there is none, we return an empty array
-                data = self.shapeData2d(d[paramsIndependent[xi]['name']],
-                                        d[paramsIndependent[yi]['name']],
-                                        d[paramsDependent['name']])
+                if config['2dGridInterpolation']:
+                    data = self.make_grid(d[paramsIndependent[xi]['name']],
+                                            d[paramsIndependent[yi]['name']],
+                                            d[paramsDependent['name']])
+                else:
+                    data = self.make_grid(d[paramsIndependent[xi]['name']],
+                                            d[paramsIndependent[yi]['name']],
+                                            d[paramsDependent['name']])
 
-                xLabelText  = paramsIndependent[xi]['label']
+
+https://stackoverflow.com/questions/30764955/python-numpy-create-2d-array-of-values-based-on-coordinates                xLabelText  = paramsIndependent[xi]['label']
                 xLabelUnits = paramsIndependent[xi]['unit']
                 yLabelText  = paramsIndependent[yi]['label']
                 yLabelUnits = paramsIndependent[yi]['unit']
@@ -287,6 +294,26 @@ class LoadDataThread(QtCore.QRunnable):
         zz[zz== np.inf] = np.nan
         zz[zz==-np.inf] = np.nan
         
+        return xx, yy, zz
+
+
+
+    @staticmethod
+    def make_grid(x, y, z):
+        '''
+        Takes x, y, z values as lists and returns a 2D numpy array
+        https://stackoverflow.com/questions/30764955/python-numpy-create-2d-array-of-values-based-on-coordinates
+        '''
+        dx = abs(np.sort(np.unique(x))[1] - np.sort(np.unique(x))[0])
+        dy = abs(np.sort(np.unique(y))[1] - np.sort(np.unique(y))[0])
+        i = np.rint((x - min(x))/dx).astype(int)
+        j = np.rint((y - min(y))/dy).astype(int)
+        xx = np.nan * np.empty(len(np.unique(i)))
+        yy = np.nan * np.empty(len(np.unique(j)))
+        zz = np.nan * np.empty((len(np.unique(i)), len(np.unique(j))))
+        xx[i] = x
+        yy[j] = y
+        zz[i, j] = z
         return xx, yy, zz
 
 
