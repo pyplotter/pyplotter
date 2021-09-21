@@ -2,6 +2,7 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 from pprint import pformat
+from datetime import datetime
 from typing import Generator, Union, Callable, List
 import uuid
 import numpy as np
@@ -1133,7 +1134,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # If user wants the database path
             else:
                 title = os.path.basename(self._livePlotPath)
-            return title+'<br>'+str(self._livePlotRunId)+' - '+self._livePlotDataSet.exp_name+config['livePlotTitleAppend']
+            return title+'<br>'+str(self._livePlotRunId)
 
         else:
             # If no database have been selected ever
@@ -1210,6 +1211,24 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
+    def livePlotUpdateMessage(self, message: str) -> None:
+        """
+        Update the GUI information message of all livePlot window
+        with the message attribute.
+
+        Parameters
+        ----------
+        message : str
+            Message to be displayed on the livePlot window(s).
+        """
+        for plotRef in self.getLivePlotRef():
+            title = self._plotRefs[plotRef].labelLivePlot.text()
+            a = title.find(config['livePlotMessageStart'])
+            newTitle = '{}{}{}'.format(title[:a], config['livePlotMessageStart'], message)
+            self._plotRefs[plotRef].labelLivePlot.setText(newTitle)
+
+
+
     def getLivePlotRef(self) -> list:
         """
         Return a list of the live plot windows references.
@@ -1227,7 +1246,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
     def livePlotUpdatePlotData(self, plotRef        : str,
                                      data           : tuple,
-                                     yParamName     : str) -> None:
+                                     yParamName     : str,
+                                     lastUpdate     : bool) -> None:
         """
         Methods called in live plot mode to update plot.
         This method must have the same signature as addPlot.
@@ -1241,6 +1261,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             For 2d plot: (xData, yData, zData)
         yParamName : str
             Name of the y parameter.
+        lastUpdate : bool
+            True if this is the last update of the livePlot, a.k.a. the run is
+            marked as completed by qcodes.
         """
 
         # 1d plot
@@ -1279,7 +1302,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                              curveId     = curveId,
                                              curveLegend = sliceLegend,
                                              autoRange   = True)
-
+        
+        # We show to user the time of the last update
+        if lastUpdate:
+            self.livePlotUpdateMessage('Measurement done: '+datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
+            # We mark all completed livePlot as not livePlot anymore
+            for plotRef in self.getLivePlotRef():
+                self._plotRefs[plotRef].livePlot = False
+        else:
+            self.livePlotUpdateMessage('last update: '+datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
 
 
     def livePlotGetPlotParameters(self) -> None:
@@ -1352,6 +1383,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self._livePlotGetPlotParameters = xParamNames, xParamLabels, xParamUnits, yParamNames, yParamLabels, yParamUnits, zParamNames, zParamLabels, zParamUnits, plotRefs
 
 
+
     def livePlotLaunchPlot(self) -> None:
         """
         Method called by the livePlotUpdate method.
@@ -1408,21 +1440,34 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                          timestampXAxis = False,
                          livePlot       = True,
                          hidden         = hidden)
+        
+        self.livePlotUpdateMessage('Dataset in cache')
 
 
 
-    def livePlotUpdatePlot(self) -> None:
+    def livePlotUpdatePlot(self, lastUpdate: bool=False) -> None:
         """
         Method called by livePlotUpdate.
         Obtain the info of the current live plot dataset cache, treat them and
         send them to the livePlotUpdatePlotData method.
+
+        Parameters
+        ----------
+        lastUpdate : bool
+            True if this is the last update of the livePlot, a.k.a. the run is
+            marked as completed by qcodes.
         """
+        
+        # We show to user that the plot is being updated
+        self.livePlotUpdateMessage('Interrogating cache')
+        
         for xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef in zip(*self._livePlotGetPlotParameters):
             worker = LoadDataFromCacheThread(plotRef,
                                              self._livePlotDataSet.cache.data(),
                                              xParamName,
                                              yParamName,
-                                             zParamName)
+                                             zParamName,
+                                             lastUpdate)
             
             worker.signals.dataLoaded.connect(self.livePlotUpdatePlotData)
 
@@ -1451,7 +1496,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # The next iteration will access the cache of the dataset.
             if not hasattr(self, '_livePlotDataSet'):
                 self._livePlotDataSet = self._livePlotDatabase.load_by_id(self._livePlotRunId)
-            ## 2. If we do not see the attribute attached to the lauched plot
+            ## 2. If we do not see the attribute attached to the launched plot
             if not hasattr(self, '_livePlotGetPlotParameters'):
                 self.livePlotLaunchPlot()
             ## 2. If the user closed some or every liveplot windows
@@ -1465,17 +1510,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # If the livePlot has been completed since the last method's call
             if hasattr(self, '_livePlotDataSet'):
                 
-                # We precise that this is the last update
-                for plotRef in self.getLivePlotRef():
-                    title = self._plotRefs[plotRef].plotItem.titleLabel.text
-                    self._plotRefs[plotRef].plotItem.setTitle(title.replace(config['livePlotTitleAppend'], 'Last update'))
-                self.livePlotUpdatePlot()
-                
-                # We mark all completed livePlot as not livePlot anymore
-                for plotRef in self.getLivePlotRef():
-                    title = self._plotRefs[plotRef].plotItem.titleLabel.text
-                    self._plotRefs[plotRef].plotItem.setTitle(title.replace('Last update', ''))
-                    self._plotRefs[plotRef].livePlot = False
+                self.livePlotUpdatePlot(lastUpdate=True)
 
                 # Delete all liveplot attribute
                 if hasattr(self, '_livePlotDataSet'):

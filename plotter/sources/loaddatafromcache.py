@@ -10,7 +10,7 @@ class LoadDataFromCacheSignal(QtCore.QObject):
     Class containing the signal of the LoadDataFromCacheThread, see below
     """
 
-    dataLoaded = QtCore.pyqtSignal(str, tuple, str)
+    dataLoaded = QtCore.pyqtSignal(str, tuple, str, bool)
 
 
 
@@ -22,7 +22,8 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                        dataDict   : np.ndarray,
                        xParamName : str,
                        yParamName : str,
-                       zParamName : str) -> None:
+                       zParamName : str,
+                       lastUpdate : bool) -> None:
         """
 
         Parameters
@@ -36,6 +37,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
         self.xParamName = xParamName
         self.yParamName = yParamName
         self.zParamName = zParamName
+        self.lastUpdate = lastUpdate
         
         self.signals = LoadDataFromCacheSignal() 
 
@@ -100,7 +102,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                     # Shapped the 2d Data
                     data = self.shapeData2d(data[xi], data[yi], data[2])
 
-        self.signals.dataLoaded.emit(self.plotRef, data, self.yParamName)
+        self.signals.dataLoaded.emit(self.plotRef, data, self.yParamName, self.lastUpdate)
 
 
 

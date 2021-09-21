@@ -719,6 +719,16 @@
           </widget>
          </item>
          <item>
+          <widget class="QLabel" name="labelLivePlot">
+           <property name="text">
+            <string/>
+           </property>
+           <property name="textFormat">
+            <enum>Qt::RichText</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QLabel" name="labelCoordinate">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -729,7 +739,7 @@
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>0</height>
+             <height>30</height>
             </size>
            </property>
            <property name="text">

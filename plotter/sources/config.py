@@ -52,7 +52,8 @@ config = {
 'livePlotTimer' : 1, # In second
 # Added to the plot title while a live plot is still measured.
 # Removed once the measurement is done.
-'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
+'livePlotMessageStart' : '<div style="color: green; font-weight: bold; text-align: center;">LivePlot</div><br>',
+# 'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
 
 # Interactivity
 'keyPressedStared' : 's', # To star a run
