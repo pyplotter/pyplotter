@@ -101,7 +101,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                     xi, yi = self.findXYAxesIndex(data[1])
                     
                     # Shapped the 2d Data
-                    if config['2dGridInterpolation']:
+                    if config['2dGridInterpolation']=='grid':
                         data = self.make_grid(data[xi], data[yi], data[2])
                     else:
                         data = self.shapeData2d(data[xi], data[yi], data[2])

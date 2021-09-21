@@ -142,7 +142,7 @@ class LoadDataThread(QtCore.QRunnable):
                 
                 # We try to load data
                 # if there is none, we return an empty array
-                if config['2dGridInterpolation']:
+                if config['2dGridInterpolation']=='grid':
                     data = self.make_grid(d[paramsIndependent[xi]['name']],
                                             d[paramsIndependent[yi]['name']],
                                             d[paramsDependent['name']])
