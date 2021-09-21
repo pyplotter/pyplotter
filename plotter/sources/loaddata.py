@@ -152,7 +152,6 @@ class LoadDataThread(QtCore.QRunnable):
                                             d[paramsDependent['name']])
 
 
-https://stackoverflow.com/questions/30764955/python-numpy-create-2d-array-of-values-based-on-coordinates                xLabelText  = paramsIndependent[xi]['label']
                 xLabelUnits = paramsIndependent[xi]['unit']
                 yLabelText  = paramsIndependent[yi]['label']
                 yLabelUnits = paramsIndependent[yi]['unit']
