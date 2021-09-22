@@ -144,14 +144,14 @@ class LoadDataThread(QtCore.QRunnable):
                 # if there is none, we return an empty array
                 if config['2dGridInterpolation']=='grid':
                     data = self.make_grid(d[paramsIndependent[xi]['name']],
-                                            d[paramsIndependent[yi]['name']],
-                                            d[paramsDependent['name']])
+                                          d[paramsIndependent[yi]['name']],
+                                          d[paramsDependent['name']])
                 else:
-                    data = self.make_grid(d[paramsIndependent[xi]['name']],
+                    data = self.shapeData2d(d[paramsIndependent[xi]['name']],
                                             d[paramsIndependent[yi]['name']],
                                             d[paramsDependent['name']])
 
-
+                xLabelText  = paramsIndependent[xi]['label']
                 xLabelUnits = paramsIndependent[xi]['unit']
                 yLabelText  = paramsIndependent[yi]['label']
                 yLabelUnits = paramsIndependent[yi]['unit']
