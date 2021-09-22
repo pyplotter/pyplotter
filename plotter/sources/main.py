@@ -8,6 +8,8 @@ import uuid
 import numpy as np
 import time
 import sys
+
+from pyqtgraph.widgets.TreeWidget import TreeWidget
 sys.path.append('ui')
 
 # Correct bug with pyqtgraph and python3.8 by replacing function name
@@ -31,6 +33,7 @@ from .config import config
 from .plot_1d_app import Plot1dApp
 from .plot_2d_app import Plot2dApp
 from ..ui import main
+from ..ui.viewtree import ViewTree
 
 pg.setConfigOption('background', config['styles'][config['style']]['pyqtgraphBackgroundColor'])
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
@@ -606,11 +609,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.tableWidgetParameters.setSortingEnabled(True)
 
         ## Fill the listWidgetMetada with the station snapshot
-        self.textEditMetadata.clear()
         self.lineEditFilter.setEnabled(True)
         self.labelFilter.setEnabled(True)
-        self.originalSnapshot = snapshotDict
-        self.lineEditFilterTextEdited('')
+        widgets = (self.verticalLayout_7.itemAt(i).widget() for i in range(self.verticalLayout_7.count()))
+        for widget in widgets:
+            if isinstance(widget, ViewTree):
+                self.verticalLayout_7.removeWidget(widget)
+        self.snapShotTreeView = ViewTree(snapshotDict)
+        self.verticalLayout_7.addWidget(self.snapShotTreeView)
 
         self.setStatusBarMessage('Ready')
 
@@ -813,21 +819,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         if len(text) != 0:
-            snapshotNew = list(self.findKeyInDict(text, self.originalSnapshot))
-            
-            self.textEditMetadata.setText(pformat(snapshotNew)
-                                        .replace('{', '')
-                                        .replace('}', '')
-                                        .replace("'", '')
-                                        .replace('\n', '<br>')
-                                        .replace(' ', '&nbsp;')
-                                        .replace(text, '<span style="font-weight: bold;color: red;">'+text+'</span>'))
-        else:
-            snapshotNew = self.originalSnapshot
-            self.textEditMetadata.setText(pformat(snapshotNew)
-                                        .replace('{', '')
-                                        .replace('}', '')
-                                        .replace("'", ''))
+            self.snapShotTreeView.searchItem(text)
 
 
 
