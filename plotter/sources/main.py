@@ -615,8 +615,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         for widget in widgets:
             if isinstance(widget, ViewTree):
                 self.verticalLayout_7.removeWidget(widget)
+        items = (self.verticalLayout_7.itemAt(i) for i in range(self.verticalLayout_7.count()))
+        for item in items:
+            if isinstance(item, QtWidgets.QSpacerItem):
+                self.verticalLayout_7.removeItem(item)
+        
         self.snapShotTreeView = ViewTree(snapshotDict)
         self.verticalLayout_7.addWidget(self.snapShotTreeView)
+        verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_7.addItem(verticalSpacer)
 
         self.setStatusBarMessage('Ready')
 
@@ -775,38 +782,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def findKeyInDict(self, key : str, dictionary : dict) -> Generator:
-        """
-        Find all occurences of a key in nested python dictionaries and lists.
-        Adapted from:
-        https://gist.github.com/douglasmiranda/5127251
-
-        Parameters
-        ----------
-        key : str
-            Part of the text looked as key in the nested dict.
-        dictionary : dict
-            Dictionnary to be looked up
-        
-        Return
-        ------
-        list of all paired of {key : val} found
-        """
-
-        for k, v in dictionary.items():
-            if key in k:
-                yield {k: v}
-            elif isinstance(v, dict):
-                for result in self.findKeyInDict(key, v):
-                    yield result
-            elif isinstance(v, list):
-                for d in v:
-                    if isinstance(d, dict):
-                        for result in self.findKeyInDict(key, d):
-                            yield result
-
-
-
     def lineEditFilterTextEdited(self, text : str) -> None:
         """
         Called when user types text in the filter lineEdit widget.
@@ -818,8 +793,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Text to be found in the run snapshot
         """
 
-        if len(text) != 0:
-            self.snapShotTreeView.searchItem(text)
+        self.snapShotTreeView.searchItem(text)
 
 
 

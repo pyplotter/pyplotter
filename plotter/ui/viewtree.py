@@ -20,6 +20,9 @@ class ViewTree(QtWidgets.QTreeWidget):
         
         self.setHeaderHidden(True)
         
+        # We save the items marked to easily unmarke them
+        self.treeWidgetItemsMarked = None
+        
         def fillItem(item: QtWidgets.QTreeWidgetItem, value: Any) -> None:
             
             def new_item(parent, text, val=None):
@@ -52,15 +55,25 @@ class ViewTree(QtWidgets.QTreeWidget):
         Args:
             text (str): text to be looked for.
         """
-        treeWidgetItems = self.findItems(text, QtCore.Qt.MatchRecursive)
-        if len(treeWidgetItems)>0:
-            for treeWidgetItem in treeWidgetItems:
-                treeWidgetItem.setExpanded(True)
-                treeWidgetItem.setForeground(0, QtCore.Qt.red)
-                parent = treeWidgetItem.parent()
-                while parent is not None:
-                    parent.setExpanded(True)
-                    parent = parent.parent()
-        else:
+        
+        if self.treeWidgetItemsMarked is not None:
+            for treeWidgetItem in self.treeWidgetItemsMarked:
+                treeWidgetItem.setForeground(0, self.treeWidgetItemForeground)
+            self.treeWidgetItemsMarked = None
+            
             self.collapseAll()
             self.expandToDepth(0)
+        
+        if len(text)!=0:
+            treeWidgetItems = self.findItems(text, QtCore.Qt.MatchContains|QtCore.Qt.MatchRecursive)
+            if len(treeWidgetItems)>0:
+                self.treeWidgetItemForeground = treeWidgetItems[0].foreground(0)
+                for treeWidgetItem in treeWidgetItems:
+                    treeWidgetItem.setExpanded(True)
+                    treeWidgetItem.setForeground(0, QtCore.Qt.red)
+                    parent = treeWidgetItem.parent()
+                    while parent is not None:
+                        parent.setExpanded(True)
+                        parent = parent.parent()
+                        
+                self.treeWidgetItemsMarked = treeWidgetItems

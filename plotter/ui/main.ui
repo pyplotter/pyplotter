@@ -558,10 +558,16 @@
                <layout class="QHBoxLayout" name="horizontalLayout_3">
                 <item>
                  <widget class="QLabel" name="labelMetadata">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
                   <property name="maximumSize">
                    <size>
                     <width>140</width>
-                    <height>16777215</height>
+                    <height>22</height>
                    </size>
                   </property>
                   <property name="text">
@@ -571,6 +577,18 @@
                 </item>
                 <item>
                  <widget class="QLabel" name="labelCurrentMetadata">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>22</height>
+                   </size>
+                  </property>
                   <property name="font">
                    <font>
                     <weight>75</weight>
@@ -587,10 +605,16 @@
                   <property name="enabled">
                    <bool>false</bool>
                   </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
                   <property name="maximumSize">
                    <size>
                     <width>40</width>
-                    <height>16777215</height>
+                    <height>22</height>
                    </size>
                   </property>
                   <property name="text">
@@ -606,10 +630,16 @@
                   <property name="enabled">
                    <bool>false</bool>
                   </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
                   <property name="maximumSize">
                    <size>
                     <width>150</width>
-                    <height>16777215</height>
+                    <height>22</height>
                    </size>
                   </property>
                   <property name="font">
@@ -625,20 +655,17 @@
                </layout>
               </item>
               <item>
-               <widget class="QTextEdit" name="textEditMetadata">
-                <property name="verticalScrollBarPolicy">
-                 <enum>Qt::ScrollBarAsNeeded</enum>
+               <spacer name="verticalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
                 </property>
-                <property name="horizontalScrollBarPolicy">
-                 <enum>Qt::ScrollBarAsNeeded</enum>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
                 </property>
-                <property name="lineWrapMode">
-                 <enum>QTextEdit::NoWrap</enum>
-                </property>
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-               </widget>
+               </spacer>
               </item>
              </layout>
             </widget>
