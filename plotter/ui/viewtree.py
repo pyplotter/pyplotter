@@ -19,6 +19,7 @@ class ViewTree(QtWidgets.QTreeWidget):
         super().__init__()
         
         self.setHeaderHidden(True)
+        self.setSizeAdjustPolicy(self.AdjustToContents)
         
         # We save the items marked to easily unmarke them
         self.treeWidgetItemsMarked = None
