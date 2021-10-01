@@ -23,25 +23,26 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     """
 
 
-    def __init__(self, x              : np.ndarray,
-                       y              : np.ndarray,
-                       title          : str,
-                       xLabelText     : str,
-                       xLabelUnits    : str,
-                       yLabelText     : str,
-                       yLabelUnits    : str,
-                       windowTitle    : str,
-                       runId          : int,
-                       cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None],
-                       plotRef        : str,
-                       addPlot        : Callable,
-                       getPlotFromRef : Callable,
-                       linkedTo2dPlot : bool=False,
-                       curveId        : Optional[str]=None,
-                       curveLegend    : Optional[str]=None,
-                       timestampXAxis : bool=False,
-                       livePlot       : bool=False,
-                       parent         = None):
+    def __init__(self, x                  : np.ndarray,
+                       y                  : np.ndarray,
+                       title              : str,
+                       xLabelText         : str,
+                       xLabelUnits        : str,
+                       yLabelText         : str,
+                       yLabelUnits        : str,
+                       windowTitle        : str,
+                       runId              : int,
+                       cleanCheckBox      : Callable[[str, str, int, Union[str, list]], None],
+                       plotRef            : str,
+                       addPlot            : Callable,
+                       getPlotFromRef     : Callable,
+                       linkedTo2dPlot     : bool=False,
+                       curveId            : Optional[str]=None,
+                       curveLegend        : Optional[str]=None,
+                       timestampXAxis     : bool=False,
+                       livePlot           : bool=False,
+                       curveSlicePosition : Optional[float]=None,
+                       parent             = None):
         """
         Class handling the plot of 1d data.
         Allow some quick data treatment.
@@ -90,6 +91,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             See pyqtgraph doc about DateAxisItem, by default False
         livePlot : bool, optional
             If the plot is a livePlot one, by default False
+        curveSlicePosition : Optional, float
+            If the curve is a slice of a 2d map, contains its position if the
+            slice axis
         parent : [type], optional
             [description], by default None
         """
@@ -222,12 +226,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if curveLegend is None:
             curveLegend = yLabelText
 
-        self.addPlotDataItem(x           = x,
-                             y           = y,
-                             curveId     = curveId,
-                             curveLabel  = yLabelText,
-                             curveUnits  = yLabelUnits,
-                             curveLegend = curveLegend)
+        self.addPlotDataItem(x                  = x,
+                             y                  = y,
+                             curveId            = curveId,
+                             curveLabel         = yLabelText,
+                             curveUnits         = yLabelUnits,
+                             curveLegend        = curveLegend,
+                             curveSlicePosition = curveSlicePosition)
 
         # AutoRange only after the first data item is added
         self.autoRange()
@@ -396,11 +401,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def updatePlotDataItem(self, x           : np.ndarray,
-                                 y           : np.ndarray,
-                                 curveId     : str,
-                                 curveLegend : str=None,
-                                 autoRange   : bool=False) -> None:
+    def updatePlotDataItem(self, x                  : np.ndarray,
+                                 y                  : np.ndarray,
+                                 curveId            : str,
+                                 curveLegend        : Optional[str]=None,
+                                 curveSlicePosition : Optional[str]=None,
+                                 autoRange          : bool=False) -> None:
         """
         Method called by a plot2d when use drag a sliceLine.
         Updating an existing plotDataItem and the plot legendItem
@@ -416,6 +422,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             See getCurveId from MainApp
         curveLegend : str
             Legend label of the curve.
+        curveSlicePosition : Optional, float
+            If the curve is a slice of a 2d map, contains its position if the
+            slice axis
         autoRange : bool
             If the view should perform an autorange after updating the data.
             Can be slow for heavy data array.
@@ -426,20 +435,24 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if curveLegend is not None:
             self.curves[curveId].curveLegend = curveLegend
             self.updateLegend()
+        
+        if curveSlicePosition is not None:
+            self.curves[curveId].curveSlicePosition = curveSlicePosition
 
         if autoRange:
             self.autoRange()
 
 
 
-    def addPlotDataItem(self, x            : np.ndarray,
-                              y            : np.ndarray,
-                              curveId      : str,
-                              curveLabel   : str,
-                              curveUnits   : str,
-                              curveLegend  : str,
-                              showInLegend : bool=True,
-                              hidden       : bool=False) -> None:
+    def addPlotDataItem(self, x                 : np.ndarray,
+                              y                 : np.ndarray,
+                              curveId           : str,
+                              curveLabel        : str,
+                              curveUnits        : str,
+                              curveLegend       : str,
+                              showInLegend      : bool=True,
+                              hidden            : bool=False,
+                              curveSlicePosition: Optional[float]=None) -> None:
         """
         Method adding a plotDataItem to the plotItem.
 
@@ -464,6 +477,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         hidden : bool
             If the plotDataItem is hidden.
             Default False.
+        curveSlicePosition : Optional, float
+            If the curve is a slice of a 2d map, contains its position if the
+            slice axis
         """
 
         # Get the dataPlotItem color
@@ -473,13 +489,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.curves[curveId] = self.plotItem.plot(x, y, pen=mkpen)
 
         # Create usefull attribute
-        self.curves[curveId].colorIndex   = colorIndex
-        self.curves[curveId].curveLabel   = curveLabel
-        self.curves[curveId].curveUnits   = curveUnits
-        self.curves[curveId].curveLegend  = curveLegend
-        self.curves[curveId].showInLegend = showInLegend
-        self.curves[curveId].hidden       = hidden
-        self.curves[curveId].mkpen        = mkpen
+        self.curves[curveId].colorIndex         = colorIndex
+        self.curves[curveId].curveLabel         = curveLabel
+        self.curves[curveId].curveUnits         = curveUnits
+        self.curves[curveId].curveLegend        = curveLegend
+        self.curves[curveId].showInLegend       = showInLegend
+        self.curves[curveId].hidden             = hidden
+        self.curves[curveId].curveSlicePosition = curveSlicePosition
+        self.curves[curveId].mkpen              = mkpen
         
         self.updateListDataPlotItem(curveId)
 

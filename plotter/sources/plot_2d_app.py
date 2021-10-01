@@ -622,14 +622,15 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
 
         # We get the slice data from the 2d plot
-        sliceX, sliceY, sliceLegend = self.getDataSlice(InfinitylineItem=InfinitylineItem)
+        sliceX, sliceY, sliceLegend, slicePosition = self.getDataSlice(InfinitylineItem=InfinitylineItem)
         
         # We update the curve associated to the sliceLine
         self.getPlotFromRef(self.plotRef, lineOrientation)\
-        .updatePlotDataItem(x           = sliceX,
-                            y           = sliceY,
-                            curveId     = curveId,
-                            curveLegend = sliceLegend)
+        .updatePlotDataItem(x                  = sliceX,
+                            y                  = sliceY,
+                            curveId            = curveId,
+                            curveLegend        = sliceLegend,
+                            curveSlicePosition = slicePosition)
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
         self.infiniteLines[curveId].mouseHovering  = True
@@ -733,23 +734,19 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             searchedAngle =  0.
 
-        # We remove all the associated infiniteLine
-        keyToRemove = []
+        # Get all the curve Id to be removed
+        curvesId = []
         for key, val in self.infiniteLines.items():
             if val.angle==searchedAngle:
-                keyToRemove.append(key)
+                curvesId.append(key)
         
-        [self.removeInfiniteLine(key) for key in keyToRemove]
-
-        # If the close 1d plot window had many curves
-        if isinstance(label, list):
-            [self.removePlot(plotRef, l) for l in label]
-        else:
-            self.removePlot(plotRef, label)
+        # Effectively remove the infinity line and the curve linked to it
+        [self.removeInfiniteLine(curveId) for curveId in curvesId]
+        [self.removePlot(plotRef, curveId) for curveId in curvesId]
 
 
 
-    def getDataSlice(self, InfinitylineItem: pg.InfiniteLine=None) -> Tuple[np.ndarray]:
+    def getDataSlice(self, InfinitylineItem: pg.InfiniteLine=None) -> Tuple[np.ndarray, np.ndarray, str, float]:
         """
         Return a vertical or horizontal data slice
 
@@ -785,20 +782,20 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if ySlice is None:
             
             n = np.abs(self.xData-xSlice).argmin()
-            sliceX      = self.yData
-            sliceY      = self.zData[n]
-            sliceLegend = self.xData[n]
+            sliceX        = self.yData
+            sliceY        = self.zData[n]
+            slicePosition = self.xData[n]
         else:
             
             n = np.abs(self.yData-ySlice).argmin()
-            sliceX      = self.xData
-            sliceY      = self.zData[:,n]
-            sliceLegend = self.yData[n]
+            sliceX        = self.xData
+            sliceY        = self.zData[:,n]
+            slicePosition = self.yData[n]
         
-        if isinstance(sliceLegend, np.ndarray):
-            sliceLegend = sliceLegend[0]
+        if isinstance(slicePosition, np.ndarray):
+            slicePosition = slicePosition[0]
         
-        return sliceX, sliceY, '{:.3e}'.format(sliceLegend)
+        return sliceX, sliceY, '{:.3e}'.format(slicePosition), slicePosition
 
 
 
@@ -812,13 +809,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if e._double and self.isMouseOverView():
             
             # Get the data of the slice
-            sliceX, sliceY, sliceLegend = self.getDataSlice()
+            sliceX, sliceY, sliceLegend, slicePosition = self.getDataSlice()
 
             # If nbCurve is 1, we create the 1d plot window
             if self.getPlotRefFromSliceOrientation(self.sliceOrientation) is None:
 
-                self.addSlice(data        = [sliceX, sliceY],
-                              curveLegend = sliceLegend)
+                self.addSlice(data         = [sliceX, sliceY],
+                              curveLegend  = sliceLegend,
+                              slicePosition=slicePosition)
             # If not
             # 1. The user doubleClicked on an infiniteLine and we remove it
             # 2. The doubleClicked somewhere else on the map and we create another slice
@@ -828,17 +826,18 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 clickedCurveId = None
                 if self.getPlotRefFromSliceOrientation('vertical') is not None:
                     for curveId, curve in self.getPlotRefFromSliceOrientation('vertical').curves.items():
-                        if curve.curveLegend==sliceLegend:
+                        if curve.curveSlicePosition==slicePosition:
                             clickedCurveId = curveId
                 if self.getPlotRefFromSliceOrientation('horizontal') is not None:
                     for curveId, curve in self.getPlotRefFromSliceOrientation('horizontal').curves.items():
-                        if curve.curveLegend==sliceLegend:
+                        if curve.curveSlicePosition==slicePosition:
                             clickedCurveId = curveId
 
                 # If the user add a new infiniteLine
                 if clickedCurveId is None:
-                    self.addSlice(data        = [sliceX, sliceY],
-                                  curveLegend = sliceLegend)
+                    self.addSlice(data         = [sliceX, sliceY],
+                                  curveLegend  = sliceLegend,
+                                  slicePosition=slicePosition)
 
                 # We remove a slice
                 else:
@@ -853,8 +852,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def addSlice(self, data,
-                       curveLegend,
+    def addSlice(self, data:list,
+                       curveLegend:str,
+                       slicePosition:float,
                        sliceOrientation=None,
                        plotRef=None,
                        position=None) -> None:
@@ -894,6 +894,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                      plotRef        = plotRef,
                      curveId        = curveId,
                      linkedTo2dPlot = True,
+                     curveSlicePosition  = slicePosition,
                      curveLegend    = curveLegend)
         
         
@@ -948,6 +949,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                             curveLegend=plotData['curveLegend'],
                             sliceOrientation='vertical',
                             plotRef=self.plotRef+'vertical',
+                            slicePosition=infLineData[1],
                             position=infLineData[1])
         if curvesVerticals:
             for plotData, infLineData in zip(curvesVerticals.values(), inLineVerticals.values()):
@@ -955,6 +957,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                             curveLegend=plotData['curveLegend'],
                             sliceOrientation='horizontal',
                             plotRef=self.plotRef+'horizontal',
+                            slicePosition=infLineData[0],
                             position=infLineData[0])
         
         # Remove old infinite lines and curves

@@ -3,7 +3,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 from pprint import pformat
 from datetime import datetime
-from typing import Generator, Union, Callable, List
+from typing import Generator, Union, Callable, List, Optional
 import uuid
 import numpy as np
 import time
@@ -1620,27 +1620,28 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def addPlot(self, plotRef        : str,
-                      data           : List[np.ndarray],
-                      xLabelText     : str,
-                      xLabelUnits    : str,
-                      yLabelText     : str,
-                      yLabelUnits    : str,
-                      runId          : int,
-                      curveId        : str,
-                      plotTitle      : str,
-                      windowTitle    : str,
-                      cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None]=None,
-                      linkedTo2dPlot : bool = False,
-                      curveLegend    : str  = None,
-                      hidden         : bool = False,
-                      curveLabel     : str  = None,
-                      curveUnits     : str  = None,
-                      timestampXAxis : bool = False,
-                      livePlot       : bool = False,
-                      progressBarKey : str  = None,
-                      zLabelText     : str  = None,
-                      zLabelUnits    : str  = None) -> None:
+    def addPlot(self, plotRef            : str,
+                      data               : List[np.ndarray],
+                      xLabelText         : str,
+                      xLabelUnits        : str,
+                      yLabelText         : str,
+                      yLabelUnits        : str,
+                      runId              : int,
+                      curveId            : str,
+                      plotTitle          : str,
+                      windowTitle        : str,
+                      cleanCheckBox      : Callable[[str, str, int, Union[str, list]], None]=None,
+                      linkedTo2dPlot     : bool=False,
+                      curveSlicePosition : Optional[str]=None,
+                      curveLegend        : Optional[str]=None,
+                      hidden             : bool=False,
+                      curveLabel         : Optional[str]=None,
+                      curveUnits         : Optional[str]=None,
+                      timestampXAxis     : bool=False,
+                      livePlot           : bool=False,
+                      progressBarKey     : Optional[str]=None,
+                      zLabelText         : Optional[str]=None,
+                      zLabelUnits        : Optional[str]=None) -> None:
         """
         Methods called once the data are downloaded to add a plot of the data.
         Discriminate between 1d and 2d plot through the length of data list.
@@ -1712,23 +1713,25 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             if plotRef not in self._plotRefs:
                 
 
-                p = Plot1dApp(x              = data[0],
-                              y              = data[1],
-                              title          = plotTitle,
-                              xLabelText     = xLabelText,
-                              xLabelUnits    = xLabelUnits,
-                              yLabelText     = yLabelText,
-                              yLabelUnits    = yLabelUnits,
-                              windowTitle    = windowTitle,
-                              runId          = runId,
-                              cleanCheckBox  = cleanCheckBox,
-                              plotRef        = plotRef,
-                              addPlot        = self.addPlot,
-                              getPlotFromRef = self.getPlotFromRef,
-                              curveId        = curveId,
-                              curveLegend    = curveLegend,
-                              livePlot       = livePlot,
-                              timestampXAxis = timestampXAxis)
+                p = Plot1dApp(x                  = data[0],
+                              y                  = data[1],
+                              title              = plotTitle,
+                              xLabelText         = xLabelText,
+                              xLabelUnits        = xLabelUnits,
+                              yLabelText         = yLabelText,
+                              yLabelUnits        = yLabelUnits,
+                              windowTitle        = windowTitle,
+                              runId              = runId,
+                              cleanCheckBox      = cleanCheckBox,
+                              plotRef            = plotRef,
+                              addPlot            = self.addPlot,
+                              getPlotFromRef     = self.getPlotFromRef,
+                              curveId            = curveId,
+                              curveLegend        = curveLegend,
+                              linkedTo2dPlot     = linkedTo2dPlot,
+                              curveSlicePosition = curveSlicePosition,
+                              livePlot           = livePlot,
+                              timestampXAxis     = timestampXAxis)
 
                 self._plotRefs[plotRef] = p
                 self._plotRefs[plotRef].show()
@@ -1741,13 +1744,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 if curveLegend is None:
                     curveLegend = yLabelText
 
-                self._plotRefs[plotRef].addPlotDataItem(x           = data[0],
-                                                        y           = data[1],
-                                                        curveId     = curveId,
-                                                        curveLabel  = curveLabel,
-                                                        curveUnits  = curveUnits,
-                                                        curveLegend = curveLegend,
-                                                        hidden      = hidden)
+                self._plotRefs[plotRef].addPlotDataItem(x                  = data[0],
+                                                        y                  = data[1],
+                                                        curveId            = curveId,
+                                                        curveLabel         = curveLabel,
+                                                        curveUnits         = curveUnits,
+                                                        curveLegend        = curveLegend,
+                                                        curveSlicePosition = curveSlicePosition,
+                                                        hidden             = hidden)
             
 
         # 2D plot
