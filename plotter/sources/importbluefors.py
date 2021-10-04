@@ -86,7 +86,7 @@ class ImportBlueFors:
         self.clearTableWidget(self.main.tableWidgetParameters)
         self.main.tableWidgetDataBase.setSortingEnabled(True)
         self.main.tableWidgetParameters.setSortingEnabled(True)
-        self.main.textEditMetadata.clear()
+        self.main.removeSnapshot()
 
 
         # Fill the table parameters with BlueFors info
@@ -97,6 +97,7 @@ class ImportBlueFors:
             # We only show file handled by the plotter
             if fileName in config.keys():
                 fakeParamDependent = {'depends_on' : [0],
+                                      'name'  : config[fileName]['labelText'],
                                       'label' : config[fileName]['labelText']}
                 
                 rowPosition = self.main.tableWidgetParameters.rowCount()
@@ -106,10 +107,12 @@ class ImportBlueFors:
                 
                 # We check if that parameter is already plotted
                 if config[fileName]['labelText'] == 'Pressure Gauges':
+                    fakeParamDependent['name']  = 'Vacuum can'
                     fakeParamDependent['label'] = 'Vacuum can'
                 if self.main.isParameterPlotted(fakeParamDependent):
                     cb.setChecked(True)
                 if config[fileName]['labelText'] == 'Pressure Gauges':
+                    fakeParamDependent['name']  = config[fileName]['labelText']
                     fakeParamDependent['label'] = config[fileName]['labelText']
                     
 
@@ -119,7 +122,9 @@ class ImportBlueFors:
                 self.main.tableWidgetParameters.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(config[fileName]['labelText']))
 
                 runId       = 0
-                curveId     = self.main.getCurveId(label=fakeParamDependent['label'], runId=runId, livePlot=False)
+                curveId     = self.main.getCurveId(name=fakeParamDependent['name'],
+                                                   runId=runId,
+                                                   livePlot=False)
                 plotTitle   = self.main.getPlotTitle(livePlot=False)
                 windowTitle = self.main.getWindowTitle(runId=runId, livePlot=False)
                 plotRef     = self.main.getPlotRef(fakeParamDependent)

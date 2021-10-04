@@ -611,19 +611,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         ## Fill the listWidgetMetada with the station snapshot
         self.lineEditFilter.setEnabled(True)
         self.labelFilter.setEnabled(True)
-        widgets = (self.verticalLayout_7.itemAt(i).widget() for i in range(self.verticalLayout_7.count()))
-        for widget in widgets:
-            if isinstance(widget, ViewTree):
-                self.verticalLayout_7.removeWidget(widget)
-        items = (self.verticalLayout_7.itemAt(i) for i in range(self.verticalLayout_7.count()))
-        for item in items:
-            if isinstance(item, QtWidgets.QSpacerItem):
-                self.verticalLayout_7.removeItem(item)
         
-        self.snapShotTreeView = ViewTree(snapshotDict)
-        self.verticalLayout_7.addWidget(self.snapShotTreeView)
-        verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout_7.addItem(verticalSpacer)
+        # Update the run snapshot
+        self.removeSnapshot()
+        self.addSnapshot(snapshotDict)
+        
 
         self.setStatusBarMessage('Ready')
 
@@ -779,6 +771,48 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     #
     #
     ###########################################################################
+
+
+
+    def removeSnapshot(self) -> None:
+        """
+        Remove the snapshot of the run.
+        Due to a weird bug of pyqt, the method is call twice
+        """
+
+        items = (self.verticalLayout_7.itemAt(i) for i in range(self.verticalLayout_7.count()+5))
+        for item in items:
+            if item is not None:
+                widget = item.widget()
+                if isinstance(widget, ViewTree):
+                    widget.close()
+                if isinstance(item, QtWidgets.QSpacerItem):
+                    self.verticalLayout_7.removeItem(item)
+        
+        # Here we recall the method once
+        if not hasattr(self, '_removeSnapshotTwice'):
+            self._removeSnapshotTwice = True
+            self.removeSnapshot()
+        else:
+            del(self._removeSnapshotTwice)
+        
+        verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_7.addItem(verticalSpacer)
+
+
+
+    def addSnapshot(self, snapshotDict: dict) -> None:
+        """
+        Add a ViewTree to the GUI to display the run shapshot
+
+        Args:
+            snapshotDict (dict): Dictionnary of the snapshot
+        """
+        
+        self.snapShotTreeView = ViewTree(snapshotDict)
+        self.verticalLayout_7.addWidget(self.snapShotTreeView)
+        verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_7.addItem(verticalSpacer)
 
 
 

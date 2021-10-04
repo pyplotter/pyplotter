@@ -43,7 +43,7 @@ class ImportCSV:
         self.main.tableWidgetDataBase.setSortingEnabled(True)
         self.main.tableWidgetParameters.setSortingEnabled(True)
         
-        self.main.textEditMetadata.clear()
+        self.main.removeSnapshot()
 
 
 
@@ -109,7 +109,7 @@ class ImportCSV:
 
             try:
                 ts = Touchstone(filePath)
-                self.main.textEditMetadata.setText(ts.get_comments())
+                self.main.addSnapshot({'comment': ts.get_comments()})
                 independentParameter = 'Frequency'
                 columnsName = list(ts.get_sparameter_data('db').keys())[1:]
                 x = ts.get_sparameter_data('db')['frequency']
@@ -144,7 +144,9 @@ class ImportCSV:
             self.main.tableWidgetParameters.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(independentParameter))
 
             runId       = 0
-            curveId     = self.main.getCurveId(label=columnName, runId=runId, livePlot=False)
+            curveId     = self.main.getCurveId(name=columnName,
+                                               runId=runId,
+                                               livePlot=False)
             plotTitle   = self.main.getPlotTitle(livePlot=False)
             windowTitle = self.main.getWindowTitle(runId=runId, livePlot=False)
             
