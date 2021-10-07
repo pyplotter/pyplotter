@@ -1842,7 +1842,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         
         if self._plotRefs[plotRef].plotType=='1d':
             # If there is more than one curve, we remove one curve
-            if len(self._plotRefs[plotRef].curves) > 1:
+            if self._plotRefs[plotRef].nbPlotDataItemFromData()>1:
                 self._plotRefs[plotRef].removePlotDataItem(curveId=curveId)
             # If there is one curve we close the plot window
             else:

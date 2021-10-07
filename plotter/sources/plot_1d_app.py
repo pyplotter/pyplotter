@@ -295,11 +295,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Method called when use closed the plotWindow.
         We propagate that event to the mainWindow
         """
-        
-        self.cleanCheckBox(plotRef     = self.plotRef,
-                           windowTitle = self.windowTitle,
-                           runId       = self.runId,
-                           label       = '')
 
         if self.fitWindow is not None:
             self.fitWindow.close()
@@ -311,6 +306,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             plot = self.getPlotFromRef(self.plotRef, curveType)
             if plot is not None:
                 plot.close()
+        
+        self.cleanCheckBox(plotRef     = self.plotRef,
+                           windowTitle = self.windowTitle,
+                           runId       = self.runId,
+                           label       = '')
 
 
 
@@ -654,6 +654,23 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.updateLegend()
         self.updateyLabel()
 
+
+
+    def nbPlotDataItemFromData(self) -> int:
+        """
+        Return the number of plotDataItem coming from real user data.
+        That count does not take into account "selection", "fit" and
+        "filtering" curves.
+        """
+        
+        nb = 0
+        for curveId in self.curves.keys():
+            print(nb, curveId, '--')
+            if curveId not in ['filtering', 'fit']:
+                if 'selection' not in curveId:
+                    nb += 1
+                
+        return nb
 
 
     ####################################
