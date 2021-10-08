@@ -665,7 +665,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         
         nb = 0
         for curveId in self.curves.keys():
-            print(nb, curveId, '--')
             if curveId not in ['filtering', 'fit']:
                 if 'selection' not in curveId:
                     nb += 1
