@@ -191,7 +191,7 @@ class PlotApp(object):
 
                 if self.timestampXAxis:
                     x = datetime.datetime.utcfromtimestamp(self.mousePos[0]).strftime('%Y-%m-%d %H:%M:%S')
-                    self.labelCoordinate.setText('x: {:}<br/>y: {}{:.{nbDecimal}e}'.format(spaceX, x, spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
+                    self.labelCoordinate.setText('x: {:}<br/>y: {}{:.{nbDecimal}e}'.format(x, spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
                 else:
                     self.labelCoordinate.setText('x: {}{:.{nbDecimal}e}<br/>y: {}{:.{nbDecimal}e}'.format(spaceX, self.mousePos[0],spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
             elif self.plotType=='2d':

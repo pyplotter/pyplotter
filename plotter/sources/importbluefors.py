@@ -27,6 +27,13 @@ class ImportBlueFors:
 
 
     @staticmethod
+    def pandasTimestamp2Int(dates: np.ndarray) -> np.ndarray:
+        
+        return (dates - pd.Timestamp('1970-01-01'))//pd.Timedelta('1s')
+
+
+ 
+    @staticmethod
     def isBlueForsFolder(folderName : Optional[str]=None) -> bool:
         """
         Return True if a string follow blueFors log folder name pattern.
@@ -201,22 +208,23 @@ class ImportBlueFors:
                                        'void'],
                                 header=None)
 
-                df.index = pd.to_datetime(df['date']+'-'+df['time'], format='%d-%m-%y-%H:%M:%S')
+                timeAxis = self.pandasTimestamp2Int(pd.to_datetime(df['date']+'-'+df['time'], format='%d-%m-%y-%H:%M:%S'))
                 
                 for i in range(1, 7):
                     
                     name = 'ch'+str(i)+'_pressure'
                     
-                    self.main.addPlot(plotRef     = plotRef,
-                                      data        = (df[name].index.astype(np.int64).values//1e9, df[name]*1e-3),
-                                      xLabelText  = 'Time',
-                                      xLabelUnits = '',
-                                      yLabelText  = config[fileName][name[:3]]['labelText'],
-                                      yLabelUnits = config[fileName][name[:3]]['labelUnits'],
-                                      runId       = runId,
-                                      curveId     = curveId+name,
-                                      plotTitle   = plotTitle,
-                                      windowTitle = windowTitle)
+                    self.main.addPlot(plotRef        = plotRef,
+                                      data           = (timeAxis, df[name]*1e-3),
+                                      xLabelText     = 'Time',
+                                      xLabelUnits    = '',
+                                      yLabelText     = config[fileName][name[:3]]['labelText'],
+                                      yLabelUnits    = config[fileName][name[:3]]['labelUnits'],
+                                      runId          = runId,
+                                      curveId        = curveId+name,
+                                      plotTitle      = plotTitle,
+                                      windowTitle    = windowTitle,
+                                      timestampXAxis = True)
 
                     # and we set y log mode True
                     QtTest.QTest.qWait(100) # To avoid an overflow error
@@ -233,18 +241,19 @@ class ImportBlueFors:
                                  header    = None)
 
                 # There is a space before the day
-                df.index = pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S')
+                timeAxis = self.pandasTimestamp2Int(pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S'))
 
-                self.main.addPlot(plotRef    = plotRef,
-                             data       = (df['y'].index.astype(np.int64).values//1e9, df['y']*1e-3),
-                             xLabelText = 'Time',
-                             xLabelUnits = '',
-                             yLabelText  = config[fileName]['labelText'],
-                             yLabelUnits = config[fileName]['labelUnits'],
-                             runId       = runId,
-                             curveId     = curveId,
-                             plotTitle   = plotTitle,
-                             windowTitle = windowTitle)
+                self.main.addPlot(plotRef        = plotRef,
+                                  data           = (timeAxis, df['y']*1e-3),
+                                  xLabelText     = 'Time',
+                                  xLabelUnits    = '',
+                                  yLabelText     = config[fileName]['labelText'],
+                                  yLabelUnits    = config[fileName]['labelUnits'],
+                                  runId          = runId,
+                                  curveId        = curveId,
+                                  plotTitle      = plotTitle,
+                                  windowTitle    = windowTitle,
+                                  timestampXAxis = True)
 
         else:
             

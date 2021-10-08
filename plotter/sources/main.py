@@ -1671,7 +1671,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                       hidden             : bool=False,
                       curveLabel         : Optional[str]=None,
                       curveUnits         : Optional[str]=None,
-                      timestampXAxis     : bool=False,
+                      timestampXAxis     : Optional[bool]=None,
                       livePlot           : bool=False,
                       progressBarKey     : Optional[str]=None,
                       zLabelText         : Optional[str]=None,
@@ -1739,9 +1739,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if len(data)==2:
             
             # Specific 1d optional parameter
-            if timestampXAxis is None:
-                timestampXAxis = self.importblueFors.isBlueForsFolder(self._currentDatabase)
-            
+            # print(timestampXAxis)
+            # if timestampXAxis is None:
+            #     timestampXAxis = self.importblueFors.isBlueForsFolder(self._currentDatabase)
+            # print(self.importblueFors.isBlueForsFolder(self._currentDatabase))
+            # print(timestampXAxis)
             # If the plotRef is not stored we launched a new window
             # Otherwise we add a new PlotDataItem on an existing plot1dApp
             if plotRef not in self._plotRefs:
