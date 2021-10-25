@@ -635,6 +635,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                             curveId            = curveId,
                             curveLegend        = sliceLegend,
                             curveSlicePosition = slicePosition)
+        
+        # We update the label of the infinity line with the value corresponding
+        # to the cut
+        InfinitylineItem.label.setFormat('{:0.2e}'.format(slicePosition))
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
         self.infiniteLines[curveId].mouseHovering  = True
@@ -675,7 +679,15 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if position is not None:
             pos = position
         
-        t = pg.InfiniteLine(angle=angle, movable=True, pen=pen, hoverPen=hoverPen)
+        # The label is empty for now
+        t = pg.InfiniteLine(angle=angle,
+                            movable=True,
+                            pen=pen,
+                            hoverPen=hoverPen,
+                            label='',
+                            labelOpts={'position' : 0.9,
+                                       'movable' : True,
+                                       'fill': config['plot1dColors'][colorIndex]})
         t.setPos(pos)
 
         self.plotItem.addItem(t)
@@ -690,6 +702,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
         self.infiniteLines[curveId] = t
+        
+        # We call the dragSliceLine method to update the InfiniteLineLabel
+        self.dragSliceLine(InfinitylineItem=t,
+                           curveId=curveId,
+                           lineOrientation=sliceOrientation)
         
         return t
 
