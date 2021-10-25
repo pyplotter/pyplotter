@@ -979,9 +979,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
         
         self.plotItem.setLabel(axis='bottom',
+                               text=self.plotItem.axes['bottom']['item'].labelText,
+                               units=self.plotItem.axes['bottom']['item'].labelUnits,
                                **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
+                               text=self.plotItem.axes['left']['item'].labelText,
+                               units=self.plotItem.axes['left']['item'].labelUnits,
                                **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(config['axisLabelFontSize'])+'pt'})
 

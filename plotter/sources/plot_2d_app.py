@@ -180,13 +180,13 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.plotItem.setTitle(title=title, color=config['styles'][config['style']]['pyqtgraphTitleTextColor'])
         self.plotItem.showGrid(x=True, y=True)
         self.plotItem.setLabel(axis='bottom',
-                               text=xLabelText,
-                               units=xLabelUnits,
+                               text=self.xLabelText,
+                               units=self.xLabelUnits,
                                **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
                                                 'font-size' : str(config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',  
-                               text=yLabelText,
-                               units=yLabelUnits,
+                               text=self.yLabelText,
+                               units=self.yLabelUnits,
                                **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
                                                 'font-size' : str(config['axisLabelFontSize'])+'pt'})
         
@@ -516,9 +516,13 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
         
         self.plotItem.setLabel(axis='bottom',
+                               text=self.plotItem.axes['bottom']['item'].labelText,
+                               units=self.plotItem.axes['bottom']['item'].labelUnits,
                                **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
+                               text=self.plotItem.axes['left']['item'].labelText,
+                               units=self.plotItem.axes['left']['item'].labelUnits,
                                **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(config['axisLabelFontSize'])+'pt'})
 
