@@ -905,9 +905,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 # Legend written in html
                 # &#60; means <
                 # &#62; means >
-                sliceLegend   = 'Mean &#60;{}&#62; = {:.3e} {}'.format(self.plotItem.axes['bottom']['item'].labelText,
-                                                                       (slicePosition[0]+slicePosition[1])/2,
-                                                                       self.plotItem.axes['bottom']['item'].labelUnits)
+                sliceLegend   = '{} ({}): {:.3e}, {:.3e}&#60;-&#62;{:.3e}, {}'.format(self.plotItem.axes['bottom']['item'].labelText,
+                                                                                      self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                                      (slicePosition[0]+slicePosition[1])/2,
+                                                                                      slicePosition[0],
+                                                                                      slicePosition[1],
+                                                                                      int(nmax-nmin))
             else:
                 
                 nmin = np.abs(self.yData-ySlice[0]).argmin()
@@ -924,9 +927,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 # Legend written in html
                 # &#60; means <
                 # &#62; means >
-                sliceLegend   = 'Mean &#60;{}&#62; = {:.3e} {}'.format(self.plotItem.axes['left']['item'].labelText,
-                                                                       (slicePosition[0]+slicePosition[1])/2,
-                                                                       self.plotItem.axes['left']['item'].labelUnits)
+                sliceLegend   = '{} ({}): {:.3e}, {:.3e}&#60;-&#62;{:.3e}, {}'.format(self.plotItem.axes['left']['item'].labelText,
+                                                                                      self.plotItem.axes['left']['item'].labelUnits,
+                                                                                      (slicePosition[0]+slicePosition[1])/2,
+                                                                                      slicePosition[0],
+                                                                                      slicePosition[1],
+                                                                                      int(nmax-nmin))
         
         return sliceX, sliceY, sliceLegend, slicePosition
 
