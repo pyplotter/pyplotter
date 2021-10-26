@@ -35,6 +35,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        cleanCheckBox      : Callable[[str, str, int, Union[str, list]], None],
                        plotRef            : str,
                        addPlot            : Callable,
+                       removePlot         : Callable,
                        getPlotFromRef     : Callable,
                        linkedTo2dPlot     : bool=False,
                        curveId            : Optional[str]=None,
@@ -76,6 +77,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         addPlot : Callable
             Function from the mainApp used to launched 1d plot and keep plot
             reference updated.
+        removePlot : Callable
+            Function from the mainApp used to delete 1d plot and keep plot
+            reference updated.
         getPlotFromRef : Callable
             Function from the mainApp used to remove 1d plot and keep plot
             reference updated.
@@ -98,9 +102,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             [description], by default None
         """
         super(Plot1dApp, self).__init__(parent)
-        
+
         self.setupUi(self)
-        
+
         # Allow resize of the plot window
         self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
                             QtCore.Qt.WindowMaximizeButtonHint|
@@ -113,9 +117,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.plotRef        = plotRef
 
         self.addPlot        = addPlot
+        self.removePlot     = removePlot
         self.getPlotFromRef = getPlotFromRef
 
-        # References of PlotDataItem 
+        # References of PlotDataItem
         # Structures
         # self.curves = {'curveId' : pg.PlotDataItem}
         self.curves         = {}
@@ -154,7 +159,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.initFitGUI()
         # Add filtering function to the GUI
         self.initFilteringGUI()
-        
+
         # Initialize font size spin button with the config file
         self.spinBoxFontSize.setValue(config['axisLabelFontSize'])
 
@@ -167,7 +172,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         self.checkBoxDifferentiate.clicked.connect(self.clickDifferentiate)
         self.checkBoxIntegrate.clicked.connect(self.clickIntegrate)
-        
+
+        self.checkBoxUnwrap.clicked.connect(self.clickUnwrap)
+        self.checkBoxRemoveSlop.clicked.connect(self.clickRemoveSlop)
+
         self.radioButtonFFT.clicked.connect(lambda:self.clickFFT(self.radioButtonFFT))
         self.radioButtonFFTnoDC.clicked.connect(lambda:self.clickFFT(self.radioButtonFFTnoDC))
         self.radioButtonIFFT.clicked.connect(lambda:self.clickFFT(self.radioButtonIFFT))
@@ -199,7 +207,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                units=xLabelUnits,
                                **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(config['axisLabelFontSize'])+'pt'})
-        self.plotItem.setLabel(axis='left',  
+        self.plotItem.setLabel(axis='left',
                                text=yLabelText,
                                units=yLabelUnits,
                                **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
@@ -302,11 +310,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if self.filteringWindow is not None:
             self.filteringWindow.close()
 
-        for curveType in ['fft', 'derivative', 'primitive']:
+        for curveType in ['fft', 'derivative', 'primitive', 'unwrap', 'unslop']:
             plot = self.getPlotFromRef(self.plotRef, curveType)
             if plot is not None:
-                plot.close()
-        
+                [self.removePlot(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
+
         self.cleanCheckBox(plotRef     = self.plotRef,
                            windowTitle = self.windowTitle,
                            runId       = self.runId,
@@ -332,7 +340,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         Obtain the dict of not hidden curves
         """
-    
+
         curvesNotHidden = {}
         for curveId, plotDataItem in self.curves.items():
             if not plotDataItem.hidden:
@@ -346,24 +354,24 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         Autorange the plotItem based on the unHide plotDataItem.
         """
-        
+
         curvesNotHidden = self.getNotHiddenCurves()
-        
+
         xRange = [1e99, -1e99]
         yRange = [1e99, -1e99]
-        
+
         for curveId, plotDataItem in curvesNotHidden.items():
-            
+
             xRangeTemp = plotDataItem.dataBounds(0)
             yRangeTemp = plotDataItem.dataBounds(1)
-            
+
             if xRangeTemp[0] is not None and xRangeTemp[1] is not None and yRangeTemp[0] is not None and yRangeTemp[1] is not None:
-                
+
                 if xRangeTemp[0]<xRange[0]:
                     xRange[0] = xRangeTemp[0]
                 if yRangeTemp[0]<yRange[0]:
                     yRange[0] = yRangeTemp[0]
-                
+
                 if xRangeTemp[1]>xRange[1]:
                     xRange[1] = xRangeTemp[1]
                 if yRangeTemp[1]>yRange[1]:
@@ -435,7 +443,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if curveLegend is not None:
             self.curves[curveId].curveLegend = curveLegend
             self.updateLegend()
-        
+
         if curveSlicePosition is not None:
             self.curves[curveId].curveSlicePosition = curveSlicePosition
 
@@ -497,7 +505,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.curves[curveId].hidden             = hidden
         self.curves[curveId].curveSlicePosition = curveSlicePosition
         self.curves[curveId].mkpen              = mkpen
-        
+
         self.updateListDataPlotItem(curveId)
 
 
@@ -535,13 +543,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             4. If there is 2 and one is the selection curve: we change nothing.
             5. If all curves are hidden, we display "None".
         """
-        
+
         # Obtain the list of not hidden plotDataItem
         curvesNotHidden = self.getNotHiddenCurves()
-        
+
         # The label is changed only of we are not display slices of a 2d plot
         if not self.linkedTo2dPlot:
-            
+
             # If there are two curves and on is the selection one, we change nothing
             if len(curvesNotHidden)==2 and any(['selection' in curveId for curveId in curvesNotHidden.keys()]):
                 pass
@@ -578,7 +586,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
 
         self.legendItem.clear()
-        
+
         # We do not add items in the legend when there is only one curve
         # except when the 1d plot is linked to a 2d plot
         if len(self.curves)==1:
@@ -613,7 +621,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Update list of plotDataItem only if the plotDataItem is not a fit
         if curveId not in ['fit', 'filtering']:
-            
+
             if 'selection' not in curveId:
                 # Add a radioButton to allow the user to select the plotDataItem.
                 # If there is already a button with curveId, we remove it
@@ -630,7 +638,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.plotDataItemButtonGroup.addButton(radioButton, len(self.plotDataItemButtonGroup.buttons()))
                     radioButton.clicked.connect(self.selectPlotDataItem)
                     self.verticalLayoutPlotDataItem.addWidget(radioButton)
-                
+
                 # Add a checkBox to allow the user to hide the plotDataItem.
                 # If there is already a button with curveId, we remove it
                 createButton = True
@@ -662,13 +670,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         That count does not take into account "selection", "fit" and
         "filtering" curves.
         """
-        
+
         nb = 0
         for curveId in self.curves.keys():
             if curveId not in ['filtering', 'fit']:
                 if 'selection' not in curveId:
                     nb += 1
-                
+
         return nb
 
 
@@ -685,13 +693,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Is called by the Main object when the user plots a new 1d curve.
         Build a list of checkbox related to every already plotted curve and
         display it in the curve tab.
-        
+
         Parameters
         ----------
         plots : List[Plot1dApp]
             List containing all the 1d plot window currently displayed.
         """
-        
+
         # Is there at least one another curve to be shown in the new tab
         isThere = False
         for plot in plots:
@@ -702,23 +710,23 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 if (self.windowTitle != plot.windowTitle or
                     plot.runId != self.runId or
                     curveId not in self.curves):
-                    
+
                     isThere = True
 
         # If there is, we build the GUI
         if isThere:
-            
+
 
             # Initialize GUI
             if not hasattr(self, 'tabCurves'):
                 self.tabCurves = QtWidgets.QWidget()
                 self.tabWidget.addTab(self.tabCurves, 'Add curves')
-                
+
                 self.tabLayout = QtWidgets.QVBoxLayout()
                 self.tabCurves.setLayout(self.tabLayout)
             else:
 
-                widgets = (self.tabLayout.itemAt(i).widget() for i in range(self.tabLayout.count())) 
+                widgets = (self.tabLayout.itemAt(i).widget() for i in range(self.tabLayout.count()))
                 for widget in widgets:
                     if widget is not None:
                         widget.setChecked(False)
@@ -746,7 +754,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                   runId   = str(plot.runId),
                                                   curveId = str(curveId),
                                                   plot    = plot: self.toggleNewPlot(state, runId, curveId, plot))
-                        
+
                         if curveId in self.curves.keys():
                             cb.setChecked(True)
 
@@ -755,9 +763,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
             verticalSpacer = QtWidgets.QSpacerItem(20, 40,
                                 QtWidgets.QSizePolicy.Minimum,
-                                QtWidgets.QSizePolicy.Expanding) 
+                                QtWidgets.QSizePolicy.Expanding)
             self.tabLayout.addItem(verticalSpacer)
-        
+
         else:
             if hasattr(self, 'tabCurves'):
                 self.tabWidget.removeTab(1)
@@ -784,7 +792,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         plot : Plot1dApp
             Plot1dApp where the curve comes from.
         """
-        
+
         if state:
             self.addPlotDataItem(x           = plot.curves[curveId].xData,
                                  y           = plot.curves[curveId].yData,
@@ -812,13 +820,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Modify the scale, linear or logarithmic, of the plotItem following
         which checkbox are checked.
         """
-        
+
         # If split y axis enable
         if hasattr(self, 'curveRight'):
             plotItems = [self.plotItem, self.curveRight]
         else:
             plotItems = [self.plotItem]
-        
+
         if self.checkBoxLogX.isChecked():
             if self.checkBoxLogY.isChecked():
                 [item.setLogMode(True, True) for item in plotItems]
@@ -840,22 +848,22 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Method called when user click on the Symbol checkBox.
         Put symbols on all plotDataItem except fit model.
         """
-        
+
         if self.checkBoxSymbol.isChecked():
-            
+
             for i, (key, curve) in enumerate(list(self.curves.items())):
                 if key != 'fit':
                     curve.setSymbol(config['plot1dSymbol'][i%len(config['plot1dSymbol'])])
-                    
+
                     # If split y axis enable
                     if hasattr(self, 'curveRight'):
                         self.curveRight.setSymbol(config['plot1dSymbol'][i%len(config['plot1dSymbol'])])
-                        
+
         else:
             for i, (key, curve) in enumerate(list(self.curves.items())):
                 if key != 'fit':
                     curve.setSymbol(None)
-                
+
             # If split y axis enable
             if hasattr(self, 'curveRight'):
                 self.curveRight.setSymbol(None)
@@ -883,34 +891,34 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Method called when user click on the Symbol checkBox.
         Put symbols on all plotDataItem except fit model.
         """
-        
+
         # Only work for two plotDataItem
         if len(self.curves)==2:
-            
+
             # Get the curveId for the curve linked to the left and right axis.
             leftCurveId  = list(self.curves.keys())[0]
             rightCurveId = list(self.curves.keys())[1]
-            
+
             if self.checkBoxSplitYAxis.isChecked():
-                
+
                 self.groupBoxCurveInteraction.setEnabled(False)
-            
+
                 # Create an empty plotDataItem which will contain the right curve
                 self.curveRight = pg.PlotDataItem(pen=self.curves[rightCurveId].mkpen)
-                
+
                 # Create and set links for a second viewbox which will contains the right curve
                 self.vbRight = pg.ViewBox()
                 self.vbRight.setXLink(self.plotItem)
                 self.plotItem.scene().addItem(self.vbRight)
                 self.plotItem.showAxis('right')
                 self.plotItem.getAxis('right').linkToView(self.vbRight)
-                
+
                 # Remove the plotDataItem which will be on the second viewbox
                 self.plotItem.removeItem(self.curves[rightCurveId])
-                
+
                 # Remove the legendItem, now obsolete with the right axis
                 self.legendItem.clear()
-                
+
                 # Display the correct information on each axis about their curve
                 self.plotItem.setLabel(axis='left',
                                     text=self.curves[leftCurveId].curveLabel,
@@ -927,7 +935,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 self.vbRight.addItem(self.curveRight)
                 self.curveRight.setData(self.curves[rightCurveId].xData, self.curves[rightCurveId].yData)
                 self.vbRight.setYRange(self.curves[rightCurveId].yData.min(), self.curves[rightCurveId].yData.max())
-                
+
                 # Sorcery to me, found here:
                 # https://stackoverflow.com/questions/29473757/pyqtgraph-multiple-y-axis-on-left-side
                 # If that's not here, the views are incorrect
@@ -936,32 +944,31 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.vbRight.linkedViewChanged(self.plotItem.getViewBox(), self.vbRight.XAxis)
                 updateViews()
                 self.plotItem.getViewBox().sigResized.connect(updateViews)
-                
+
                 # We overwrite the autoRange button to make it work with
                 # both axis
                 self.plotItem.autoBtn.clicked.disconnect(self.plotItem.autoBtnClicked)
                 self.plotItem.autoBtn.clicked.connect(self.splitAutoBtnClicked)
             else:
-                
+
                 self.groupBoxCurveInteraction.setEnabled(True)
-                
+
                 # Restore the autoRange button original method
                 self.plotItem.autoBtn.clicked.disconnect(self.splitAutoBtnClicked)
                 self.plotItem.autoBtn.clicked.connect(self.plotItem.autoBtnClicked)
-                
+
                 # Remove the right viewbox and other stuff done for the right axis
                 self.plotItem.hideAxis('right')
                 self.plotItem.scene().removeItem(self.vbRight)
                 self.plotItem.getViewBox().sigResized.disconnect()
                 del(self.vbRight)
                 del(self.curveRight)
-                
+
                 # Put back the left view box as it was before the split
                 self.plotItem.addItem(self.curves[rightCurveId])
-                
+
                 self.updateLegend()
                 self.updateyLabel()
-
 
 
 
@@ -973,11 +980,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Modify the config file so that other plot window launched
         afterwards have the same fontsize.
         """
-        
+
 
         config['axisLabelFontSize'] = int(self.spinBoxFontSize.value())
         config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
-        
+
         self.plotItem.setLabel(axis='bottom',
                                text=self.plotItem.axes['bottom']['item'].labelText,
                                units=self.plotItem.axes['bottom']['item'].labelUnits,
@@ -997,19 +1004,19 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
     def hidePlotDataItem(self, cb : QtWidgets.QCheckBox) -> None:
-        
+
         curveId      = cb.curveId
         plotDataItem = self.curves[curveId]
-        
+
         # We get the interaction radioBox having the same curveId
         radioBox = [i for i in [self.verticalLayoutPlotDataItem.itemAt(i).widget() for i in range(self.verticalLayoutPlotDataItem.count())] if i.curveId==curveId][0]
-        
+
         if cb.isChecked():
-            
+
             # if checkBox.isChecked():
             plotDataItem.setAlpha(0, False)
             plotDataItem.hidden = True
-            
+
             # When the curve is hidden, we do not allow interaction with it
             radioBox.setEnabled(False)
         else:
@@ -1017,9 +1024,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             if plotDataItem.hidden:
                 plotDataItem.hidden = False
                 plotDataItem.setAlpha(1, False)
-                
+
                 radioBox.setEnabled(True)
-        
+
         # Update the display
         self.updateyLabel()
         self.updateLegend()
@@ -1043,25 +1050,28 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
         if self.radioButtonFFT.isChecked():
-            
+
             x = np.fft.fftfreq(len(self.selectedX), d=self.selectedX[1] - self.selectedX[0])
             y = np.abs(np.fft.fft(self.selectedY))[x>=0]
             x = x[x>=0]
             text = 'fft'
+            curveId = self.selectedLabel+'fft'
 
         elif self.radioButtonFFTnoDC.isChecked():
-            
+
             x = np.fft.fftfreq(len(self.selectedX), d=self.selectedX[1] - self.selectedX[0])
             y = np.abs(np.fft.fft(self.selectedY))[x>=0][1:]
             x = x[x>=0][1:]
             text = 'fft'
+            curveId = self.selectedLabel+'fftnodc'
 
         elif self.radioButtonIFFT.isChecked():
-            
+
             x = np.fft.fftfreq(len(self.selectedX), d=self.selectedX[1] - self.selectedX[0])
             y = np.abs(np.fft.ifft(self.selectedY))[x>=0]
             x = x[x>=0]
             text = 'ifft'
+            curveId = self.selectedLabel+'ifft'
 
         xLabelText  = '1/'+self.plotItem.axes['bottom']['item'].labelText
         xLabelUnits = '1/'+self.plotItem.axes['bottom']['item'].labelUnits
@@ -1071,8 +1081,16 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         fftPlot = self.getPlotFromRef(self.plotRef, 'fft')
         if fftPlot is not None:
-            fftPlot.close()
-        
+            self.removePlot(fftPlot, curveId)
+
+        fftnodcPlot = self.getPlotFromRef(self.plotRef, 'fftnodc')
+        if fftnodcPlot is not None:
+            self.removePlot(fftnodcPlot, curveId)
+
+        ifftPlot = self.getPlotFromRef(self.plotRef, 'ifft')
+        if ifftPlot is not None:
+            self.removePlot(ifftPlot, curveId)
+
         self.addPlot(plotRef        = self.plotRef+'fft',
                      data           = [x, y],
                      xLabelText     = xLabelText,
@@ -1084,11 +1102,136 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                      windowTitle    = title,
                      runId          = 1,
                      linkedTo2dPlot = False,
-                     curveId        = yLabelText,
+                     curveId        = curveId,
                      curveLegend    = yLabelText,
                      curveLabel     = yLabelText,
                      timestampXAxis = False,
                      livePlot       = False)
+
+
+
+    ####################################
+    #
+    #           Method to related to normalization
+    #
+    ####################################
+
+
+
+    def clickUnwrap(self) -> None:
+
+        # Build new curve information
+        yLabelText  = 'Unwrap({})'.format(self.plotItem.axes['left']['item'].labelText)
+        title       = self.windowTitle+' - unwrap'
+        curveId     = self.selectedLabel+'unwrap'
+        plotRef     = self.plotRef+'unwrap'
+
+        # If user wants to plot the unwrap, we add a new plotWindow
+        if self.checkBoxUnwrap.isChecked():
+
+            x = self.selectedX
+            y = np.unwrap(self.selectedY)
+
+            # Is there already a unwrap plot associated to the plot1d
+            plot = self.getPlotFromRef(self.plotRef, 'unwrap')
+            if plot is not None:
+                plot.updatePlotDataItem(x         = x,
+                                        y         = y,
+                                        curveId   = curveId,
+                                        autoRange = True)
+            # If not, we create one
+            else:
+
+                def buffer(**kwargs):
+                    """
+                    Function called when a unwrap plot is closed.
+                    Uncheck its associated checkbox and called the usual close
+                    function
+                    """
+
+                    self.checkBoxUnwrap.setChecked(False)
+                    self.cleanCheckBox(**kwargs)
+
+                self.addPlot(plotRef        = plotRef,
+                             data           = [x, y],
+                             xLabelText     = self.plotItem.axes['bottom']['item'].labelText,
+                             xLabelUnits    = self.plotItem.axes['bottom']['item'].labelUnits,
+                             yLabelText     = yLabelText,
+                             yLabelUnits    = self.plotItem.axes['left']['item'].labelUnits,
+                             cleanCheckBox  = buffer,
+                             plotTitle      = title,
+                             windowTitle    = title,
+                             runId          = 1,
+                             linkedTo2dPlot = False,
+                             curveId        = curveId,
+                             curveLegend    = yLabelText,
+                             curveLabel     = yLabelText,
+                             timestampXAxis = False,
+                             livePlot       = False)
+        # Otherwise, we close the existing one
+        else:
+            plot = self.getPlotFromRef(self.plotRef, 'unwrap')
+            if plot is not None:
+                self.removePlot(self.plotRef+'unwrap', curveId)
+
+
+
+    def clickRemoveSlop(self) -> None:
+
+        # Build new curve information
+        yLabelText  = 'Unslop({})'.format(self.plotItem.axes['left']['item'].labelText)
+        title       = self.windowTitle+' - unslop'
+        curveId     = self.selectedLabel+'unslop'
+        plotRef     = self.plotRef+'unslop'
+
+        # If user wants to plot the unslop, we add a new plotWindow
+        if self.checkBoxRemoveSlop.isChecked():
+
+            slop, _ = np.polyfit(self.selectedX, self.selectedY, 1)
+            x = self.selectedX
+            y = self.selectedY-slop*self.selectedX
+
+            # Is there already a unslop plot associated to the plot1d
+            plot = self.getPlotFromRef(self.plotRef, 'unslop')
+            if plot is not None:
+                plot.updatePlotDataItem(x         = x,
+                                        y         = y,
+                                        curveId   = curveId,
+                                        autoRange = True)
+            # If not, we create one
+            else:
+
+                def buffer(**kwargs):
+                    """
+                    Function called when a unslop plot is closed.
+                    Uncheck its associated checkbox and called the usual close
+                    function
+                    """
+
+                    self.checkBoxRemoveSlop.setChecked(False)
+                    self.cleanCheckBox(**kwargs)
+
+                self.addPlot(plotRef        = plotRef,
+                             data           = [x, y],
+                             xLabelText     = self.plotItem.axes['bottom']['item'].labelText,
+                             xLabelUnits    = self.plotItem.axes['bottom']['item'].labelUnits,
+                             yLabelText     = yLabelText,
+                             yLabelUnits    = self.plotItem.axes['left']['item'].labelUnits,
+                             cleanCheckBox  = buffer,
+                             plotTitle      = title,
+                             windowTitle    = title,
+                             runId          = 1,
+                             linkedTo2dPlot = False,
+                             curveId        = curveId,
+                             curveLegend    = yLabelText,
+                             curveLabel     = yLabelText,
+                             timestampXAxis = False,
+                             livePlot       = False)
+        # Otherwise, we close the existing one
+        else:
+            plot = self.getPlotFromRef(self.plotRef, 'unslop')
+            if plot is not None:
+                self.removePlot(self.plotRef+'unslop', curveId)
 
 
 
@@ -1105,23 +1248,24 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Method called when user click on the derivative checkbox.
         Add a plot containing the derivative of the chosen data.
         """
-        
+
         # Get xLabel information
         xLabelText  = self.plotItem.axes['bottom']['item'].labelText
         xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
-        
+
         # Build new curve information
         yLabelText  = '∂('+self.selectedLabel+')/∂('+xLabelText+')'
         yLabelUnits = self.selectedUnits+'/'+xLabelUnits
         title       = self.windowTitle+' - derivative'
         curveId     = self.selectedLabel+'derivative'
-        
+        plotRef     = self.plotRef+'derivative'
+
         # If user wants to plot the derivative, we add a new plotWindow
         if self.checkBoxDifferentiate.isChecked():
-            
+
             x = self.selectedX
             y = np.gradient(self.selectedY, self.selectedX)
-            
+
             # Is there already a derivative plot associated to the plot1d
             plot = self.getPlotFromRef(self.plotRef, 'derivative')
             if plot is not None:
@@ -1131,18 +1275,18 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                         autoRange = True)
             # If not, we create one
             else:
-                
+
                 def buffer(**kwargs):
                     """
                     Function called when a derivative plot is closed.
                     Uncheck its associated checkbox and called the usual close
                     function
                     """
-                    
+
                     self.checkBoxDifferentiate.setChecked(False)
                     self.cleanCheckBox(**kwargs)
-                    
-                self.addPlot(plotRef        = self.plotRef+'derivative',
+
+                self.addPlot(plotRef        = plotRef,
                              data           = [x, y],
                              xLabelText     = xLabelText,
                              xLabelUnits    = xLabelUnits,
@@ -1162,7 +1306,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'derivative')
             if plot is not None:
-                plot.close()
+                self.removePlot(self.plotRef+'derivative', curveId)
 
 
 
@@ -1175,20 +1319,21 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Get xLabel information
         xLabelText  = self.plotItem.axes['bottom']['item'].labelText
         xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
-        
+
         # Build new curve information
         yLabelText  = '∫ '+self.selectedLabel+'  d '+xLabelText
         yLabelUnits = self.selectedUnits+' x '+xLabelUnits
         title   = self.windowTitle+' - primitive'
         curveId = self.selectedLabel+'primitive'
-        
+        plotRef = self.plotRef+'primitive'
+
 
         # If user wants to plot the primitive, we add a new plotWindow
         if self.checkBoxIntegrate.isChecked():
-            
+
             x = self.selectedX
             y = cumtrapz(self.selectedY, self.selectedX, initial=0)
-            
+
             # Is there already a primitive plot associated to the plot1d
             plot = self.getPlotFromRef(self.plotRef, 'primitive')
             if plot is not None:
@@ -1198,19 +1343,19 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                         autoRange = True)
             # If not, we create one
             else:
-                
+
                 def buffer(**kwargs):
                     """
                     Function called when a primitive plot is closed.
                     Uncheck its associated checkbox and called the usual close
                     function
                     """
-                    
+
                     self.checkBoxIntegrate.setChecked(False)
                     self.cleanCheckBox(**kwargs)
-                    
-                    
-                self.addPlot(plotRef        = self.plotRef+'primitive',
+
+
+                self.addPlot(plotRef        = plotRef,
                              data           = [x, y],
                              xLabelText     = xLabelText,
                              xLabelUnits    = xLabelUnits,
@@ -1230,7 +1375,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'primitive')
             if plot is not None:
-                plot.close()
+                self.removePlot(self.plotRef+'primitive', curveId)
 
 
 
@@ -1285,7 +1430,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Id of the curve.
             See getCurveId from MainApp
         """
-        
+
         # Update the style of the display plotDataItem
         self.updatePlotDataItemStyle(curveId)
 
@@ -1295,20 +1440,30 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # If a fit curve is already displayed, we update it
         if 'fit' in list(self.curves.keys()):
             self.radioButtonFitState()
-            
+
         # If a filtering curve is already displayed, we update it
         if 'filtering' in list(self.curves.keys()):
             self.radioButtonFilteringtState()
-            
+
         # If a derivative curve is already displayed, we update it
         plot = self.getPlotFromRef(self.plotRef, 'derivative')
         if plot is not None:
             self.clickDifferentiate()
-            
+
         # If a primitive curve is already displayed, we update it
         plot = self.getPlotFromRef(self.plotRef, 'primitive')
         if plot is not None:
             self.clickIntegrate()
+
+        # If a unwrap curve is already displayed, we update it
+        plot = self.getPlotFromRef(self.plotRef, 'unwrap')
+        if plot is not None:
+            self.clickUnwrap()
+
+        # If a unslop curve is already displayed, we update it
+        plot = self.getPlotFromRef(self.plotRef, 'unslop')
+        if plot is not None:
+            self.clickRemoveSlop()
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
         lineItem.mouseHovering  = False
@@ -1346,7 +1501,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             If None, we delete the infinite lines
             See getCurveId from MainApp
         """
-        
+
         # If we want to remove the selection infinite line
         if curveId is None:
             if 'a' in self.sliceItems.keys():
@@ -1403,7 +1558,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # By default we put back the default style to all plotDataItem
         for curve in self.curves.values():
-            
+
             # Create new style
             mkPen = pg.mkPen(color=config['plot1dColors'][curve.colorIndex],
                             style=QtCore.Qt.SolidLine ,
@@ -1414,14 +1569,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             # Apply new style
             curve.setPen(mkPen)
             curve.setShadowPen(mkShadowPen)
-        
+
         # Then we apply the selected style to only one of the plotDataItem
         if curveId is not None:
             # Create new style
             mkPen = pg.mkPen(color=config['plot1dColorsComplementary'][self.curves[curveId].colorIndex],
                             style=QtCore.Qt.SolidLine ,
                             width=config['plotDataItemWidth'])
-            
+
             # Get data to display with a different style
             x, y = self.getSelectedData(curveId)
 
@@ -1489,11 +1644,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             for radioButton in [self.radioButtonFFT, self.radioButtonIFFT, self.radioButtonFFTnoDC]:
                 radioButton.setCheckable(False)
                 radioButton.setCheckable(True)
+            # Remove calculus and normalize curve
+            for checkBox in [self.checkBoxDifferentiate, self.checkBoxIntegrate, self.checkBoxUnwrap, self.checkBoxRemoveSlop]:
+                checkBox.setChecked(False)
 
-
-            fftplot = self.getPlotFromRef(self.plotRef, 'fft')
-            if fftplot is not None:
-                fftplot.close()
+            for curveType in ['fft', 'derivative', 'primitive', 'derivative', 'unwrap', 'unslop']:
+                plot = self.getPlotFromRef(self.plotRef, curveType)
+                if plot is not None:
+                    [self.removePlot(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
 
             self.enableWhenPlotDataItemSelected(False)
 
@@ -1532,6 +1690,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.groupBoxCalculus.setEnabled(enable)
         self.groupBoxFiltering.setEnabled(enable)
         self.groupBoxFit.setEnabled(enable)
+        self.groupBoxNormalize.setEnabled(enable)
 
 
 
@@ -1550,7 +1709,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         By default all radioButton are disabled and user should chose a plotDataItem
         to make them available.
         """
-    
+
         # Get list of fit model
         listClasses = [m[0] for m in inspect.getmembers(fit, inspect.isclass) if 'getInitialParams' in [*m[1].__dict__.keys()]]
         # Add a radio button for each model of the list
@@ -1560,7 +1719,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             _class = getattr(fit, j)
 
             if '2d' not in j:
-                
+
                 obj = _class([], [])
                 rb = QtWidgets.QRadioButton(obj.displayedLabel())
                 rb.fitModel = j
@@ -1584,7 +1743,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if 'fit' in list(self.curves.keys()):
                 self.removePlotDataItem('fit')
                 self.fitWindow.close()
-        
+
         radioButton = self.fitModelButtonGroup.checkedButton()
 
         # Find which model has been chosed and instance it
@@ -1624,7 +1783,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if 'filtering' in list(self.curves.keys()):
                 self.removePlotDataItem('filtering')
                 self.filteringWindow.close()
-        
+
         radioButton = self.filteringModelButtonGroup.checkedButton()
 
         # Find which model has been chosed and instance it
@@ -1652,7 +1811,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         By default all radioButton are disabled and user should chose a plotDataItem
         to make them available.
         """
-    
+
         # Get list of filtering model
         listClasses = [m[0] for m in inspect.getmembers(filtering, inspect.isclass) if 'runFiltering' in [*m[1].__dict__.keys()]]
         # Add a radio button for each model of the list
@@ -1660,7 +1819,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         for i, j in enumerate(listClasses):
 
             _class = getattr(filtering, j)
-            
+
             obj = _class(self, [], [])
             rb = QtWidgets.QRadioButton(obj.checkBoxLabel())
             rb.filteringModel = j

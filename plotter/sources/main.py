@@ -51,11 +51,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         super(MainApp, self).__init__(parent)
         self.setupUi(self)
 
-        
+
         # Connect UI
         self.tableWidgetFolder.clicked.connect(self.itemClicked)
         self.pushButtonOpenFolder.clicked.connect(self.openFolderClicked)
-        
+
         # Resize the cell to the column content automatically
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.tableWidgetParameters.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
@@ -68,11 +68,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.tableWidgetDataBase.doubleClicked.connect(self.runDoubleClicked)
         self.tableWidgetDataBase.keyPressed.connect(self.tableWidgetDataBasekeyPress)
         self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
-        
+
         self.pushButtonLivePlot.clicked.connect(self.livePlotPushButton)
         self.spinBoxLivePlot.setValue(int(config['livePlotTimer']))
         self.spinBoxLivePlot.valueChanged.connect(self.livePlotSpinBoxChanged)
-        
+
         self.checkBoxHidden.stateChanged.connect(lambda : self.checkBoxHiddenState(self.checkBoxHidden))
 
         self.lineEditFilter.textChanged.connect(self.lineEditFilterTextEdited)
@@ -82,7 +82,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         # If we are unable to detect the config folder, we switch in local mode
         if not os.path.isdir(os.path.normpath(config['path'])):
-            
+
             # Ask user to chose a path
             self.currentPath = QtWidgets.QFileDialog.getExistingDirectory(self,
                                                                           caption='Open folder',
@@ -93,7 +93,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             config['path'] = os.path.abspath(self.currentPath)
             config['root'] = os.path.splitdrive(self.currentPath)[0]
         else:
-            
+
             self.currentPath = os.path.normpath(config['path'])
 
         # References of all opened plot window.
@@ -104,8 +104,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # Attribute to control the display of data file info when user click of put focus on a item list
         self._folderUpdating  = False # To avoid calling the signal when updating folder content
         self._guiInitialized = True # To avoid calling the signal when starting the GUI
-        
-        
+
+
         # Flag
         self._dataDowloadingFlag = False
         self._progressBars = {}
@@ -171,8 +171,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         path = os.path.normpath(self.currentPath).split(os.sep)
         root = os.path.normpath(config['root']).split(os.sep)
-        
-        # Display path until root 
+
+        # Display path until root
         for i, text in enumerate(path):
 
             # Build button text depending of where we are
@@ -205,7 +205,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         directory : str
             Path of the folder to be browsed.
         """
-        
+
         # When signal the updating of the folder to prevent unwanted item events
         self._folderUpdating = True
         self.currentPath = directory
@@ -221,8 +221,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self.clearTableWidget(self.tableWidgetFolder)
         self.tableWidgetFolder.setSortingEnabled(True)
         row = 0
-        for file in sorted(os.listdir(self.currentPath), reverse=True): 
-            
+        for file in sorted(os.listdir(self.currentPath), reverse=True):
+
             abs_filename = os.path.join(self.currentPath, file)
             file_extension = os.path.splitext(abs_filename)[-1][1:]
 
@@ -231,7 +231,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
             # If folder
             if os.path.isdir(abs_filename):
-                
+
                 # If looks like a BlueFors log folder
                 if self.importblueFors.isBlueForsFolder(file):
                     item =  QtWidgets.QTableWidgetItem(file)
@@ -241,7 +241,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                     self.tableWidgetFolder.setItem(row, 0, item)
                     row += 1
                 # Other folders
-                else:   
+                else:
                     item =  QtWidgets.QTableWidgetItem(file)
                     if file in config['enhancedFolder']:
                         item.setIcon(QtGui.QIcon(PICTURESPATH+'folderEnhanced.png'))
@@ -254,11 +254,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             else:
                 if file not in config['forbiddenFile']:
                     if file_extension.lower() in config['authorizedExtension']:
-                        
+
 
                         # We look if the file is already opened by someone else
                         DatabaseAlreadyOpened = False
-                        for subfile in os.listdir(self.currentPath): 
+                        for subfile in os.listdir(self.currentPath):
                             if subfile==file[:-2]+'db-wal':
                                 DatabaseAlreadyOpened = True
 
@@ -284,14 +284,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                             item.setIcon(QtGui.QIcon(PICTURESPATH+'database.png'))
                         self.tableWidgetFolder.insertRow(row)
                         self.tableWidgetFolder.setItem(row, 0, item)
-                        
+
                         # Get file size in hman readable format
                         fileSizeItem = QtWidgets.QTableWidgetItem(self.sizeof_fmt(os.path.getsize(abs_filename)))
                         fileSizeItem.setTextAlignment(QtCore.Qt.AlignRight)
                         fileSizeItem.setTextAlignment(QtCore.Qt.AlignVCenter)
                         self.tableWidgetFolder.setItem(row, 1, fileSizeItem)
                         row += 1
-                    
+
         # Allow item event again
         self._folderUpdating = False
 
@@ -304,10 +304,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         If it is a folder, we launched the folderClicked method.
         If it is a file, we launched the dataBaseClicked method.
         """
-        
+
         # We check if the signal is effectively called by user
         if not self._folderUpdating and self._guiInitialized:
-            
+
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
             # Get current item
@@ -317,7 +317,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
             # If the folder is a BlueFors folder
             if self.importblueFors.isBlueForsFolder(self._currentDatabase):
-                
+
                 self.importblueFors.blueForsFolderClicked(directory=nextPath)
                 self.folderClicked(directory=self.currentPath)
             # If the folder is a regulat folder
@@ -332,13 +332,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 self.folderClicked(directory=self.currentPath)
             # If it is a QCoDeS database
             else:
-                
+
                 # folderClicked called after the worker is done
                 self.dataBaseClicked()
 
-            # Job done, we restor the usual cursor 
+            # Job done, we restor the usual cursor
             QtWidgets.QApplication.restoreOverrideCursor()
-        
+
         # When the signal has been called at least once
         if not self._guiInitialized:
             self._guiInitialized = True
@@ -362,7 +362,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         self.databaseClicking = True
-        
+
         # We show the database is now opened
         if self.isDatabaseStared():
 
@@ -421,7 +421,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Called by another thread to fill the database table.
         Each call add n rows into the table.
         """
-        
+
         # We go through all lists of parameters and for each list element, we add
         # a row in the table
         for (runId, dim, experimentName, sampleName, runName, started, completed,
@@ -434,9 +434,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 self.tableWidgetDataBase.setRowCount(nbTotalRun)
 
             self.updateProgressBar(progressBarKey, int(runId/nbTotalRun*100), text='Displaying database: run '+str(runId)+'/'+str(nbTotalRun))
-            
+
             itemRunId = MyTableWidgetItem(str(runId))
-            
+
             # If the run has been stared by an user
             if runId in self.getRunStared():
                 itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'star.png'))
@@ -447,7 +447,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
             else:
                 itemRunId.setIcon(QtGui.QIcon(PICTURESPATH+'empty.png'))
-            
+
             self.tableWidgetDataBase.setItem(runId-1, 0, itemRunId)
             self.tableWidgetDataBase.setItem(runId-1, 1, QtWidgets.QTableWidgetItem(dim))
             self.tableWidgetDataBase.setItem(runId-1, 2, QtWidgets.QTableWidgetItem(experimentName))
@@ -481,7 +481,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         self.removeProgressBar(progressBarKey)
-        
+
         if not error:
             self.tableWidgetDataBase.setSortingEnabled(True)
             self.tableWidgetDataBase.sortItems(0, QtCore.Qt.DescendingOrder)
@@ -496,7 +496,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         # We store the total number of run
         self.nbTotalRun = nbTotalRun
 
-        # Done 
+        # Done
         self.databaseClicking = False
 
         # We show the database is now closed
@@ -530,10 +530,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
     def runClicked(self) -> None:
         """
-        When clicked display the measured dependent parameters in the 
+        When clicked display the measured dependent parameters in the
         tableWidgetPtableWidgetParameters
         """
-        
+
         # When the user click on another database while having already clicked
         # on a run, the runClicked event is happenning even if no run have been clicked
         # This is due to the "currentCellChanged" event handler.
@@ -541,7 +541,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if self.databaseClicking:
             return
 
-        
+
         runId = self.getRunId()
         runIdStr = str(runId)
         experimentName = self.getRunExperimentName()
@@ -561,7 +561,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         self.clearTableWidget(self.tableWidgetParameters)
         for dependent in dependentList:
-            
+
             rowPosition = self.tableWidgetParameters.rowCount()
 
             self.tableWidgetParameters.insertRow(rowPosition)
@@ -587,7 +587,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             plotRef     = self.getPlotRef(paramDependent=dependent, livePlot=False)
             plotTitle   = self.getPlotTitle(livePlot=False)
             windowTitle = self.getWindowTitle(runId=runId, livePlot=False)
-            
+
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda state,
                                       dependentParamName = dependent['name'],
@@ -604,18 +604,18 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                                                                           windowTitle,
                                                                                           dependent,
                                                                                           plotRef))
-        
+
 
         self.tableWidgetParameters.setSortingEnabled(True)
 
         ## Fill the listWidgetMetada with the station snapshot
         self.lineEditFilter.setEnabled(True)
         self.labelFilter.setEnabled(True)
-        
+
         # Update the run snapshot
         self.removeSnapshot()
         self.addSnapshot(snapshotDict)
-        
+
 
         self.setStatusBarMessage('Ready')
 
@@ -632,7 +632,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             row, column : int, int
             Row and column where the user clicked
         """
-        
+
         # If user clicks on the cell containing the checkbox
         if column==2:
             cb = self.tableWidgetParameters.cellWidget(row, 2)
@@ -673,10 +673,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         plotRef : str
             Reference to a plot window, see getPlotRef.
         """
-        
+
         # If the checkbutton is checked, we downlad and plot the data
         if state:
-            
+
             if len(paramDependent['depends_on'])>2:
 
                 self.setStatusBarMessage('Plotter does not handle data whose dim>2', error=True)
@@ -691,7 +691,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
         # If the checkbox is unchecked, we remove the plotted data
         else:
-            
+
             self.removePlot(plotRef = plotRef,
                             curveId = curveId)
 
@@ -788,14 +788,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                     widget.close()
                 if isinstance(item, QtWidgets.QSpacerItem):
                     self.verticalLayout_7.removeItem(item)
-        
+
         # Here we recall the method once
         if not hasattr(self, '_removeSnapshotTwice'):
             self._removeSnapshotTwice = True
             self.removeSnapshot()
         else:
             del(self._removeSnapshotTwice)
-        
+
         verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_7.addItem(verticalSpacer)
 
@@ -808,7 +808,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Args:
             snapshotDict (dict): Dictionnary of the snapshot
         """
-        
+
         self.snapShotTreeView = ViewTree(snapshotDict)
         self.verticalLayout_7.addWidget(self.snapShotTreeView)
         verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
@@ -852,12 +852,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         if len(self._plotRefs) > 0:
-            
+
             plotRef = self.getPlotRef(paramDependent)
-            
+
             # We iterate over all plotWindow
             for plot in self._plotRefs.values():
-                
+
                 if plot.plotType=='1d':
                     if plotRef in plot.plotRef:
                         if paramDependent['label'] in [curve.curveLabel for curve in plot.curves.values()]:
@@ -924,7 +924,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         error : bool, default False
             If true display the text in red and bold.
         """
-        
+
         if error:
             self.statusBar.setStyleSheet('color: red; font-weight: bold;')
         elif text=='Ready':
@@ -965,7 +965,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         plotRefs = [plotRef for plotRef in plotRefs if 'fft' not in plotRef]
         plotRefs = [plotRef for plotRef in plotRefs if 'derivative' not in plotRef]
         plotRefs = [plotRef for plotRef in plotRefs if 'primitive' not in plotRef]
-        
+
         # Close everything
         [self._plotRefs[plotRef].o() for plotRef in plotRefs]
 
@@ -992,7 +992,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Will be empty for signal from Plot1dApp since this parameter is only
             usefull for Plot2dApp.
         """
-        
+
         # If the close plot window is a liveplot one
         if plotRef in self.getLivePlotRef():
             if hasattr(self, '_livePlotDataSet'):
@@ -1004,10 +1004,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 del(self._livePlotDataSet)
         else:
             if self.getWindowTitle(runId)==windowTitle and self.getRunId()==runId:
-                
+
                 # If 1d plot
                 if self._plotRefs[plotRef].plotType=='1d':
-                
+
                     # If the current displayed parameters correspond to the one which has
                     # been closed, we uncheck all the checkbox listed in the table
                     for row in range(self.tableWidgetParameters.rowCount()):
@@ -1051,9 +1051,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
             # If it doesn't exist, we try the parameter table
             if runId is None:
-                
+
                 item = self.tableWidgetParameters.item(0, 0)
-                
+
                 # This occurs when user is looking to csv, s2p of bluefors files
                 # In this case the runid is 0
                 if item is None:
@@ -1080,8 +1080,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             Id of the curve, see getCurveId.
         livePlot : bool
             If the plot displaying the curve is a liveplot
-        """ 
-        
+        """
+
         if livePlot:
             return self._livePlotPath+str(runId)+str(name)
         else:
@@ -1094,7 +1094,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Return the experiment name of the current selected run.
         if Live plot mode, return the experiment name of the last recorded run.
         """
-        
+
         currentRow = self.tableWidgetDataBase.currentIndex().row()
         experimentName =  self.tableWidgetDataBase.model().index(currentRow, 2).data()
         if experimentName is None:
@@ -1126,7 +1126,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Return a plot title in a normalize way displaying the folders and
         file name.
         """
-        
+
         if livePlot:
             # If user only wants the database path
             if config['displayOnlyDbNameInPlotTitle']:
@@ -1165,14 +1165,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
         Return a reference for a plot window.
         Handle the difference between 1d plot and 2d plot.
-        
+
         Parameters
         ----------
         paramDependent : dict
             qcodes dictionary of a dependent parameter
         livePlot : bool
             True if livePlot window.
-        
+
         Return
         ------
         plotRef : str
@@ -1183,7 +1183,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             dataPath = self._livePlotPath + str(self._livePlotRunId)
         else:
             path = os.path.abspath(self._currentDatabase)
-            
+
             # If BlueFors log files
             if self.importblueFors.isBlueForsFolder(self._currentDatabase):
                 dataPath = path
@@ -1239,7 +1239,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         for ref, plot in self._plotRefs.items():
             if plot.livePlot:
                 refs.append(ref)
-        
+
         return refs
 
 
@@ -1302,7 +1302,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                              curveId     = curveId,
                                              curveLegend = sliceLegend,
                                              autoRange   = True)
-        
+
         # We show to user the time of the last update
         if lastUpdate:
             self.livePlotUpdateMessage('Measurement done: '+datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
@@ -1317,14 +1317,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
         Gather the information from the current live plot dataset and sort them
         into iterables.
-        
+
         Each dependent parameters must be treated independently since they
         can each have a different number of independent parameters.
         """
-        
+
         # Get dataset params
         paramsDependents   = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)!=0]
-        
+
         xParamNames  = []
         xParamLabels = []
         xParamUnits  = []
@@ -1335,33 +1335,33 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         zParamLabels = []
         zParamUnits  = []
         plotRefs     = []
-        
+
         # We calculate how many livePlot we should have
         self._livePlotNbPlot  = 0
         plot1dNotAlreadyAdded = True
-        
+
         for paramsDependent in paramsDependents:
-            
+
             # For each dependent parameter we them the parameter(s) they depend
             # on.
             depends_on = [i for i in paramsDependent.depends_on.split(', ')]
-            
+
             param_x = [param for param in self._livePlotDataSet.get_parameters() if param.name==depends_on[0]][0]
             xParamNames.append(param_x.name)
             xParamLabels.append(param_x.label)
             xParamUnits.append(param_x.unit)
-            
+
             # For 2d plot
             if len(depends_on)>1:
                 param_y = [param for param in self._livePlotDataSet.get_parameters() if param.name==depends_on[1]][0]
                 yParamNames.append(param_y.name)
                 yParamLabels.append(param_y.label)
                 yParamUnits.append(param_y.unit)
-                
+
                 zParamNames.append(paramsDependent.name)
                 zParamLabels.append(paramsDependent.label)
                 zParamUnits.append(paramsDependent.unit)
-                
+
                 plotRefs.append(self.getPlotRef(paramDependent={'depends_on' : [0, 1], 'name': paramsDependent.name}, livePlot=True))
                 self._livePlotNbPlot += 1
             # For 1d plot
@@ -1369,7 +1369,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 yParamNames.append(paramsDependent.name)
                 yParamLabels.append(paramsDependent.label)
                 yParamUnits.append(paramsDependent.unit)
-                
+
                 zParamNames.append('')
                 zParamLabels.append('')
                 zParamUnits.append('')
@@ -1379,7 +1379,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 if plot1dNotAlreadyAdded:
                     self._livePlotNbPlot += 1
                     plot1dNotAlreadyAdded = False
-        
+
         self._livePlotGetPlotParameters = xParamNames, xParamLabels, xParamUnits, yParamNames, yParamLabels, yParamUnits, zParamNames, zParamLabels, zParamUnits, plotRefs
 
 
@@ -1389,7 +1389,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Method called by the livePlotUpdate method.
         Obtain the info of the current live plot dataset cache, treat them and
         send them to the addPlot method.
-        
+
         Each dependent parameters must be treated independently since they
         can each have a different number of independent parameters.
         """
@@ -1399,21 +1399,21 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         #    2d.  We launch as many plot window as dependent parameters.
         # Get dataset params
         paramsIndependent = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)==0]
-        
+
         plotTitle   = self.getPlotTitle(livePlot=True)
         windowTitle = self.getWindowTitle(runId=self._livePlotRunId,
                                             livePlot=True)
-        
+
         # We get the liveplot parameters
         self.livePlotGetPlotParameters()
-        
+
         for xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef in zip(*self._livePlotGetPlotParameters):
             # Only the first dependent parameter is displayed per default
             if yParamLabel==paramsIndependent[0].label:
                 hidden = False
             else:
                 hidden = True
-            
+
             # Create empty data for the plot window launching
             if zParamLabel=='':
                 data = [[],[]]
@@ -1422,7 +1422,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                         np.array([0., 1.]),
                         np.array([[0., 1.],
                                   [0., 1.]])]
-            
+
             self.addPlot(plotRef        = plotRef,
                          data           = data,
                          xLabelText     = xParamLabel,
@@ -1440,7 +1440,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                          timestampXAxis = False,
                          livePlot       = True,
                          hidden         = hidden)
-        
+
         self.livePlotUpdateMessage('Dataset in cache')
 
 
@@ -1457,10 +1457,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             True if this is the last update of the livePlot, a.k.a. the run is
             marked as completed by qcodes.
         """
-        
+
         # We show to user that the plot is being updated
         self.livePlotUpdateMessage('Interrogating cache')
-        
+
         for xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef in zip(*self._livePlotGetPlotParameters):
             worker = LoadDataFromCacheThread(plotRef,
                                              self._livePlotDataSet.cache.data(),
@@ -1468,7 +1468,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                              yParamName,
                                              zParamName,
                                              lastUpdate)
-            
+
             worker.signals.dataLoaded.connect(self.livePlotUpdatePlotData)
 
             # Execute the thread
@@ -1485,12 +1485,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         3. Update the plots until the run is marked completed
         4. When the run is completed, remove its dataset from memory
         """
-        
+
         # We get the last run id of the database
         self._livePlotRunId = self._livePlotDatabase.getNbTotalRun()
         # While the run is not completed, we update the plot
         if not self._livePlotDatabase.isRunCompleted(self._livePlotRunId):
-            
+
             ## 1. We get the livePlot dataset
             # We access the db only once.
             # The next iteration will access the cache of the dataset.
@@ -1505,11 +1505,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             ## 3. If an active livePlot window is detected
             else:
                 self.livePlotUpdatePlot()
-        
+
         else:
             # If the livePlot has been completed since the last method's call
             if hasattr(self, '_livePlotDataSet'):
-                
+
                 self.livePlotUpdatePlot(lastUpdate=True)
 
                 # Delete all liveplot attribute
@@ -1527,16 +1527,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         When user modify the spin box associated to the live plot timer.
         When val==0, stop the liveplot monitoring.
         """
-        
+
         # If a Qt timer is running, we modify it following the user input.
         if self._livePlotTimer is not None:
-            
+
             # If the timer is 0, we stopped the liveplot
             if val==0:
                 self._livePlotTimer.stop()
                 self._livePlotTimer.deleteLater()
                 self._livePlotTimer = None
-                
+
                 self.labelLivePlotDataBase.setText('')
                 self.groupBoxLivePlot.setStyleSheet('QGroupBox:title{color: white}')
                 self.setStatusBarMessage('LivePlot disable')
@@ -1555,12 +1555,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Allow user to chose any available qcodes database in his computer.
         This database will be monitored and any new run will be plotted.
         """
-        
+
         fname = QtWidgets.QFileDialog.getOpenFileName(self,
-                                                      'Open QCoDeS database', 
+                                                      'Open QCoDeS database',
                                                       self.currentPath,
                                                       'QCoDeS database (*.db).')
-        
+
         if fname[0]!='':
             self._livePlotPath = os.path.abspath(fname[0])
             self._livePlotDataBaseName = os.path.basename(fname[0])[:-3]
@@ -1570,7 +1570,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             self.labelLivePlotDataBase.adjustSize()
             self.setStatusBarMessage('LivePlot enable for: {}.'.format(self._livePlotDataBaseName))
             self.statusBar.setStyleSheet('color: green; font-weight: bold;')
-            
+
             self._livePlotDatabase = QcodesDatabase(self.setStatusBarMessage)
             self._livePlotDatabase.databasePath = self._livePlotPath
 
@@ -1610,7 +1610,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         if len(self._plotRefs) > 0:
-            
+
             # Build the list of 1d plot windows
             plots = [plot for plot in self._plotRefs.values() if plot.plotType=='1d']
 
@@ -1637,7 +1637,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Just past the argument to the addPlot method.
         Usefull because progressBarKey is an optional parameter
         """
-        
+
         self.addPlot(plotRef        = plotRef,
                      data           = data,
                      xLabelText     = xLabelText,
@@ -1721,12 +1721,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if progressBarKey is not None:
             if progressBarKey in self._progressBars:
                 self.removeProgressBar(progressBarKey)
-        
+
         # If data is None it means the data download encounter an error.
         # We do not add plot
         if data is None:
             return
-    
+
         self.setStatusBarMessage('Launching '+str(len(data)-1)+'d plot')
 
 
@@ -1734,10 +1734,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         if cleanCheckBox is None:
             cleanCheckBox = self.cleanCheckBox
 
-        
+
         # 1D plot
         if len(data)==2:
-            
+
             # Specific 1d optional parameter
             # print(timestampXAxis)
             # if timestampXAxis is None:
@@ -1747,7 +1747,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             # If the plotRef is not stored we launched a new window
             # Otherwise we add a new PlotDataItem on an existing plot1dApp
             if plotRef not in self._plotRefs:
-                
+
 
                 p = Plot1dApp(x                  = data[0],
                               y                  = data[1],
@@ -1761,6 +1761,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               cleanCheckBox      = cleanCheckBox,
                               plotRef            = plotRef,
                               addPlot            = self.addPlot,
+                              removePlot         = self.removePlot,
                               getPlotFromRef     = self.getPlotFromRef,
                               curveId            = curveId,
                               curveLegend        = curveLegend,
@@ -1772,7 +1773,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 self._plotRefs[plotRef] = p
                 self._plotRefs[plotRef].show()
             else:
-                
+
                 if curveLabel is None:
                     curveLabel = yLabelText
                 if curveUnits is None:
@@ -1788,11 +1789,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                                         curveLegend        = curveLegend,
                                                         curveSlicePosition = curveSlicePosition,
                                                         hidden             = hidden)
-            
+
 
         # 2D plot
         elif len(data)==3:
-            
+
             # Determine if we should open a new Plot2dApp
             if plotRef not in self._plotRefs:
                 p = Plot2dApp(x               = data[0],
@@ -1816,7 +1817,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
                 self._plotRefs[plotRef] = p
                 self._plotRefs[plotRef].show()
-        
+
         self.setStatusBarMessage('Ready')
         self.updateList1dCurvesLabels()
 
@@ -1831,7 +1832,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         Method call when data are remove from the GUI.
         If the data plot window is open, close it.
         Then remove the reference of the plot window from self._plotRefs.
-        
+
         Once the data are closed, run updateList1dCurvesLabels.
 
         Parameters
@@ -1841,7 +1842,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         curveId : str
             reference of the curve, see getCurveId
         """
-        
+
         if self._plotRefs[plotRef].plotType=='1d':
             # If there is more than one curve, we remove one curve
             if self._plotRefs[plotRef].nbPlotDataItemFromData()>1:
@@ -1907,7 +1908,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
     ###########################################################################
     #
     #
-    #                           Data 
+    #                           Data
     #
     #
     ###########################################################################
@@ -1946,7 +1947,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         self._dataDowloadingFlag = True
 
         progressBarKey = self.addProgressBarInStatusBar()
-        
+
         worker = LoadDataThread(runId,
                                 curveId,
                                 plotTitle,
@@ -1979,5 +1980,5 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         This will allow the next live plot iteration to try downloading the data
         again.
         """
-        
+
         self._dataDowloadingFlag = False
