@@ -2,6 +2,7 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
+from pyqtgraph.graphicsItems.LinearRegionItem import LinearRegionItem
 import pyqtgraph.opengl as gl
 from pyqtgraph.GraphicsScene.mouseEvents import MouseClickEvent
 from typing import Union, Tuple, Callable, Optional
@@ -127,7 +128,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.livePlot       = livePlot
 
         # Store references to infiniteLines creating by data slicing
-        self.infiniteLines = {}
+        self.sliceItems = {}
         self.sliceOrientation = 'vertical'
 
         # Store the isoCurve and isoLine object
@@ -221,6 +222,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxSubtractAverageY.stateChanged.connect(self.checkBoxSubtractAverageYState)
         self.pushButton3d.clicked.connect(self.launched3d)
         self.spinBoxFontSize.valueChanged.connect(self.clickFontSize)
+        self.plotItem.scene().sigMouseClicked.connect(self.plotItemDoubleClicked)
+        self.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
+        self.radioButtonSliceSingleVertical.toggled.connect(self.radioBoxSliceChanged)
+        self.radioButtonSliceAveragedHorizontal.toggled.connect(self.radioBoxSliceChanged)
+        self.radioButtonSliceAveragedVertical.toggled.connect(self.radioBoxSliceChanged)
         
         # UI for the derivative combobox
         for label in config['plot2dDerivative']:
@@ -250,10 +256,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.setColorMap(config['plot2dcm'])
         self.comboBoxcm.setCurrentIndex(indexViridis)
         self.comboBoxcm.currentIndexChanged.connect(self.comboBoxcmChanged)
-
-        self.plotItem.scene().sigMouseClicked.connect(self.plotItemDoubleClicked)
-        self.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
-        self.radioButtonSliceSingleVertical.toggled.connect(self.radioBoxSliceChanged)
 
         # Should be initialize last
         PlotApp.__init__(self)
@@ -546,6 +548,19 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
+    def getCurrentSliceItem(self) -> str:
+        """
+        Return the type of slice the user want
+        """
+        if self.radioButtonSliceSingleHorizontal.isChecked() or self.radioButtonSliceSingleVertical.isChecked():
+            sliceItem = 'InfiniteLine'
+        else:
+            sliceItem = 'LinearRegionItem'
+
+        return sliceItem
+
+
+
     def getPlotRefFromSliceOrientation(self, sliceOrientation: str) -> Union[str, None]:
         """
         Return the 1d plot containing the slice data of this 2d plot.
@@ -568,14 +583,13 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def getInfinityLineOrientation(self, lineItem: pg.InfiniteLine) -> str:
+    def getSliceItemOrientation(self, sliceItem: Union[pg.InfiniteLine, pg.LinearRegionItem]) -> str:
         """
-        Return the orientation of the infinityLine depending of its angle.
+        Return the orientation of the sliceItem.
 
         Parameters
         ----------
-        InfinitylineItem : pg.InifiniteLine
-            InfinitylineItem currently being dragged.
+        sliceItem : sliceItem currently being dragged.
         
         Return
         ------
@@ -583,16 +597,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Either "horizontal" or "vertical".
         """
         
-        # If the attribute "angle" exist, we are dealing with a InfiniteLine item
-        # otherwise, it is a LinearRegion item
-        if hasattr(lineItem, 'angle'):
-            if int(lineItem.angle%180)==0:
+        if isinstance(sliceItem, pg.InfiniteLine):
+            if int(sliceItem.angle%180)==0:
                 lineOrientation = 'horizontal'
             else:
                 lineOrientation = 'vertical'
         else:
-            lineOrientation = lineItem.orientation
-
+            lineOrientation = sliceItem.orientation
+        
         return lineOrientation
 
 
@@ -618,7 +630,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def dragSliceLine(self, InfinitylineItem : pg.InfiniteLine,
+    def dragSliceItem(self, sliceItem : Union[pg.InfiniteLine, pg.LinearRegionItem],
                             curveId          : str,
                             lineOrientation  : str) -> None:
         """
@@ -626,18 +638,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         Parameters
         ----------
-        InfinitylineItem : pg.InifiniteLine
-            InfinitylineItem currently being dragged.
+        sliceItem : pg.InfiniteLine
+            sliceItem currently being dragged.
         curveId : str
             ID of the curve associated to the slice being dragged
         """
 
         # We get the slice data from the 2d plot
-        sliceX, sliceY, sliceLegend, slicePosition = self.getDataSlice(InfinitylineItem=InfinitylineItem)
-        
-        # # If we are dealing with a LinearRegionItem, we 
-        # if isinstance(InfinitylineItem, pg.LinearRegionItem):
-        #     curveSlicePosition = (slicePosition[0]+slicePosition[1])/2
+        sliceX, sliceY, sliceLegend, slicePosition = self.getDataSlice(sliceItem=sliceItem)
         
         # We update the curve associated to the sliceLine
         self.getPlotFromRef(self.plotRef, lineOrientation)\
@@ -649,23 +657,25 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         
         # We update the label of the infinity line with the value corresponding
         # to the cut
-        if isinstance(InfinitylineItem, pg.InfiniteLine):
-            InfinitylineItem.label.setFormat('{:0.2e}'.format(slicePosition))
+        if isinstance(sliceItem, pg.InfiniteLine):
+            sliceItem.label.setFormat('{:0.2e}'.format(slicePosition))
         else:
-            InfinitylineItem.labelmin.setFormat('{:0.2e}'.format(slicePosition[0]))
-            InfinitylineItem.labelmax.setFormat('{:0.2e}'.format(slicePosition[1]))
+            sliceItem.labelmin.setFormat('{:0.2e}'.format(slicePosition[0]))
+            sliceItem.labelmax.setFormat('{:0.2e}'.format(slicePosition[1]))
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
-        self.infiniteLines[curveId].mouseHovering  = True
+        self.sliceItems[curveId].mouseHovering  = True
 
 
 
-    def addInfiniteLine(self, curveId: str,
-                              sliceOrientation,
-                              position=None) -> pg.InfiniteLine:
+    def addSliceItem(self, curveId: str,
+                           sliceOrientation: str,
+                           sliceItem: str,
+                           position: Optional[float]=None) -> None:
         """
         Method call when user create a slice of the data.
-        Create an infiniteLine on the 2d plot and connect a drag signal on it.
+        Create an InfiniteLine or a LinearRegionItem on the 2d plot and connect
+        a drag signal on it.
 
         Parameters
         ----------
@@ -673,8 +683,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             ID of the curve associated to the data slice
         """
         
+        # We get the current color index so that the sliceItem color match
+        # with the sliceData one
         colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation).curves[curveId].colorIndex
-
         pen = pg.mkPen(color=config['plot1dColors'][colorIndex],
                        width=config['crossHairLineWidth'],
                        style=QtCore.Qt.SolidLine)
@@ -682,7 +693,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        width=config['crossHairLineWidth'],
                        style=QtCore.Qt.DashLine)
 
-        # When the user click we add a vertical and horizontale lines where he clicked.
+        # When the user click we add a vertical or horizontale sliceItem where he clicked.
         if sliceOrientation=='vertical':
             angle = 90.
             pos = self.mousePos[0]
@@ -694,8 +705,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if position is not None:
             pos = position
         
-        # If we are adding an InifiniteLine
-        if self.radioButtonSliceSingleHorizontal.isChecked() or self.radioButtonSliceSingleVertical.isChecked():
+        # If we are adding an InfiniteLine
+        if sliceItem=='InfiniteLine':
             # The label is empty for now
             t = pg.InfiniteLine(pos=pos,
                                 angle=angle,
@@ -710,9 +721,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             t.sigDragged.connect(lambda lineItem=t,
                                         curveId=curveId,
                                         lineOrientation=sliceOrientation:
-                                        self.dragSliceLine(lineItem,
-                                                            curveId,
-                                                            lineOrientation))
+                                        self.dragSliceItem(lineItem,
+                                                           curveId,
+                                                           lineOrientation))
         # If we are adding an LinearRegionItem
         else:
             t = pg.LinearRegionItem(values=[pos, pos],
@@ -735,41 +746,39 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             t.sigRegionChanged.connect(lambda lineItem=t,
                                         curveId=curveId,
                                         lineOrientation=sliceOrientation:
-                                        self.dragSliceLine(lineItem,
-                                                            curveId,
-                                                            lineOrientation))
+                                        self.dragSliceItem(lineItem,
+                                                           curveId,
+                                                           lineOrientation))
 
         # Add the slicing item
         self.plotItem.addItem(t)
         
         # We save a reference to the slicing item
-        self.infiniteLines[curveId] = t
+        self.sliceItems[curveId] = t
         
         # We call the dragSliceLine method to update the label(s) of the slicing
         # item
-        self.dragSliceLine(InfinitylineItem=t,
+        self.dragSliceItem(sliceItem=t,
                            curveId=curveId,
                            lineOrientation=sliceOrientation)
-        
-        return t
 
 
 
-    def removeInfiniteLine(self, curveId: str) -> None:
+    def removeSliceItem(self, curveId: str) -> None:
         """
-        Remove InifiniteLine from the plot and from memory.
+        Remove sliceItem from the plot and from memory.
 
         Parameters
         ----------
         curveId : str
             [description]
         """
-        self.plotItem.removeItem(self.infiniteLines[curveId])
-        del(self.infiniteLines[curveId])
+        self.plotItem.removeItem(self.sliceItems[curveId])
+        del(self.sliceItems[curveId])
 
 
 
-    def cleanInfiniteLine(self, plotRef     : str,
+    def cleanSliceItem(self, plotRef     : str,
                                 windowTitle : str,
                                 runId       : int,
                                 label       : Union[str, list]) -> None:
@@ -802,7 +811,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Get all the curve Id to be removed
         curvesId = []
-        for key, val in self.infiniteLines.items():
+        for key, val in self.sliceItems.items():
             if isinstance(val, pg.InfiniteLine):
                 if val.angle==searchedAngle:
                     curvesId.append(key)
@@ -811,30 +820,30 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     curvesId.append(key)
         
         # Effectively remove the infinity line and the curve linked to it
-        [self.removeInfiniteLine(curveId) for curveId in curvesId]
+        [self.removeSliceItem(curveId) for curveId in curvesId]
         [self.removePlot(plotRef, curveId) for curveId in curvesId]
 
 
 
-    def getDataSlice(self, InfinitylineItem: pg.InfiniteLine=None) -> Tuple[np.ndarray, np.ndarray, str, float]:
+    def getDataSlice(self, sliceItem: Optional[Union[pg.InfiniteLine, pg.LinearRegionItem]]=None) -> Tuple[np.ndarray, np.ndarray, str, float]:
         """
         Return a vertical or horizontal data slice
 
         Parameters
         ----------
-        InfinitylineItem : pg.InfiniteLine, default None
-            InfinitylineItem to get the sliced data from.
+        sliceItem : 
+            sliceItem to get the sliced data from.
             If None, return the sliced data from the mouse position (creation of
             a slice)
-            If not None, return the sliced data from the InfinitylineItem
+            If not None, return the sliced data from the sliceItem
             position (dragging of the slice).
         """
 
         xSlice = None
         ySlice = None
 
-        # When InfinitylineItem is None, We are creating the dataSlice
-        if InfinitylineItem is None:
+        # When sliceItem is None, We are creating the dataSlice
+        if sliceItem is None:
             if self.sliceOrientation=='vertical':
                 xSlice = self.mousePos[0]
             else:
@@ -842,16 +851,16 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Otherwise the dataSlice exist and return its position depending of its
         # orientation
         else:
-            if self.getInfinityLineOrientation(InfinitylineItem)=='vertical':
-                if hasattr(InfinitylineItem, 'value'):
-                    xSlice = InfinitylineItem.value()
+            if self.getSliceItemOrientation(sliceItem)=='vertical':
+                if hasattr(sliceItem, 'value'):
+                    xSlice = sliceItem.value()
                 else:
-                    xSlice = InfinitylineItem.getRegion()
+                    xSlice = sliceItem.getRegion()
             else:
-                if hasattr(InfinitylineItem, 'value'):
-                    ySlice = InfinitylineItem.value()
+                if hasattr(sliceItem, 'value'):
+                    ySlice = sliceItem.value()
                 else:
-                    ySlice = InfinitylineItem.getRegion()
+                    ySlice = sliceItem.getRegion()
         
         if isinstance(xSlice, float) or isinstance(ySlice, float):
             # Depending on the slice we return the x and y axis data and the legend
@@ -935,35 +944,38 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             # Get the data of the slice
             sliceX, sliceY, sliceLegend, slicePosition = self.getDataSlice()
 
-            # If nbCurve is 1, we create the 1d plot window
+            # If nbCurve is 1, we create a sliceItem
             if self.getPlotRefFromSliceOrientation(self.sliceOrientation) is None:
-
-                self.addSlice(data         = [sliceX, sliceY],
+                
+                self.addSliceItemAndPlot(data         = [sliceX, sliceY],
                               curveLegend  = sliceLegend,
-                              slicePosition=slicePosition)
+                              slicePosition= slicePosition,
+                              sliceItem    = self.getCurrentSliceItem())
             # If not
-            # 1. The user doubleClicked on an infiniteLine and we remove it
+            # 1. The user doubleClicked on an sliceItem and we remove it
             # 2. The doubleClicked somewhere else on the map and we create another slice
             else:
-                # We check if user double click on an infiniteLine
+                # We check if user double click on an sliceItem
                 clickedCurveId = self.sliceIdClickedOn(slicePosition)
 
-                # If the user add a new infiniteLine
+                # If the user add a new sliceItem
                 if clickedCurveId is None:
-                    self.addSlice(data         = [sliceX, sliceY],
+                    self.addSliceItemAndPlot(data         = [sliceX, sliceY],
                                   curveLegend  = sliceLegend,
-                                  slicePosition=slicePosition)
+                                  slicePosition= slicePosition,
+                                  sliceItem    = self.getCurrentSliceItem())
 
                 # We remove a slice
                 else:
                     # If there is more than one slice, we remove it and the associated curve
                     if len(self.getPlotRefFromSliceOrientation(self.sliceOrientation).curves)>1:
                         self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(clickedCurveId)
-                        self.removeInfiniteLine(clickedCurveId)
+                        self.removeSliceItem(clickedCurveId)
                     # If there is only one slice, we close the linked 1d plot
-                    # which will remove the associated infiniteLine
+                    # which will remove the associated sliceItem
                     else:
                         self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(clickedCurveId)
+
 
 
     def sliceIdClickedOn(self, slicePosition:Union[float, Tuple[float, float]]) -> Optional[str]:
@@ -1003,12 +1015,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         return clickedCurveId
 
 
-    def addSlice(self, data:list,
-                       curveLegend:str,
-                       slicePosition:float,
-                       sliceOrientation=None,
-                       plotRef=None,
-                       position=None) -> None:
+
+    def addSliceItemAndPlot(self, data: list,
+                                  curveLegend: str,
+                                  slicePosition: float,
+                                  sliceItem: str,
+                                  sliceOrientation: Optional[str]=None,
+                                  plotRef: Optional[str]=None,
+                                  position: Optional[float]=None) -> None:
         
         if sliceOrientation is None:
             sliceOrientation = self.sliceOrientation
@@ -1027,10 +1041,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         
         title = self.title+" <span style='color: red; font-weight: bold;'>Extrapolated data</span>"
         windowTitle = self.windowTitle+' - '+sliceOrientation+' slice'
-        cleanCheckBox  = self.cleanInfiniteLine
+        cleanCheckBox  = self.cleanSliceItem
         runId          = self.runId
         
-        # Should be called once for both addplot and addInfiniteLine
+        # Should be called once for both addplot and addSliceItem
         curveId = self.getCurveId()
         
         self.addPlot(data           = data,
@@ -1049,9 +1063,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                      curveLegend    = curveLegend)
         
         
-        self.addInfiniteLine(curveId,
-                             sliceOrientation,
-                             position)
+        self.addSliceItem(curveId=curveId,
+                          sliceOrientation=sliceOrientation,
+                          position=position,
+                          sliceItem=sliceItem)
 
 
 
@@ -1067,12 +1082,22 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Store infiniteLine
         inLineVerticals   = {}
         inLineHorizontals = {}
-        for curveId, infLine in self.infiniteLines.items():
-            
-            if self.getInfinityLineOrientation(infLine)=='horizontal':
-                inLineHorizontals[curveId] = infLine.getPos()
+        sliceItemNatures   = {}
+        for curveId, infLine in self.sliceItems.items():
+            if self.getSliceItemOrientation(infLine)=='horizontal':
+                if isinstance(infLine, pg.InfiniteLine):
+                    sliceItemNatures[curveId] = 'InfiniteLine'
+                    inLineHorizontals[curveId] = infLine.getPos()
+                else:
+                    sliceItemNatures[curveId] = 'LinearRegionItem'
+                    inLineHorizontals[curveId] = (0, (infLine.getRegion()[0]+infLine.getRegion()[1])/2)
             else:
-                inLineVerticals[curveId] = infLine.getPos()
+                if isinstance(infLine, pg.InfiniteLine):
+                    sliceItemNatures[curveId] = 'InfiniteLine'
+                    inLineVerticals[curveId] = infLine.getPos()
+                else:
+                    sliceItemNatures[curveId] = 'LinearRegionItem'
+                    inLineVerticals[curveId] = ((infLine.getRegion()[0]+infLine.getRegion()[1])/2, 0)
         
         # Store associated 1d plot
         curvesHorizontals = {}
@@ -1095,30 +1120,32 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Plot all horizontal slice into the vertical plot and vice-versa
         if curvesHorizontals:
-            for plotData, infLineData in zip(curvesHorizontals.values(), inLineHorizontals.values()):
-                self.addSlice(data=[plotData['x'], plotData['y']],
-                            curveLegend=plotData['curveLegend'],
-                            sliceOrientation='vertical',
-                            plotRef=self.plotRef+'vertical',
-                            slicePosition=infLineData[1],
-                            position=infLineData[1])
+            for plotData, infLineData, sliceItemNature in zip(curvesHorizontals.values(), inLineHorizontals.values(), sliceItemNatures.values()):
+                self.addSliceItemAndPlot(data=[plotData['x'], plotData['y']],
+                              curveLegend=plotData['curveLegend'],
+                              sliceOrientation='vertical',
+                              sliceItem=sliceItemNature,
+                              plotRef=self.plotRef+'vertical',
+                              slicePosition=infLineData[1],
+                              position=infLineData[1])
         if curvesVerticals:
-            for plotData, infLineData in zip(curvesVerticals.values(), inLineVerticals.values()):
-                self.addSlice(data=[plotData['x'], plotData['y']],
-                            curveLegend=plotData['curveLegend'],
-                            sliceOrientation='horizontal',
-                            plotRef=self.plotRef+'horizontal',
-                            slicePosition=infLineData[0],
-                            position=infLineData[0])
+            for plotData, infLineData, sliceItemNature in zip(curvesVerticals.values(), inLineVerticals.values(), sliceItemNatures.values()):
+                self.addSliceItemAndPlot(data=[plotData['x'], plotData['y']],
+                              curveLegend=plotData['curveLegend'],
+                              sliceOrientation='horizontal',
+                              sliceItem=sliceItemNature,
+                              plotRef=self.plotRef+'horizontal',
+                              slicePosition=infLineData[0],
+                              position=infLineData[0])
         
         # Remove old infinite lines and curves
         if curvesHorizontals:
             for curveId in curvesHorizontals.keys():
-                self.removeInfiniteLine(curveId)
+                self.removeSliceItem(curveId)
                 self.getPlotFromRef(self.plotRef, 'horizontal').removePlotDataItem(curveId)
         if curvesVerticals:
             for curveId in curvesVerticals.keys():
-                self.removeInfiniteLine(curveId)
+                self.removeSliceItem(curveId)
                 self.getPlotFromRef(self.plotRef, 'vertical').removePlotDataItem(curveId)
 
 

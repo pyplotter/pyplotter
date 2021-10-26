@@ -147,7 +147,7 @@ class PlotApp(object):
             self.setMouseCoordinate()
             
             # Update cursor when hovering infiniteLine
-            self.infiniteLineHovering()
+            self.sliceItemHovering()
 
             # Display the "crosshair"
             if self.displayCrossHair:
@@ -210,18 +210,18 @@ class PlotApp(object):
 
 
 
-    def infiniteLineHovering(self, defaultCursor: QtCore.Qt.CursorShape=QtCore.Qt.ArrowCursor) -> None:
+    def sliceItemHovering(self, defaultCursor: QtCore.Qt.CursorShape=QtCore.Qt.ArrowCursor) -> None:
         """
-        Called when user cursor if hovering a infiniteLine.
+        Called when user cursor if hovering a sliceItem.
 
         Parameters
         ----------
         defaultCursor : QtCore.Qt.CursorShape, default QtCore.Qt.ArrowCursor
-            Cursor to put back when the mouse leave an infiniteLine.
+            Cursor to put back when the mouse leave an sliceItem.
         """
 
-        # If we are hovering at least one infiniteLine, the cursor is modified
-        for line in list(self.infiniteLines.values()):
+        # If we are hovering at least one sliceItem, the cursor is modified
+        for line in list(self.sliceItems.values()):
             if line.mouseHovering:
                 defaultCursor = QtCore.Qt.PointingHandCursor
 
@@ -246,7 +246,7 @@ class PlotApp(object):
         # if the plot is a 2dplot, there is a possibility that the user mouse is
         # above an infiniteLine, if so, we remove the crosshair
         if self.plotType=='2d':
-            for line in list(self.infiniteLines.values()):
+            for line in list(self.sliceItems.values()):
                 if line.mouseHovering:
                     remove = True
 

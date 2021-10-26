@@ -138,9 +138,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # References of the infinietLines used to select data for the fit.
         # Structured
-        # self.infiniteLines = {'a' : pg.InfiniteLine,
+        # self.sliceItems = {'a' : pg.InfiniteLine,
         #                       'b' : pg.InfiniteLine}
-        self.infiniteLines = {}
+        self.sliceItems = {}
 
 
         # Get plotItem from the widget
@@ -1255,8 +1255,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             See getCurveId from MainApp
         """
 
-        a = self.infiniteLines['a'].value()
-        b = self.infiniteLines['b'].value()
+        a = self.sliceItems['a'].value()
+        b = self.sliceItems['b'].value()
         n = np.abs(self.curves[curveId].xData-a).argmin()
         m = np.abs(self.curves[curveId].xData-b).argmin()
         if a<b:
@@ -1349,10 +1349,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         
         # If we want to remove the selection infinite line
         if curveId is None:
-            if 'a' in self.infiniteLines.keys():
-                self.plotItem.removeItem(self.infiniteLines['a'])
-            if 'b' in self.infiniteLines.keys():
-                self.plotItem.removeItem(self.infiniteLines['b'])
+            if 'a' in self.sliceItems.keys():
+                self.plotItem.removeItem(self.sliceItems['a'])
+            if 'b' in self.sliceItems.keys():
+                self.plotItem.removeItem(self.sliceItems['b'])
         else:
             pen = pg.mkPen(color=(255, 255, 255),
                            width=config['crossHairLineWidth'],
@@ -1368,7 +1368,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             t.setPos(pos)
 
             self.plotItem.addItem(t)
-            self.infiniteLines['a'] = t
+            self.sliceItems['a'] = t
             t.sigPositionChangeFinished.connect(lambda: self.selectionInifiniteLineChangeFinished(lineItem=t, curveId=curveId))
             t.sigDragged.connect(lambda: self.selectionInifiniteLineDragged(lineItem=t))
 
@@ -1378,7 +1378,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             t.setPos(pos)
 
             self.plotItem.addItem(t)
-            self.infiniteLines['b'] = t
+            self.sliceItems['b'] = t
             t.sigPositionChangeFinished.connect(lambda: self.selectionInifiniteLineChangeFinished(lineItem=t, curveId=curveId))
             t.sigDragged.connect(lambda: self.selectionInifiniteLineDragged(lineItem=t))
 
@@ -1509,7 +1509,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.selectedLabel = self.curves[radioButton.curveId].curveLabel
             self.selectedUnits = self.curves[radioButton.curveId].curveUnits
 
-            # The addInfiniteLine method has be launched before the update
+            # The addSliceItem method has be launched before the update
             self.updateSelectionInifiteLine(radioButton.curveId)
             self.updatePlotDataItemStyle(radioButton.curveId)
             self.enableWhenPlotDataItemSelected(True)
