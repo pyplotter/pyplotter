@@ -83,16 +83,8 @@ def getData(self):
 
     with np.errstate(divide='ignore'):
         if self.opts['logMode'][0]:
-            x = np.log10(x)
+            x = np.log10(np.abs(x))
         if self.opts['logMode'][1]:
-            # if np.issubdtype(y.dtype, np.floating):
-            #     eps = np.finfo(y.dtype).eps
-            # else:
-            #     eps = 1
-            # y = np.copysign(np.log10(np.abs(y)+eps), y)
-            # y = np.sign(y) * np.log10(np.abs(y)+eps)
-            # y[y<0] = y[y<0]*np.nan
-            # y = np.sign(y) * np.log10(np.abs(y))
             y = np.log10(np.abs(y))
 
     ds = self.opts['downsample']
