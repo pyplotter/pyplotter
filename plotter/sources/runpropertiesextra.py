@@ -27,7 +27,7 @@ class RunPropertiesExtra:
 
         super(RunPropertiesExtra, self).__init__()
 
-    
+
 
 
     ############################################################################
@@ -50,6 +50,23 @@ class RunPropertiesExtra:
 
         if os.path.exists(self.jsonPath):
             self.json   = json.load(open(self.jsonPath, 'r'))
+
+            # Update of old database to make the database path independent
+            # of the mounting point
+            replaceDatabasePath = {}
+            for databasePath in self.json.keys():
+                mount, _ = os.path.splitdrive(databasePath)
+                if mount!='':
+                    replaceDatabasePath[databasePath] = os.path.basename(databasePath)
+
+            isJsonModified = False
+            for oldDatabasePath, newDatabasePath in replaceDatabasePath.items():
+                self.json[newDatabasePath] = self.json[oldDatabasePath]
+                del(self.json[oldDatabasePath])
+                isJsonModified = True
+            if isJsonModified:
+                print('    Database extra properties updated.')
+                self.jsonSave()
         else:
             self.json   = {}
 
@@ -74,7 +91,7 @@ class RunPropertiesExtra:
         runId : int
             Id of the run to be removed
         """
-        
+
         self.json[self.databaseGetPath()]['stared'].remove(int(runId))
 
         self.jsonSave()
@@ -91,7 +108,7 @@ class RunPropertiesExtra:
         runId : int
             Id of the run to be removed
         """
-        
+
         self.json[self.databaseGetPath()]['hidden'].remove(int(runId))
 
         self.jsonSave()
@@ -111,7 +128,7 @@ class RunPropertiesExtra:
 
         runId = int(runId)
         databasePath = self.databaseGetPath()
-        
+
         if self.isDatabaseInJson():
             if self.isHiddenRunInDatabase():
 
@@ -141,7 +158,7 @@ class RunPropertiesExtra:
 
         runId = int(runId)
         databasePath = self.databaseGetPath()
-        
+
         if self.isDatabaseInJson():
             if self.isStaredRunInDatabase():
 
@@ -191,7 +208,7 @@ class RunPropertiesExtra:
 
         # If user wants to see hidden run
         if cb.isChecked():
-            
+
             for row in range(nbTotalRow):
 
                 if int(self.tableWidgetDataBase.item(row, 0).text()) in runHidden:
@@ -199,7 +216,7 @@ class RunPropertiesExtra:
 
         # Hide hidden run again
         else:
-            
+
             for row in range(nbTotalRow):
 
                 if int(self.tableWidgetDataBase.item(row, 0).text()) in runHidden:
@@ -269,7 +286,7 @@ class RunPropertiesExtra:
 
 
 
-        
+
         # If user wants to hide a run
         elif key==config['keyPressedHide'].lower():
 
@@ -277,7 +294,7 @@ class RunPropertiesExtra:
             # We unhide the row
             # We remove the runId from the json
             if runId in self.getRunHidden():
-                
+
                 item = MyTableWidgetItem(str(runId))
                 item.setIcon(QtGui.QIcon(PICTURESPATH+'empty.png'))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
@@ -296,7 +313,7 @@ class RunPropertiesExtra:
 
                 if not self.checkBoxHidden.isChecked():
                     self.tableWidgetDataBase.setRowHidden(row, True)
-                
+
 
                 # We update the json
                 self.jsonAddHiddenRun(runId)
@@ -316,10 +333,10 @@ class RunPropertiesExtra:
 
     def databaseGetPath(self) -> str:
         """
-        Return the path of the database
+        Return the path of the database without the mounting point
         """
 
-        return os.path.join(self.currentPath, self._currentDatabase)
+        return self._currentDatabase
 
 
 
@@ -328,13 +345,13 @@ class RunPropertiesExtra:
             Return a list of all database of the current folder which contains
             at least one stared run.
             """
-            
+
             databasePaths = []
             for key, val in self.json.items():
                 if 'stared' in val:
                     if len(val['stared'])>0:
                         databasePaths.append(key)
-            
+
             return [os.path.basename(os.path.normpath(databasePath)) for databasePath in databasePaths]
 
 
@@ -371,7 +388,7 @@ class RunPropertiesExtra:
         if self.databaseGetPath() in self.json:
             return True
         else:
-            False
+            return False
 
 
 
@@ -385,7 +402,7 @@ class RunPropertiesExtra:
         if 'stared' in self.json[self.databaseGetPath()]:
             return True
         else:
-            False
+            return False
 
 
 
@@ -399,7 +416,7 @@ class RunPropertiesExtra:
         if 'hidden' in self.json[self.databaseGetPath()]:
             return True
         else:
-            False
+            return False
 
 
 
