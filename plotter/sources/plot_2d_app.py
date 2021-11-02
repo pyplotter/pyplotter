@@ -1180,9 +1180,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if self.checkBoxSubtractAverageY.isChecked():
             zData = (zData.T - np.nanmean(zData, axis=1)).T
         if self.checkBoxUnwrapX.isChecked():
-            zData[~np.isnan(zData)] = np.unwrap(zData.T[~np.isnan(zData.T)]).T
+            zData[~np.isnan(zData)] = np.unwrap(np.ravel(zData[~np.isnan(zData)], order='F'))
         if self.checkBoxUnwrapY.isChecked():
-            zData[~np.isnan(zData)] = np.unwrap(zData[~np.isnan(zData)], axis=0)
+            zData[~np.isnan(zData)] = np.unwrap(np.ravel(zData[~np.isnan(zData)], order='C'))
 
         # Depending on the asked derivative, we calculate the new z data and
         # the new z label
