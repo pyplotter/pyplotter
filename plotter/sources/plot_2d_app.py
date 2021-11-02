@@ -489,7 +489,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                     text=self.xLabelText,
                                     units=self.xLabelUnits)
 
-                self.updateImageItem(self.yDataRef, self.xDataRef, self.zDataRef.T)
+                self.updateImageItem(self.yDataRef, self.xDataRef, self.imageView.image.T)
                 self.swapSlices()
         # If user wants to unswap axes
         else:
@@ -503,7 +503,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                     text=self.yLabelText,
                                     units=self.yLabelUnits)
 
-                self.updateImageItem(self.xDataRef, self.yDataRef, self.zDataRef)
+                self.updateImageItem(self.xDataRef, self.yDataRef, self.imageView.image.T)
                 self.swapSlices()
 
 
