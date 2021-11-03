@@ -158,7 +158,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
         # Create a Image item to host the image view
-        self.imageItem = pg.ImageItem()
+        self.imageItem = pg.ImageItem(image=np.array([[0,0],[0,0]]))
         self.imageItem.autoDownsample = config['2dDownSampling']
         self.imageView = pg.ImageView(imageItem=self.imageItem)
 
