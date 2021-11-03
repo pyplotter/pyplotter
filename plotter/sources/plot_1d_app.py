@@ -150,7 +150,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Get plotItem from the widget
         self.plotItem = self.widget.getPlotItem()
-        self.resize(*config['dialogWindowSize'])
 
         # Create legendItem
         self.legendItem = self.plotItem.addLegend()
@@ -248,6 +247,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Should be initialize last
         PlotApp.__init__(self)
 
+        self.resize(*config['dialogWindowSize'])
 
 
     ####################################
