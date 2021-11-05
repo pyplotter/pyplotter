@@ -20,15 +20,15 @@ config = {
 # Other files will not appear in the plotter
 'authorizedExtension' : ['db',
                          'csv',
-                         's2p'], 
+                         's2p'],
 # Will not be displayed, usefull for some windows file
 'forbiddenFile' : ['thumbs.db',
-                   'Thumbs.db'], 
+                   'Thumbs.db'],
 
 # If False the path is displayed in the plot title
-'displayOnlyDbNameInPlotTitle' : True, 
+'displayOnlyDbNameInPlotTitle' : True,
 # If True the the run id is added to the window title
-'displayRunIdInPlotTitle' : True, 
+'displayRunIdInPlotTitle' : True,
 
 # Maximum number of runs being treated on the same SQL request
 # Should be somwhere below 2020
@@ -112,7 +112,7 @@ config = {
 
 
 # Layout parameters
-'dialogWindowSize' : (1.618*500, 500),
+'dialogWindowSize' : (1.618*750, 500),
 'sweptParameterSeparator' : " <span style='font-weight: bold; color: #eb272e;'>vs</span> ",
 
 'style' : 'qbstyles', # Must match an available style below
@@ -170,25 +170,25 @@ config = {
                       '√((∂z/∂x)² + (∂z/∂y)²)',
                       '∂²z/∂x²',
                       '∂²z/∂y²'],
-'plot1dColors': [(227,  26,  28), 
-                 ( 51, 160,  44), 
-                 (255, 127,   0), 
+'plot1dColors': [(227,  26,  28),
+                 ( 51, 160,  44),
+                 (255, 127,   0),
                  ( 31, 120, 180),
-                 (106, 61,  154), 
-                 (251, 154, 153), 
-                 (178, 223, 138), 
-                 (253, 191, 111), 
-                 (166, 206, 227), 
+                 (106, 61,  154),
+                 (251, 154, 153),
+                 (178, 223, 138),
+                 (253, 191, 111),
+                 (166, 206, 227),
                  (202, 178, 214)],
-'plot1dColorsComplementary': [( 58, 119, 118), 
-                              (204,  95, 211), 
-                              (  0, 128, 255), 
+'plot1dColorsComplementary': [( 58, 119, 118),
+                              (204,  95, 211),
+                              (  0, 128, 255),
                               (224, 135,  75),
-                              (149, 194, 101), 
-                              (  4, 101, 102), 
-                              ( 77,  32, 117), 
-                              (  2,  64, 144), 
-                              ( 89,  49,  28), 
+                              (149, 194, 101),
+                              (  4, 101, 102),
+                              ( 77,  32, 117),
+                              (  2,  64, 144),
+                              ( 89,  49,  28),
                               ( 53,  77,  41)],
 "plotDataItemWidth" : 2,
 "plotDataItemShadowWidth" : 10,
