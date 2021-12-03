@@ -866,9 +866,12 @@ class ResonanceDipdB(Fit1d):
             Legend of the fit model
         """
 
-
-        return 'f0={:.{nbDecimal}e}<br/>qi={:.{nbDecimal}e}<br/>qc={:.{nbDecimal}e}'.format(p['f0'].value, p['qi'].value, p['qc'].value, nbDecimal=config['fitParameterNbNumber'])
-
+        return 'f0={}{}<br/>'\
+               'qi={}<br/>'\
+               'qc={}'.format(_parse_number(p['f0'].value, config['fitParameterNbNumber'], unified=True),
+                                self.x_units,
+                                _parse_number(p['qi'].value, config['fitParameterNbNumber'], unified=True),
+                                _parse_number(p['qc'].value, config['fitParameterNbNumber'], unified=True))
 
 
 
