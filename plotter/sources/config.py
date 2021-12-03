@@ -194,7 +194,7 @@ config = {
 "plotDataItemShadowWidth" : 10,
 "plotCoordinateNbNumber" : '5', # str, how many decimal for coordinates
 
-"fitParameterNbNumber" : '3', # str, how many decimal for the displayed fit parameters
+"fitParameterNbNumber" : 3, # int, how many decimal for the displayed fit parameters
 
 # crosshair
 'crossHairLineWidth' : 3,

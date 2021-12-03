@@ -6,7 +6,7 @@ from scipy.signal import hilbert
 from typing import Tuple, Union
 
 from .config import config
-
+from .functions import _parse_number
 
 
 
@@ -19,7 +19,7 @@ class FitReportWindow(QtWidgets.QDialog):
         """
         QDialog window launched when fit is done.
         Display lmfit report.
-        
+
         Parameters
         ----------
         report : str
@@ -28,7 +28,7 @@ class FitReportWindow(QtWidgets.QDialog):
 
         QtWidgets.QDialog.__init__(self)
 
-        
+
         label = QtWidgets.QLabel(report)
         label.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
         label.installEventFilter(self)
@@ -62,13 +62,13 @@ class FitReportWindow(QtWidgets.QDialog):
         event : Union[QtGui.QHoverEvent, QtGui.QPaintEvent, QtCore.QEvent]
             Event happening on the QLabel
         """
-        
+
         if event.type()==QtCore.QEvent.Enter:
-            
+
             QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
             return True
         elif event.type()==QtCore.QEvent.Leave:
-            
+
             QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         return False
 
@@ -89,7 +89,9 @@ class Fit1d(object):
 
 
     def __init__(self, x_data: np.ndarray,
-                       y_data: np.ndarray) -> None:
+                       y_data: np.ndarray,
+                       x_units: str='',
+                       y_units: str='') -> None:
         """
 
         Parameters
@@ -102,6 +104,8 @@ class Fit1d(object):
 
         self.x_data      = x_data
         self.y_data      = y_data
+        self.x_units     = x_units
+        self.y_units     = y_units
 
 
 
@@ -153,9 +157,9 @@ class Fit1d(object):
         result = lmfit.minimize(self.residual, self.getInitialParams())
         dx = np.gradient(self.x_data)/2.
         x = np.sort(np.concatenate((self.x_data, self.x_data+dx)))
-        
+
         self.fitReportWindow = FitReportWindow(lmfit.fit_report(result))
-        
+
         return x, self.func(result.params, x), result.params, self.fitReportWindow
 
 
@@ -164,7 +168,10 @@ class T2Gaussian(Fit1d):
 
 
 
-    def __init__(self, x_data, y_data):
+    def __init__(self, x_data: np.ndarray,
+                       y_data: np.ndarray,
+                       x_units: str='',
+                       y_units: str='') -> None:
         """
 
         Parameters
@@ -177,7 +184,7 @@ class T2Gaussian(Fit1d):
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data, x_units, y_units)
 
 
 
@@ -218,7 +225,7 @@ class T2Gaussian(Fit1d):
         while True:
             if (y[i]-0.5)/np.abs(y[i]-0.5) != (y[i+1]-0.5)/np.abs(y[i+1]-0.5):
                 break
-            i += 1 
+            i += 1
         period = x[i]*4
 
         # Get envelope in log neperien scale
@@ -296,11 +303,14 @@ class T2(Fit1d):
 
 
 
-    def __init__(self, x_data, y_data):
+    def __init__(self, x_data: np.ndarray,
+                       y_data: np.ndarray,
+                       x_units: str='',
+                       y_units: str='') -> None:
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data, x_units, y_units)
 
 
 
@@ -340,9 +350,9 @@ class T2(Fit1d):
         phi = np.arccos(y[0]/(np.max(y) - np.min(y))/2.)
         i = 0
         while True:
-            if (y[i]-0.5)/np.abs(y[i]-0.5) !=  (y[i+1]-0.5)/np.abs(y[i+1]-0.5):                
+            if (y[i]-0.5)/np.abs(y[i]-0.5) !=  (y[i+1]-0.5)/np.abs(y[i+1]-0.5):
                 break
-            i += 1 
+            i += 1
         period = x[i]*4
 
         # Get envelope in log neperien scale
@@ -420,11 +430,14 @@ class T11d(Fit1d):
 
 
 
-    def __init__(self, x_data, y_data):
+    def __init__(self, x_data: np.ndarray,
+                       y_data: np.ndarray,
+                       x_units: str='',
+                       y_units: str='') -> None:
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data, x_units, y_units)
 
 
 
@@ -531,11 +544,14 @@ class QubitZpa(Fit1d):
 
 
 
-    def __init__(self, x_data, y_data):
+    def __init__(self, x_data: np.ndarray,
+                       y_data: np.ndarray,
+                       x_units: str='',
+                       y_units: str='') -> None:
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data, x_units, y_units)
 
 
 
@@ -628,7 +644,7 @@ class QubitZpa(Fit1d):
             Legend of the fit model
         """
 
-        
+
         x = np.linspace(-1, 1, 10000)
         fmax = np.max(self.func(p, x))
 
@@ -649,11 +665,14 @@ class ResonancePeakdB(Fit1d):
 
 
 
-    def __init__(self, x_data, y_data):
+    def __init__(self, x_data: np.ndarray,
+                       y_data: np.ndarray,
+                       x_units: str='',
+                       y_units: str='') -> None:
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data, x_units, y_units)
 
 
 
@@ -754,11 +773,14 @@ class ResonanceDipdB(Fit1d):
 
 
 
-    def __init__(self, x_data, y_data):
+    def __init__(self, x_data: np.ndarray,
+                       y_data: np.ndarray,
+                       x_units: str='',
+                       y_units: str='') -> None:
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data, x_units, y_units)
 
 
 
@@ -860,11 +882,14 @@ class LorentzianPeak(Fit1d):
 
 
 
-    def __init__(self, x_data, y_data):
+    def __init__(self, x_data: np.ndarray,
+                       y_data: np.ndarray,
+                       x_units: str='',
+                       y_units: str='') -> None:
 
 
         self.fitType = '1d'
-        Fit1d.__init__(self, x_data, y_data)
+        Fit1d.__init__(self, x_data, y_data, x_units, y_units)
 
 
 
@@ -894,12 +919,13 @@ class LorentzianPeak(Fit1d):
 
 
         # Guess initial value
-        background  = np.mean(np.sort(self.y_data)[-10:])
+        background  = np.mean(np.sort(self.y_data)[:10])
         center      = self.x_data[np.argmax(self.y_data)]
         height      = np.mean(np.sort(self.y_data)[-2:])
-        c1          = np.abs(self.y_data[:int(len(self.y_data)/2)]-height/2).argmin()
-        c2          = np.abs(self.y_data[int(len(self.y_data)/2+1):]-height/2).argmin()+int(len(self.y_data)/2+1)
+        c1          = np.abs(self.y_data[:np.abs(self.y_data - height).argmin()]-height/2).argmin()
+        c2          = np.abs(self.y_data[np.abs(self.y_data - height).argmin()+1:]-height/2).argmin()+np.abs(self.y_data - height).argmin()+1
         fwhm        = self.x_data[c2]-self.x_data[c1]
+        height      -= background
 
         params = lmfit.Parameters()
         # add with tuples: (NAME VALUE VARY MIN  MAX  EXPR  BRUTE_STEP)
@@ -930,9 +956,12 @@ class LorentzianPeak(Fit1d):
             Fit model result.
         """
 
+        # Unsure about the FWHM
 
-        dx = (x - p['center'])/p['fwhm']/2.
-        y = p['height']/(1. + dx**2.)
+        sigma = p['fwhm']/2
+        a = p['height']*sigma
+        dx = (x - p['center'])
+        y = a*sigma/(dx**2 + sigma**2)
 
         return y+p['background']
 
@@ -953,8 +982,12 @@ class LorentzianPeak(Fit1d):
             Legend of the fit model
         """
 
-
-        return 'center={:.{nbDecimal}e}<br/>fwhm={:.{nbDecimal}e}<br/>height={:.{nbDecimal}e}'.format(p['center'].value, p['fwhm'].value, p['height'].value, nbDecimal=config['fitParameterNbNumber'])
+        return 'center={}{}<br/>fwhm={}{}<br/>height={}{}'.format(_parse_number(p['center'].value, config['fitParameterNbNumber'], unified=True),
+                                                                  self.x_units,
+                                                                  _parse_number(p['fwhm'].value, config['fitParameterNbNumber'], unified=True),
+                                                                  self.x_units,
+                                                                  _parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
+                                                                  self.y_units)
 
 
 ####################################
@@ -1007,7 +1040,7 @@ class Fit2d(object):
         np.ndarray
             Error between the model and the data.
         """
-        
+
         y_model = self.func(p, x)
         if np.any(np.isnan(y_model)):
             return np.ones_like(y)
@@ -1081,7 +1114,7 @@ class T12d(Fit2d):
         lmfit.parameter.Parameters
             Guest fit parameters
         """
-        
+
         # linearize the timescale
         x = np.linspace(self.y_data[0], self.y_data[-1], len(self.y_data))
         y = np.interp(x, self.y_data, z)
