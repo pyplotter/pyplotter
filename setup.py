@@ -1,4 +1,4 @@
-# This Python file uses the following encoding: utf-8 
+# This Python file uses the following encoding: utf-8
 from setuptools import setup, find_packages
 
 setup(name='plotter',
@@ -27,7 +27,7 @@ setup(name='plotter',
           'pyopengl',
           'pyqt5',
           'pyqt5-sip',
-          'pyqtgraph>=0.11.0',
+          'pyqtgraph>=0.12.3',
           'scikit-rf',
           'scipy',
       ],
