@@ -742,27 +742,33 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             self.tableWidgetParameters.setCellWidget(rowPosition, 5, QtWidgets.QLabel(independentString))
 
             # Get info specific to the run
-            curveId     = self.getCurveId(name=dependent['name'], runId=runId, livePlot=False)
-            plotRef     = self.getPlotRef(paramDependent=dependent, livePlot=False)
-            plotTitle   = self.getPlotTitle(livePlot=False)
-            windowTitle = self.getWindowTitle(runId=runId, livePlot=False)
+            curveId         = self.getCurveId(name=dependent['name'], runId=runId, livePlot=False)
+            plotRef         = self.getPlotRef(paramDependent=dependent, livePlot=False)
+            plotTitle       = self.getPlotTitle(livePlot=False)
+            windowTitle     = self.getWindowTitle(runId=runId, livePlot=False)
+            dataBaseName    = self._currentDatabase
+            dataBaseAbsPath = os.path.normpath(self.currentPath).replace("\\", "/")
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda state,
-                                      dependentParamName = dependent['name'],
-                                      runId              = runId,
-                                      curveId            = curveId,
-                                      plotTitle          = plotTitle,
-                                      windowTitle        = windowTitle,
-                                      dependent          = dependent,
-                                      plotRef            = plotRef: self.parameterClicked(state,
-                                                                                          dependentParamName,
-                                                                                          runId,
-                                                                                          curveId,
-                                                                                          plotTitle,
-                                                                                          windowTitle,
-                                                                                          dependent,
-                                                                                          plotRef))
+                                      dependentParamName    = dependent['name'],
+                                      runId                 = runId,
+                                      curveId               = curveId,
+                                      plotTitle             = plotTitle,
+                                      windowTitle           = windowTitle,
+                                      dependent             = dependent,
+                                      plotRef               = plotRef,
+                                      dataBaseName          = dataBaseName,
+                                      dataBaseAbsPath       = dataBaseAbsPath: self.parameterClicked(state,
+                                                                                                     dependentParamName,
+                                                                                                     runId,
+                                                                                                     curveId,
+                                                                                                     plotTitle,
+                                                                                                     windowTitle,
+                                                                                                     dependent,
+                                                                                                     plotRef,
+                                                                                                     dataBaseName,
+                                                                                                     dataBaseAbsPath))
 
 
         self.tableWidgetParameters.setSortingEnabled(True)
@@ -807,7 +813,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                          plotTitle          : str,
                          windowTitle        : str,
                          paramDependent     : dict,
-                         plotRef            : str) -> None:
+                         plotRef            : str,
+                         dataBaseName       : str,
+                         dataBaseAbsPath    : str) -> None:
         """
         Handle event when user clicked on data line.
         Either get data and display them or remove the data depending on state.
@@ -846,6 +854,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                              plotTitle          = plotTitle,
                              windowTitle        = windowTitle,
                              plotRef            = plotRef,
+                             dataBaseName       = dataBaseName,
+                             dataBaseAbsPath    = dataBaseAbsPath,
                              dependentParamName = dependentParamName)
 
         # If the checkbox is unchecked, we remove the plotted data
@@ -1783,6 +1793,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                 plotTitle      : str,
                                 windowTitle    : str,
                                 plotRef        : str,
+                                dataBaseName   : str,
+                                dataBaseAbsPath: str,
                                 progressBarKey : str,
                                 data           : List[np.ndarray],
                                 xLabelText     : str,
@@ -1798,6 +1810,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
         """
 
         self.addPlot(plotRef        = plotRef,
+                     dataBaseName   = dataBaseName,
+                     dataBaseAbsPath= dataBaseAbsPath,
                      data           = data,
                      xLabelText     = xLabelText,
                      xLabelUnits    = xLabelUnits,
@@ -1814,6 +1828,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
     def addPlot(self, plotRef            : str,
+                      dataBaseName       : str,
+                      dataBaseAbsPath    : str,
                       data               : List[np.ndarray],
                       xLabelText         : str,
                       xLabelUnits        : str,
@@ -1919,6 +1935,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               runId              = runId,
                               cleanCheckBox      = cleanCheckBox,
                               plotRef            = plotRef,
+                              dataBaseName       = dataBaseName,
+                              dataBaseAbsPath    = dataBaseAbsPath,
                               addPlot            = self.addPlot,
                               removePlot         = self.removePlot,
                               getPlotFromRef     = self.getPlotFromRef,
@@ -1969,6 +1987,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                               runId           = runId,
                               cleanCheckBox   = cleanCheckBox,
                               plotRef         = plotRef,
+                              dataBaseName    = dataBaseName,
+                              dataBaseAbsPath = dataBaseAbsPath,
                               addPlot         = self.addPlot,
                               removePlot      = self.removePlot,
                               getPlotFromRef  = self.getPlotFromRef,
@@ -2079,6 +2099,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                       plotTitle          : str,
                       windowTitle        : str,
                       plotRef            : str,
+                      dataBaseName       : str,
+                      dataBaseAbsPath    : str,
                       dependentParamName : str) -> None:
         """
         Called when user wants to plot qcodes data.
@@ -2113,6 +2135,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                                 windowTitle,
                                 dependentParamName,
                                 plotRef,
+                                dataBaseName,
+                                dataBaseAbsPath,
                                 progressBarKey,
                                 self.qcodesDatabase.getParameterData,
                                 self.qcodesDatabase.getParameterInfo)

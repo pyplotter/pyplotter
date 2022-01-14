@@ -15,13 +15,17 @@ class PlotApp(object):
     """
 
 
-    def __init__(self) -> None:
+    def __init__(self, dataBaseName       : str,
+                       dataBaseAbsPath    : str,) -> None:
 
         # Crosshair lines
         self.vLine = None
         self.hLine = None
         # self.crossHairRemove
 
+        # For the right-click on the plot title
+        self.dataBaseName   = dataBaseName
+        self.dataBaseAbsPath= dataBaseAbsPath
 
         # Help deciding when drawing crosshair
         self.widget.installEventFilter(self)
@@ -30,9 +34,55 @@ class PlotApp(object):
         self.displayCrossHair = False
 
         # Connect signal
+        self.plotItem.titleLabel.mousePressEvent = self.clickTitle
         self.plotItem.scene().sigMouseMoved.connect(self.mouseMoved)
         self.checkBoxCrossHair.stateChanged.connect(self.checkBoxCrossHairState)
 
+
+
+    ####################################
+    #
+    #           Method related to the title
+    #
+    ####################################
+
+
+    def clickTitle(self, b: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+
+        # right-click
+        if b.button()==2:
+            self.menu = QtWidgets.QMenu()
+
+            copyDb = QtWidgets.QAction('Copy dataBase name', self)
+            copyDb.triggered.connect(self.clickTitleCopyDb)
+            self.menu.addAction(copyDb)
+
+            copyDbAbsPath = QtWidgets.QAction('Copy dataBase absolute path', self)
+            copyDbAbsPath.triggered.connect(self.clickTitleCopyDbAbsPath)
+            self.menu.addAction(copyDbAbsPath)
+
+            copyDbRePath = QtWidgets.QAction('Copy dataBase relative path', self)
+            copyDbRePath.triggered.connect(self.clickTitleCopyDbRePath)
+            self.menu.addAction(copyDbRePath)
+
+            self.menu.exec(QtGui.QCursor.pos())
+
+
+    def clickTitleCopyDb(self, q:QtWidgets.QAction) -> None:
+
+        cb = QtWidgets.QApplication.clipboard()
+        cb.setText(self.dataBaseName, mode=cb.Clipboard)
+
+
+    def clickTitleCopyDbAbsPath(self, q:QtWidgets.QAction) -> None:
+
+        cb = QtWidgets.QApplication.clipboard()
+        cb.setText(self.dataBaseAbsPath, mode=cb.Clipboard)
+
+    def clickTitleCopyDbRePath(self, q:QtWidgets.QAction) -> None:
+
+        cb = QtWidgets.QApplication.clipboard()
+        cb.setText('../data/{}'.format(self.dataBaseName), mode=cb.Clipboard)
 
 
     def eventFilter(self, object : PlotWidget,
@@ -40,7 +90,7 @@ class PlotApp(object):
         """
         Return True/False when the mouse enters/leaves by the PlotWidget.
         """
-        
+
         if event.type()==QtCore.QEvent.Enter:
             self.widgetHovered = True
             return True
@@ -56,7 +106,7 @@ class PlotApp(object):
         Modify the scale, linear or logarithmic, of the plotItem following
         which checkbox are checked.
         """
-        
+
         if self.checkBoxCrossHair.isChecked():
             self.displayCrossHair = True
         else:
@@ -90,10 +140,10 @@ class PlotApp(object):
 
             ymin = self.plotItem.axes['left']['item'].range[0]
             ymax = self.plotItem.axes['left']['item'].range[1]
-        
+
         xmax -= (xmax-xmin)/100
         ymax -= (ymax-ymin)/100
-        
+
         if self.mousePos[0] > xmin and self.mousePos[0] < xmax \
         and self.mousePos[1] > ymin and self.mousePos[1] < ymax \
         and self.widgetHovered:
@@ -119,7 +169,7 @@ class PlotApp(object):
 
         # Get mouse coordinates in "good" units
         pos = self.plotItem.vb.mapSceneToView(pos)
-        
+
         # We implement a workaround for the log mode of 1D plot.
         # See: https://github.com/pyqtgraph/pyqtgraph/issues/1470#issuecomment-864568004
         if self.plotType=='1d':
@@ -134,7 +184,7 @@ class PlotApp(object):
         else:
             x = pos.x()
             y = pos.y()
-        
+
         # Save it
         self.mousePos = x, y
 
@@ -142,10 +192,10 @@ class PlotApp(object):
         # If mouse is not over the viewbox, we change back the crosshair in cursor and remove the crosshair
         # Get displayed axes range
         if self.isMouseOverView():
-            
+
             # Update the displayed mouse coordinates
             self.setMouseCoordinate()
-            
+
             # Update cursor when hovering infiniteLine
             self.sliceItemHovering()
 
@@ -154,7 +204,7 @@ class PlotApp(object):
                 self.crossHair()
         else:
             self.setMouseCoordinate(blank=True)
-            
+
             if self.displayCrossHair:
                 self.crossHair(remove=True)
 
@@ -178,15 +228,15 @@ class PlotApp(object):
         if blank:
             self.labelCoordinate.setText('')
         else:
-            
+
             spaceX = ''
             spaceY = ''
             if self.mousePos[0]>0:
                 spaceX = '&nbsp;'
             if self.mousePos[1]>0:
                 spaceY = '&nbsp;'
-            
-            
+
+
             if self.plotType=='1d':
 
                 if self.timestampXAxis:
@@ -199,7 +249,7 @@ class PlotApp(object):
                 n = np.abs(self.xData-self.mousePos[0]).argmin()
                 m = np.abs(self.yData-self.mousePos[1]).argmin()
                 z = self.zData[n,m]
-                
+
                 spaceZ = ''
                 if z>0:
                     spaceZ = '&nbsp;'
@@ -225,7 +275,7 @@ class PlotApp(object):
             if line.mouseHovering:
                 defaultCursor = QtCore.Qt.PointingHandCursor
 
-        
+
         QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(defaultCursor))
 
 
@@ -255,21 +305,21 @@ class PlotApp(object):
             # Build the crosshair style
 
             if config['crossHairLineStyle']=='solid':
-                lineStyle = QtCore.Qt.SolidLine 
+                lineStyle = QtCore.Qt.SolidLine
             elif config['crossHairLineStyle']=='dashed':
-                lineStyle = QtCore.Qt.DashLine  
+                lineStyle = QtCore.Qt.DashLine
             elif config['crossHairLineStyle']=='dotted':
-                lineStyle = QtCore.Qt.DotLine  
+                lineStyle = QtCore.Qt.DotLine
             elif config['crossHairLineStyle']=='dashed-dotted':
                 lineStyle = QtCore.Qt.DashDotLine
             else:
                 raise ValueError('Config parameter "crossHairLineStyle" not recognize')
 
-            
+
             penInfLine = pg.mkPen(config['crossHairLineColor'],
                                   width=config['crossHairLineWidth'],
                                   style=lineStyle)
-                                  
+
             vLine = pg.InfiniteLine(angle=90, movable=False, pen=penInfLine)
             hLine = pg.InfiniteLine(angle=0,  movable=False, pen=penInfLine)
             self.plotItem.addItem(vLine, ignoreBounds=True)
@@ -278,7 +328,7 @@ class PlotApp(object):
             self.hLine = hLine
 
             QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
-            
+
         # If the crosshair exist, and we want to remove it
         elif remove and self.vLine is not None:
 
@@ -288,7 +338,7 @@ class PlotApp(object):
             self.hLine = None
 
             QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(defaultCursor))
-            
+
 
         # Otherwise, we update its position
         elif self.vLine is not None:

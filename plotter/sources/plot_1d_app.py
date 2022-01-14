@@ -34,6 +34,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        runId              : int,
                        cleanCheckBox      : Callable[[str, str, int, Union[str, list]], None],
                        plotRef            : str,
+                       dataBaseName       : str,
+                       dataBaseAbsPath    : str,
                        addPlot            : Callable,
                        removePlot         : Callable,
                        getPlotFromRef     : Callable,
@@ -245,7 +247,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.autoRange()
 
         # Should be initialize last
-        PlotApp.__init__(self)
+        PlotApp.__init__(self, dataBaseName, dataBaseAbsPath)
 
         self.resize(*config['dialogWindowSize'])
 
