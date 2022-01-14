@@ -6,10 +6,10 @@ import pyqtgraph as pg
 
 from .config import config
 from ..ui.plot_widget import PlotWidget
+from .dbMenu import ClickDbMenu
 
 
-
-class PlotApp(object):
+class PlotApp(ClickDbMenu):
     """
     Class to handle ploting in 1d.
     """
@@ -49,41 +49,8 @@ class PlotApp(object):
 
     def clickTitle(self, b: QtWidgets.QGraphicsSceneMouseEvent) -> None:
 
-        # right-click
         if b.button()==2:
-            self.menu = QtWidgets.QMenu()
-
-            copyDb = QtWidgets.QAction('Copy dataBase name', self)
-            copyDb.triggered.connect(self.clickTitleCopyDb)
-            self.menu.addAction(copyDb)
-
-            copyDbAbsPath = QtWidgets.QAction('Copy dataBase absolute path', self)
-            copyDbAbsPath.triggered.connect(self.clickTitleCopyDbAbsPath)
-            self.menu.addAction(copyDbAbsPath)
-
-            copyDbRePath = QtWidgets.QAction('Copy dataBase relative path', self)
-            copyDbRePath.triggered.connect(self.clickTitleCopyDbRePath)
-            self.menu.addAction(copyDbRePath)
-
-            self.menu.exec(QtGui.QCursor.pos())
-
-
-    def clickTitleCopyDb(self, q:QtWidgets.QAction) -> None:
-
-        cb = QtWidgets.QApplication.clipboard()
-        cb.setText(self.dataBaseName, mode=cb.Clipboard)
-
-
-    def clickTitleCopyDbAbsPath(self, q:QtWidgets.QAction) -> None:
-
-        cb = QtWidgets.QApplication.clipboard()
-        cb.setText(self.dataBaseAbsPath, mode=cb.Clipboard)
-
-    def clickTitleCopyDbRePath(self, q:QtWidgets.QAction) -> None:
-
-        cb = QtWidgets.QApplication.clipboard()
-        cb.setText('../data/{}'.format(self.dataBaseName), mode=cb.Clipboard)
-
+            self.clickDb(self.dataBaseName, self.dataBaseAbsPath)
 
     def eventFilter(self, object : PlotWidget,
                           event  : QtGui.QFocusEvent) -> bool:

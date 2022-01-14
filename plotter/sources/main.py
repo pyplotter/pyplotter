@@ -34,6 +34,7 @@ from .plot_1d_app import Plot1dApp
 from .plot_2d_app import Plot2dApp
 from ..ui import main
 from ..ui.viewtree import ViewTree
+from .dbMenu import ClickDbMenu
 
 pg.setConfigOption('background', config['styles'][config['style']]['pyqtgraphBackgroundColor'])
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
@@ -201,7 +202,7 @@ def getData(self):
     return self.xDisp, self.yDisp
 
 pg.PlotDataItem.getData = getData
-class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
+class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, ClickDbMenu):
 
 
 
@@ -212,7 +213,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
         # Connect UI
-        self.tableWidgetFolder.clicked.connect(self.itemClicked)
+        self.tableWidgetFolder.cellClicked.connect(self.itemClicked)
+        self.tableWidgetFolder.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.tableWidgetFolder.customContextMenuRequested.connect(self.itemClicked)
         self.pushButtonOpenFolder.clicked.connect(self.openFolderClicked)
 
         # Resize the cell to the column content automatically
@@ -456,7 +459,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
 
 
 
-    def itemClicked(self) -> None:
+    def itemClicked(self, b: Union[int, QtCore.QPoint]) -> None:
         """
         Handle event when user clicks on datafile.
         The user can either click on a folder or a file.
@@ -491,9 +494,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
                 self.folderClicked(directory=self.currentPath)
             # If it is a QCoDeS database
             else:
-
-                # folderClicked called after the worker is done
-                self.dataBaseClicked()
+                # If right clicked
+                if isinstance(b, QtCore.QPoint):
+                    # Job done, we restor the usual cursor
+                    QtWidgets.QApplication.restoreOverrideCursor()
+                    self.clickDb(self._currentDatabase, os.path.normpath(os.path.join(self.currentPath, self._currentDatabase)).replace("\\", "/"))
+                else:
+                    # folderClicked called after the worker is done
+                    self.dataBaseClicked()
 
             # Job done, we restor the usual cursor
             QtWidgets.QApplication.restoreOverrideCursor()
@@ -747,7 +755,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra):
             plotTitle       = self.getPlotTitle(livePlot=False)
             windowTitle     = self.getWindowTitle(runId=runId, livePlot=False)
             dataBaseName    = self._currentDatabase
-            dataBaseAbsPath = os.path.normpath(self.currentPath).replace("\\", "/")
+            dataBaseAbsPath = os.path.normpath(os.path.join(self.currentPath, dataBaseName)).replace("\\", "/")
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda state,
