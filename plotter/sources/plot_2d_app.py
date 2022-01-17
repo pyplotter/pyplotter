@@ -1067,6 +1067,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                      runId          = runId,
                      cleanCheckBox  = cleanCheckBox,
                      plotRef        = plotRef,
+                     dataBaseName   = self.dataBaseName,
+                     dataBaseAbsPath = self.dataBaseAbsPath,
                      curveId        = curveId,
                      linkedTo2dPlot = True,
                      curveSlicePosition  = slicePosition,
@@ -1424,6 +1426,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                          runId          = self.runId,
                          cleanCheckBox  = self.cleanCheckBoxExtraction,
                          plotRef        = self.plotRef+'extraction',
+                         dataBaseName   = self.dataBaseName,
+                         dataBaseAbsPath = self.dataBaseAbsPath,
                          curveId        = labels[0],
                          linkedTo2dPlot = False,
                          curveLegend    = labels[0])
