@@ -935,7 +935,7 @@ class LorentzianPeak(Fit1d):
         # add with tuples: (NAME VALUE VARY MIN  MAX  EXPR  BRUTE_STEP)
         params.add('background', background, True, None, None)
         params.add('center', center, True, None, None)
-        params.add('fwhm', fwhm, True, None, None)
+        params.add('fwhm', fwhm, True, 0, None)
         params.add('height', height, True, None, None)
 
         return params
@@ -961,7 +961,6 @@ class LorentzianPeak(Fit1d):
         """
 
         # Unsure about the FWHM
-
         sigma = p['fwhm']/2
         a = p['height']*sigma
         dx = (x - p['center'])
@@ -1057,7 +1056,7 @@ class LorentzianDip(Fit1d):
         # add with tuples: (NAME VALUE VARY MIN  MAX  EXPR  BRUTE_STEP)
         params.add('background', background, True, None, None)
         params.add('center', center, True, None, None)
-        params.add('fwhm', fwhm, True, None, None)
+        params.add('fwhm', fwhm, True, 0, None)
         params.add('height', height, True, None, None)
 
         return params
@@ -1083,7 +1082,6 @@ class LorentzianDip(Fit1d):
         """
 
         # Unsure about the FWHM
-
         sigma = p['fwhm']/2
         a = p['height']*sigma
         dx = (x - p['center'])
