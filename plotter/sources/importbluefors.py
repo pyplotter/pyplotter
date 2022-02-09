@@ -13,7 +13,7 @@ class ImportBlueFors:
     def __init__(self, mainObject):
         """
         Class handling the reading of the blueFors logging files.
-        
+
         Parameters
         ----------
         mainObject : dict
@@ -28,11 +28,11 @@ class ImportBlueFors:
 
     @staticmethod
     def pandasTimestamp2Int(dates: np.ndarray) -> np.ndarray:
-        
+
         return (dates - pd.Timestamp('1970-01-01'))//pd.Timedelta('1s')
 
 
- 
+
     @staticmethod
     def isBlueForsFolder(folderName : Optional[str]=None) -> bool:
         """
@@ -79,11 +79,11 @@ class ImportBlueFors:
         directory : str
             Absolute path of the BlueFors log folder.
         """
-        
+
         ## Update label
         self.main.labelCurrentRun.clear()
         self.main.labelCurrentMetadata.clear()
-        
+
         self.main.setStatusBarMessage('Loading BlueFors log')
 
         ## Fill the tableWidgetParameters with the run parameters
@@ -98,20 +98,20 @@ class ImportBlueFors:
 
         # Fill the table parameters with BlueFors info
         for file in sorted(os.listdir(directory)):
-            
+
             fileName = file[:-13]
-            
+
             # We only show file handled by the plotter
             if fileName in config.keys():
                 fakeParamDependent = {'depends_on' : [0],
                                       'name'  : config[fileName]['labelText'],
                                       'label' : config[fileName]['labelText']}
-                
+
                 rowPosition = self.main.tableWidgetParameters.rowCount()
                 self.main.tableWidgetParameters.insertRow(rowPosition)
 
                 cb = QtWidgets.QCheckBox()
-                
+
                 # We check if that parameter is already plotted
                 if config[fileName]['labelText'] == 'Pressure Gauges':
                     fakeParamDependent['name']  = 'Vacuum can'
@@ -121,7 +121,7 @@ class ImportBlueFors:
                 if config[fileName]['labelText'] == 'Pressure Gauges':
                     fakeParamDependent['name']  = config[fileName]['labelText']
                     fakeParamDependent['label'] = config[fileName]['labelText']
-                    
+
 
                 # We put a fake runId of value 0
                 self.main.tableWidgetParameters.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem('0'))
@@ -135,32 +135,43 @@ class ImportBlueFors:
                 plotTitle   = self.main.getPlotTitle(livePlot=False)
                 windowTitle = self.main.getWindowTitle(runId=runId, livePlot=False)
                 plotRef     = self.main.getPlotRef(fakeParamDependent)
+
+                # For BF log file the databaseName  and dataBaseAbsPathis the filename and the directory
+                dataBaseName    = fileName
+                dataBaseAbsPath = os.path.normpath(directory).replace("\\", "/")
+
                 # Each checkbox at its own event attached to it
-                cb.toggled.connect(lambda cb          = cb,
-                                          filePath    = os.path.join(directory, file),
-                                          runId       = runId,
-                                          curveId     = curveId,
-                                          plotTitle   = plotTitle,
-                                          windowTitle = windowTitle,
-                                          plotRef     = plotRef: self.blueForsLogClicked(cb,
+                cb.toggled.connect(lambda cb              = cb,
+                                          filePath        = os.path.join(directory, file),
+                                          runId           = runId,
+                                          curveId         = curveId,
+                                          plotTitle       = plotTitle,
+                                          windowTitle     = windowTitle,
+                                          plotRef         = plotRef,
+                                          dataBaseName    = dataBaseName,
+                                          dataBaseAbsPath = dataBaseAbsPath: self.blueForsLogClicked(cb,
                                                                                          filePath,
                                                                                          runId,
                                                                                          curveId,
                                                                                          plotTitle,
                                                                                          windowTitle,
-                                                                                         plotRef))
+                                                                                         plotRef,
+                                                                                         dataBaseName,
+                                                                                         dataBaseAbsPath))
 
         self.main.setStatusBarMessage('Ready')
 
 
 
-    def blueForsLogClicked(self, cb          : QtWidgets.QCheckBox,
-                                 filePath    : str,
-                                 runId       : int,
-                                 curveId     : str,
-                                 plotTitle   : str,
-                                 windowTitle : str,
-                                 plotRef     : str) -> None:
+    def blueForsLogClicked(self, cb              : QtWidgets.QCheckBox,
+                                 filePath        : str,
+                                 runId           : int,
+                                 curveId         : str,
+                                 plotTitle       : str,
+                                 windowTitle     : str,
+                                 plotRef         : str,
+                                 dataBaseName    : str,
+                                 dataBaseAbsPath : str) -> None:
         """
         When user clicked on BF log file.
         Basically, launch a 1d plot window.
@@ -192,7 +203,7 @@ class ImportBlueFors:
 
         if cb:
             self.main.setStatusBarMessage('Loading BlueFors data')
-            
+
             # Maxigauges file (all pressure gauges)
             if fileName=='maxigauge':
 
@@ -209,11 +220,11 @@ class ImportBlueFors:
                                 header=None)
 
                 timeAxis = self.pandasTimestamp2Int(pd.to_datetime(df['date']+'-'+df['time'], format='%d-%m-%y-%H:%M:%S'))
-                
+
                 for i in range(1, 7):
-                    
+
                     name = 'ch'+str(i)+'_pressure'
-                    
+
                     self.main.addPlot(plotRef        = plotRef,
                                       data           = (timeAxis, df[name]*1e-3),
                                       xLabelText     = 'Time',
@@ -228,7 +239,7 @@ class ImportBlueFors:
 
                     # and we set y log mode True
                     QtTest.QTest.qWait(100) # To avoid an overflow error
-                
+
                 # Once all is plotting we autorange
                 self.main._plotRefs[plotRef].plotItem.vb.autoRange()
                 self.main._plotRefs[plotRef].checkBoxLogY.toggle()
@@ -243,20 +254,22 @@ class ImportBlueFors:
                 # There is a space before the day
                 timeAxis = self.pandasTimestamp2Int(pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S'))
 
-                self.main.addPlot(plotRef        = plotRef,
-                                  data           = (timeAxis, df['y']*1e-3),
-                                  xLabelText     = 'Time',
-                                  xLabelUnits    = '',
-                                  yLabelText     = config[fileName]['labelText'],
-                                  yLabelUnits    = config[fileName]['labelUnits'],
-                                  runId          = runId,
-                                  curveId        = curveId,
-                                  plotTitle      = plotTitle,
-                                  windowTitle    = windowTitle,
-                                  timestampXAxis = True)
+                self.main.addPlot(plotRef         = plotRef,
+                                  data            = (timeAxis, df['y']*1e-3),
+                                  xLabelText      = 'Time',
+                                  xLabelUnits     = '',
+                                  yLabelText      = config[fileName]['labelText'],
+                                  yLabelUnits     = config[fileName]['labelUnits'],
+                                  runId           = runId,
+                                  curveId         = curveId,
+                                  plotTitle       = plotTitle,
+                                  windowTitle     = windowTitle,
+                                  timestampXAxis  = True,
+                                  dataBaseName    = dataBaseName,
+                                  dataBaseAbsPath = dataBaseAbsPath)
 
         else:
-            
+
             if fileName=='maxigauge':
                 for i in range(1, 7):
                     name = 'ch'+str(i)+'_pressure'

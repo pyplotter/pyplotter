@@ -218,28 +218,36 @@ class ImportCSV:
             plotTitle   = self.main.getPlotTitle(livePlot=False)
             windowTitle = self.main.getWindowTitle(runId=runId, livePlot=False)
 
+            # For CSV the databaseName is the filename
+            dataBaseName    = os.path.basename(filePath)
+            dataBaseAbsPath = os.path.normpath(filePath).replace("\\", "/")
+
             # Each checkbox at its own event attached to it
-            cb.toggled.connect(lambda cb          = cb,
-                                      xLabelText  = independentParameter,
-                                      xLabelUnits = '',
-                                      yLabelText  = columnName,
-                                      yLabelUnits = '',
-                                      data        = (x, y),
-                                      runId       = runId,
-                                      curveId     = curveId,
-                                      plotTitle   = plotTitle,
-                                      windowTitle = windowTitle,
-                                      plotRef     = self.main.getPlotRef(fakeParamDependent): self.csvParameterClicked(cb,
-                                                                                                                       xLabelText,
-                                                                                                                       xLabelUnits,
-                                                                                                                       yLabelText,
-                                                                                                                       yLabelUnits,
-                                                                                                                       data,
-                                                                                                                       runId,
-                                                                                                                       curveId,
-                                                                                                                       plotTitle,
-                                                                                                                       windowTitle,
-                                                                                                                       plotRef))
+            cb.toggled.connect(lambda cb              = cb,
+                                      xLabelText      = independentParameter,
+                                      xLabelUnits     = '',
+                                      yLabelText      = columnName,
+                                      yLabelUnits     = '',
+                                      data            = (x, y),
+                                      runId           = runId,
+                                      curveId         = curveId,
+                                      plotTitle       = plotTitle,
+                                      windowTitle     = windowTitle,
+                                      plotRef         = self.main.getPlotRef(fakeParamDependent),
+                                      dataBaseName    = dataBaseName,
+                                      dataBaseAbsPath = dataBaseAbsPath: self.csvParameterClicked(cb,
+                                                                                                  xLabelText,
+                                                                                                  xLabelUnits,
+                                                                                                  yLabelText,
+                                                                                                  yLabelUnits,
+                                                                                                  data,
+                                                                                                  runId,
+                                                                                                  curveId,
+                                                                                                  plotTitle,
+                                                                                                  windowTitle,
+                                                                                                  plotRef,
+                                                                                                  dataBaseName,
+                                                                                                  dataBaseAbsPath))
 
             i += 1
 
@@ -247,17 +255,19 @@ class ImportCSV:
 
 
 
-    def csvParameterClicked(self, cb          : QtWidgets.QCheckBox,
-                                  xLabelText  : str,
-                                  xLabelUnits : str,
-                                  yLabelText  : str,
-                                  yLabelUnits : str,
-                                  data        : tuple,
-                                  runId       : int,
-                                  curveId     : str,
-                                  plotTitle   : str,
-                                  windowTitle : str,
-                                  plotRef     : str) -> None:
+    def csvParameterClicked(self, cb              : QtWidgets.QCheckBox,
+                                  xLabelText      : str,
+                                  xLabelUnits     : str,
+                                  yLabelText      : str,
+                                  yLabelUnits     : str,
+                                  data            : tuple,
+                                  runId           : int,
+                                  curveId         : str,
+                                  plotTitle       : str,
+                                  windowTitle     : str,
+                                  plotRef         : str,
+                                  dataBaseName    : str,
+                                  dataBaseAbsPath : str) -> None:
         """
         Call when user click on a parameter from a csv file in the tableWidgetParameters.
         Launch a plot if user check a parameter and remove curve otherwise.
@@ -278,16 +288,18 @@ class ImportCSV:
 
         if cb:
 
-            self.main.addPlot(plotRef     = plotRef,
-                              data        = data,
-                              xLabelText  = xLabelText,
-                              xLabelUnits = xLabelUnits,
-                              yLabelText  = yLabelText,
-                              yLabelUnits = yLabelUnits,
-                              runId       = runId,
-                              curveId     = curveId,
-                              plotTitle   = plotTitle,
-                              windowTitle = windowTitle)
+            self.main.addPlot(plotRef         = plotRef,
+                              data            = data,
+                              xLabelText      = xLabelText,
+                              xLabelUnits     = xLabelUnits,
+                              yLabelText      = yLabelText,
+                              yLabelUnits     = yLabelUnits,
+                              runId           = runId,
+                              curveId         = curveId,
+                              plotTitle       = plotTitle,
+                              windowTitle     = windowTitle,
+                              dataBaseName    = dataBaseName,
+                              dataBaseAbsPath = dataBaseAbsPath)
 
         else:
 
