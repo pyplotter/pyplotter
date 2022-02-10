@@ -2,8 +2,18 @@
 from PyQt5 import QtCore
 import numpy as np
 from typing import Tuple
+import sys
 
 from ..config import config
+
+def trap_exc_during_debug(*args) -> None:
+    # when app raises uncaught exception, print info
+    print(int(QtCore.QThread.currentThreadId()))
+    print(args)
+
+
+# install exception hook: without this, uncaught exception would cause application to exit
+sys.excepthook = trap_exc_during_debug
 
 
 class LoadDataFromCacheSignal(QtCore.QObject):

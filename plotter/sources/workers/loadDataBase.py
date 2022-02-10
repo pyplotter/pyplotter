@@ -1,9 +1,18 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtTest
 from typing import Callable
-
+import sys
 
 from ..config import config
+
+def trap_exc_during_debug(*args) -> None:
+    # when app raises uncaught exception, print info
+    print(int(QtCore.QThread.currentThreadId()))
+    print(args)
+
+
+# install exception hook: without this, uncaught exception would cause application to exit
+sys.excepthook = trap_exc_during_debug
 
 class loadDataBaseSignal(QtCore.QObject):
     """
