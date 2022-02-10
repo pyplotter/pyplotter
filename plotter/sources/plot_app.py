@@ -5,7 +5,7 @@ import datetime
 import pyqtgraph as pg
 
 from .config import config
-from ..ui.plot_widget import PlotWidget
+from ..ui.plotWidget import PlotWidget
 from ..ui.dbMenuWidget import dbMenuWidget
 
 

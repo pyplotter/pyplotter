@@ -4,7 +4,7 @@ import os
 import json
 
 from .config import config
-from ..ui.mytablewidgetitem import MyTableWidgetItem
+from ..ui.myTableWidgetItem import MyTableWidgetItem
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../ui/pictures/')

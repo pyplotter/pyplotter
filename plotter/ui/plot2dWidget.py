@@ -413,5 +413,5 @@ class Ui_Dialog(object):
         self.checkBoxMaximum.setText(_translate("Dialog", "maximum"))
         self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:<br/>z:</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("Dialog", "Interaction"))
-from ..ui.histogram_lut_widget import HistogramLUTWidget
-from ..ui.plot_widget import PlotWidget
+from .histogramLUTWidget import HistogramLUTWidget
+from .plotWidget import PlotWidget

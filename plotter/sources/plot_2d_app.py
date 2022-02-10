@@ -9,7 +9,7 @@ from typing import Union, Tuple, Callable, Optional
 import inspect
 import uuid
 
-from ..ui.plot2d import Ui_Dialog
+from ..ui.plot2dWidget import Ui_Dialog
 from . import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
 from .plot_app import PlotApp
 from .config import config

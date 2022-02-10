@@ -8,7 +8,7 @@ import inspect
 from scipy.integrate import cumtrapz
 
 
-from ..ui.plot1d import Ui_Dialog
+from ..ui.plot1dWidget import Ui_Dialog
 from .config import config
 from .plot_app import PlotApp
 from . import fit

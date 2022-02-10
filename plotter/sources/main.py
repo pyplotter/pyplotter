@@ -25,7 +25,7 @@ from .loadCSV import LoadCSV
 from .loadBluefors import LoadBlueFors
 from .qcodesdatabase import QcodesDatabase
 from .runpropertiesextra import RunPropertiesExtra
-from ..ui.mytablewidgetitem import MyTableWidgetItem
+from ..ui.myTableWidgetItem import MyTableWidgetItem
 from .workers.loadDataBase import loadDataBaseThread
 from .workers.loadDataFromRun import LoadDataFromRunThread
 from .workers.loadDataFromCache import LoadDataFromCacheThread
@@ -33,7 +33,7 @@ from .config import config
 from .plot_1d_app import Plot1dApp
 from .plot_2d_app import Plot2dApp
 from ..ui import main
-from ..ui.viewtree import ViewTree
+from ..ui.viewTree import ViewTree
 from ..ui.dbMenuWidget import dbMenuWidget
 
 pg.setConfigOption('background', config['styles'][config['style']]['pyqtgraphBackgroundColor'])

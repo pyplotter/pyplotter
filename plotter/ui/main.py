@@ -349,4 +349,4 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "swept parameters"))
         self.labelMetadata.setText(_translate("MainWindow", "Browse metadata run:"))
         self.labelFilter.setText(_translate("MainWindow", "Filter:"))
-from ..ui.qtablewidgetkey import QTableWidgetKey
+from .qTableWidgetKey import QTableWidgetKey

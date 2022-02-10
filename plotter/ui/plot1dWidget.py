@@ -405,4 +405,4 @@ class Ui_Dialog(object):
         self.groupBoxFit.setTitle(_translate("Dialog", "Fit"))
         self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("Dialog", "Interaction"))
-from ..ui.plot_widget import PlotWidget
+from .plotWidget import PlotWidget
