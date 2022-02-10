@@ -9,8 +9,10 @@ from ..config import config
 
 def trap_exc_during_debug(*args) -> None:
     # when app raises uncaught exception, print info
+    print(' -- loadDataBaseFromRun -- ')
     print(int(QtCore.QThread.currentThreadId()))
     print(args)
+    print(' --                     -- ')
 
 
 # install exception hook: without this, uncaught exception would cause application to exit
