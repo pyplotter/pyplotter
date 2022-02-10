@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5 import QtGui, QtWidgets
 
-class ClickDbMenu:
+class dbMenuWidget:
 
     def clickDb(self, dataBaseName: str,
                       dataBaseAbsPath: str) -> None:

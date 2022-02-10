@@ -72,7 +72,7 @@ def get_sparameter_data(self, format='ri'):
 
 Touchstone.get_sparameter_data = get_sparameter_data
 
-class ImportCSV:
+class LoadCSV:
 
 
     def __init__(self, mainObject):
@@ -80,7 +80,7 @@ class ImportCSV:
         Class handling the reading of csv file.
         """
 
-        super(ImportCSV, self).__init__()
+        super(LoadCSV, self).__init__()
 
         self.main = mainObject
 

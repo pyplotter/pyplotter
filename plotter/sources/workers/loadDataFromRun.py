@@ -1,122 +1,194 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore
 import numpy as np
-from typing import Tuple
+from typing import Callable, Tuple
 
-from .config import config
+from ..qcodesdatabase import QcodesDatabase
+from ..config import config
 
 
-class LoadDataFromCacheSignal(QtCore.QObject):
+
+class LoadDataFromRunSignal(QtCore.QObject):
     """
-    Class containing the signal of the LoadDataFromCacheThread, see below
+    Class containing the signal of the LoadDataFromRunThread, see below
     """
 
-    dataLoaded = QtCore.pyqtSignal(str, tuple, str, bool)
+
+    # When the run method is done
+    # Signature
+    # runId: int, curveId:str, plotTitle: str, windowTitle:str
+    # plotRef: str, dataBaseName: str, dataBaseAbsPath: str, progressBarKey: str, data: tuple
+    # xLabelText: str, xLabelUnits: str,
+    # yLabelText: str, yLabelUnits: str,
+    # zLabelText: str, zLabelUnits: str,
+    updateDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, str, str, tuple, str, str, str, str, str, str)
+    # Signal used to update the status bar
+    setStatusBarMessage = QtCore.pyqtSignal(str, bool)
+    # Signal to update the progress bar
+    updateProgressBar = QtCore.pyqtSignal(str, int)
+    # Signal when the data download is done but the database is empty
+    # Useful for the starting of the liveplot
+    updateDataEmpty = QtCore.pyqtSignal()
 
 
 
 
-class LoadDataFromCacheThread(QtCore.QRunnable):
+class LoadDataFromRunThread(QtCore.QRunnable):
 
 
-    def __init__(self, plotRef    : str,
-                       dataDict   : np.ndarray,
-                       xParamName : str,
-                       yParamName : str,
-                       zParamName : str,
-                       lastUpdate : bool) -> None:
+    def __init__(self, runId              : int,
+                       curveId            : str,
+                       plotTitle          : str,
+                       windowTitle        : str,
+                       dependentParamName : str,
+                       plotRef            : str,
+                       dataBaseName       : str,
+                       dataBaseAbsPath    : str,
+                       progressBarKey     : str,
+                       getParameterData   : Callable[[int, str, Callable], dict],
+                       getParameterInfo   : Callable[[int], list]) -> None:
         """
+        Thread used to get data for a 1d or 2d plot from a runId.
 
         Parameters
         ----------
+        runId : int
+            run id from which the data are downloaded
+        curveId : str
+            Id of the curve, see getCurveId.
+        plotTitle : str
+            Plot title, see getPlotTitle.
+        windowTitle : str
+            Window title, see getWindowTitle.
+        dependentParamName : str
+            Name of the dependent parameter from which data will be downloaded.
+        plotRef : str
+            Reference of the curve.
+        progressBarKey : str
+            Key to the progress bar in the dict progressBars.
+        getParameterData : func
+            Method from QcodesDatabase class initialized in the main thread
+            with the current database file location.
+            See QcodesDatabase for more details.
+        getParameterInfo : func
+            Method from QcodesDatabase class initialized in the main thread
+            with the current database file location.
+            See QcodesDatabase for more details.
         """
 
-        super(LoadDataFromCacheThread, self).__init__()
+        super(LoadDataFromRunThread, self).__init__()
 
-        self.plotRef    = plotRef
-        self.dataDict   = dataDict
-        self.xParamName = xParamName
-        self.yParamName = yParamName
-        self.zParamName = zParamName
-        self.lastUpdate = lastUpdate
-        
-        self.signals = LoadDataFromCacheSignal() 
+        self.qcodesDatabase = QcodesDatabase()
+
+        self.runId              = runId
+        self.curveId            = curveId
+        self.plotTitle          = plotTitle
+        self.windowTitle        = windowTitle
+        self.dependentParamName = dependentParamName
+        self.plotRef            = plotRef
+        self.dataBaseName       = dataBaseName
+        self.dataBaseAbsPath    = dataBaseAbsPath
+        self.progressBarKey     = progressBarKey
+        self.getParameterData   = getParameterData
+        self.getParameterInfo   = getParameterInfo
+
+
+        self.signals = LoadDataFromRunSignal()
 
 
 
     @QtCore.pyqtSlot()
     def run(self) -> None:
         """
+        Download the data and launch a plot
         """
-        
-        # It takes some iteration for the cache to start having data
-        # We check here if there is data in the cache
-        if self.zParamName=='':
-            if len(self.dataDict[self.yParamName])==0:
-                data = ([],[])
-            else:
-                d = self.dataDict[self.yParamName]
-                data = (d[self.xParamName], d[self.yParamName])
-        else:
-            if len(self.dataDict[self.zParamName])==0:
-                data = (np.array([0., 1.]),
-                        np.array([0., 1.]),
-                        np.array([[0., 1.],
-                                  [0., 1.]]))
-            else:
-                
-                d = self.dataDict[self.zParamName]
-                
-                # For qcodes version >0.20, 2d data are return as a 2d array
-                # the z data are then returned as given by qcodes.
-                # We however have to find a x and y 1d array for the imageItem
-                # This is done by a simple linear interpolation between the
-                # max and minimum value of the x, y 2d array returned by qcodes.
-                # WILL NOT WORK for NON-LINEAR SPACED DATA
-                if d[self.zParamName].ndim==2 or d[self.zParamName].ndim==3:
-                    
-                    fx = np.ravel(d[self.xParamName][~np.isnan(d[self.xParamName])])
-                    fy = np.ravel(d[self.yParamName][~np.isnan(d[self.yParamName])])
-                    
-                    xx = np.linspace(fx.min(), fx.max(), d[self.zParamName].shape[0])
-                    yy = np.linspace(fy.min(), fy.max(), d[self.zParamName].shape[1])
-                    zz = d[self.zParamName]
-                    
-                    # we take care of data taken along decreasing axes
-                    if fx[1]<fx[0]:
-                        zz = zz[::-1,:]
-                    if fy[1]<fy[0]:
-                        zz = zz[:,::-1]
-                    
-                    data = (xx,
-                            yy,
-                            zz)
-                
-                else:
-                    data = (d[self.xParamName],
-                            d[self.yParamName],
-                            d[self.zParamName])
-                    
-                    # Find the effective x and y axis, see findXYIndex
-                    xi, yi = self.findXYAxesIndex(data[1])
-                    
-                    # Shapped the 2d Data
-                    if config['2dGridInterpolation']=='grid':
-                        data = self.make_grid(data[xi], data[yi], data[2])
-                    else:
-                        data = self.shapeData2d(data[xi], data[yi], data[2])
 
-        self.signals.dataLoaded.emit(self.plotRef, data, self.yParamName, self.lastUpdate)
+        self.signals.setStatusBarMessage.emit('Extracting data from database', False)
+
+        paramsDependent, paramsIndependent = self.getParameterInfo(self.runId, self.dependentParamName)
+
+        d = self.getParameterData(self.runId, paramsDependent['name'], self.signals.updateProgressBar, self.progressBarKey)
+
+        # If getParameterData failed, or the database is empty we emit a specific
+        # signal which will flag the data download as done without launching a
+        # new plot window
+        if d is None or len(d)==0:
+            self.signals.updateDataEmpty.emit()
+        else:
+
+            # 1d plot
+            if len(paramsIndependent)==1:
+
+                data = (np.ravel(d[paramsIndependent[0]['name']]),
+                        np.ravel(d[paramsDependent['name']]))
+
+                xLabelText  = paramsIndependent[0]['label']
+                xLabelUnits = paramsIndependent[0]['unit']
+                yLabelText  = paramsDependent['label']
+                yLabelUnits = paramsDependent['unit']
+                zLabelText  = ''
+                zLabelUnits = ''
+
+
+            # 2d plot
+            elif len(paramsIndependent)==2:
+
+                # for qcodes version >0.18, 2d data are return as a 2d array
+                # to keep code backward compatible, we transform it back to
+                # 1d array.
+                if d[paramsIndependent[1]['name']].ndim==2 or d[paramsIndependent[1]['name']].ndim==3:
+                    d[paramsIndependent[0]['name']] = np.ravel(d[paramsIndependent[0]['name']])
+                    d[paramsIndependent[1]['name']] = np.ravel(d[paramsIndependent[1]['name']])
+                    d[paramsDependent['name']]      = np.ravel(d[paramsDependent['name']])
+
+                # Find the effective x and y axis, see findXYIndex
+                xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
+
+                # We try to load data
+                # if there is none, we return an empty array
+                if config['2dGridInterpolation']=='grid':
+                    data = self.make_grid(d[paramsIndependent[xi]['name']],
+                                          d[paramsIndependent[yi]['name']],
+                                          d[paramsDependent['name']])
+                else:
+                    data = self.shapeData2d(d[paramsIndependent[xi]['name']],
+                                            d[paramsIndependent[yi]['name']],
+                                            d[paramsDependent['name']])
+
+                xLabelText  = paramsIndependent[xi]['label']
+                xLabelUnits = paramsIndependent[xi]['unit']
+                yLabelText  = paramsIndependent[yi]['label']
+                yLabelUnits = paramsIndependent[yi]['unit']
+                zLabelText  = paramsDependent['label']
+                zLabelUnits = paramsDependent['unit']
+
+
+            # Signal to launched a plot with the downloaded data
+            self.signals.updateDataFull.emit(self.runId,
+                                             self.curveId,
+                                             self.plotTitle,
+                                             self.windowTitle,
+                                             self.plotRef,
+                                             self.dataBaseName,
+                                             self.dataBaseAbsPath,
+                                             self.progressBarKey,
+                                             data,
+                                             xLabelText,
+                                             xLabelUnits,
+                                             yLabelText,
+                                             yLabelUnits,
+                                             zLabelText,
+                                             zLabelUnits)
 
 
 
     @staticmethod
-    def findXYAxesIndex(y: np.ndarray) -> Tuple[int]:
+    def findXYIndex(y: np.ndarray) -> Tuple[int]:
         """
         Find effective "x" column
         The x column is defined as the column where the independent parameter
         is not modified while the y column independent parameter is.
-        
+
         Parameters
         ----------
         y : np.ndarray
@@ -127,17 +199,17 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
         (xi, yi) : tuple
             Index of the the x and y axis.
         """
-        
+
         if y[1]==y[0]:
             return 1, 0
         else:
             return 0, 1
 
 
-    @staticmethod
-    def shapeData2d(x: np.ndarray,
-                    y: np.ndarray,
-                    z: np.ndarray) -> Tuple[np.ndarray]:
+
+    def shapeData2d(self, x: np.ndarray,
+                          y: np.ndarray,
+                          z: np.ndarray) -> Tuple[np.ndarray]:
         """
         Shape the data for a 2d plot but mainly handled all kind of data error/missing/...
 
@@ -145,6 +217,10 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
         and z as a 2d array.
         In case of non regular grid, the y axis is approximated.
         """
+
+
+        self.signals.setStatusBarMessage.emit('Shapping 2d data for display', False)
+
 
         # Nb points in the 1st dimension
         xn = len(np.unique(x))
@@ -163,7 +239,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
             x = np.append(x, p)
             y = np.append(y, p)
             z = np.append(z, p)
-            
+
         # We create 2D arrays for each dimension
         x = x.reshape(xn, yn)
         y = y.reshape(xn, yn)
@@ -177,7 +253,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
 
         # If the data has a rectangular shape (usual 2d measurement)
         if len(np.unique(y[:,0]))==1:
-            
+
             # Take a slice of x
             xx = x[:,0]
 
@@ -188,21 +264,27 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                     yy = i
                     break
                 i+=1
-            
+
             zz = z
         else:
+
+            self.signals.setStatusBarMessage.emit('Irregular grid detected, shapping 2d data', False)
+
             xx = x[:,0]
-            
+
             # Create a bigger array containing sorted data in the same bases
             # New y axis containing all the previous y axes
-            yd = np.nanmin(np.gradient(np.sort(y[-1])))
+            yd = np.gradient(np.sort(y[0])).min()
             yy = np.arange(y[~np.isnan(y)].min(), y[~np.isnan(y)].max()+yd, yd)
+
             # fit the z value to the new grid
             zz = np.full((len(xx), len(yy)), np.nan)
             for x_index in range(len(x)):
                 for y_index in range(len(y.T)):
                     zz[x_index,np.abs(yy-y[x_index, y_index]).argmin()] = z[x_index,y_index]
-        
+
+
+
         # If there is only one point in x or y, we artificialy create more
         # moreThanOneColumn = True
         if len(xx)==1:
@@ -212,12 +294,13 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
             yy = np.array([yy[0]-0.1, yy[0]+0.1])
             # moreThanOneColumn = False
 
-        # We filtered out the np.inf and -np.inf data and replaced them by np.nan
+        # We filtered out the npinf and -np.inf data and replaced them by np.nan
         # This is done to allow display by the pyqtgraph viewbox.
         zz[zz== np.inf] = np.nan
         zz[zz==-np.inf] = np.nan
-        
+
         return xx, yy, zz
+
 
 
     @staticmethod
@@ -239,12 +322,13 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
         return xx, yy, zz
 
 
+
     def shapeData2dPolygon(self, x : np.array,
                                  y : np.array,
                                  z : np.array) -> Tuple[np.ndarray]:
         """
         Reshape 2d scan into a meshing.
-        
+
         Return
         ------
             x2dVertices : 2d np.array
@@ -254,24 +338,26 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
             z2d : 2d np.array
                 Value of the polygons
         """
+        self.signals.setStatusBarMessage.emit('Shapping 2d data for display', False)
+
 
         ## Treat the data depending on their shape
         # We get the number of point in the x and y dimension
-        # We add fake data (with np.nan value for the xaxis) for unfinished 
+        # We add fake data (with np.nan value for the xaxis) for unfinished
         # measurements
 
         # Finished regular grid
         if len(np.unique([len(x[x==i])for i in np.unique(x)]))==1 and len(np.unique(y))==len(y[::len(np.unique(x))]):
-            
+
             # Nb points in the 1st dimension
             xn = len(np.unique(x))
 
             # Nb points in the 2nd dimension
             yn = len(y[::xn])# Finished regular grid
-            
+
         # Finished unregular grid
         elif len(np.unique([len(x[x==i])for i in np.unique(x)]))==1 :
-            
+
             # Nb points in the 1st dimension
             xn = len(np.unique(x))
 
@@ -280,15 +366,15 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
 
         # Unfinished unregular grid
         elif y[0]!=y[len(x[x==x[0]])]:
-            
+
             # Nb points in the 1st dimension
             xn = len(np.unique(x))
-            
+
             # Nb points in the 2nd dimension
             yn = len(x[x==x[0]])
-            
+
             ## Build "full" x, y and z
-            
+
             # Find how many element a finished grid would have
             # Number of element per x value
             t = np.array([len(x[x==i])for i in np.unique(x)])
@@ -297,7 +383,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
             tFinished = (len(t[t==min(t)]) + len(t[t==tmax]))*tmax
             # Number of missing element
             nbMissing = tFinished - len(x)
-            
+
             ## Interpolate last y value based on the last done scan
             # Last full y measured
             yLastFull = y[-2*tmax+nbMissing:-tmax+nbMissing]
@@ -312,12 +398,12 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
             x = np.concatenate((x, [x[-1]]*nbMissing))
             y = np.concatenate((y, yMissing[1:]))
             z = np.concatenate((z, [np.nan]*nbMissing))
-            
+
         # Unfinished regular grid
         else:
-            
+
             ## Build "full" x, y and z
-            
+
             # Find how many element a finished grid would have
             # Number of element per x value
             t = np.array([len(x[x==i])for i in np.unique(x)])
@@ -325,16 +411,16 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
             tFinished = (len(t[t==min(t)]) + len(t[t==max(t)]))*max(t)
             # Number of missing element
             nbMissing = tFinished - len(x)
-            
+
             # Nb points in the 1st dimension
             xn = len(np.unique(x))
             # Nb points in the 2nd dimension
             yn = len(np.unique(y))
-            
+
             x = np.concatenate((x, [x[-1]]*nbMissing))
             y = np.concatenate((y, y[:yn][-nbMissing:]))
             z = np.concatenate((z, [np.nan]*nbMissing))
-            
+
 
 
         ## Get the 2d matrices for x, y and z

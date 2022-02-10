@@ -7,7 +7,7 @@ from typing import Optional
 
 from .config import config
 
-class ImportBlueFors:
+class LoadBlueFors:
 
 
     def __init__(self, mainObject):
@@ -20,7 +20,7 @@ class ImportBlueFors:
             Instance of the main, see MainApp.
         """
 
-        super(ImportBlueFors, self).__init__()
+        super(LoadBlueFors, self).__init__()
 
         self.main = mainObject
 

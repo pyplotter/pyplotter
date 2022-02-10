@@ -7,6 +7,28 @@ def _parse_number(number: float,
                   precision: int,
                   inverse: bool=False,
                   unified: bool=False) -> Union[str, Tuple[str, str]]:
+    """
+    Return a number parsed form human reading with SI prefix
+    Example:
+        parse_number(1.23456789e-7, 3) -> ('123.457', 'n')
+        parse_number(1.23456789e-7, 3) -> ('123.5', 'n')
+        parse_number(1.6978e-7, 3, True) -> ('169.78', 'G')
+
+    Args:
+        number:
+            Number to be parsed
+        precision:
+            Precision to round the number after the decimal
+        inverse:
+            If True, returns the inverse of the SI prefix.
+            Defaults to False.
+        unified:
+        If True, return an unique string such as
+            parse_number(1.23456789e-7, 3) -> ('123.457 n')
+            parse_number(1.23456789e-7, 3) -> ('123.5 n')
+            parse_number(1.6978e-7, 3, True) -> ('169.78 G')
+    """
+
     if number!=0:
         power_ten = int(log10(abs(number))//3*3)
     else:

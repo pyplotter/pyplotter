@@ -13,7 +13,6 @@ from .config import config
 from .plot_app import PlotApp
 from . import fit
 from . import filtering
-from .DateAxisItem import DateAxisItem
 
 
 
@@ -229,7 +228,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # If the xaxis used timestamp, we use a dedicated axisItem
         if self.timestampXAxis:
             # This utc offset is unclear to me...
-            self.plotItem.setAxisItems({'bottom' : DateAxisItem(utcOffset=0.)})
+            self.plotItem.setAxisItems({'bottom' : pg.DateAxisItem(utcOffset=0.)})
 
         # Display initial data curve
         if curveLegend is None:

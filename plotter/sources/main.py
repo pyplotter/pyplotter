@@ -21,20 +21,20 @@ except AttributeError:
     import pyqtgraph as pg
 
 
-from .importcsv import ImportCSV
-from .importbluefors import ImportBlueFors
+from .loadCSV import LoadCSV
+from .loadBluefors import LoadBlueFors
 from .qcodesdatabase import QcodesDatabase
 from .runpropertiesextra import RunPropertiesExtra
-from .mytablewidgetitem import MyTableWidgetItem
-from .importdatabase import ImportDatabaseThread
-from .loaddata import LoadDataThread
-from .loaddatafromcache import LoadDataFromCacheThread
+from ..ui.mytablewidgetitem import MyTableWidgetItem
+from .workers.loadDataBase import loadDataBaseThread
+from .workers.loadDataFromRun import LoadDataFromRunThread
+from .workers.loadDataFromCache import LoadDataFromCacheThread
 from .config import config
 from .plot_1d_app import Plot1dApp
 from .plot_2d_app import Plot2dApp
 from ..ui import main
 from ..ui.viewtree import ViewTree
-from .dbMenu import ClickDbMenu
+from ..ui.dbMenuWidget import dbMenuWidget
 
 pg.setConfigOption('background', config['styles'][config['style']]['pyqtgraphBackgroundColor'])
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
@@ -202,7 +202,7 @@ def getData(self):
     return self.xDisp, self.yDisp
 
 pg.PlotDataItem.getData = getData
-class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, ClickDbMenu):
+class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbMenuWidget):
 
 
 
@@ -280,9 +280,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
         # Handle connection and requests to qcodes database
         self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
         # Handle log files from bluefors fridges
-        self.importblueFors = ImportBlueFors(self)
+        self.LoadBlueFors = LoadBlueFors(self)
         # Handle csv files
-        self.importcsv      = ImportCSV(self)
+        self.LoadCSV      = LoadCSV(self)
 
 
         # By default, we browse the root folder
@@ -395,7 +395,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
             if os.path.isdir(abs_filename):
 
                 # If looks like a BlueFors log folder
-                if self.importblueFors.isBlueForsFolder(file):
+                if self.LoadBlueFors.isBlueForsFolder(file):
                     item =  QtWidgets.QTableWidgetItem(file)
                     item.setIcon(QtGui.QIcon(PICTURESPATH+'bluefors.png'))
 
@@ -478,9 +478,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
             nextPath = os.path.join(self.currentPath, self._currentDatabase)
 
             # If the folder is a BlueFors folder
-            if self.importblueFors.isBlueForsFolder(self._currentDatabase):
+            if self.LoadBlueFors.isBlueForsFolder(self._currentDatabase):
 
-                self.importblueFors.blueForsFolderClicked(directory=nextPath)
+                self.LoadBlueFors.blueForsFolderClicked(directory=nextPath)
                 self.folderClicked(directory=self.currentPath)
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
@@ -490,7 +490,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
             # If it is a csv or a s2p file
             elif nextPath[-3:].lower() in ['csv', 's2p']:
 
-                self.importcsv.csvFileClicked(nextPath)
+                self.LoadCSV.csvFileClicked(nextPath)
                 self.folderClicked(directory=self.currentPath)
             # If it is a QCoDeS database
             else:
@@ -561,7 +561,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
         progressBarKey = self.addProgressBarInStatusBar()
 
         # Create a thread which will read the database
-        worker = ImportDatabaseThread(self.qcodesDatabase.getRunInfos, progressBarKey)
+        worker = loadDataBaseThread(self.qcodesDatabase.getRunInfos, progressBarKey)
 
         # Connect signals
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
@@ -1318,7 +1318,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
             if self._currentDatabase is None:
                 return ''
             # If BlueFors log files
-            elif self.importblueFors.isBlueForsFolder(self._currentDatabase):
+            elif self.LoadBlueFors.isBlueForsFolder(self._currentDatabase):
                 return self._currentDatabase
             # If csv or s2p files we return the filename without the extension
             elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
@@ -1362,7 +1362,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
             path = os.path.abspath(self._currentDatabase)
 
             # If BlueFors log files
-            if self.importblueFors.isBlueForsFolder(self._currentDatabase):
+            if self.LoadBlueFors.isBlueForsFolder(self._currentDatabase):
                 dataPath = path
             # If csv or s2p files we return the filename without the extension
             elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
@@ -1924,8 +1924,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
             # Specific 1d optional parameter
             # print(timestampXAxis)
             # if timestampXAxis is None:
-            #     timestampXAxis = self.importblueFors.isBlueForsFolder(self._currentDatabase)
-            # print(self.importblueFors.isBlueForsFolder(self._currentDatabase))
+            #     timestampXAxis = self.LoadBlueFors.isBlueForsFolder(self._currentDatabase)
+            # print(self.LoadBlueFors.isBlueForsFolder(self._currentDatabase))
             # print(timestampXAxis)
             # If the plotRef is not stored we launched a new window
             # Otherwise we add a new PlotDataItem on an existing plot1dApp
@@ -2137,7 +2137,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
 
         progressBarKey = self.addProgressBarInStatusBar()
 
-        worker = LoadDataThread(runId,
+        worker = LoadDataFromRunThread(runId,
                                 curveId,
                                 plotTitle,
                                 windowTitle,
@@ -2165,7 +2165,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, Cli
 
     def updateDataEmpty(self) -> None:
         """
-        Method called by LoadDataThread when the data download is done but the
+        Method called by LoadDataFromRunThread when the data download is done but the
         database is empty.
         We signal the data downloading being done by setting the flag False.
         This will allow the next live plot iteration to try downloading the data

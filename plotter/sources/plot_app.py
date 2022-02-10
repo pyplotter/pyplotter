@@ -6,10 +6,10 @@ import pyqtgraph as pg
 
 from .config import config
 from ..ui.plot_widget import PlotWidget
-from .dbMenu import ClickDbMenu
+from ..ui.dbMenuWidget import dbMenuWidget
 
 
-class PlotApp(ClickDbMenu):
+class PlotApp(dbMenuWidget):
     """
     Class to handle ploting in 1d.
     """

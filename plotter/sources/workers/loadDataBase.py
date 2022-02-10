@@ -3,18 +3,18 @@ from PyQt5 import QtCore, QtTest
 from typing import Callable
 
 
-from .config import config
+from ..config import config
 
-class ImportDatabaseSignal(QtCore.QObject):
+class loadDataBaseSignal(QtCore.QObject):
     """
-    Class containing the signal of the ImportDatabaseThread, see below
+    Class containing the signal of the loadDataBaseThread, see below
     """
 
 
     # When the run method is done
     updateDatabase = QtCore.pyqtSignal(str, bool, int)
     # Signal used to update the status bar
-    setStatusBarMessage = QtCore.pyqtSignal(str, bool)  
+    setStatusBarMessage = QtCore.pyqtSignal(str, bool)
     # Signal used to add n rows in the database table
     addRows = QtCore.pyqtSignal(list, list, list, list, list, list, list, list, int, str)
     # Signal used to update the progress bar
@@ -23,7 +23,7 @@ class ImportDatabaseSignal(QtCore.QObject):
 
 
 
-class ImportDatabaseThread(QtCore.QRunnable):
+class loadDataBaseThread(QtCore.QRunnable):
 
 
     def __init__(self, getRunInfos: Callable[[int], dict], progressBarKey: str):
@@ -39,12 +39,12 @@ class ImportDatabaseThread(QtCore.QRunnable):
             Key to the progress bar in the dict progressBars
         """
 
-        super(ImportDatabaseThread, self).__init__()
+        super(loadDataBaseThread, self).__init__()
 
         self.getRunInfos    = getRunInfos
         self.progressBarKey = progressBarKey
-        
-        self.signals = ImportDatabaseSignal() 
+
+        self.signals = loadDataBaseSignal()
 
 
 
@@ -70,9 +70,9 @@ class ImportDatabaseThread(QtCore.QRunnable):
         # Going through the database here
         self.signals.setStatusBarMessage.emit('Loading database', False)
         nbTotalRun = len(runInfos)
-        
-        
-        # We go through the runs info and build list to be transferred to the main 
+
+
+        # We go through the runs info and build list to be transferred to the main
         # thread. Every config['NbRunEmit'] a signal is emitted and the list are
         # empty and the process starts again until all info have been stransferred.
         runId           = []
@@ -83,8 +83,8 @@ class ImportDatabaseThread(QtCore.QRunnable):
         started         = []
         completed       = []
         runRecords      = []
-        for key, val in runInfos.items(): 
-            
+        for key, val in runInfos.items():
+
             runId.append(key)
             dim.append('-'.join(str(i) for i in val['nb_independent_parameter'])+'d')
             experimentName.append(val['experiment_name'])
@@ -93,7 +93,7 @@ class ImportDatabaseThread(QtCore.QRunnable):
             started.append(val['started'])
             completed.append(val['completed'])
             runRecords.append(str(val['records']))
-            
+
             # If we reach enough data, we emit the signal.
             if key%config['NbRunEmit']==0:
                 self.signals.addRows.emit(runId,
@@ -106,7 +106,7 @@ class ImportDatabaseThread(QtCore.QRunnable):
                                          runRecords,
                                          nbTotalRun,
                                          self.progressBarKey)
-                
+
                 runId           = []
                 dim             = []
                 experimentName  = []
@@ -115,7 +115,7 @@ class ImportDatabaseThread(QtCore.QRunnable):
                 started         = []
                 completed       = []
                 runRecords      = []
-        
+
         # If there is still information to be transferred, we do so
         if len(runId)!=0:
             self.signals.addRows.emit(runId,
