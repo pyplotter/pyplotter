@@ -1093,6 +1093,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.removePlot(ifftPlot, curveId)
 
         self.addPlot(plotRef        = self.plotRef+'fft',
+                     dataBaseName   = self.dataBaseName,
+                     dataBaseAbsPath= self.dataBaseAbsPath,
                      data           = [x, y],
                      xLabelText     = xLabelText,
                      xLabelUnits    = xLabelUnits,
@@ -1154,6 +1156,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.cleanCheckBox(**kwargs)
 
                 self.addPlot(plotRef        = plotRef,
+                             dataBaseName   = self.dataBaseName,
+                             dataBaseAbsPath= self.dataBaseAbsPath,
                              data           = [x, y],
                              xLabelText     = self.plotItem.axes['bottom']['item'].labelText,
                              xLabelUnits    = self.plotItem.axes['bottom']['item'].labelUnits,
@@ -1213,6 +1217,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.cleanCheckBox(**kwargs)
 
                 self.addPlot(plotRef        = plotRef,
+                             dataBaseName   = self.dataBaseName,
+                             dataBaseAbsPath= self.dataBaseAbsPath,
                              data           = [x, y],
                              xLabelText     = self.plotItem.axes['bottom']['item'].labelText,
                              xLabelUnits    = self.plotItem.axes['bottom']['item'].labelUnits,
@@ -1288,6 +1294,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.cleanCheckBox(**kwargs)
 
                 self.addPlot(plotRef        = plotRef,
+                             dataBaseName   = self.dataBaseName,
+                             dataBaseAbsPath= self.dataBaseAbsPath,
                              data           = [x, y],
                              xLabelText     = xLabelText,
                              xLabelUnits    = xLabelUnits,
@@ -1357,6 +1365,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
                 self.addPlot(plotRef        = plotRef,
+                             dataBaseName   = self.dataBaseName,
+                             dataBaseAbsPath= self.dataBaseAbsPath,
                              data           = [x, y],
                              xLabelText     = xLabelText,
                              xLabelUnits    = xLabelUnits,

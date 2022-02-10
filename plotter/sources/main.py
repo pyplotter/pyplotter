@@ -1579,7 +1579,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         plotTitle   = self.getPlotTitle(livePlot=True)
         windowTitle = self.getWindowTitle(runId=self._livePlotRunId,
-                                            livePlot=True)
+                                          livePlot=True)
+
+        dataBaseName    = self._livePlotDataBaseName
+        dataBaseAbsPath = os.path.normpath(os.path.join(self._livePlotPath, self._livePlotDataBaseName)).replace("\\", "/")
 
         # We get the liveplot parameters
         self.livePlotGetPlotParameters()
@@ -1601,6 +1604,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                   [0., 1.]])]
 
             self.addPlot(plotRef        = plotRef,
+                         dataBaseName   = dataBaseName,
+                         dataBaseAbsPath= dataBaseAbsPath,
                          data           = data,
                          xLabelText     = xParamLabel,
                          xLabelUnits    = xParamUnit,
