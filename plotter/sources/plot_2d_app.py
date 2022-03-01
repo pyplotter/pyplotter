@@ -7,6 +7,7 @@ import pyqtgraph.opengl as gl
 from pyqtgraph.GraphicsScene.mouseEvents import MouseClickEvent
 from typing import Union, Tuple, Callable, Optional
 import inspect
+from math import atan2
 import uuid
 
 from ..ui.plot2dWidget import Ui_Dialog
@@ -214,6 +215,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
         # Connect UI
+        self.checkBoxFindSlope.stateChanged.connect(self.cbFindSlope)
         self.checkBoxDrawIsoCurve.stateChanged.connect(self.cbIsoCurve)
         self.checkBoxInvert.stateChanged.connect(lambda : self.cbcmInvert(self.checkBoxInvert))
         self.checkBoxMaximum.stateChanged.connect(self.checkBoxExtractionState)
@@ -1275,6 +1277,82 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Set the colormap
         pgColormap =  pg.ColorMap(pos, rgba_colors)
         self.histWidget.item.gradient.setColorMap(pgColormap)
+
+
+
+    ####################################
+    #
+    #           FindSlope
+    #
+    ####################################
+
+
+
+    def cbFindSlope(self, b: QtWidgets.QCheckBox) -> None:
+        """
+        Method called when user clicks on the Find slope checkbox.
+        Display a LineSegmentROI with information about its angle and length ratio.
+
+        Parameters
+        ----------
+        b : QtWidgets.QCheckBox
+            Draw isocurve checkbox
+        """
+
+        # Uncheck
+        if b==0:
+            self.plotItem.removeItem(self.slopeLineSegmentROI)
+            self.plotItem.removeItem(self.textSlope1)
+            self.plotItem.removeItem(self.textSlope2)
+            del(self.slopeLineSegmentROI)
+            del(self.textSlope1)
+            del(self.textSlope2)
+        # Check
+        else:
+            dx = self.xData[-1]-self.xData[0]
+            dy = self.yData[-1]-self.yData[0]
+            point1 = (self.xData[0]+dx/4,   self.yData[0]+dy/4)
+            point2 = (self.xData[0]+dx*3/4, self.yData[0]+dy*3/4)
+
+            self.slopeLineSegmentROI = pg.LineSegmentROI(positions=(point1, point2))
+
+            self.textSlope1 = pg.TextItem(anchor=(0,0),
+                                          color=(255, 255, 255),
+                                          fill=config['plot1dColors'][0])
+
+            self.textSlope2 = pg.TextItem(anchor=(0,0),
+                                          color=(255, 255, 255),
+                                          fill=config['plot1dColors'][1])
+
+            self.slopeLineSegmentROI.sigRegionChanged.connect(self.findSlopeDragged)
+
+            self.plotItem.addItem(self.textSlope1)
+            self.plotItem.addItem(self.textSlope2)
+            self.plotItem.addItem(self.slopeLineSegmentROI)
+
+            self.findSlopeDragged()
+
+            self.plotItem.enableAutoRange()
+
+
+    def findSlopeDragged(self):
+        """
+        Method called when user drags the findSlope LineSegmentROI.
+        Compute the angle and length ratio of the LineSegmentROI and display it.
+        """
+
+        pos0, pos1 = [self.plotItem.vb.mapSceneToView(i[1]) for i in self.slopeLineSegmentROI.getSceneHandlePositions()]
+        point1 = (pos0.x(), pos0.y())
+        point2 = (pos1.x(), pos1.y())
+
+        angle = atan2(point2[1]-point1[1], point2[0]-point1[0])*180/np.pi
+        self.textSlope1.setPos(point1[0], point1[-1])
+        self.textSlope1.setText('∡ = {:0.2e} deg'.format(angle))
+
+        ratio = (point2[1]-point1[1])/(point2[0]-point1[0])
+        self.textSlope2.setPos(point2[0], point2[-1])
+        self.textSlope2.setHtml('<sup>y</sup>/<sub>x</sub> = {:0.2e}/{:0.2e} = {:0.2e}'.format(point2[1]-point1[1], point2[0]-point1[0], ratio))
+
 
 
 
