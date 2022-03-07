@@ -122,7 +122,7 @@
               <x>0</x>
               <y>0</y>
               <width>232</width>
-              <height>593</height>
+              <height>595</height>
              </rect>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -345,18 +345,22 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="checkBoxFindSlope">
-                  <property name="font">
-                   <font>
-                    <pointsize>8</pointsize>
-                    <weight>50</weight>
-                    <bold>false</bold>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>find slope</string>
-                  </property>
-                 </widget>
+                 <layout class="QHBoxLayout" name="horizontalLayoutFindSlope">
+                  <item>
+                   <widget class="QCheckBox" name="checkBoxFindSlope">
+                    <property name="font">
+                     <font>
+                      <pointsize>8</pointsize>
+                      <weight>50</weight>
+                      <bold>false</bold>
+                     </font>
+                    </property>
+                    <property name="text">
+                     <string>find slope</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </item>
                 <item>
                  <widget class="QCheckBox" name="checkBoxDrawIsoCurve">

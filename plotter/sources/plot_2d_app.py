@@ -5,7 +5,7 @@ import pyqtgraph as pg
 from pyqtgraph.graphicsItems.LinearRegionItem import LinearRegionItem
 import pyqtgraph.opengl as gl
 from pyqtgraph.GraphicsScene.mouseEvents import MouseClickEvent
-from typing import Union, Tuple, Callable, Optional
+from typing import Union, Tuple, Callable, Optional, List
 import inspect
 from math import atan2
 import uuid
@@ -1301,58 +1301,118 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Uncheck
         if b==0:
-            self.plotItem.removeItem(self.slopeLineSegmentROI)
-            self.plotItem.removeItem(self.textSlope1)
-            self.plotItem.removeItem(self.textSlope2)
-            del(self.slopeLineSegmentROI)
-            del(self.textSlope1)
-            del(self.textSlope2)
+            self.findSlopeLineRemove(self.findSlopeLines[-1])
+            del(self.findSlopeLines)
+            self.findSlopesb.deleteLater()
+            self.horizontalLayoutFindSlope.removeWidget(self.findSlopesb)
         # Check
         else:
-            dx = self.xData[-1]-self.xData[0]
-            dy = self.yData[-1]-self.yData[0]
-            point1 = (self.xData[0]+dx/4,   self.yData[0]+dy/4)
-            point2 = (self.xData[0]+dx*3/4, self.yData[0]+dy*3/4)
 
-            self.slopeLineSegmentROI = pg.LineSegmentROI(positions=(point1, point2))
+            # Add a spinBox in the GUI and create an empty list to keep track of
+            # all the future findSlope widgets
+            self.findSlopeLines: List[pg.LineSegmentROI]= []
+            self.findSlopesb = QtWidgets.QSpinBox()
+            self.findSlopesb.setValue(1)
 
-            self.textSlope1 = pg.TextItem(anchor=(0,0),
-                                          color=(255, 255, 255),
-                                          fill=config['plot1dColors'][0])
+            self.findSlopesb.valueChanged.connect(self.findSlopesbChanged)
+            self.horizontalLayoutFindSlope.addWidget(self.findSlopesb)
 
-            self.textSlope2 = pg.TextItem(anchor=(0,0),
-                                          color=(255, 255, 255),
-                                          fill=config['plot1dColors'][1])
-
-            self.slopeLineSegmentROI.sigRegionChanged.connect(self.findSlopeDragged)
-
-            self.plotItem.addItem(self.textSlope1)
-            self.plotItem.addItem(self.textSlope2)
-            self.plotItem.addItem(self.slopeLineSegmentROI)
-
-            self.findSlopeDragged()
-
-            self.plotItem.enableAutoRange()
+            self.findSlopesbChanged()
 
 
-    def findSlopeDragged(self):
+
+    def findSlopesbChanged(self):
         """
-        Method called when user drags the findSlope LineSegmentROI.
+        Method called when user clicks on the findSlope spinBox.
+        Its value defines the number of findSlope widget displayed on the
+        plotItem.
+        """
+
+        nbFindSlope = self.findSlopesb.value()
+        # If there is no findSlope widget to display, we remove the spinBox widget
+        if nbFindSlope==0:
+            self.checkBoxFindSlope.setChecked(False)
+        else:
+            # Otherwise, we add or remove findSlope widget
+            if len(self.findSlopeLines)<nbFindSlope:
+                self.findSlopeLineAdd()
+            else:
+                self.findSlopeLineRemove(self.findSlopeLines[-1])
+
+
+    def findSlopeLineAdd(self):
+        """
+        Add a findSlope widget.
+        All findSlope widgets are store in the findSlopeLines attribute.
+        """
+
+        dx = self.xData[-1]-self.xData[0]
+        dy = self.yData[-1]-self.yData[0]
+        point1 = (self.xData[0]+dx/4,   self.yData[0]+dy/4)
+        point2 = (self.xData[0]+dx*3/4, self.yData[0]+dy*3/4)
+
+        slopeLineSegmentROI = pg.LineSegmentROI(positions=(point1, point2))
+
+        textSlope1 = pg.TextItem(anchor=(0,0),
+                                    color=(255, 255, 255),
+                                    fill=config['plot1dColors'][0])
+
+        textSlope2 = pg.TextItem(anchor=(0,0),
+                                    color=(255, 255, 255),
+                                    fill=config['plot1dColors'][1])
+
+        slopeLineSegmentROI.textSlope1 = textSlope1
+        slopeLineSegmentROI.textSlope2 = textSlope2
+
+        slopeLineSegmentROI.sigRegionChanged.connect(lambda line=slopeLineSegmentROI:self.findSlopeDragged(line))
+
+        self.plotItem.addItem(slopeLineSegmentROI.textSlope1)
+        self.plotItem.addItem(slopeLineSegmentROI.textSlope2)
+        self.plotItem.addItem(slopeLineSegmentROI)
+
+        self.findSlopeDragged(slopeLineSegmentROI)
+
+        self.imageView.autoRange()
+        self.imageView.autoRange()
+
+        self.findSlopeLines.append(slopeLineSegmentROI)
+
+
+
+    def findSlopeLineRemove(self, line:pg.LineSegmentROI):
+        """
+        Remove the findSlope widget given in parameter from the plotItem and
+        from the class memory.
+
+        Args:
+            line: the slopeWidget item that we want removed
+        """
+
+        self.plotItem.removeItem(line)
+        self.plotItem.removeItem(line.textSlope1)
+        self.plotItem.removeItem(line.textSlope2)
+
+        self.findSlopeLines.remove(line)
+
+
+
+    def findSlopeDragged(self, line:pg.LineSegmentROI):
+        """
+        Method called when user drags the findSlope LineSegmentROI in parameter.
         Compute the angle and length ratio of the LineSegmentROI and display it.
         """
 
-        pos0, pos1 = [self.plotItem.vb.mapSceneToView(i[1]) for i in self.slopeLineSegmentROI.getSceneHandlePositions()]
+        pos0, pos1 = [self.plotItem.vb.mapSceneToView(i[1]) for i in line.getSceneHandlePositions()]
         point1 = (pos0.x(), pos0.y())
         point2 = (pos1.x(), pos1.y())
 
         angle = atan2(point2[1]-point1[1], point2[0]-point1[0])*180/np.pi
-        self.textSlope1.setPos(point1[0], point1[-1])
-        self.textSlope1.setText('∡ = {:0.2e} deg'.format(angle))
+        line.textSlope1.setPos(point1[0], point1[-1])
+        line.textSlope1.setText('∡ = {:0.2e} deg'.format(angle))
 
         ratio = (point2[1]-point1[1])/(point2[0]-point1[0])
-        self.textSlope2.setPos(point2[0], point2[-1])
-        self.textSlope2.setHtml('<sup>y</sup>/<sub>x</sub> = {:0.2e}/{:0.2e} = {:0.2e}'.format(point2[1]-point1[1], point2[0]-point1[0], ratio))
-
+        line.textSlope2.setPos(point2[0], point2[-1])
+        line.textSlope2.setHtml('<sup>y</sup>/<sub>x</sub> = {:0.2e}/{:0.2e} = {:0.2e}'.format(point2[1]-point1[1], point2[0]-point1[0], ratio))
 
 
 
