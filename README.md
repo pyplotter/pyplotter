@@ -3,7 +3,22 @@
 A data browser and vizualizer for QCoDes database, csv, s2p and BlueFors logging files. The purpose of the plotter is to make data exploration as simple and fast as possible. You should never waste time to plot some raw, do some simple fit, ... and that's why the plotter do it for you.
 
 
-## Getting Started
+## ⚙️ Getting Started
+
+### 🔗 Requirements
+
+Currently the following packages are required:
+* qcodes>=0.26.0
+* qdarkstyle
+* lmfit
+* numpy>=1.17.0
+* pandas>=1.0.0
+* pyopengl
+* pyqt5
+* pyqt5-sip
+* pyqtgraph>=0.12.3
+* scikit-rf
+* scipy
 
 ### Installation
 
@@ -35,7 +50,7 @@ To launch the plotter, open an anaconda powershell and type
 pyplotter
 ```
 
-## Use
+## 🛠️ Use
 
 ### Tip
 
@@ -122,7 +137,7 @@ When at least two curves are plotted, an "Add curves" tab will appear allowing u
 ![addCurve](doc/addCurve_01.gif)
 
 
-## Known issues
+## ⚠️ Known issues
 
 ### Read data taken by a newer QCoDeS version
 
@@ -154,15 +169,15 @@ To solve the issue, just update your QCoDeS verion:
 pip install --upgrade qcodes
 ```
 
-## Authors
+## 👷🏼 Authors
 
 * **Etienne Dumur** -*main developer*- etienne.dumur@cea.fr
 
-## License
+## 🕹️ License
 
 MIT
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 * [plottr](https://github.com/toolsforexperiments/plottr), for the inspiration of some interfaces.
 * [pyqtgraph](http://www.pyqtgraph.org/), for the amazing and **fast** plotting library.
