@@ -1,4 +1,4 @@
-# Plotter
+# pyplotter
 
 A data browser and vizualizer for QCoDes database, csv, s2p and BlueFors logging files. The purpose of the plotter is to make data exploration as simple and fast as possible. You should never waste time to plot some raw, do some simple fit, ... and that's why the plotter do it for you.
 
@@ -10,16 +10,16 @@ A data browser and vizualizer for QCoDes database, csv, s2p and BlueFors logging
 The easiest way is to clone the repository where you want to download the plotter.
 
 ```bash
-git clone https://codev-tuleap.intra.cea.fr/plugins/git/qusi/plotter
-cd plotter
+git clone https://github.com/pyplotter/pyplotter
+cd pyplotter
 pip install -e .
 ```
 
-Before launching the software, open the `config` file located in `plotter/sources/config.py`. You should see the wollowing lines:
+Before launching the software, open the `config` file located in `pyplotter/sources/config.py`. You should see the wollowing lines:
 
 ```python
-'root' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
-'path' : 'S:/132-PHELIQS/132.05-LATEQS/132.05.01-QuantumSilicon',
+'root' : 'C:/',
+'path' : 'C:/',
 ```
 
 Theses lines are used as default path. You may however chose another default path corresponding to your local situation. If so, modify these lines so that it matches your current network. When it is done, it is important to commit locally these changes to avoid to lose them when updating the plotter.
@@ -54,7 +54,7 @@ Once the software is launched, you access the main window shown below
 4. Status bar, display information about the GUI.
 5. When a QCoDeS database is selected, a livemode can be activated by checking the box.
 6. Display information about a selected run.
-7. Display information available for QCoDeS runs and "s2p" files. 
+7. Display information available for QCoDeS runs and "s2p" files.
 
 When you select a QCoDeS database and a run, you will fill panel 4, 6 and 6 as shown below
 
@@ -130,21 +130,21 @@ QCoDeS ensures backward but not forward compatibility for the data which means t
 Otherwise the plotter will most likely have error like the following one:
 ```bash
 Traceback (most recent call last):
-  File "s:\132-pheliqs\132.05-lateqs\edumur\scripts\plotter\plotter\sources\loaddata.py", line 89, in run
+  File "...\pyplotter\pyplotter\sources\loaddata.py", line 89, in run
     d = self.getParameterData(self.runId, paramsDependent['name'], self.signals.updateProgressBar, self.progressBarKey)
-  File "s:\132-pheliqs\132.05-lateqs\edumur\scripts\plotter\plotter\sources\qcodesdatabase.py", line 743, in getParameterData
+  File "...\pyplotter\pyplotter\sources\qcodesdatabase.py", line 743, in getParameterData
     ds =  load_by_id(run_id=int(runId), conn=conn)
-  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\data_set.py", line 1228, in load_by_id
+  File "...\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\data_set.py", line 1228, in load_by_id
     d = DataSet(conn=conn, run_id=run_id)
-  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\data_set.py", line 295, in __init__
+  File "...\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\data_set.py", line 295, in __init__
     run_desc = self._get_run_description_from_db()
-  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\data_set.py", line 559, in _get_run_description_from_db
+  File "...\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\data_set.py", line 559, in _get_run_description_from_db
     return serial.from_json_to_current(desc_str)
-  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\descriptions\versioning\serialization.py", line 115, in from_json_to_current
+  File "...\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\descriptions\versioning\serialization.py", line 115, in from_json_to_current
     return from_dict_to_current(json.loads(json_str))
-  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\descriptions\versioning\serialization.py", line 70, in from_dict_to_current
+  File "...\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\descriptions\versioning\serialization.py", line 70, in from_dict_to_current
     desc = from_dict_to_native(dct)
-  File "C:\Users\ed261978\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\descriptions\versioning\serialization.py", line 63, in from_dict_to_native
+  File "...\Anaconda3\envs\python37\lib\site-packages\qcodes\dataset\descriptions\versioning\serialization.py", line 63, in from_dict_to_native
     return run_describers[dct['version']]._from_dict(dct)
 KeyError: 2
 ```
@@ -160,7 +160,7 @@ pip install --upgrade qcodes
 
 ## License
 
-Surely free but I have to chose one.
+MIT
 
 ## Acknowledgments
 

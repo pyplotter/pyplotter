@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 from setuptools import setup, find_packages
 
-setup(name='plotter',
+setup(name='pyplotter',
       version='0.1.0',
       use_2to3=False,
       author='Étienne Dumur',
@@ -33,6 +33,7 @@ setup(name='plotter',
       ],
       entry_points={
           'console_scripts':[
-              'plotter = plotter.plotter:main',
+              'plotter = pyplotter.pyplotter:main',
+              'pyplotter = pyplotter.pyplotter:main',
           ]
        })
