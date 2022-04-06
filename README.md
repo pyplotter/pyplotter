@@ -32,7 +32,7 @@ Congrats, the plotter is ready to be used.
 To launch the plotter, open an anaconda powershell and type
 
 ```bash
-plotter
+pyplotter
 ```
 
 ## Use
