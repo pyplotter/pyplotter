@@ -156,7 +156,7 @@ pip install --upgrade qcodes
 
 ## Authors
 
-* **Etienne Dumur** -*main developer*- etienne.dumur@gmail.com
+* **Etienne Dumur** -*main developer*- etienne.dumur@cea.fr
 
 ## License
 
