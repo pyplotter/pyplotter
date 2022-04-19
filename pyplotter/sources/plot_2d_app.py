@@ -227,6 +227,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.pushButton3d.clicked.connect(self.launched3d)
         self.spinBoxFontSize.valueChanged.connect(self.clickFontSize)
         self.plotItem.scene().sigMouseClicked.connect(self.plotItemDoubleClicked)
+        self.radioButtonSliceSingleAny.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceSingleVertical.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceAveragedHorizontal.toggled.connect(self.radioBoxSliceChanged)
@@ -556,8 +557,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         Return the type of slice the user want
         """
+
         if self.radioButtonSliceSingleHorizontal.isChecked() or self.radioButtonSliceSingleVertical.isChecked():
             sliceItem = 'InfiniteLine'
+        elif self.radioButtonSliceSingleAny.isChecked():
+            sliceItem = 'LineSegmentROI'
         else:
             sliceItem = 'LinearRegionItem'
 
@@ -580,14 +584,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if self.checkBoxSwapxy.isChecked():
             if sliceOrientation=='vertical':
                 return self.getPlotFromRef(self.plotRef, 'horizontal')
-            else:
+            elif sliceOrientation=='horizontal':
                 return self.getPlotFromRef(self.plotRef, 'vertical')
         else:
             return self.getPlotFromRef(self.plotRef, sliceOrientation)
 
 
 
-    def getSliceItemOrientation(self, sliceItem: Union[pg.InfiniteLine, pg.LinearRegionItem]) -> str:
+    def getSliceItemOrientation(self, sliceItem: Union[pg.InfiniteLine, pg.LineSegmentROI, pg.LinearRegionItem]) -> str:
         """
         Return the orientation of the sliceItem.
 
@@ -606,8 +610,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 lineOrientation = 'horizontal'
             else:
                 lineOrientation = 'vertical'
-        else:
+        elif isinstance(sliceItem, pg.LinearRegionItem):
             lineOrientation = sliceItem.orientation
+        else:
+            lineOrientation = 'any'
 
         return lineOrientation
 
@@ -620,8 +626,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         if self.radioButtonSliceSingleHorizontal.isChecked() or self.radioButtonSliceAveragedHorizontal.isChecked():
             self.sliceOrientation = 'horizontal'
-        else:
+        elif self.radioButtonSliceSingleVertical.isChecked() or self.radioButtonSliceAveragedVertical.isChecked():
             self.sliceOrientation = 'vertical'
+        else:
+            self.sliceOrientation = 'any'
 
 
     @staticmethod
@@ -634,9 +642,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def dragSliceItem(self, sliceItem : Union[pg.InfiniteLine, pg.LinearRegionItem],
-                            curveId          : str,
-                            lineOrientation  : str) -> None:
+    def dragSliceItem(self, sliceItem : Union[pg.InfiniteLine, pg.LineSegmentROI, pg.LinearRegionItem],
+                            sliceOrientation  : str) -> None:
         """
         Method call when user drag a slice line.
 
@@ -644,38 +651,50 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         ----------
         sliceItem : pg.InfiniteLine
             sliceItem currently being dragged.
-        curveId : str
-            ID of the curve associated to the slice being dragged
+        sliceOrientation : str
+            orientaton of the slice being dragged
         """
 
         # We get the slice data from the 2d plot
-        sliceX, sliceY, sliceLegend, slicePosition = self.getDataSlice(sliceItem=sliceItem)
+        sliceX, sliceY, sliceLegend, sliceLabel = self.getDataSlice(sliceItem=sliceItem)
 
         # We update the curve associated to the sliceLine
-        self.getPlotFromRef(self.plotRef, lineOrientation)\
-        .updatePlotDataItem(x                  = sliceX,
-                            y                  = sliceY,
-                            curveId            = curveId,
-                            curveLegend        = sliceLegend,
-                            curveSlicePosition = slicePosition)
+        if isinstance(sliceItem, pg.LineSegmentROI):
+            self.getPlotFromRef(self.plotRef, sliceOrientation+'horizontal')\
+            .updatePlotDataItem(x           = sliceX[0],
+                                y           = sliceY,
+                                curveId     = sliceItem.curveId,
+                                curveLegend = sliceLegend)
+            self.getPlotFromRef(self.plotRef, sliceOrientation+'vertical')\
+            .updatePlotDataItem(x           = sliceX[1],
+                                y           = sliceY,
+                                curveId     = sliceItem.curveId,
+                                curveLegend = sliceLegend)
+        else:
+            self.getPlotFromRef(self.plotRef, sliceOrientation)\
+            .updatePlotDataItem(x           = sliceX,
+                                y           = sliceY,
+                                curveId     = sliceItem.curveId,
+                                curveLegend = sliceLegend)
 
         # We update the label of the infinity line with the value corresponding
         # to the cut
         if isinstance(sliceItem, pg.InfiniteLine):
-            sliceItem.label.setFormat('{:0.2e}'.format(slicePosition))
+            sliceItem.label.setFormat(sliceLabel)
+        elif isinstance(sliceItem, pg.LinearRegionItem):
+            sliceItem.labelmin.setFormat(sliceLabel[0])
+            sliceItem.labelmax.setFormat(sliceLabel[1])
         else:
-            sliceItem.labelmin.setFormat('{:0.2e}'.format(slicePosition[0]))
-            sliceItem.labelmax.setFormat('{:0.2e}'.format(slicePosition[1]))
+            pass
 
-        # We overide a pyqtgraph attribute when user drag an infiniteLine
-        self.sliceItems[curveId].mouseHovering  = True
+        # sliceItem.setMouseHover(True)
 
 
 
     def addSliceItem(self, curveId: str,
                            sliceOrientation: str,
                            sliceItem: str,
-                           position: Optional[float]=None) -> None:
+                           position: Optional[Union[float, Tuple[float, float]]]=None) -> None:
         """
         Method call when user create a slice of the data.
         Create an InfiniteLine or a LinearRegionItem on the 2d plot and connect
@@ -689,7 +708,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # We get the current color index so that the sliceItem color match
         # with the sliceData one
-        colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation).curves[curveId].colorIndex
+        if sliceItem=='LineSegmentROI':
+            colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation+'horizontal').curves[curveId].colorIndex
+        else:
+            colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation).curves[curveId].colorIndex
+
         pen = pg.mkPen(color=config['plot1dColors'][colorIndex],
                        width=config['crossHairLineWidth'],
                        style=QtCore.Qt.SolidLine)
@@ -697,40 +720,53 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        width=config['crossHairLineWidth'],
                        style=QtCore.Qt.DashLine)
 
-        # When the user click we add a vertical or horizontale sliceItem where he clicked.
-        if sliceOrientation=='vertical':
-            angle = 90.
-            pos = self.mousePos[0]
-        else:
-            angle = 0.
-            pos = self.mousePos[1]
-
         # If the position has been given it means we are swapping the axes.
-        if position is not None:
-            pos = position
+        # otherwise, we create the slice where the user clicked.
+        if position is None:
+            if sliceOrientation=='vertical':
+                angle    = 90.
+                if sliceItem=='LinearRegionItem':
+                    dx = (self.xData[-1]-self.xData[0])/20
+                    position = (self.mousePos[0]-dx, self.mousePos[0]+dx)
+                else:
+                    position = self.mousePos[0]
+            elif sliceOrientation=='horizontal':
+                angle    = 0.
+                if sliceItem=='LinearRegionItem':
+                    dy = (self.yData[-1]-self.yData[0])/20
+                    position = (self.mousePos[1]-dy, self.mousePos[1]+dy)
+                else:
+                    position = self.mousePos[1]
+            else:
+                position = (((self.mousePos[0]+self.xData[0])/2,  (self.mousePos[1]+self.yData[0])/2),
+                            ((self.mousePos[0]+self.xData[-1])/2, (self.mousePos[1]+self.yData[-1])/2))
+
 
         # If we are adding an InfiniteLine
         if sliceItem=='InfiniteLine':
+            if sliceOrientation=='vertical':
+                angle = 90.
+            else:
+                angle = 0.
             # The label is empty for now
-            t = pg.InfiniteLine(pos=pos,
+            t = pg.InfiniteLine(pos=position,
                                 angle=angle,
                                 movable=True,
                                 pen=pen,
                                 hoverPen=hoverPen,
                                 label='',
                                 labelOpts={'position' : 0.9,
-                                        'movable' : True,
-                                        'fill': config['plot1dColors'][colorIndex]})
+                                           'movable' : True,
+                                           'fill': config['plot1dColors'][colorIndex]})
 
-            t.sigDragged.connect(lambda lineItem=t,
-                                        curveId=curveId,
-                                        lineOrientation=sliceOrientation:
-                                        self.dragSliceItem(lineItem,
-                                                           curveId,
-                                                           lineOrientation))
+            t.sigDragged.connect(lambda sliceItem=t,
+                                        sliceOrientation=sliceOrientation:
+                                        self.dragSliceItem(sliceItem,
+                                                           sliceOrientation))
         # If we are adding an LinearRegionItem
-        else:
-            t = pg.LinearRegionItem(values=[pos, pos],
+        elif sliceItem=='LinearRegionItem':
+
+            t = pg.LinearRegionItem(values=position,
                                     orientation=sliceOrientation,
                                     pen=pen,
                                     hoverPen=hoverPen,
@@ -746,16 +782,27 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                             position=0.9,
                             fill=config['plot1dColors'][colorIndex])
 
-            # For both slicing itens we attached a drag event to it
-            t.sigRegionChanged.connect(lambda lineItem=t,
-                                        curveId=curveId,
-                                        lineOrientation=sliceOrientation:
-                                        self.dragSliceItem(lineItem,
-                                                           curveId,
-                                                           lineOrientation))
+            t.sigRegionChanged.connect(lambda sliceItem=t,
+                                              sliceOrientation=sliceOrientation:
+                                              self.dragSliceItem(sliceItem,
+                                                                 sliceOrientation))
+        # If we are adding an LineSegmentROI
+        elif sliceItem=='LineSegmentROI':
+            t = pg.LineSegmentROI(positions=position,
+                                  pen=pen,
+                                  hoverPen=hoverPen)
+
+            t.sigRegionChanged.connect(lambda sliceItem=t,
+                                              sliceOrientation=sliceOrientation:
+                                              self.dragSliceItem(sliceItem,
+                                                                 sliceOrientation))
+
 
         # Add the slicing item
         self.plotItem.addItem(t)
+
+        # Attached the curveId to its associated sliceItem
+        t.curveId = curveId
 
         # We save a reference to the slicing item
         self.sliceItems[curveId] = t
@@ -763,8 +810,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # We call the dragSliceLine method to update the label(s) of the slicing
         # item
         self.dragSliceItem(sliceItem=t,
-                           curveId=curveId,
-                           lineOrientation=sliceOrientation)
+                           sliceOrientation=sliceOrientation)
 
 
 
@@ -783,9 +829,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
     def cleanSliceItem(self, plotRef     : str,
-                                windowTitle : str,
-                                runId       : int,
-                                label       : Union[str, list]) -> None:
+                             windowTitle : str,
+                             runId       : int,
+                             label       : Union[str, list]) -> None:
         """
         Called when a linked 1dPlot is closed.
         Has to have the same signature as cleanCheckBox, see MainApp.
@@ -809,9 +855,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if 'vertical' in plotRef:
             searchedAngle = 90
             searchedOrientation = 'vertical'
-        else:
+        elif 'horizontal' in plotRef:
             searchedAngle =  0
             searchedOrientation = 'horizontal'
+        else:
+            pass
 
         # Get all the curve Id to be removed
         curvesId = []
@@ -822,6 +870,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             elif isinstance(val, pg.LinearRegionItem):
                 if val.orientation==searchedOrientation:
                     curvesId.append(key)
+            elif isinstance(val, pg.LineSegmentROI):
+                    curvesId.append(key)
 
         # Effectively remove the infinity line and the curve linked to it
         [self.removeSliceItem(curveId) for curveId in curvesId]
@@ -829,7 +879,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def getDataSlice(self, sliceItem: Optional[Union[pg.InfiniteLine, pg.LinearRegionItem]]=None) -> Tuple[np.ndarray, np.ndarray, str, float]:
+    def getDataSlice(self, sliceItem: Optional[Union[pg.InfiniteLine, pg.LineSegmentROI, pg.LinearRegionItem]]=None) -> Tuple[np.ndarray, np.ndarray, str, Union[str, Tuple[str, str]]]:
         """
         Return a vertical or horizontal data slice
 
@@ -843,58 +893,127 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             position (dragging of the slice).
         """
 
-        xSlice = None
-        ySlice = None
-
-        # When sliceItem is None, We are creating the dataSlice
+        # Determine if we are handling single of average slice
         if sliceItem is None:
-            if self.sliceOrientation=='vertical':
-                xSlice = self.mousePos[0]
-            else:
-                ySlice = self.mousePos[1]
-        # Otherwise the dataSlice exist and return its position depending of its
-        # orientation
-        else:
-            if self.getSliceItemOrientation(sliceItem)=='vertical':
-                if hasattr(sliceItem, 'value'):
-                    xSlice = sliceItem.value()
+            if self.radioButtonSliceSingleHorizontal.isChecked() or self.radioButtonSliceAveragedHorizontal.isChecked() or self.radioButtonSliceSingleAny.isChecked():
+                sliceType = 'single'
+                if self.sliceOrientation=='vertical':
+                    orientation = 'vertical'
+                    xSlice = self.mousePos[0]
+                elif self.sliceOrientation=='horizontal':
+                    orientation = 'horizontal'
+                    ySlice = self.mousePos[1]
                 else:
-                    xSlice = sliceItem.getRegion()
+                    orientation = 'any'
+                    xSlice = ((self.mousePos[0]+self.xData[0])/2, (self.mousePos[0]+self.xData[-1])/2)
+                    ySlice = ((self.mousePos[1]+self.yData[0])/2, (self.mousePos[1]+self.yData[-1])/2)
             else:
-                if hasattr(sliceItem, 'value'):
+                sliceType = 'averaged'
+                if self.sliceOrientation=='vertical':
+                    orientation = 'vertical'
+                    dx = (self.xData[-1]-self.xData[0])/20
+                    xSlice = (self.mousePos[0]-dx, self.mousePos[0]+dx)
+                elif self.sliceOrientation=='horizontal':
+                    orientation = 'horizontal'
+                    dy = (self.yData[-1]-self.yData[0])/20
+                    ySlice = (self.mousePos[1]-dy, self.mousePos[1]+dy)
+        else:
+            if isinstance(sliceItem, pg.LinearRegionItem):
+                sliceType = 'averaged'
+                if self.getSliceItemOrientation(sliceItem)=='vertical':
+                    orientation = 'vertical'
+                    xSlice = sliceItem.getRegion()
+                else:
+                    orientation = 'horizontal'
+                    ySlice = sliceItem.getRegion()
+            else:
+                sliceType = 'single'
+                if self.getSliceItemOrientation(sliceItem)=='vertical':
+                    orientation = 'vertical'
+                    xSlice = sliceItem.value()
+                elif self.getSliceItemOrientation(sliceItem)=='horizontal':
+                    orientation = 'horizontal'
                     ySlice = sliceItem.value()
                 else:
-                    ySlice = sliceItem.getRegion()
+                    orientation = 'any'
+                    pos0, pos1 = [self.plotItem.vb.mapSceneToView(i[1]) for i in sliceItem.getSceneHandlePositions()]
+                    xSlice = (pos0.x(), pos1.x())
+                    ySlice = (pos0.y(), pos1.y())
 
-        if isinstance(xSlice, float) or isinstance(ySlice, float):
+
+        if sliceType=='single':
             # Depending on the slice we return the x and y axis data and the legend
             # associated with the cut.
-            if ySlice is None:
+            if orientation=='vertical':
 
                 n = np.abs(self.xData-xSlice).argmin()
                 sliceX        = self.yData
                 sliceY        = self.zData[n]
-                slicePosition = self.xData[n]
-                sliceLegend   = '{} = {:.3e} {}'.format(self.plotItem.axes['bottom']['item'].labelText,
-                                                        slicePosition,
-                                                        self.plotItem.axes['bottom']['item'].labelUnits)
-            else:
+                sliceLegend   = '{} = {}{}'.format(self.plotItem.axes['bottom']['item'].labelText,
+                                                   self._parse_number(self.xData[n], 3, unified=True),
+                                                   self.plotItem.axes['bottom']['item'].labelUnits)
+                sliceLabel = '{}{}'.format(self._parse_number(self.xData[n], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits)
+            elif orientation=='horizontal':
 
                 n = np.abs(self.yData-ySlice).argmin()
                 sliceX        = self.xData
                 sliceY        = self.zData[:,n]
-                slicePosition = self.yData[n]
-                sliceLegend   = '{} = {:.3e} {}'.format(self.plotItem.axes['left']['item'].labelText,
-                                                        slicePosition,
-                                                        self.plotItem.axes['left']['item'].labelUnits)
+                sliceLegend   = '{} = {}{}'.format(self.plotItem.axes['left']['item'].labelText,
+                                                   self._parse_number(self.yData[n], 3, unified=True),
+                                                   self.plotItem.axes['left']['item'].labelUnits)
+                sliceLabel = '{}{}'.format(self._parse_number(self.yData[n], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits)
+            else:
+                # Greatly inspired from
+                # https://stackoverflow.com/questions/7878398/how-to-extract-an-arbitrary-line-of-values-from-a-numpy-array
 
-            if isinstance(slicePosition, np.ndarray):
-                slicePosition = slicePosition[0]
+                # Get index min and max
+                x0_index = np.abs(self.xData - xSlice[0]).argmin()
+                x1_index = np.abs(self.xData - xSlice[1]).argmin()
+                y0_index = np.abs(self.yData - ySlice[0]).argmin()
+                y1_index = np.abs(self.yData - ySlice[1]).argmin()
 
+                # Get the slice data
+                nb_points = int(np.hypot(x1_index-x0_index, y1_index-y0_index))
+                x_index = np.linspace(x0_index, x1_index, nb_points).astype(np.int)
+                y_index = np.linspace(y0_index, y1_index, nb_points).astype(np.int)
+
+                # sliceX = np.sqrt(self.xData[x_index]**2 + self.yData[y_index]**2)
+                sliceX = (self.xData[x_index], self.yData[y_index])
+                # sliceY =
+                sliceY = self.zData[x_index,y_index]
+                # print(sliceY.shape)
+                # print(sliceX)
+
+                # theta = np.angle(xSlice[1]-xSlice[0] + 1j*(ySlice[1]-ySlice[0]))
+                # print(np.rad2deg(theta))
+
+                # a = 1
+                # b = (xSlice[1]-xSlice[0])/(self.xData[1]-self.xData[0])
+                # c = (xSlice[1]-xSlice[0])/(self.xData[1]-self.xData[0])
+                # d = 1
+
+                # aa = d/(a*d-b*c)
+                # bb = b/(b*c-a*d)
+                # cc = c/(b*c-a*d)
+                # dd = d/(a*d-b*c)
+
+                # xx = self.xData[x_index]*aa + self.yData[y_index]*bb
+                # yy = self.xData[x_index]*cc + self.yData[y_index]*dd
+
+                # print(yy)
+                # sliceX = yy
+
+                sliceLegend = 'From ({}{}, {}{}) to ({}{}, {}{})'.format(self._parse_number(xSlice[0], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                         self._parse_number(ySlice[0], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits,
+                                                                         self._parse_number(xSlice[1], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                         self._parse_number(ySlice[1], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits,)
+                sliceLabel = ''
+
+        # If averaged  slice
         else:
             # Depending on the slice we return the x and y axis data and the legend
             # associated with the cut.
-            if ySlice is None:
+            if orientation=='vertical':
                 nmin = np.abs(self.xData-xSlice[0]).argmin()
                 nmax = np.abs(self.xData-xSlice[1]).argmin()
                 if nmin==nmax:
@@ -905,16 +1024,16 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                         nmax=nmin+1
                 sliceX        = self.yData
                 sliceY        = np.mean(self.zData[nmin:nmax], axis=0)
-                slicePosition = (self.xData[nmin], self.xData[nmax])
-                # Legend written in html
-                # &#60; means <
-                # &#62; means >
-                sliceLegend   = '{} ({}): {:.3e}, {:.3e}&#60;-&#62;{:.3e}, {}'.format(self.plotItem.axes['bottom']['item'].labelText,
-                                                                                      self.plotItem.axes['bottom']['item'].labelUnits,
-                                                                                      (slicePosition[0]+slicePosition[1])/2,
-                                                                                      slicePosition[0],
-                                                                                      slicePosition[1],
-                                                                                      int(nmax-nmin))
+                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.plotItem.axes['bottom']['item'].labelText,
+                                                                                         self._parse_number(self.xData[nmin], 3, unified=True),
+                                                                                         self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                                         self._parse_number(self.xData[nmax], 3, unified=True),
+                                                                                         self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                                         self._parse_number((self.xData[nmin]+self.xData[nmax])/2, 3, unified=True),
+                                                                                         self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                                         int(nmax-nmin))
+                sliceLabel = ('{}{}'.format(self._parse_number(self.xData[nmin], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits),
+                              '{}{}'.format(self._parse_number(self.xData[nmax], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits))
             else:
 
                 nmin = np.abs(self.yData-ySlice[0]).argmin()
@@ -927,18 +1046,18 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                         nmax=nmin+1
                 sliceX        = self.xData
                 sliceY        = np.mean(self.zData[:,nmin:nmax], axis=1)
-                slicePosition = (self.yData[nmin], self.yData[nmax])
-                # Legend written in html
-                # &#60; means <
-                # &#62; means >
-                sliceLegend   = '{} ({}): {:.3e}, {:.3e}&#60;-&#62;{:.3e}, {}'.format(self.plotItem.axes['left']['item'].labelText,
-                                                                                      self.plotItem.axes['left']['item'].labelUnits,
-                                                                                      (slicePosition[0]+slicePosition[1])/2,
-                                                                                      slicePosition[0],
-                                                                                      slicePosition[1],
-                                                                                      int(nmax-nmin))
+                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.plotItem.axes['left']['item'].labelText,
+                                                                                         self._parse_number(self.yData[nmin], 3, unified=True),
+                                                                                         self.plotItem.axes['left']['item'].labelUnits,
+                                                                                         self._parse_number(self.yData[nmax], 3, unified=True),
+                                                                                         self.plotItem.axes['left']['item'].labelUnits,
+                                                                                         self._parse_number((self.yData[nmin]+self.yData[nmax])/2, 3, unified=True),
+                                                                                         self.plotItem.axes['left']['item'].labelUnits,
+                                                                                         int(nmax-nmin))
+                sliceLabel = ('{}{}'.format(self._parse_number(self.yData[nmin], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits),
+                              '{}{}'.format(self._parse_number(self.yData[nmax], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits))
 
-        return sliceX, sliceY, sliceLegend, slicePosition
+        return sliceX, sliceY, sliceLegend, sliceLabel
 
 
 
@@ -952,28 +1071,26 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if e._double and self.isMouseOverView():
 
             # Get the data of the slice
-            sliceX, sliceY, sliceLegend, slicePosition = self.getDataSlice()
+            sliceX, sliceY, sliceLegend, sliceLabel = self.getDataSlice()
 
             # If nbCurve is 1, we create a sliceItem
             if self.getPlotRefFromSliceOrientation(self.sliceOrientation) is None:
 
-                self.addSliceItemAndPlot(data         = [sliceX, sliceY],
-                              curveLegend  = sliceLegend,
-                              slicePosition= slicePosition,
-                              sliceItem    = self.getCurrentSliceItem())
+                self.addSliceItemAndPlot(data          = [sliceX, sliceY],
+                                         curveLegend   = sliceLegend,
+                                         sliceItem     = self.getCurrentSliceItem())
             # If not
             # 1. The user doubleClicked on an sliceItem and we remove it
             # 2. The doubleClicked somewhere else on the map and we create another slice
             else:
                 # We check if user double click on an sliceItem
-                clickedCurveId = self.sliceIdClickedOn(slicePosition)
+                clickedCurveId = self.sliceIdClickedOn()
 
                 # If the user add a new sliceItem
                 if clickedCurveId is None:
                     self.addSliceItemAndPlot(data         = [sliceX, sliceY],
-                                  curveLegend  = sliceLegend,
-                                  slicePosition= slicePosition,
-                                  sliceItem    = self.getCurrentSliceItem())
+                                             curveLegend  = sliceLegend,
+                                             sliceItem    = self.getCurrentSliceItem())
 
                 # We remove a slice
                 else:
@@ -988,16 +1105,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def sliceIdClickedOn(self, slicePosition:Union[float, Tuple[float, float]]) -> Optional[str]:
+    def sliceIdClickedOn(self) -> Optional[str]:
         """
-        Return the id of the InfiniteLine or the LinearRegionItem that a user
-        has clicked on.
+        Return the curveId of the
+            InfiniteLine, LinearRegionItem, LineSegmentROI
+        that a user has clicked on.
         If the user didn't click on neither, return None
-
-        Args:
-            slicePosition ([float, tuple], optional):
-                Position of a InfiniteLine.
-                Positions of a LinearRegionItem.
 
         Returns:
             Optional[str]: None or the id of the slice.
@@ -1005,22 +1118,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         clickedCurveId = None
 
-        if self.getPlotRefFromSliceOrientation('vertical') is not None:
-            for curveId, curve in self.getPlotRefFromSliceOrientation('vertical').curves.items():
-                if isinstance(curve.curveSlicePosition, float):
-                    if curve.curveSlicePosition==slicePosition:
-                        clickedCurveId = curveId
-                elif isinstance(curve.curveSlicePosition, tuple):
-                    if curve.curveSlicePosition[0]<=slicePosition and curve.curveSlicePosition[1]>=slicePosition:
-                        clickedCurveId = curveId
-        if self.getPlotRefFromSliceOrientation('horizontal') is not None:
-            for curveId, curve in self.getPlotRefFromSliceOrientation('horizontal').curves.items():
-                if isinstance(curve.curveSlicePosition, float):
-                    if curve.curveSlicePosition==slicePosition:
-                        clickedCurveId = curveId
-                elif isinstance(curve.curveSlicePosition, tuple):
-                    if curve.curveSlicePosition[0]<=slicePosition and curve.curveSlicePosition[1]>=slicePosition:
-                        clickedCurveId = curveId
+        for sliceItem in list(self.sliceItems.values()):
+            if sliceItem.mouseHovering:
+                clickedCurveId = sliceItem.curveId
+                break
 
         return clickedCurveId
 
@@ -1028,7 +1129,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def addSliceItemAndPlot(self, data: list,
                                   curveLegend: str,
-                                  slicePosition: float,
                                   sliceItem: str,
                                   sliceOrientation: Optional[str]=None,
                                   plotRef: Optional[str]=None,
@@ -1036,15 +1136,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         if sliceOrientation is None:
             sliceOrientation = self.sliceOrientation
-        if plotRef is None:
-            plotRef = self.plotRef+sliceOrientation
-
-        if sliceOrientation=='vertical':
-            xLabelText  = self.yLabelText
-            xLabelUnits = self.yLabelUnits
-        else:
-            xLabelText  = self.xLabelText
-            xLabelUnits = self.xLabelUnits
 
         yLabelText  = self.zLabelText
         yLabelUnits = self.zLabelUnits
@@ -1054,31 +1145,89 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         cleanCheckBox  = self.cleanSliceItem
         runId          = self.runId
 
-        # Should be called once for both addplot and addSliceItem
-        curveId = self.getCurveId()
+        if sliceOrientation in ('vertical', 'horizontal'):
 
-        self.addPlot(data           = data,
-                     plotTitle      = title,
-                     xLabelText     = xLabelText,
-                     xLabelUnits    = xLabelUnits,
-                     yLabelText     = yLabelText,
-                     yLabelUnits    = yLabelUnits,
-                     windowTitle    = windowTitle,
-                     runId          = runId,
-                     cleanCheckBox  = cleanCheckBox,
-                     plotRef        = plotRef,
-                     dataBaseName   = self.dataBaseName,
-                     dataBaseAbsPath = self.dataBaseAbsPath,
-                     curveId        = curveId,
-                     linkedTo2dPlot = True,
-                     curveSlicePosition  = slicePosition,
-                     curveLegend    = curveLegend)
+            if plotRef is None:
+                plotRef = self.plotRef+sliceOrientation
+
+            # Should be called once for both addplot and addSliceItem
+            curveId = self.getCurveId()
+
+            if sliceOrientation=='vertical':
+                xLabelText  = self.yLabelText
+                xLabelUnits = self.yLabelUnits
+            elif sliceOrientation=='horizontal':
+                xLabelText  = self.xLabelText
+                xLabelUnits = self.xLabelUnits
+
+            self.addPlot(data           = data,
+                         plotTitle      = title,
+                         xLabelText     = xLabelText,
+                         xLabelUnits    = xLabelUnits,
+                         yLabelText     = yLabelText,
+                         yLabelUnits    = yLabelUnits,
+                         windowTitle    = windowTitle,
+                         runId          = runId,
+                         cleanCheckBox  = cleanCheckBox,
+                         plotRef        = plotRef,
+                         curveId        = curveId,
+                         linkedTo2dPlot = True,
+                         curveLegend    = curveLegend)
 
 
-        self.addSliceItem(curveId=curveId,
-                          sliceOrientation=sliceOrientation,
-                          position=position,
-                          sliceItem=sliceItem)
+            self.addSliceItem(curveId=curveId,
+                            sliceOrientation=sliceOrientation,
+                            sliceItem=sliceItem,
+                            position=position)
+        else:
+
+            if plotRef is None:
+                plotRefHorizontal = self.plotRef+sliceOrientation+'horizontal'
+                plotRefVertical   = self.plotRef+sliceOrientation+'vertical'
+            # x projection
+            curveId = self.getCurveId()
+
+            self.addPlot(data           = (data[0][0], data[1]),
+                         plotTitle      = title,
+                         xLabelText     = self.xLabelText,
+                         xLabelUnits    = self.xLabelUnits,
+                         yLabelText     = yLabelText,
+                         yLabelUnits    = yLabelUnits,
+                         windowTitle    = windowTitle,
+                         runId          = runId,
+                         cleanCheckBox  = cleanCheckBox,
+                         plotRef        = plotRefHorizontal,
+                         curveId        = curveId,
+                         linkedTo2dPlot = True,
+                         curveLegend    = curveLegend)
+
+            # self.addSliceItem(curveId=curveId,
+            #                 sliceOrientation=sliceOrientation,
+            #                 sliceItem=sliceItem,
+            #                 position=position)
+
+            # y projection
+            # curveId = self.getCurveId()
+
+            self.addPlot(data           = (data[0][1], data[1]),
+                         plotTitle      = title,
+                         xLabelText     = self.yLabelText,
+                         xLabelUnits    = self.yLabelUnits,
+                         yLabelText     = yLabelText,
+                         yLabelUnits    = yLabelUnits,
+                         windowTitle    = windowTitle,
+                         runId          = runId,
+                         cleanCheckBox  = cleanCheckBox,
+                         plotRef        = plotRefVertical,
+                         curveId        = curveId,
+                         linkedTo2dPlot = True,
+                         curveLegend    = curveLegend)
+
+            self.addSliceItem(curveId=curveId,
+                            sliceOrientation=sliceOrientation,
+                            sliceItem=sliceItem,
+                            position=position)
+
 
 
 
@@ -1091,74 +1240,68 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         3. Remove all horizontale slices to vertical one and vice-versa
         """
 
-        # Store infiniteLine
-        inLineVerticals   = {}
-        inLineHorizontals = {}
-        sliceItemNatures   = {}
-        for curveId, infLine in self.sliceItems.items():
-            if self.getSliceItemOrientation(infLine)=='horizontal':
-                if isinstance(infLine, pg.InfiniteLine):
-                    sliceItemNatures[curveId] = 'InfiniteLine'
-                    inLineHorizontals[curveId] = infLine.getPos()
+        # Store sliceItems
+        slices = {}
+        for curveId, sliceItem in self.sliceItems.items():
+            if self.getSliceItemOrientation(sliceItem)=='horizontal':
+                if isinstance(sliceItem, pg.InfiniteLine):
+                    slices[curveId] = {'sliceItem'   : 'InfiniteLine',
+                                       'orientation' : 'horizontal',
+                                       'position'    : sliceItem.getPos()[1]}
                 else:
-                    sliceItemNatures[curveId] = 'LinearRegionItem'
-                    inLineHorizontals[curveId] = (0, (infLine.getRegion()[0]+infLine.getRegion()[1])/2)
+                    slices[curveId] = {'sliceItem'   : 'LinearRegionItem',
+                                       'orientation' : 'horizontal',
+                                       'position'    : (sliceItem.getRegion()[0], sliceItem.getRegion()[1])}
+            elif self.getSliceItemOrientation(sliceItem)=='vertical':
+                if isinstance(sliceItem, pg.InfiniteLine):
+                    slices[curveId] = {'sliceItem'   : 'InfiniteLine',
+                                       'orientation' : 'vertical',
+                                       'position'    : sliceItem.getPos()[0]}
+                else:
+                    slices[curveId] = {'sliceItem'   : 'LinearRegionItem',
+                                       'orientation' : 'vertical',
+                                       'position'    : (sliceItem.getRegion()[0], sliceItem.getRegion()[1])}
             else:
-                if isinstance(infLine, pg.InfiniteLine):
-                    sliceItemNatures[curveId] = 'InfiniteLine'
-                    inLineVerticals[curveId] = infLine.getPos()
-                else:
-                    sliceItemNatures[curveId] = 'LinearRegionItem'
-                    inLineVerticals[curveId] = ((infLine.getRegion()[0]+infLine.getRegion()[1])/2, 0)
+                pos0, pos1 = [self.plotItem.vb.mapSceneToView(i[1]) for i in sliceItem.getSceneHandlePositions()]
+                slices[curveId] = {'sliceItem'   : 'LineSegmentROI',
+                                   'orientation' : 'any',
+                                   'position'    : ((pos0.y(), pos0.x()), (pos1.y(), pos1.x()))}
 
         # Store associated 1d plot
-        curvesHorizontals = {}
-        plotHorizontal = self.getPlotFromRef(self.plotRef, 'horizontal')
-        if plotHorizontal is not None:
-            for curveId, plotDataItem in plotHorizontal.curves.items():
+        curves = {}
+        orientations = ('horizontal', 'vertical', 'any')
+        orientationsSwapped = ('vertical', 'horizontal', 'any')
+        plots = []
+        for orientation, orientationSwapped in zip(orientations, orientationsSwapped):
+            plotRef = self.getPlotFromRef(self.plotRef, orientation)
+            if plotRef is not None:
+                plots.append((orientation, orientationSwapped, plotRef))
+        if len(plots)>0:
+            for orientation, orientationSwapped, plot in plots:
+                for curveId, plotDataItem in plot.curves.items():
+                    curves[curveId] = {'x' : plotDataItem.xData,
+                                       'y' : plotDataItem.yData,
+                                       'curveLegend' : plotDataItem.curveLegend,
+                                       'orientation' : orientation,
+                                       'orientationSwapped' : orientationSwapped}
 
-                curvesHorizontals[curveId] = {'x' : plotDataItem.xData,
-                                              'y' : plotDataItem.yData,
-                                              'curveLegend' : plotDataItem.curveLegend}
+        if curves:
+            # Plot all horizontal slice into the vertical plot and vice-versa
+            for curveId, curveData in curves.items():
+                self.addSliceItemAndPlot(data=[curveData['x'], curveData['y']],
+                                         curveLegend=curveData['curveLegend'],
+                                         sliceOrientation=curveData['orientationSwapped'],
+                                         sliceItem=slices[curveId]['sliceItem'],
+                                         plotRef=self.plotRef+curveData['orientationSwapped'],
+                                         position=slices[curveId]['position'])
 
-        curvesVerticals = {}
-        plotVertical = self.getPlotFromRef(self.plotRef, 'vertical')
-        if plotVertical is not None:
-            for curveId, plotDataItem in plotVertical.curves.items():
-
-                curvesVerticals[curveId] = {'x' : plotDataItem.xData,
-                                            'y' : plotDataItem.yData,
-                                            'curveLegend' : plotDataItem.curveLegend}
-
-        # Plot all horizontal slice into the vertical plot and vice-versa
-        if curvesHorizontals:
-            for plotData, infLineData, sliceItemNature in zip(curvesHorizontals.values(), inLineHorizontals.values(), sliceItemNatures.values()):
-                self.addSliceItemAndPlot(data=[plotData['x'], plotData['y']],
-                              curveLegend=plotData['curveLegend'],
-                              sliceOrientation='vertical',
-                              sliceItem=sliceItemNature,
-                              plotRef=self.plotRef+'vertical',
-                              slicePosition=infLineData[1],
-                              position=infLineData[1])
-        if curvesVerticals:
-            for plotData, infLineData, sliceItemNature in zip(curvesVerticals.values(), inLineVerticals.values(), sliceItemNatures.values()):
-                self.addSliceItemAndPlot(data=[plotData['x'], plotData['y']],
-                              curveLegend=plotData['curveLegend'],
-                              sliceOrientation='horizontal',
-                              sliceItem=sliceItemNature,
-                              plotRef=self.plotRef+'horizontal',
-                              slicePosition=infLineData[0],
-                              position=infLineData[0])
-
-        # Remove old infinite lines and curves
-        if curvesHorizontals:
-            for curveId in curvesHorizontals.keys():
+            # Remove old infinite lines and curves, must be done after the 1st loop
+            for curveId, curveData in curves.items():
                 self.removeSliceItem(curveId)
-                self.getPlotFromRef(self.plotRef, 'horizontal').removePlotDataItem(curveId)
-        if curvesVerticals:
-            for curveId in curvesVerticals.keys():
-                self.removeSliceItem(curveId)
-                self.getPlotFromRef(self.plotRef, 'vertical').removePlotDataItem(curveId)
+                # self.getPlotFromRef(self.plotRef, curveData['orientation']).removePlotDataItem(curveId)
+
+                self.removePlot(plotRef=self.plotRef+curveData['orientation'],
+                                curveId=curveId)
 
 
 
@@ -1542,7 +1685,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             ys.append(self.yData[np.nanargmin(self.zData, axis=1)])
             labels.append('minimum')
         else:
-            self.removePlot(plotRef=self.plotRef+'extraction', label='')
+            self.removePlot(plotRef=self.plotRef+'extraction',
+                            curveId='')
             return
 
 

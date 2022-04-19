@@ -120,7 +120,7 @@
             <property name="geometry">
              <rect>
               <x>0</x>
-              <y>0</y>
+              <y>-85</y>
               <width>232</width>
               <height>595</height>
              </rect>
@@ -668,6 +668,23 @@
                        </attribute>
                       </widget>
                      </item>
+                     <item>
+                      <widget class="QRadioButton" name="radioButtonSliceSingleAny">
+                       <property name="font">
+                        <font>
+                         <pointsize>8</pointsize>
+                         <weight>50</weight>
+                         <bold>false</bold>
+                        </font>
+                       </property>
+                       <property name="text">
+                        <string>any</string>
+                       </property>
+                       <attribute name="buttonGroup">
+                        <string notr="true">buttonGroupSlicing</string>
+                       </attribute>
+                      </widget>
+                     </item>
                     </layout>
                    </item>
                   </layout>
@@ -838,13 +855,13 @@
   <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
-   <header>..ui.plot_widget</header>
+   <header>.plot_widget</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>HistogramLUTWidget</class>
    <extends>QWidget</extends>
-   <header>..ui.histogram_lut_widget</header>
+   <header>.histogram_lut_widget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

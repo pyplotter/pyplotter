@@ -60,7 +60,7 @@ class Ui_Dialog(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 232, 595))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, -85, 232, 570))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
@@ -313,6 +313,15 @@ class Ui_Dialog(object):
         self.radioButtonSliceSingleVertical.setObjectName("radioButtonSliceSingleVertical")
         self.buttonGroupSlicing.addButton(self.radioButtonSliceSingleVertical)
         self.horizontalLayout_5.addWidget(self.radioButtonSliceSingleVertical)
+        self.radioButtonSliceSingleAny = QtWidgets.QRadioButton(self.groupBoxSlicingSingle)
+        font = QtGui.QFont()
+        font.setPointSize(8)
+        font.setBold(False)
+        font.setWeight(50)
+        self.radioButtonSliceSingleAny.setFont(font)
+        self.radioButtonSliceSingleAny.setObjectName("radioButtonSliceSingleAny")
+        self.buttonGroupSlicing.addButton(self.radioButtonSliceSingleAny)
+        self.horizontalLayout_5.addWidget(self.radioButtonSliceSingleAny)
         self.horizontalLayout_8.addLayout(self.horizontalLayout_5)
         self.verticalLayout_6.addWidget(self.groupBoxSlicingSingle)
         self.groupBoxSlicingAveraged = QtWidgets.QGroupBox(self.groupBoxSlicing)
@@ -424,6 +433,7 @@ class Ui_Dialog(object):
         self.groupBoxSlicingSingle.setTitle(_translate("Dialog", "Single"))
         self.radioButtonSliceSingleHorizontal.setText(_translate("Dialog", "horizontal"))
         self.radioButtonSliceSingleVertical.setText(_translate("Dialog", "vertical"))
+        self.radioButtonSliceSingleAny.setText(_translate("Dialog", "any"))
         self.groupBoxSlicingAveraged.setTitle(_translate("Dialog", "Averaged"))
         self.radioButtonSliceAveragedHorizontal.setText(_translate("Dialog", "horizontal"))
         self.radioButtonSliceAveragedVertical.setText(_translate("Dialog", "vertical"))
@@ -432,5 +442,5 @@ class Ui_Dialog(object):
         self.checkBoxMaximum.setText(_translate("Dialog", "maximum"))
         self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:<br/>z:</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("Dialog", "Interaction"))
-from ..ui.histogram_lut_widget import HistogramLUTWidget
-from ..ui.plot_widget import PlotWidget
+from .histogram_lut_widget import HistogramLUTWidget
+from .plot_widget import PlotWidget
