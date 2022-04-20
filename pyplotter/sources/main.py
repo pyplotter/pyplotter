@@ -707,6 +707,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         runId = self.getRunId()
         runIdStr = str(runId)
         experimentName = self.getRunExperimentName()
+        runName = self.getRunName()
 
         self.setStatusBarMessage('Loading run parameters')
 
@@ -748,7 +749,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             curveId         = self.getCurveId(name=dependent['name'], runId=runId, livePlot=False)
             plotRef         = self.getPlotRef(paramDependent=dependent, livePlot=False)
             plotTitle       = self.getPlotTitle(livePlot=False)
-            windowTitle     = self.getWindowTitle(runId=runId, livePlot=False)
+            windowTitle     = self.getWindowTitle(runId=runId, livePlot=False, runName=runName)
             dataBaseName    = self._currentDatabase
             dataBaseAbsPath = os.path.normpath(os.path.join(self.currentPath, dataBaseName)).replace("\\", "/")
 
@@ -1276,20 +1277,48 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
 
 
-    def getWindowTitle(self, runId: int=None, livePlot:bool=False) -> str:
+    def getRunName(self) -> str:
+        """
+        Return the name of the current selected run.
+        if Live plot mode, return the run name of the last recorded run.
+        """
+
+        currentRow = self.tableWidgetDataBase.currentIndex().row()
+        runName =  self.tableWidgetDataBase.model().index(currentRow, 4).data()
+        if runName is None:
+            runName = self.tableWidgetParameters.item(0, 1).text()
+
+        return str(runName)
+
+
+
+    def getWindowTitle(self, runId:    int=None,
+                             livePlot: bool=False,
+                             runName: str='') -> str:
         """
         Return a title which will be used as a plot window title.
         """
+
+        windowTitle = ''
+
+        if livePlot:
+            windowTitle += os.path.basename(self._livePlotPath)
+        else:
+            windowTitle += str(self._currentDatabase)
+
         if config['displayRunIdInPlotTitle']:
             if livePlot:
-                return os.path.basename(self._livePlotPath)+' - '+str(self._livePlotRunId)
+                windowTitle += ' - '+str(self._livePlotRunId)
             else:
-                return str(self._currentDatabase)+' - '+str(runId)
-        else:
+                windowTitle += ' - '+str(runId)
+
+        if config['displayRunNameInPlotTitle']:
             if livePlot:
-                return os.path.basename(self._livePlotPath)
+                windowTitle += ' - '+self._livePlotRunName
             else:
-                return str(self._currentDatabase)
+                windowTitle += ' - '+runName
+
+        return windowTitle
 
 
 
@@ -1664,7 +1693,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         """
 
         # We get the last run id of the database
-        self._livePlotRunId = self._livePlotDatabase.getNbTotalRun()
+        self._livePlotRunId:int   = self._livePlotDatabase.getNbTotalRun()
+        self._livePlotRunName:str = self._livePlotDatabase.getRunName(self._livePlotRunId )
         # While the run is not completed, we update the plot
         if not self._livePlotDatabase.isRunCompleted(self._livePlotRunId):
 
