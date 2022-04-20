@@ -11,6 +11,7 @@ import uuid
 from ..ui.plot2d_widget import Ui_Dialog
 from . import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
 from .plot_app import PlotApp
+from .plot_1d_app import Plot1dApp
 from .config import config
 from . import fit
 
@@ -569,7 +570,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def getPlotRefFromSliceOrientation(self, sliceOrientation: str) -> Union[str, None]:
+    def getPlotRefFromSliceOrientation(self, sliceOrientation: str) -> Plot1dApp:
         """
         Return the 1d plot containing the slice data of this 2d plot.
         Is based on the getPlotFromRef from MainApp but swap orientation when
@@ -1061,6 +1062,26 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
+    def isThereSlicePlot(self) -> bool:
+        """
+        Return True if there is a 1d plot displaying a slice of sliceOrientation,
+        False otherwise.
+        """
+
+        if self.sliceOrientation=='vertical' or self.sliceOrientation=='horizontal':
+            if self.getPlotRefFromSliceOrientation(self.sliceOrientation) is None:
+                return False
+            else:
+                return True
+        else:
+            if (   self.getPlotRefFromSliceOrientation('anyvertical') is None
+                or self.getPlotRefFromSliceOrientation('anyhorizontal') is None):
+                return False
+            else:
+                return True
+
+
+
     def plotItemDoubleClicked(self, e) -> None:
         """
         When a use double click on the 2D plot, we create a slice of the colormap
@@ -1073,35 +1094,62 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             # Get the data of the slice
             sliceX, sliceY, sliceLegend, sliceLabel = self.getDataSlice()
 
-            # If nbCurve is 1, we create a sliceItem
-            if self.getPlotRefFromSliceOrientation(self.sliceOrientation) is None:
+            # If there is no 1d plot already showing the slice
+            if not self.isThereSlicePlot():
 
                 self.addSliceItemAndPlot(data          = [sliceX, sliceY],
                                          curveLegend   = sliceLegend,
                                          sliceItem     = self.getCurrentSliceItem())
-            # If not
+            # If there is already
             # 1. The user doubleClicked on an sliceItem and we remove it
             # 2. The doubleClicked somewhere else on the map and we create another slice
             else:
                 # We check if user double click on an sliceItem
                 clickedCurveId = self.sliceIdClickedOn()
 
-                # If the user add a new sliceItem
+                # If the user add a new sliceItem and its associated plot
                 if clickedCurveId is None:
                     self.addSliceItemAndPlot(data         = [sliceX, sliceY],
                                              curveLegend  = sliceLegend,
                                              sliceItem    = self.getCurrentSliceItem())
 
-                # We remove a slice
+                # We remove a sliceItem and its associated plot
                 else:
-                    # If there is more than one slice, we remove it and the associated curve
-                    if len(self.getPlotRefFromSliceOrientation(self.sliceOrientation).curves)>1:
-                        self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(clickedCurveId)
-                        self.removeSliceItem(clickedCurveId)
-                    # If there is only one slice, we close the linked 1d plot
-                    # which will remove the associated sliceItem
-                    else:
-                        self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(clickedCurveId)
+                    self.removeSliceItemAndPlot(clickedCurveId)
+
+
+
+    def removeSliceItemAndPlot(self, curveId: str) -> None:
+        """
+        Called when a used double click on a slice to remove it, see
+        plotItemDoubleClicked.
+        Remove the sliceItem from the 2d plot and its associated slice from the
+        attached 1d plot.
+
+        Args:
+            curveId: id of the slice.
+        """
+
+        if self.sliceOrientation in ('vertical', 'horizontal'):
+            # If there is more than one slice, we remove it and the associated curve
+            if len(self.getPlotRefFromSliceOrientation(self.sliceOrientation).curves)>1:
+                self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(curveId)
+                self.removeSliceItem(curveId)
+            # If there is only one slice, we close the linked 1d plot
+            # which will remove the associated sliceItem
+            else:
+                self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(curveId)
+        else:
+            for sliceOrientation in  ('anyvertical', 'anyhorizontal'):
+                # If there is more than one slice, we remove it and the associated curve
+                if len(self.getPlotRefFromSliceOrientation(sliceOrientation).curves)>1:
+                    self.getPlotRefFromSliceOrientation(sliceOrientation).removePlotDataItem(curveId)
+                # If there is only one slice, we close the linked 1d plot
+                # which will remove the associated sliceItem
+                else:
+                    self.getPlotRefFromSliceOrientation(sliceOrientation).removePlotDataItem(curveId)
+                if curveId in self.sliceItems:
+                    self.removeSliceItem(curveId)
 
 
 
@@ -1145,13 +1193,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         cleanCheckBox  = self.cleanSliceItem
         runId          = self.runId
 
+        # Should be called once for both addplot and addSliceItem
+        curveId = self.getCurveId()
+
         if sliceOrientation in ('vertical', 'horizontal'):
 
             if plotRef is None:
                 plotRef = self.plotRef+sliceOrientation
 
-            # Should be called once for both addplot and addSliceItem
-            curveId = self.getCurveId()
 
             if sliceOrientation=='vertical':
                 xLabelText  = self.yLabelText
@@ -1160,73 +1209,63 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 xLabelText  = self.xLabelText
                 xLabelUnits = self.xLabelUnits
 
-            self.addPlot(data           = data,
-                         plotTitle      = title,
-                         xLabelText     = xLabelText,
-                         xLabelUnits    = xLabelUnits,
-                         yLabelText     = yLabelText,
-                         yLabelUnits    = yLabelUnits,
-                         windowTitle    = windowTitle,
-                         runId          = runId,
-                         cleanCheckBox  = cleanCheckBox,
-                         plotRef        = plotRef,
-                         curveId        = curveId,
-                         linkedTo2dPlot = True,
-                         curveLegend    = curveLegend)
-
-
-            self.addSliceItem(curveId=curveId,
-                            sliceOrientation=sliceOrientation,
-                            sliceItem=sliceItem,
-                            position=position)
+            self.addPlot(data            = data,
+                         plotTitle       = title,
+                         xLabelText      = xLabelText,
+                         xLabelUnits     = xLabelUnits,
+                         yLabelText      = yLabelText,
+                         yLabelUnits     = yLabelUnits,
+                         windowTitle     = windowTitle,
+                         runId           = runId,
+                         cleanCheckBox   = cleanCheckBox,
+                         plotRef         = plotRef,
+                         dataBaseName    = self.dataBaseName,
+                         dataBaseAbsPath = self.dataBaseAbsPath,
+                         curveId         = curveId,
+                         linkedTo2dPlot  = True,
+                         curveLegend     = curveLegend)
         else:
 
             if plotRef is None:
                 plotRefHorizontal = self.plotRef+sliceOrientation+'horizontal'
                 plotRefVertical   = self.plotRef+sliceOrientation+'vertical'
-            # x projection
-            curveId = self.getCurveId()
 
-            self.addPlot(data           = (data[0][0], data[1]),
-                         plotTitle      = title,
-                         xLabelText     = self.xLabelText,
-                         xLabelUnits    = self.xLabelUnits,
-                         yLabelText     = yLabelText,
-                         yLabelUnits    = yLabelUnits,
-                         windowTitle    = windowTitle,
-                         runId          = runId,
-                         cleanCheckBox  = cleanCheckBox,
-                         plotRef        = plotRefHorizontal,
-                         curveId        = curveId,
-                         linkedTo2dPlot = True,
-                         curveLegend    = curveLegend)
+            self.addPlot(data            = (data[0][0], data[1]),
+                         plotTitle       = title,
+                         xLabelText      = self.xLabelText,
+                         xLabelUnits     = self.xLabelUnits,
+                         yLabelText      = yLabelText,
+                         yLabelUnits     = yLabelUnits,
+                         windowTitle     = windowTitle,
+                         runId           = runId,
+                         cleanCheckBox   = cleanCheckBox,
+                         plotRef         = plotRefHorizontal,
+                         dataBaseName    = self.dataBaseName,
+                         dataBaseAbsPath = self.dataBaseAbsPath,
+                         curveId         = curveId,
+                         linkedTo2dPlot  = True,
+                         curveLegend     = curveLegend)
 
-            # self.addSliceItem(curveId=curveId,
-            #                 sliceOrientation=sliceOrientation,
-            #                 sliceItem=sliceItem,
-            #                 position=position)
+            self.addPlot(data            = (data[0][1], data[1]),
+                         plotTitle       = title,
+                         xLabelText      = self.yLabelText,
+                         xLabelUnits     = self.yLabelUnits,
+                         yLabelText      = yLabelText,
+                         yLabelUnits     = yLabelUnits,
+                         windowTitle     = windowTitle,
+                         runId           = runId,
+                         cleanCheckBox   = cleanCheckBox,
+                         plotRef         = plotRefVertical,
+                         dataBaseName    = self.dataBaseName,
+                         dataBaseAbsPath = self.dataBaseAbsPath,
+                         curveId         = curveId,
+                         linkedTo2dPlot  = True,
+                         curveLegend     = curveLegend)
 
-            # y projection
-            # curveId = self.getCurveId()
-
-            self.addPlot(data           = (data[0][1], data[1]),
-                         plotTitle      = title,
-                         xLabelText     = self.yLabelText,
-                         xLabelUnits    = self.yLabelUnits,
-                         yLabelText     = yLabelText,
-                         yLabelUnits    = yLabelUnits,
-                         windowTitle    = windowTitle,
-                         runId          = runId,
-                         cleanCheckBox  = cleanCheckBox,
-                         plotRef        = plotRefVertical,
-                         curveId        = curveId,
-                         linkedTo2dPlot = True,
-                         curveLegend    = curveLegend)
-
-            self.addSliceItem(curveId=curveId,
-                            sliceOrientation=sliceOrientation,
-                            sliceItem=sliceItem,
-                            position=position)
+        self.addSliceItem(curveId          = curveId,
+                            sliceOrientation = sliceOrientation,
+                            sliceItem        = sliceItem,
+                            position         = position)
 
 
 
