@@ -1176,7 +1176,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                     self.removePlot(plotRef, '')
                 del(self._livePlotDataSet)
         else:
-            if self.getWindowTitle(runId)==windowTitle and self.getRunId()==runId:
+            if self.getWindowTitle(runId=runId, runName=self.getRunName())==windowTitle and self.getRunId()==runId:
 
                 # If 1d plot
                 if self._plotRefs[plotRef].plotType=='1d':
