@@ -3,16 +3,16 @@ from setuptools import setup, find_packages
 
 setup(name='pyplotter',
       version='0.2.0',
-      use_2to3=False,
       author='Étienne Dumur',
-      author_emal='etienne.dumur@cea.fr',
+      author_email='etienne.dumur@cea.fr',
       maintainer='Étienne Dumur',
       maintainer_email='etienne.dumur@cea.fr',
       description='A data browser and vizualizer for QCoDes database, csv, s2p and BlueFors logging files.',
-      long_description=open('README.md').read(),
+      url='https://github.com/pyplotter/pyplotter',
+      long_description=open('README.md', encoding="utf8").read(),
       classifiers=[
         'Programming Language :: Python :: 3',
-        'Intended Audience :: Science/Research'
+        'Intended Audience :: Science/Research',
         'Operating System :: OS Independent',
         'Topic :: Scientific/Engineering'
       ],
