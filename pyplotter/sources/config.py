@@ -27,8 +27,10 @@ config = {
 
 # If False the path is displayed in the plot title
 'displayOnlyDbNameInPlotTitle' : True,
-# If True the the run id is added to the window title
+# If True the run id is added to the window title
 'displayRunIdInPlotTitle' : True,
+# If True the run name is added to the window title
+'displayRunNameInPlotTitle' : True,
 
 # Maximum number of runs being treated on the same SQL request
 # Should be somwhere below 2020
