@@ -1,20 +1,8 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtTest
-from typing import Callable
-import sys
 
 from ..config import config
-
-# def trap_exc_during_debug(*args) -> None:
-#     # when app raises uncaught exception, print info
-#     print(' -- loadDataBase -- ')
-#     print(int(QtCore.QThread.currentThreadId()))
-#     print(args)
-#     print(' --              -- ')
-
-
-# install exception hook: without this, uncaught exception would cause application to exit
-# sys.excepthook = trap_exc_during_debug
+from ..qcodesdatabase import getRunInfos
 
 class loadDataBaseSignal(QtCore.QObject):
     """
@@ -37,23 +25,22 @@ class loadDataBaseSignal(QtCore.QObject):
 class loadDataBaseThread(QtCore.QRunnable):
 
 
-    def __init__(self, getRunInfos: Callable[[int], dict], progressBarKey: str):
+    def __init__(self, databaseAbsPath:str,
+                       progressBarKey: str):
         """
-        Thread used to get all the run info of a database.
-        !! Do not import data !!
 
         Parameters
         ----------
-        getRunInfos : func
-            Function which returns all infos of a database in a nice python dict.
+        databaseAbsPath : str
+            Absolute path of the current database
         progressBarKey : str
             Key to the progress bar in the dict progressBars
         """
 
         super(loadDataBaseThread, self).__init__()
 
-        self.getRunInfos    = getRunInfos
-        self.progressBarKey = progressBarKey
+        self.databaseAbsPath = databaseAbsPath
+        self.progressBarKey  = progressBarKey
 
         self.signals = loadDataBaseSignal()
 
@@ -69,7 +56,9 @@ class loadDataBaseThread(QtCore.QRunnable):
         """
 
         self.signals.setStatusBarMessage.emit('Gathered runs infos database', False)
-        runInfos = self.getRunInfos(self.signals.updateProgressBar, self.progressBarKey)
+        runInfos = getRunInfos(self.databaseAbsPath,
+                               self.signals.updateProgressBar,
+                               self.progressBarKey)
 
         # If database is empty
         if runInfos is None:

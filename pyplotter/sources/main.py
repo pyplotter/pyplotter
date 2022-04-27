@@ -2,7 +2,7 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 import os
 from datetime import datetime
-from typing import Union, Callable, List, Optional
+from typing import Union, Callable, List, Optional, Tuple
 import uuid
 import numpy as np
 import time
@@ -18,11 +18,11 @@ except AttributeError:
 
 from .loadCSV import LoadCSV
 from .loadBluefors import LoadBlueFors
-from .qcodesdatabase import QcodesDatabase
 from .runpropertiesextra import RunPropertiesExtra
 from .workers.loadDataBase import loadDataBaseThread
 from .workers.loadDataFromRun import LoadDataFromRunThread
 from .workers.loadDataFromCache import LoadDataFromCacheThread
+from .workers.loadRunInfo import loadRunInfoThread
 from .config import config
 from .plot_1d_app import Plot1dApp
 from .plot_2d_app import Plot2dApp
@@ -273,7 +273,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self._livePlotTimer      = None
 
         # Handle connection and requests to qcodes database
-        self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
+        # self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
         # Handle log files from bluefors fridges
         self.LoadBlueFors = LoadBlueFors(self)
         # Handle csv files
@@ -550,13 +550,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         # column width
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
-        self.qcodesDatabase.databasePath = os.path.join(self.currentPath, self._currentDatabase)
+        # self.qcodesDatabase.databasePath = os.path.join(self.currentPath, self._currentDatabase)
 
         # Add a progress bar in the statusbar
         progressBarKey = self.addProgressBarInStatusBar()
+        self.dataBaseAbsPath = os.path.normpath(os.path.join(self.currentPath, self._currentDatabase)).replace("\\", "/")
 
         # Create a thread which will read the database
-        worker = loadDataBaseThread(self.qcodesDatabase.getRunInfos, progressBarKey)
+        worker = loadDataBaseThread(self.dataBaseAbsPath,
+                                    progressBarKey)
 
         # Connect signals
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)
@@ -693,7 +695,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
     def runClicked(self) -> None:
         """
         When clicked display the measured dependent parameters in the
-        tableWidgetPtableWidgetParameters
+        tableWidgetPtableWidgetParameters.
+        Database is accessed through a thread, see runClickedFromThread.
         """
 
         # When the user click on another database while having already clicked
@@ -704,17 +707,29 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             return
 
 
-        runId = self.getRunId()
-        runIdStr = str(runId)
+        runId          = self.getRunId()
         experimentName = self.getRunExperimentName()
-        runName = self.getRunName()
+        runName        = self.getRunName()
 
         self.setStatusBarMessage('Loading run parameters')
 
-        # Get independent parameters list without the independent parameters
-        # Get parameters list without the independent parameters
-        dependentList, snapshotDict = self.qcodesDatabase.getDependentSnapshotFromRunId(runId)
+        worker = loadRunInfoThread(self.dataBaseAbsPath,
+                                   runId,
+                                   experimentName,
+                                   runName)
+        worker.signals.updateRunInfo.connect(self.runClickedFromThread)
+        # Execute the thread
+        self.threadpool.start(worker)
 
+
+
+    def runClickedFromThread(self, runId: int,
+                                   dependentList: list,
+                                   snapshotDict: dict,
+                                   experimentName: str,
+                                   runName: str):
+
+        runIdStr = str(runId)
 
         ## Update label
         self.labelCurrentRun.setText(runIdStr)
@@ -891,12 +906,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             An unique key coming from uuid.uuid4().
         """
 
-
         # Add a progress bar in the statusbar
         progressBarKey = str(uuid.uuid4())
         self._progressBars[progressBarKey] = QtWidgets.QProgressBar(self)
+        self._progressBars[progressBarKey].decimal = 100
         self._progressBars[progressBarKey].setAlignment(QtCore.Qt.AlignCenter)
         self._progressBars[progressBarKey].setValue(0)
+        # setting maximum value for 2 decimal points
+        self._progressBars[progressBarKey].setMaximum(100*self._progressBars[progressBarKey].decimal)
         self._progressBars[progressBarKey].setTextVisible(True)
         self.statusBar.setSizeGripEnabled(False)
         self.statusBar.addPermanentWidget(self._progressBars[progressBarKey])
@@ -933,7 +950,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         if text is not None:
             self._progressBars[key].setFormat(text)
-        self._progressBars[key].setValue(val)
+        self._progressBars[key].setValue(int(val*self._progressBars[key].decimal))
 
 
 
@@ -2175,9 +2192,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                 plotRef,
                                 dataBaseName,
                                 dataBaseAbsPath,
-                                progressBarKey,
-                                self.qcodesDatabase.getParameterData,
-                                self.qcodesDatabase.getParameterInfo)
+                                progressBarKey)
         # Connect signals
         # To update the status bar
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)

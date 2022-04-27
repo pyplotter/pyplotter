@@ -1,22 +1,11 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtTest
 import numpy as np
-from typing import Callable, Tuple
-import sys
+from typing import Tuple
+import multiprocessing as mp
 
-from ..qcodesdatabase import QcodesDatabase
+from ..qcodesdatabase import getParameterData, getParameterInfo
 from ..config import config
-
-# def trap_exc_during_debug(*args) -> None:
-#     # when app raises uncaught exception, print info
-#     print(' -- loadDataBaseFromRun -- ')
-#     print(int(QtCore.QThread.currentThreadId()))
-#     print(args)
-#     print(' --                     -- ')
-
-
-# install exception hook: without this, uncaught exception would cause application to exit
-# sys.excepthook = trap_exc_during_debug
 
 
 
@@ -56,9 +45,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                        plotRef            : str,
                        dataBaseName       : str,
                        dataBaseAbsPath    : str,
-                       progressBarKey     : str,
-                       getParameterData   : Callable[[int, str, Callable], dict],
-                       getParameterInfo   : Callable[[int], list]) -> None:
+                       progressBarKey     : str) -> None:
         """
         Thread used to get data for a 1d or 2d plot from a runId.
 
@@ -78,19 +65,9 @@ class LoadDataFromRunThread(QtCore.QRunnable):
             Reference of the curve.
         progressBarKey : str
             Key to the progress bar in the dict progressBars.
-        getParameterData : func
-            Method from QcodesDatabase class initialized in the main thread
-            with the current database file location.
-            See QcodesDatabase for more details.
-        getParameterInfo : func
-            Method from QcodesDatabase class initialized in the main thread
-            with the current database file location.
-            See QcodesDatabase for more details.
         """
 
         super(LoadDataFromRunThread, self).__init__()
-
-        self.qcodesDatabase = QcodesDatabase()
 
         self.runId              = runId
         self.curveId            = curveId
@@ -101,8 +78,6 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         self.dataBaseName       = dataBaseName
         self.dataBaseAbsPath    = dataBaseAbsPath
         self.progressBarKey     = progressBarKey
-        self.getParameterData   = getParameterData
-        self.getParameterInfo   = getParameterInfo
 
 
         self.signals = LoadDataFromRunSignal()
@@ -112,14 +87,55 @@ class LoadDataFromRunThread(QtCore.QRunnable):
     @QtCore.pyqtSlot()
     def run(self) -> None:
         """
-        Download the data and launch a plot
+        Download the data and launch a plot.
+        Create another process with share memory through which the data are
+        transfered.
         """
 
         self.signals.setStatusBarMessage.emit('Extracting data from database', False)
 
-        paramsDependent, paramsIndependent = self.getParameterInfo(self.runId, self.dependentParamName)
+        paramsDependent, paramsIndependent = getParameterInfo(self.dataBaseAbsPath,
+                                                              self.runId,
+                                                              self.dependentParamName)
 
-        d = self.getParameterData(self.runId, paramsDependent['name'], self.signals.updateProgressBar, self.progressBarKey)
+        # Queue will contain the numpy array of the run data
+        queue_data: mp.Queue = mp.Queue()
+        # Queue will contain a float from 0 to 100 for the progress bar
+        queue_progressBar: mp.Queue = mp.Queue()
+        queue_progressBar.put(0)
+        # Queue will contain 1 when the download is done
+        queue_done: mp.Queue = mp.Queue()
+        queue_done.put(False)
+
+        self.worker = mp.Process(target=getParameterData,
+                                 args=(self.dataBaseAbsPath,
+                                       self.runId,
+                                       [paramIndependent['name'] for paramIndependent in paramsIndependent],
+                                       paramsDependent['name'],
+                                       queue_data,
+                                       queue_progressBar,
+                                       queue_done))
+        self.worker.start()
+
+        # Here, we loop until the data transfer is done.
+        # In each loop, we check the transfer progression and update the progress
+        # bar
+        done = False
+        while not done:
+
+            done = queue_done.get()
+            queue_done.put(done)
+
+            progressBar = queue_progressBar.get()
+            queue_progressBar.put(progressBar)
+
+            self.signals.updateProgressBar.emit(self.progressBarKey, progressBar)
+            QtTest.QTest.qWait(500)
+
+        d = queue_data.get()
+        queue_data.close()
+        queue_progressBar.close()
+        queue_done.close()
 
         # If getParameterData failed, or the database is empty we emit a specific
         # signal which will flag the data download as done without launching a
@@ -131,9 +147,6 @@ class LoadDataFromRunThread(QtCore.QRunnable):
             # 1d plot
             if len(paramsIndependent)==1:
 
-                data = (np.ravel(d[paramsIndependent[0]['name']]),
-                        np.ravel(d[paramsDependent['name']]))
-
                 xLabelText  = paramsIndependent[0]['label']
                 xLabelUnits = paramsIndependent[0]['unit']
                 yLabelText  = paramsDependent['label']
@@ -141,31 +154,22 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                 zLabelText  = ''
                 zLabelUnits = ''
 
-
             # 2d plot
             elif len(paramsIndependent)==2:
 
-                # for qcodes version >0.18, 2d data are return as a 2d array
-                # to keep code backward compatible, we transform it back to
-                # 1d array.
-                if d[paramsIndependent[1]['name']].ndim==2 or d[paramsIndependent[1]['name']].ndim==3:
-                    d[paramsIndependent[0]['name']] = np.ravel(d[paramsIndependent[0]['name']])
-                    d[paramsIndependent[1]['name']] = np.ravel(d[paramsIndependent[1]['name']])
-                    d[paramsDependent['name']]      = np.ravel(d[paramsDependent['name']])
-
                 # Find the effective x and y axis, see findXYIndex
-                xi, yi = self.findXYIndex(d[paramsIndependent[1]['name']])
+                xi, yi = self.findXYIndex(d[:,1])
 
                 # We try to load data
                 # if there is none, we return an empty array
                 if config['2dGridInterpolation']=='grid':
-                    data = self.make_grid(d[paramsIndependent[xi]['name']],
-                                          d[paramsIndependent[yi]['name']],
-                                          d[paramsDependent['name']])
+                    data = self.make_grid(d[:,xi],
+                                          d[:,yi],
+                                          d[:,2])
                 else:
-                    data = self.shapeData2d(d[paramsIndependent[xi]['name']],
-                                            d[paramsIndependent[yi]['name']],
-                                            d[paramsDependent['name']])
+                    data = self.shapeData2d(d[:,xi],
+                                            d[:,yi],
+                                            d[:,2])
 
                 xLabelText  = paramsIndependent[xi]['label']
                 xLabelUnits = paramsIndependent[xi]['unit']
@@ -195,7 +199,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
 
 
     @staticmethod
-    def findXYIndex(y: np.ndarray) -> Tuple[int]:
+    def findXYIndex(y: np.ndarray) -> Tuple[int, int]:
         """
         Find effective "x" column
         The x column is defined as the column where the independent parameter
@@ -335,9 +339,9 @@ class LoadDataFromRunThread(QtCore.QRunnable):
 
 
 
-    def shapeData2dPolygon(self, x : np.array,
-                                 y : np.array,
-                                 z : np.array) -> Tuple[np.ndarray]:
+    def shapeData2dPolygon(self, x : np.ndarray,
+                                 y : np.ndarray,
+                                 z : np.ndarray) -> Tuple[np.ndarray]:
         """
         Reshape 2d scan into a meshing.
 
