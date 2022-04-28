@@ -241,8 +241,9 @@ def getNbDependentFromRow(row : sqlite3.Row) -> int:
 
 
 def getRunInfos(databaseAbsPath: str,
-                progressBarUpdate : Callable[[int], None]=None,
-                progressBarKey    : str=None) -> Optional[dict]:
+                queueData: mp.Queue,
+                queueProgressBar: mp.Queue,
+                queueDone: mp.Queue) -> Optional[dict]:
     """
     Get a handfull of information about all the run of a database.
     Return None if database is empty.
@@ -263,32 +264,47 @@ def getRunInfos(databaseAbsPath: str,
 
     # In order to display a progress of the info gathering, we need the
     # number of runs to be downloaded.
+    # start = time.time()
     conn, cur = openDatabase(databaseAbsPath,
                              returnDict=True)
     cur.execute("SELECT MAX(run_id) FROM runs")
     rows = cur.fetchall()
 
-    # In case the database is empty, we return None
+    # stop = time.time()
+    # print(stop-start)
+    # start = time.time()
+    # If empty database
     if rows[0]['max(run_id)'] is None:
-        # progressBarUpdate.emit(progressBarKey, 100)
-        return None
+        queueData.put(None)
+        queueDone.put(True)
+        return
+    total = int(rows[0]['max(run_id)'])
+    callEvery = int(total/100*config['displayedDownloadQcodesPercentage'])
 
-
-    # if progressBarUpdate is None:
-    #     callEvery = None
-    # else:
-    #     # 25 is a magic number to get a progressBar close to 100%
-    #     callEvery = int(rows[0]['max(run_id)']*25/100*config['displayedDownloadQcodesPercentage'])
-
-    closeDatabase(conn, cur)
-    # We download the run info while updating the progress bar
-    conn, cur = openDatabase(databaseAbsPath,
-                             returnDict=True)#callEvery=callEvery)
-
+    # For small database
+    if callEvery==0:
+        callEvery = total
 
     ## Get runs infos
-    cur.execute("SELECT run_id, exp_id, name, completed_timestamp, run_timestamp, result_table_name, run_description FROM 'runs'")
-    runInfos = cur.fetchall()
+    request = "SELECT run_id, exp_id, name, completed_timestamp, run_timestamp, result_table_name, run_description FROM 'runs'"
+    runInfos = [None]*total
+    ids = np.arange(0, total, callEvery)
+    if ids[-1]!=total:
+        ids = np.append(ids, total)
+    iteration = 100/len(ids)
+    for i in range(len(ids)-1):
+        cur.execute('{0} LIMIT {1} OFFSET {2}'.format(request,
+                                                      callEvery,
+                                                      ids[i]))
+
+        runInfos[ids[i]:ids[i+1]] = list(cur.fetchall())
+
+        queueProgressBar.put(queueProgressBar.get() + iteration)
+
+
+    # stop = time.time()
+    # print(stop-start)
+    # start = time.time()
     result_table_names = [row['result_table_name'] for row in runInfos]
     runIds = [str(row['run_id']) for row in runInfos]
 
@@ -306,11 +322,19 @@ def getRunInfos(databaseAbsPath: str,
         records.append(cur.fetchall()[0])
 
 
+    # stop = time.time()
+    # print(stop-start)
+    # start = time.time()
+
     ## Get experiments infos
     cur.execute("SELECT  exp_id, name, sample_name FROM 'experiments'")
     experimentInfos = cur.fetchall()
     closeDatabase(conn, cur)
 
+
+    # stop = time.time()
+    # print(stop-start)
+    # start = time.time()
 
     # Transform all previous sqlite3.Row object obtained previously into
     # a nice dict.
@@ -329,7 +353,11 @@ def getRunInfos(databaseAbsPath: str,
                                         'records' : runRecords}
 
 
-    return infos
+    # stop = time.time()
+    # print(stop-start)
+    # start = time.time()
+    queueData.put(infos)
+    queueDone.put(True)
 
 
 

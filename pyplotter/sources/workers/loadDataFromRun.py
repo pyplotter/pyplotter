@@ -122,15 +122,15 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         # bar
         done = False
         while not done:
-
-            done = queueDone.get()
-            queueDone.put(done)
+            QtTest.QTest.qWait(config['delayBetweenProgressBarUpdate'])
 
             progressBar = queueProgressBar.get()
             queueProgressBar.put(progressBar)
 
             self.signals.updateProgressBar.emit(self.progressBarKey, progressBar)
-            QtTest.QTest.qWait(config['delayBetweenProgressBarUpdate'])
+
+            done = queueDone.get()
+            queueDone.put(done)
 
         d: np.ndarray = queueData.get()
         queueData.close()

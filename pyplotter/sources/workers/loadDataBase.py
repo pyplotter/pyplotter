@@ -1,5 +1,6 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtTest
+import multiprocess as mp
 
 from ..config import config
 from ..qcodesdatabase import getRunInfos
@@ -56,9 +57,44 @@ class loadDataBaseThread(QtCore.QRunnable):
         """
 
         self.signals.setStatusBarMessage.emit('Gathered runs infos database', False)
-        runInfos = getRunInfos(self.databaseAbsPath,
-                               self.signals.updateProgressBar,
-                               self.progressBarKey)
+
+        # Queue will contain the numpy array of the run data
+        queueData: mp.Queue = mp.Queue()
+        # Queue will contain a float from 0 to 100 for the progress bar
+        queueProgressBar: mp.Queue = mp.Queue()
+        queueProgressBar.put(0)
+        # Queue will contain 1 when the download is done
+        queueDone: mp.Queue = mp.Queue()
+        queueDone.put(False)
+
+        self.worker = mp.Process(target=getRunInfos,
+                                 args=(self.databaseAbsPath,
+                                       queueData,
+                                       queueProgressBar,
+                                       queueDone))
+        self.worker.start()
+
+        # Here, we loop until the data transfer is done.
+        # In each loop, we check the transfer progression and update the progress
+        # bar
+        done = False
+        while not done:
+            QtTest.QTest.qWait(config['delayBetweenProgressBarUpdate'])
+
+            progressBar = queueProgressBar.get()
+            queueProgressBar.put(progressBar)
+
+            self.signals.updateProgressBar.emit(self.progressBarKey, progressBar)
+
+            done = queueDone.get()
+            queueDone.put(done)
+
+        runInfos: dict = queueData.get()
+        queueData.close()
+        queueProgressBar.close()
+        queueDone.close()
+
+
 
         # If database is empty
         if runInfos is None:
