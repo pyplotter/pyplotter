@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'pyplotter\ui\main.ui'
+# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\main.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #
@@ -55,6 +55,7 @@ class Ui_MainWindow(object):
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.TopHorizontalLayout.addItem(spacerItem)
         self.groupBoxLivePlot = QtWidgets.QGroupBox(self.centralwidget)
+        self.groupBoxLivePlot.setEnabled(False)
         self.groupBoxLivePlot.setMaximumSize(QtCore.QSize(16777215, 100))
         font = QtGui.QFont()
         font.setPointSize(8)
@@ -70,7 +71,7 @@ class Ui_MainWindow(object):
         self.horizontalLayoutLivePlot1 = QtWidgets.QHBoxLayout()
         self.horizontalLayoutLivePlot1.setObjectName("horizontalLayoutLivePlot1")
         self.pushButtonLivePlot = QtWidgets.QPushButton(self.groupBoxLivePlot)
-        self.pushButtonLivePlot.setEnabled(True)
+        self.pushButtonLivePlot.setEnabled(False)
         self.pushButtonLivePlot.setMaximumSize(QtCore.QSize(16777215, 16777215))
         font = QtGui.QFont()
         font.setBold(False)
@@ -79,7 +80,7 @@ class Ui_MainWindow(object):
         self.pushButtonLivePlot.setObjectName("pushButtonLivePlot")
         self.horizontalLayoutLivePlot1.addWidget(self.pushButtonLivePlot)
         self.spinBoxLivePlot = QtWidgets.QSpinBox(self.groupBoxLivePlot)
-        self.spinBoxLivePlot.setEnabled(True)
+        self.spinBoxLivePlot.setEnabled(False)
         self.spinBoxLivePlot.setMinimumSize(QtCore.QSize(25, 0))
         self.spinBoxLivePlot.setMaximumSize(QtCore.QSize(16777215, 16777215))
         font = QtGui.QFont()
@@ -91,7 +92,7 @@ class Ui_MainWindow(object):
         self.horizontalLayoutLivePlot1.addWidget(self.spinBoxLivePlot)
         self.verticalLayout_9.addLayout(self.horizontalLayoutLivePlot1)
         self.labelLivePlotDataBase = QtWidgets.QLabel(self.groupBoxLivePlot)
-        self.labelLivePlotDataBase.setEnabled(True)
+        self.labelLivePlotDataBase.setEnabled(False)
         self.labelLivePlotDataBase.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.labelLivePlotDataBase.setText("")
         self.labelLivePlotDataBase.setObjectName("labelLivePlotDataBase")
