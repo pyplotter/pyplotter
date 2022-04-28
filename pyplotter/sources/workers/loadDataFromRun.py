@@ -146,6 +146,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
 
             # 1d plot
             if len(paramsIndependent)==1:
+                data = (d[:,0], d[:,1])
 
                 xLabelText  = paramsIndependent[0]['label']
                 xLabelUnits = paramsIndependent[0]['unit']

@@ -119,9 +119,9 @@ def getParameterInfo(databaseAbsPath: str,
 
 
 def getParameterData(databaseAbsPath: str,
-                     runId             : int,
+                     runId: int,
                      paramIndependentName: List[str],
-                     paramDependentName    : str,
+                     paramDependentName: str,
                      queue_data: mp.Queue,
                      queue_progressBar: mp.Queue,
                      queue_done: mp.Queue) -> None:
@@ -139,11 +139,6 @@ def getParameterData(databaseAbsPath: str,
     progressBarKey : str
         Key to the progress bar in the dict progressBars.
     """
-
-    # Initialized progress bar
-    # self.progressBarValue  = 0
-    # self.progressBarKey    = progressBarKey
-    # self.progressBarUpdate = progressBarUpdate
 
     # In order to display a progress of the data loading, we need the
     # number of point downloaded. This requires the two following queries.
@@ -164,6 +159,15 @@ def getParameterData(databaseAbsPath: str,
 
     closeDatabase(conn, cur)
 
+    if len(paramIndependentName)==1:
+        request = 'SELECT {0},{1} FROM "{2}" WHERE {1} IS NOT NULL'.format(paramIndependentName[0],
+                                                                           paramDependentName,
+                                                                           table_name)
+    elif len(paramIndependentName)==2:
+        request = 'SELECT {0},{1},{2} FROM "{3}" WHERE {2} IS NOT NULL'.format(paramIndependentName[0],
+                                                                               paramIndependentName[1],
+                                                                               paramDependentName,
+                                                                               table_name)
 
     # We download the data while updating the progress bar
     conn, cur = openDatabase(databaseAbsPath)
@@ -173,12 +177,9 @@ def getParameterData(databaseAbsPath: str,
         ids = np.append(ids, total)
     iteration = 100/len(ids)
     for i in range(len(ids)-1):
-        cur.execute('SELECT {0},{1},{2} FROM "{3}" WHERE {2} IS NOT NULL LIMIT {4} OFFSET {5}'.format(paramIndependentName[0],
-                                                                                                    paramIndependentName[1],
-                                                                                                    paramDependentName,
-                                                                                                    table_name,
-                                                                                                    callEvery,
-                                                                                                    ids[i]))
+        cur.execute('{0} LIMIT {1} OFFSET {2}'.format(request,
+                                                      callEvery,
+                                                      ids[i]))
         d[ids[i]:ids[i+1],] = np.array(cur.fetchall())
 
         queue_progressBar.put(queue_progressBar.get() + iteration)
