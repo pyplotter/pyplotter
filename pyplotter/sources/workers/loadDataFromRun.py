@@ -130,9 +130,9 @@ class LoadDataFromRunThread(QtCore.QRunnable):
             queue_progressBar.put(progressBar)
 
             self.signals.updateProgressBar.emit(self.progressBarKey, progressBar)
-            QtTest.QTest.qWait(500)
+            QtTest.QTest.qWait(config['delayBetweenProgressBarUpdate'])
 
-        d = queue_data.get()
+        d: np.ndarray = queue_data.get()
         queue_data.close()
         queue_progressBar.close()
         queue_done.close()
@@ -226,7 +226,9 @@ class LoadDataFromRunThread(QtCore.QRunnable):
 
     def shapeData2d(self, x: np.ndarray,
                           y: np.ndarray,
-                          z: np.ndarray) -> Tuple[np.ndarray]:
+                          z: np.ndarray) -> Tuple[np.ndarray,
+                                                  np.ndarray,
+                                                  np.ndarray]:
         """
         Shape the data for a 2d plot but mainly handled all kind of data error/missing/...
 
