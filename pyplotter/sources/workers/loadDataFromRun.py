@@ -99,22 +99,22 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                                                               self.dependentParamName)
 
         # Queue will contain the numpy array of the run data
-        queue_data: mp.Queue = mp.Queue()
+        queueData: mp.Queue = mp.Queue()
         # Queue will contain a float from 0 to 100 for the progress bar
-        queue_progressBar: mp.Queue = mp.Queue()
-        queue_progressBar.put(0)
+        queueProgressBar: mp.Queue = mp.Queue()
+        queueProgressBar.put(0)
         # Queue will contain 1 when the download is done
-        queue_done: mp.Queue = mp.Queue()
-        queue_done.put(False)
+        queueDone: mp.Queue = mp.Queue()
+        queueDone.put(False)
 
         self.worker = mp.Process(target=getParameterData,
                                  args=(self.dataBaseAbsPath,
                                        self.runId,
                                        [paramIndependent['name'] for paramIndependent in paramsIndependent],
                                        paramsDependent['name'],
-                                       queue_data,
-                                       queue_progressBar,
-                                       queue_done))
+                                       queueData,
+                                       queueProgressBar,
+                                       queueDone))
         self.worker.start()
 
         # Here, we loop until the data transfer is done.
@@ -123,19 +123,19 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         done = False
         while not done:
 
-            done = queue_done.get()
-            queue_done.put(done)
+            done = queueDone.get()
+            queueDone.put(done)
 
-            progressBar = queue_progressBar.get()
-            queue_progressBar.put(progressBar)
+            progressBar = queueProgressBar.get()
+            queueProgressBar.put(progressBar)
 
             self.signals.updateProgressBar.emit(self.progressBarKey, progressBar)
             QtTest.QTest.qWait(config['delayBetweenProgressBarUpdate'])
 
-        d: np.ndarray = queue_data.get()
-        queue_data.close()
-        queue_progressBar.close()
-        queue_done.close()
+        d: np.ndarray = queueData.get()
+        queueData.close()
+        queueProgressBar.close()
+        queueDone.close()
 
         # If getParameterData failed, or the database is empty we emit a specific
         # signal which will flag the data download as done without launching a

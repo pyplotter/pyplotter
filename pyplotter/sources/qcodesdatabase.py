@@ -20,22 +20,19 @@ def timestamp2string(timestamp :int,
 
 
 def openDatabase(databaseAbsPath: str,
-                 returnDict: bool=False):
+                 returnDict: bool=False) -> Tuple[sqlite3.Connection,
+                                                  sqlite3.Cursor]:
     """
     Open connection to database using qcodes functions.
 
-    Parameters
-    ----------
-    callEvery : int, default None
-        Number of virtual machine instructions between each callback.
+    Args:
+        databaseAbsPath: Absolute path of the current database
+        returnDict: If true, used row_factory = sqlite3.Row
+            Defaults to False.
 
-
-    Return
-    ------
-    conn : Connection
-        Connection to the db
-    cur : Cursor
-        Cursor to the db
+    Returns:
+        conn: Connection to the db
+        cur: Cursor to the db
     """
 
     conn =  sqlite3.connect(databaseAbsPath)
@@ -50,17 +47,14 @@ def openDatabase(databaseAbsPath: str,
 
 
 
-def closeDatabase(conn,
-                  cur : sqlite3.Cursor) -> None:
+def closeDatabase(conn: sqlite3.Connection,
+                  cur: sqlite3.Cursor) -> None:
     """
     Close the connection to the database.
 
-    Parameters
-    ----------
-    conn : Connection
-        Connection to the db
-    cur : Cursor
-        Cursor to the db
+    Args:
+        conn: Connection to the db
+        cur: Cursor to the db
     """
 
     cur.close()
@@ -73,14 +67,16 @@ def closeDatabase(conn,
 
 
 def getParameterInfo(databaseAbsPath: str,
-                     runId         : int,
-                     parameterName : str) -> Tuple[dict, List[dict]]:
+                     runId: int,
+                     parameterName: str) -> Tuple[dict, List[dict]]:
     """
     Get the dependent qcodes parameter dictionary and all the independent
     parameters dictionary it depends on.
 
     Parameters
     ----------
+    databaseAbsPath: str
+        Absolute path of the current database
     runId : int
         id of the run.
     parameterName : str
@@ -122,22 +118,28 @@ def getParameterData(databaseAbsPath: str,
                      runId: int,
                      paramIndependentName: List[str],
                      paramDependentName: str,
-                     queue_data: mp.Queue,
-                     queue_progressBar: mp.Queue,
-                     queue_done: mp.Queue) -> None:
+                     queueData: mp.Queue,
+                     queueProgressBar: mp.Queue,
+                     queueDone: mp.Queue) -> None:
     """
     Return the data of paramDependent of the runId as a qcodes dict.
 
     Parameters
     ----------
+    databaseAbsPath: str
+        Absolute path of the current database
     runId : int
         Run from which data are downloaded
-    paramDependent : str
-        Dependent parameter name to extract sub dict from main dict
-    progressBarUpdate : func
-        Pyqt signal to update the progress bar in the main thread
-    progressBarKey : str
-        Key to the progress bar in the dict progressBars.
+    paramIndependentName : str
+        Independent parameter name
+    paramDependentName : str
+        Dependent parameter name
+    queueData : mp.Queue
+        Queue containing the numpy array of the run data
+    queueProgressBar : mp.Queue
+        Queue containing a float from 0 to 100 for the progress bar
+    queueDone : mp.Queue
+        Queue containing 1 when the download is done
     """
 
     # In order to display a progress of the data loading, we need the
@@ -159,10 +161,13 @@ def getParameterData(databaseAbsPath: str,
 
     closeDatabase(conn, cur)
 
+    # Depending if we are downloading 1d or 2d data
+    # for 1d
     if len(paramIndependentName)==1:
         request = 'SELECT {0},{1} FROM "{2}" WHERE {1} IS NOT NULL'.format(paramIndependentName[0],
                                                                            paramDependentName,
                                                                            table_name)
+    # for 2d
     elif len(paramIndependentName)==2:
         request = 'SELECT {0},{1},{2} FROM "{3}" WHERE {2} IS NOT NULL'.format(paramIndependentName[0],
                                                                                paramIndependentName[1],
@@ -170,24 +175,26 @@ def getParameterData(databaseAbsPath: str,
                                                                                table_name)
 
     # We download the data while updating the progress bar
-    conn, cur = openDatabase(databaseAbsPath)
+    # First, we compute the id limits to download the data in
+    # 100/config['displayedDownloadQcodesPercentage'] request
     d = np.empty((total, len(paramIndependentName)+1))
     ids = np.arange(0, total, callEvery)
     if ids[-1]!=total:
         ids = np.append(ids, total)
     iteration = 100/len(ids)
+    conn, cur = openDatabase(databaseAbsPath)
     for i in range(len(ids)-1):
         cur.execute('{0} LIMIT {1} OFFSET {2}'.format(request,
                                                       callEvery,
                                                       ids[i]))
         d[ids[i]:ids[i+1],] = np.array(cur.fetchall())
 
-        queue_progressBar.put(queue_progressBar.get() + iteration)
+        queueProgressBar.put(queueProgressBar.get() + iteration)
 
     closeDatabase(conn, cur)
 
-    queue_data.put(d)
-    queue_done.put(True)
+    queueData.put(d)
+    queueDone.put(True)
 
 
 
