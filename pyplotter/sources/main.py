@@ -240,6 +240,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self.actionqb.triggered.connect(self.menuBackgroundQb)
         self.actionqdark.triggered.connect(self.menuBackgroundQdark)
         self.actionwhite.triggered.connect(self.menuBackgroundWhite)
+        self.actionDefaultPath.triggered.connect(self.menuDefaultPath)
 
         if config['style']=='qbstyles':
             self.actionqb.setChecked(True)
@@ -371,6 +372,20 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         updateUserConfig('style', 'white')
 
         self.updatePlotsStyle(config)
+
+
+
+    def menuDefaultPath(self):
+
+        # Ask user to chose a path
+        path = QtWidgets.QFileDialog.getExistingDirectory(self,
+                                                          caption='Open folder',
+                                                          directory=os.getcwd(),
+                                                          options=QtWidgets.QFileDialog.ReadOnly|QtWidgets.QFileDialog.ShowDirsOnly)
+        if path != '':
+
+            updateUserConfig('path', os.path.abspath(path))
+            updateUserConfig('root', os.path.splitdrive(path)[0])
 
 
 

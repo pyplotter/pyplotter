@@ -10,7 +10,7 @@ configPackage = {
 # The soft will not allowed to go above that path
 'root' : 'C:/',
 # Default display path, should be at least the root
-'path' : 'C:/Users/ed261978/Desktop/edumur',
+'path' : 'C:/',
 # Folder having these names will be colored, easier to browse
 'enhancedFolder' : ['bluelagoon',
                     'Cryoconcept',

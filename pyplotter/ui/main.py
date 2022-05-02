@@ -318,10 +318,13 @@ class Ui_MainWindow(object):
         self.actionwhite = QtWidgets.QAction(MainWindow)
         self.actionwhite.setCheckable(True)
         self.actionwhite.setObjectName("actionwhite")
+        self.actionDefaultPath = QtWidgets.QAction(MainWindow)
+        self.actionDefaultPath.setObjectName("actionDefaultPath")
         self.menustyle.addAction(self.actionqb)
         self.menustyle.addAction(self.actionqdark)
         self.menustyle.addAction(self.actionwhite)
         self.menuConfig.addAction(self.menustyle.menuAction())
+        self.menuConfig.addAction(self.actionDefaultPath)
         self.menuBar.addAction(self.menuConfig.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -381,4 +384,5 @@ class Ui_MainWindow(object):
         self.actionqb.setText(_translate("MainWindow", "qb"))
         self.actionqdark.setText(_translate("MainWindow", "qdark"))
         self.actionwhite.setText(_translate("MainWindow", "white"))
+        self.actionDefaultPath.setText(_translate("MainWindow", "Select default folder"))
 from ..ui.qtable_widget_key import QTableWidgetKey

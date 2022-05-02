@@ -715,6 +715,7 @@
      <addaction name="actionwhite"/>
     </widget>
     <addaction name="menustyle"/>
+    <addaction name="actionDefaultPath"/>
    </widget>
    <addaction name="menuConfig"/>
   </widget>
@@ -749,6 +750,11 @@
    </property>
    <property name="text">
     <string>white</string>
+   </property>
+  </action>
+  <action name="actionDefaultPath">
+   <property name="text">
+    <string>Select default folder</string>
    </property>
   </action>
  </widget>
