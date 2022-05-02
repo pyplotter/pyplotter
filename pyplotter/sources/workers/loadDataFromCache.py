@@ -4,7 +4,8 @@ import numpy as np
 from typing import Tuple
 import sys
 
-from ..config import config
+from ..config import loadConfigCurrent
+config = loadConfigCurrent()
 
 # def trap_exc_during_debug(*args) -> None:
 #     # when app raises uncaught exception, print info

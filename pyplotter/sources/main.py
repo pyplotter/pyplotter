@@ -1,11 +1,11 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtGui, QtCore, QtWidgets
-import os
 from datetime import datetime
+import os
+import numpy as np
+from PyQt5 import QtGui, QtCore, QtWidgets
+import time
 from typing import Union, Callable, List, Optional, Tuple
 import uuid
-import numpy as np
-import time
 
 # Correct bug with pyqtgraph and python3.8 by replacing function name
 try:
@@ -23,7 +23,8 @@ from .workers.loadDataBase import loadDataBaseThread
 from .workers.loadDataFromRun import LoadDataFromRunThread
 from .workers.loadDataFromCache import LoadDataFromCacheThread
 from .workers.loadRunInfo import loadRunInfoThread
-from .config import config
+from .config import loadConfigCurrent, updateUserConfig
+config = loadConfigCurrent()
 from .plot_1d_app import Plot1dApp
 from .plot_2d_app import Plot2dApp
 from ..ui import main
@@ -31,7 +32,7 @@ from ..ui.view_tree import ViewTree
 from ..ui.db_menu_widget import dbMenuWidget
 from ..ui.my_table_widget_item import MyTableWidgetItem
 
-pg.setConfigOption('background', config['styles'][config['style']]['pyqtgraphBackgroundColor'])
+pg.setConfigOption('background', None)
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
 pg.setConfigOption('antialias', config['plot1dAntialias'])
 
@@ -201,11 +202,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
 
 
-    def __init__(self, parent=None):
+    def __init__(self, QApplication,
+                       parent=None):
 
         super(MainApp, self).__init__(parent)
         self.setupUi(self)
 
+        self.qapp = QApplication
 
         # Connect UI
         self.tableWidgetFolder.cellClicked.connect(self.itemClicked)
@@ -234,6 +237,19 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         self.lineEditFilter.textChanged.connect(self.lineEditFilterTextEdited)
 
+        self.actionqb.triggered.connect(self.menuBackgroundQb)
+        self.actionqdark.triggered.connect(self.menuBackgroundQdark)
+        self.actionwhite.triggered.connect(self.menuBackgroundWhite)
+
+        if config['style']=='qbstyles':
+            self.actionqb.setChecked(True)
+            self.actionqb.setEnabled(False)
+        elif config['style']=='qdarkstyle':
+            self.actionqdark.setChecked(True)
+            self.actionqdark.setEnabled(False)
+        elif config['style']=='white':
+            self.actionwhite.setChecked(True)
+            self.actionwhite.setEnabled(False)
 
         self.setStatusBarMessage('Ready')
 
@@ -284,6 +300,77 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self.folderClicked(directory=self.currentPath)
 
         self.threadpool = QtCore.QThreadPool()
+
+
+
+    ###########################################################################
+    #
+    #
+    #                           Menu
+    #
+    #
+    ###########################################################################
+
+
+    def menuBackgroundQb(self, checked):
+
+        self.actionqb.setChecked(True)
+        self.actionqdark.setChecked(False)
+        self.actionwhite.setChecked(False)
+
+        self.actionqb.setEnabled(False)
+        self.actionqdark.setEnabled(True)
+        self.actionwhite.setEnabled(True)
+
+        config['style'] = 'qdarkstyle'
+
+        import qdarkstyle
+
+        self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+
+        updateUserConfig('style', 'qdarkstyle')
+
+        self.updatePlotsStyle(config)
+
+
+
+    def menuBackgroundQdark(self, checked):
+
+        self.actionqb.setChecked(False)
+        self.actionqdark.setChecked(True)
+        self.actionwhite.setChecked(False)
+
+        self.actionqb.setEnabled(True)
+        self.actionqdark.setEnabled(False)
+        self.actionwhite.setEnabled(True)
+
+        config['style'] = 'qbstyles'
+        import qdarkstyle
+
+        self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+
+        updateUserConfig('style', 'qbstyles')
+
+        self.updatePlotsStyle(config)
+
+
+
+    def menuBackgroundWhite(self, checked):
+
+        self.actionqb.setChecked(False)
+        self.actionqdark.setChecked(False)
+        self.actionwhite.setChecked(True)
+
+        self.actionqb.setEnabled(True)
+        self.actionqdark.setEnabled(True)
+        self.actionwhite.setEnabled(False)
+
+        config['style'] = 'white'
+        self.qapp.setStyleSheet(self.qapp.setStyle('Oxygen'))
+
+        updateUserConfig('style', 'white')
+
+        self.updatePlotsStyle(config)
 
 
 
@@ -684,15 +771,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         launching its plot.
         """
 
-        # We simulate a single click
-        self.runClicked()
-
-        # We click on the first parameter, which will launch a plot
-        self.parameterCellClicked(0, 2)
+        # We simulate a single click while propagating the double-click info
+        self.runClicked(doubleClicked=True)
 
 
 
-    def runClicked(self) -> None:
+    def runClicked(self, currentRow: int=0,
+                         currentColumn: int=0,
+                         previousRow: int=0,
+                         previousColumn: int=0,
+                         doubleClicked: bool=False) -> None:
         """
         When clicked display the measured dependent parameters in the
         tableWidgetPtableWidgetParameters.
@@ -706,7 +794,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         if self.databaseClicking:
             return
 
-
         runId          = self.getRunId()
         experimentName = self.getRunExperimentName()
         runName        = self.getRunName()
@@ -716,7 +803,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         worker = loadRunInfoThread(self.dataBaseAbsPath,
                                    runId,
                                    experimentName,
-                                   runName)
+                                   runName,
+                                   doubleClicked)
         worker.signals.updateRunInfo.connect(self.runClickedFromThread)
         # Execute the thread
         self.threadpool.start(worker)
@@ -727,7 +815,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                    dependentList: list,
                                    snapshotDict: dict,
                                    experimentName: str,
-                                   runName: str):
+                                   runName: str,
+                                   doubleClicked: bool):
 
         runIdStr = str(runId)
 
@@ -802,6 +891,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
 
         self.setStatusBarMessage('Ready')
+
+        # If a double click is detected, we launch a plot of the first parameter
+        if doubleClicked:
+            self.parameterCellClicked(0, 2)
 
 
 
@@ -1821,6 +1914,17 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
     #
     #
     ###########################################################################
+
+
+    def updatePlotsStyle(self, config: dict) -> None:
+
+        if len(self._plotRefs) > 0:
+
+            # Build the list of 1d plot windows
+            for plot in self._plotRefs.values():
+                plot.config = config
+                # plot.setStyleSheet(self.qapp.setStyle('Oxygen'))
+                plot.updateStyle()
 
 
 

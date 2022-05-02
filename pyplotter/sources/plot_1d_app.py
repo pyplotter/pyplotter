@@ -9,7 +9,7 @@ from scipy.integrate import cumtrapz
 
 
 from ..ui.plot1d_widget import Ui_Dialog
-from .config import config
+from .config import loadConfigCurrent
 from .plot_app import PlotApp
 from . import fit
 from . import filtering
@@ -105,6 +105,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         super(Plot1dApp, self).__init__(parent)
 
         self.setupUi(self)
+        self.config = loadConfigCurrent()
 
         # Allow resize of the plot window
         self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
@@ -161,7 +162,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.initFilteringGUI()
 
         # Initialize font size spin button with the config file
-        self.spinBoxFontSize.setValue(config['axisLabelFontSize'])
+        self.spinBoxFontSize.setValue(self.config['axisLabelFontSize'])
 
 
         # Connect UI
@@ -193,36 +194,36 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.setWindowTitle(windowTitle)
 
         self.plotItem.setTitle(title=title,
-                               color=config['styles'][config['style']]['pyqtgraphTitleTextColor'])
+                               color=self.config['styles'][self.config['style']]['pyqtgraphTitleTextColor'])
 
         # To make the GUI faster
         self.plotItem.disableAutoRange()
 
         # Personalize the GUI
-        if config['plot1dGrid']:
+        if self.config['plot1dGrid']:
             self.plotItem.showGrid(x=True, y=True)
 
         self.plotItem.setLabel(axis='bottom',
                                text=xLabelText,
                                units=xLabelUnits,
-                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
                                text=yLabelText,
                                units=yLabelUnits,
-                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                      'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                      'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
 
         font=QtGui.QFont()
-        font.setPixelSize(config['tickLabelFontSize'])
+        font.setPixelSize(self.config['tickLabelFontSize'])
         self.plotItem.getAxis('bottom').setTickFont(font)
         self.plotItem.getAxis('left').setTickFont(font)
-        self.plotItem.getAxis('bottom').setPen(config['styles'][config['style']]['pyqtgraphxAxisTicksColor'])
-        self.plotItem.getAxis('left').setPen(config['styles'][config['style']]['pyqtgraphyAxisTicksColor'])
+        self.plotItem.getAxis('bottom').setPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTicksColor'])
+        self.plotItem.getAxis('left').setPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTicksColor'])
 
-        self.setStyleSheet("background-color: "+str(config['styles'][config['style']]['dialogBackgroundColor'])+";")
-        self.setStyleSheet("color: "+str(config['styles'][config['style']]['dialogTextColor'])+";")
+        self.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
+        self.setStyleSheet("color: "+str(self.config['styles'][self.config['style']]['dialogTextColor'])+";")
 
 
         # If the xaxis used timestamp, we use a dedicated axisItem
@@ -248,7 +249,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Should be initialize last
         PlotApp.__init__(self, dataBaseName, dataBaseAbsPath)
 
-        self.resize(*config['dialogWindowSize'])
+        self.resize(*self.config['dialogWindowSize'])
 
 
     ####################################
@@ -399,12 +400,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         colors = [curve.colorIndex for curve in self.curves.values()]
         for i in range(50):
             if i not in colors:
-                colorIndex = i%len(config['plot1dColors'])
-                color = config['plot1dColors'][i%len(config['plot1dColors'])]
+                colorIndex = i%len(self.config['plot1dColors'])
+                color = self.config['plot1dColors'][i%len(self.config['plot1dColors'])]
                 break
 
 
-        mkpen = pg.mkPen(color=color, width=config['plotDataItemWidth'])
+        mkpen = pg.mkPen(color=color, width=self.config['plotDataItemWidth'])
 
         return colorIndex, mkpen
 
@@ -854,11 +855,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
             for i, (key, curve) in enumerate(list(self.curves.items())):
                 if key != 'fit':
-                    curve.setSymbol(config['plot1dSymbol'][i%len(config['plot1dSymbol'])])
+                    curve.setSymbol(self.config['plot1dSymbol'][i%len(self.config['plot1dSymbol'])])
 
                     # If split y axis enable
                     if hasattr(self, 'curveRight'):
-                        self.curveRight.setSymbol(config['plot1dSymbol'][i%len(config['plot1dSymbol'])])
+                        self.curveRight.setSymbol(self.config['plot1dSymbol'][i%len(self.config['plot1dSymbol'])])
 
         else:
             for i, (key, curve) in enumerate(list(self.curves.items())):
@@ -924,13 +925,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 self.plotItem.setLabel(axis='left',
                                     text=self.curves[leftCurveId].curveLabel,
                                     units=self.curves[leftCurveId].curveUnits,
-                                    **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                        'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                                    **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                        'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
                 self.plotItem.setLabel(axis='right',
                                     text=self.curves[rightCurveId].curveLabel,
                                     units=self.curves[rightCurveId].curveUnits,
-                                    **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                        'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                                    **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                        'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
                 # Add the plotDataItem in the right viewbox
                 self.vbRight.addItem(self.curveRight)
@@ -983,22 +984,22 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
 
 
-        config['axisLabelFontSize'] = int(self.spinBoxFontSize.value())
-        config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
+        self.config['axisLabelFontSize'] = int(self.spinBoxFontSize.value())
+        self.config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
 
         self.plotItem.setLabel(axis='bottom',
                                text=self.plotItem.axes['bottom']['item'].labelText,
                                units=self.plotItem.axes['bottom']['item'].labelUnits,
-                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
                                text=self.plotItem.axes['left']['item'].labelText,
                                units=self.plotItem.axes['left']['item'].labelUnits,
-                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
         font=QtGui.QFont()
-        font.setPixelSize(config['tickLabelFontSize'])
+        font.setPixelSize(self.config['tickLabelFontSize'])
         self.plotItem.getAxis('bottom').setTickFont(font)
         self.plotItem.getAxis('left').setTickFont(font)
 
@@ -1521,10 +1522,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 self.plotItem.removeItem(self.sliceItems['b'])
         else:
             pen = pg.mkPen(color=(255, 255, 255),
-                           width=config['crossHairLineWidth'],
+                           width=self.config['crossHairLineWidth'],
                            style=QtCore.Qt.SolidLine)
             hoverPen = pg.mkPen(color=(255, 255, 255),
-                                width=config['crossHairLineWidth'],
+                                width=self.config['crossHairLineWidth'],
                                 style=QtCore.Qt.DashLine)
 
             angle = 90.
@@ -1571,10 +1572,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         for curve in self.curves.values():
 
             # Create new style
-            mkPen = pg.mkPen(color=config['plot1dColors'][curve.colorIndex],
+            mkPen = pg.mkPen(color=self.config['plot1dColors'][curve.colorIndex],
                             style=QtCore.Qt.SolidLine ,
-                            width=config['plotDataItemWidth'])
-            mkShadowPen = pg.mkPen(color=config['plot1dColorsComplementary'][curve.colorIndex],
+                            width=self.config['plotDataItemWidth'])
+            mkShadowPen = pg.mkPen(color=self.config['plot1dColorsComplementary'][curve.colorIndex],
                             width=0)
 
             # Apply new style
@@ -1584,9 +1585,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Then we apply the selected style to only one of the plotDataItem
         if curveId is not None:
             # Create new style
-            mkPen = pg.mkPen(color=config['plot1dColorsComplementary'][self.curves[curveId].colorIndex],
+            mkPen = pg.mkPen(color=self.config['plot1dColorsComplementary'][self.curves[curveId].colorIndex],
                             style=QtCore.Qt.SolidLine ,
-                            width=config['plotDataItemWidth'])
+                            width=self.config['plotDataItemWidth'])
 
             # Get data to display with a different style
             x, y = self.getSelectedData(curveId)

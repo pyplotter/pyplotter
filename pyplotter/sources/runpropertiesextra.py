@@ -3,7 +3,8 @@ from PyQt5 import QtGui, QtWidgets
 import os
 import json
 
-from .config import config
+from .config import loadConfigCurrent
+config = loadConfigCurrent()
 from ..ui.my_table_widget_item import MyTableWidgetItem
 
 # Get the folder path for pictures

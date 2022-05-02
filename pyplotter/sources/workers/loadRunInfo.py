@@ -1,7 +1,8 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore
 
-# from .config import config
+from ..config import loadConfigCurrent
+config = loadConfigCurrent()
 from ..qcodesdatabase import getDependentSnapshotFromRunId
 
 
@@ -12,7 +13,7 @@ class loadRunInfoSignal(QtCore.QObject):
 
 
     # When the run method is done
-    updateRunInfo = QtCore.pyqtSignal(int, list, dict, str, str)
+    updateRunInfo = QtCore.pyqtSignal(int, list, dict, str, str, bool)
 
 
 
@@ -23,7 +24,8 @@ class loadRunInfoThread(QtCore.QRunnable):
     def __init__(self, databaseAbsPath: str,
                        runId: int,
                        experimentName: str,
-                       runName: str):
+                       runName: str,
+                       doubleClicked: bool):
         """
         Thread used to get all the run info of a database.
 
@@ -45,6 +47,7 @@ class loadRunInfoThread(QtCore.QRunnable):
         self.runId           = runId
         self.experimentName  = experimentName
         self.runName         = runName
+        self.doubleClicked   = doubleClicked
 
         self.signals = loadRunInfoSignal()
 
@@ -63,7 +66,8 @@ class loadRunInfoThread(QtCore.QRunnable):
                                         dependentList,
                                         snapshotDict,
                                         self.experimentName,
-                                        self.runName)
+                                        self.runName,
+                                        self.doubleClicked)
 
 
 

@@ -5,7 +5,8 @@ from typing import Tuple
 import multiprocessing as mp
 
 from ..qcodesdatabase import getParameterData, getParameterInfo
-from ..config import config
+from ..config import loadConfigCurrent
+config = loadConfigCurrent()
 
 
 
@@ -134,8 +135,11 @@ class LoadDataFromRunThread(QtCore.QRunnable):
 
         d: np.ndarray = queueData.get()
         queueData.close()
+        queueData.join_thread()
         queueProgressBar.close()
+        queueProgressBar.join_thread()
         queueDone.close()
+        queueDone.join_thread()
 
         # If getParameterData failed, or the database is empty we emit a specific
         # signal which will flag the data download as done without launching a

@@ -12,7 +12,7 @@ from ..ui.plot2d_widget import Ui_Dialog
 from . import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
 from .plot_app import PlotApp
 from .plot_1d_app import Plot1dApp
-from .config import config
+from .config import loadConfigCurrent
 from . import fit
 
 
@@ -90,6 +90,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         super(Plot2dApp, self).__init__(parent)
 
         self.setupUi(self)
+        self.config = loadConfigCurrent()
 
         # Must be set on False, see
         # https://github.com/pyqtgraph/pyqtgraph/issues/1371
@@ -151,17 +152,17 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.extractiofitWindow = None
 
         # Initialize font size spin button with the config file
-        self.spinBoxFontSize.setValue(config['axisLabelFontSize'])
+        self.spinBoxFontSize.setValue(self.config['axisLabelFontSize'])
 
 
         # Get plotItem from the widget
         self.plotItem = self.widget.getPlotItem()
-        self.resize(*config['dialogWindowSize'])
+        self.resize(*self.config['dialogWindowSize'])
 
 
         # Create a Image item to host the image view
         self.imageItem = pg.ImageItem(image=np.array([[0,0],[0,0]]))
-        self.imageItem.autoDownsample = config['2dDownSampling']
+        self.imageItem.autoDownsample = self.config['2dDownSampling']
         self.imageView = pg.ImageView(imageItem=self.imageItem)
 
         # Embed the plot item in the graphics layout
@@ -169,7 +170,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # Allow ticklabels to be changed
         font=QtGui.QFont()
-        font.setPixelSize(config['tickLabelFontSize'])
+        font.setPixelSize(self.config['tickLabelFontSize'])
 
         # Create a histogram item linked to the imageitem
         self.histWidget.setImageItem(self.imageItem)
@@ -182,18 +183,18 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
         # Axes label
-        self.plotItem.setTitle(title=title, color=config['styles'][config['style']]['pyqtgraphTitleTextColor'])
+        self.plotItem.setTitle(title=title, color=self.config['styles'][self.config['style']]['pyqtgraphTitleTextColor'])
         self.plotItem.showGrid(x=True, y=True)
         self.plotItem.setLabel(axis='bottom',
                                text=self.xLabelText,
                                units=self.xLabelUnits,
-                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                                'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                                'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
                                text=self.yLabelText,
                                units=self.yLabelUnits,
-                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                                'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                                'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
         # The only reliable way I have found to correctly display the zLabel
         # is by using a Qlabel from the GUI
@@ -203,14 +204,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Style
         self.plotItem.getAxis('bottom').setTickFont(font)
         self.plotItem.getAxis('left').setTickFont(font)
-        self.plotItem.getAxis('bottom').setPen(config['styles'][config['style']]['pyqtgraphxAxisTicksColor'])
-        self.plotItem.getAxis('left').setPen(config['styles'][config['style']]['pyqtgraphyAxisTicksColor'])
-        self.histWidget.item.axis.setPen(config['styles'][config['style']]['pyqtgraphzAxisTicksColor'])
+        self.plotItem.getAxis('bottom').setPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTicksColor'])
+        self.plotItem.getAxis('left').setPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTicksColor'])
+        self.histWidget.item.axis.setPen(self.config['styles'][self.config['style']]['pyqtgraphzAxisTicksColor'])
 
         self.setWindowTitle(windowTitle)
 
-        self.setStyleSheet("background-color: "+str(config['styles'][config['style']]['dialogBackgroundColor'])+";")
-        self.setStyleSheet("color: "+str(config['styles'][config['style']]['dialogTextColor'])+";")
+        self.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
+        self.setStyleSheet("color: "+str(self.config['styles'][self.config['style']]['dialogTextColor'])+";")
 
 
         # Connect UI
@@ -235,7 +236,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.radioButtonSliceAveragedVertical.toggled.connect(self.radioBoxSliceChanged)
 
         # UI for the derivative combobox
-        for label in config['plot2dDerivative']:
+        for label in self.config['plot2dDerivative']:
             self.comboBoxDerivative.addItem(label)
         self.comboBoxDerivative.activated.connect(self.zDataTransformation)
 
@@ -253,13 +254,13 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         indexViridis = 0
         for cm in [i for i in palettes.all_palettes.keys() if i[-2:] !='_r']:
             self.comboBoxcm.addItem(cm)
-            if cm==config['plot2dcm']:
+            if cm==self.config['plot2dcm']:
                 indexViridis = index
 
             index += 1
 
         self.colorMapInversed = False
-        self.setColorMap(config['plot2dcm'])
+        self.setColorMap(self.config['plot2dcm'])
         self.comboBoxcm.setCurrentIndex(indexViridis)
         self.comboBoxcm.currentIndexChanged.connect(self.comboBoxcmChanged)
 
@@ -522,22 +523,22 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
 
 
-        config['axisLabelFontSize'] = int(self.spinBoxFontSize.value())
-        config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
+        self.config['axisLabelFontSize'] = int(self.spinBoxFontSize.value())
+        self.config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
 
         self.plotItem.setLabel(axis='bottom',
                                text=self.plotItem.axes['bottom']['item'].labelText,
                                units=self.plotItem.axes['bottom']['item'].labelUnits,
-                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
                                text=self.plotItem.axes['left']['item'].labelText,
                                units=self.plotItem.axes['left']['item'].labelUnits,
-                               **{'color'     : config['styles'][config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(config['axisLabelFontSize'])+'pt'})
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
         font=QtGui.QFont()
-        font.setPixelSize(config['tickLabelFontSize'])
+        font.setPixelSize(self.config['tickLabelFontSize'])
         self.plotItem.getAxis('bottom').setTickFont(font)
         self.plotItem.getAxis('left').setTickFont(font)
 
@@ -714,11 +715,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation).curves[curveId].colorIndex
 
-        pen = pg.mkPen(color=config['plot1dColors'][colorIndex],
-                       width=config['crossHairLineWidth'],
+        pen = pg.mkPen(color=self.config['plot1dColors'][colorIndex],
+                       width=self.config['crossHairLineWidth'],
                        style=QtCore.Qt.SolidLine)
-        hoverPen = pg.mkPen(color=config['plot1dColors'][colorIndex],
-                       width=config['crossHairLineWidth'],
+        hoverPen = pg.mkPen(color=self.config['plot1dColors'][colorIndex],
+                       width=self.config['crossHairLineWidth'],
                        style=QtCore.Qt.DashLine)
 
         # If the position has been given it means we are swapping the axes.
@@ -758,7 +759,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                 label='',
                                 labelOpts={'position' : 0.9,
                                            'movable' : True,
-                                           'fill': config['plot1dColors'][colorIndex]})
+                                           'fill': self.config['plot1dColors'][colorIndex]})
 
             t.sigDragged.connect(lambda sliceItem=t,
                                         sliceOrientation=sliceOrientation:
@@ -776,12 +777,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                             text='',
                             movable=True,
                             position=0.9,
-                            fill=config['plot1dColors'][colorIndex])
+                            fill=self.config['plot1dColors'][colorIndex])
             t.labelmax = pg.InfLineLabel(line=t.lines[1],
                             text='',
                             movable=True,
                             position=0.9,
-                            fill=config['plot1dColors'][colorIndex])
+                            fill=self.config['plot1dColors'][colorIndex])
 
             t.sigRegionChanged.connect(lambda sliceItem=t,
                                               sliceOrientation=sliceOrientation:
@@ -1448,12 +1449,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             colormap name
         """
 
-        rgba_colors = [hex_to_rgba(i) for i in palettes.all_palettes[cm][config['2dMapNbColorPoints']]]
+        rgba_colors = [hex_to_rgba(i) for i in palettes.all_palettes[cm][self.config['2dMapNbColorPoints']]]
 
         if self.colorMapInversed:
             rgba_colors = [i for i in reversed(rgba_colors)]
 
-        pos = np.linspace(0, 1, config['2dMapNbColorPoints'])
+        pos = np.linspace(0, 1, self.config['2dMapNbColorPoints'])
         # Set the colormap
         pgColormap =  pg.ColorMap(pos, rgba_colors)
         self.histWidget.item.gradient.setColorMap(pgColormap)
@@ -1535,11 +1536,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         textSlope1 = pg.TextItem(anchor=(0,0),
                                     color=(255, 255, 255),
-                                    fill=config['plot1dColors'][0])
+                                    fill=self.config['plot1dColors'][0])
 
         textSlope2 = pg.TextItem(anchor=(0,0),
                                     color=(255, 255, 255),
-                                    fill=config['plot1dColors'][1])
+                                    fill=self.config['plot1dColors'][1])
 
         slopeLineSegmentROI.textSlope1 = textSlope1
         slopeLineSegmentROI.textSlope2 = textSlope2

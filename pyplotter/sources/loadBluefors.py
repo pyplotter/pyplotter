@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from typing import Optional
 
-from .config import config
-
+from .config import loadConfigCurrent
+config = loadConfigCurrent()
 class LoadBlueFors:
 
 

@@ -6,7 +6,8 @@ from typing import Tuple, Union
 from math import log10
 import pyqtgraph as pg
 
-from .config import config
+from .config import loadConfigCurrent
+config = loadConfigCurrent()
 from ..ui.plot_widget import PlotWidget
 from ..ui.db_menu_widget import dbMenuWidget
 
@@ -39,6 +40,42 @@ class PlotApp(dbMenuWidget):
         self.plotItem.titleLabel.mousePressEvent = self.clickTitle
         self.plotItem.scene().sigMouseMoved.connect(self.mouseMoved)
         self.checkBoxCrossHair.stateChanged.connect(self.checkBoxCrossHairState)
+
+
+
+    ####################################
+    #
+    #           Method related to style
+    #
+    ####################################
+
+
+    def updateStyle(self) -> None:
+
+        self.plotItem.setTitle(title=self.plotItem.titleLabel.text,
+                               color=self.config['styles'][self.config['style']]['pyqtgraphTitleTextColor'])
+
+        self.plotItem.setLabel(axis='bottom',
+                               text=self.plotItem.axes['bottom']['item'].labelText,
+                               units=self.plotItem.axes['bottom']['item'].labelUnits,
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel(axis='left',
+                               text=self.plotItem.axes['left']['item'].labelText,
+                               units=self.plotItem.axes['left']['item'].labelUnits,
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
+
+        font=QtGui.QFont()
+        font.setPixelSize(self.config['tickLabelFontSize'])
+        self.plotItem.getAxis('bottom').setTickFont(font)
+        self.plotItem.getAxis('left').setTickFont(font)
+        self.plotItem.getAxis('bottom').setPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTicksColor'])
+        self.plotItem.getAxis('left').setPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTicksColor'])
+
+        for qlabel in self.findChildren(QtWidgets.QLabel)+self.findChildren(QtWidgets.QCheckBox)+self.findChildren(QtWidgets.QGroupBox):
+            qlabel.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
+            qlabel.setStyleSheet("color: "+str(self.config['styles'][self.config['style']]['dialogTextColor'])+";")
 
 
 

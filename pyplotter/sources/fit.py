@@ -5,7 +5,8 @@ import lmfit
 from scipy.signal import hilbert
 from typing import Tuple, Union
 
-from .config import config
+from .config import loadConfigCurrent
+config = loadConfigCurrent()
 from .functions import _parse_number
 
 

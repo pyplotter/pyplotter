@@ -1,13 +1,16 @@
 # This Python file uses the following encoding: utf-8
+import json
+import os
+from platformdirs import user_config_dir
 
 # This file create a python dict containing all personalized parameters
-config = {
+configPackage = {
 
 # Do not put "/" after ":" in the two following paths
 # The soft will not allowed to go above that path
 'root' : 'C:/',
 # Default display path, should be at least the root
-'path' : 'C:/',
+'path' : 'C:/Users/ed261978/Desktop/edumur',
 # Folder having these names will be colored, easier to browse
 'enhancedFolder' : ['bluelagoon',
                     'Cryoconcept',
@@ -203,3 +206,133 @@ config = {
 'crossHairLineColor' : 'w',
 'crossHairLineStyle' : 'solid', # solid, dashed, dotted, dashed-dotted
 }
+
+
+
+###########################################################################
+#
+#
+#                           Current config file
+#
+#
+###########################################################################
+
+
+
+def getConfigCurrentPath() -> str:
+    """
+    Return the path of the current configuration file
+    """
+
+    return os.path.join(user_config_dir('pyplotter'), 'current_config.py')
+
+
+
+def saveConfigCurrent() -> None:
+    """
+    Save the current config file.
+    """
+
+    configCurrent = configPackage
+    configUser    = json.load(open(getConfigUserPath(), 'r', encoding='utf-8'))
+
+    for key, val in configUser.items():
+        configCurrent[key] = val
+
+    with open(getConfigCurrentPath(), 'w', encoding='utf-8') as f:
+        json.dump(configCurrent, f, ensure_ascii=False, indent=4)
+    f.close()
+
+
+
+def loadConfigCurrent() -> dict:
+    """
+    Return the current configuration as a dictionnary.
+    """
+
+    with open(getConfigCurrentPath(), 'r', encoding='utf-8') as f:
+        config = json.load(f)
+
+    return config
+
+
+
+###########################################################################
+#
+#
+#                           User config file
+#
+#
+###########################################################################
+
+
+
+def getConfigUserPath() -> str:
+    """
+    Return the path of the user configuration file
+    """
+
+    return os.path.join(user_config_dir('pyplotter'), 'user_config.py')
+
+
+
+def updateUserConfig(key: str,
+                     val: str) -> None:
+    """
+    Update the user config file located in user_config_dir('pyplotter') directory.
+    Usually C:/Users/.../AppData/Local/pyplotter/pyplotter on windows 10.
+
+    Args:
+        key: key to be updated
+        val: val to be updated
+    """
+
+    d = json.load(open(getConfigUserPath(), 'r', encoding='utf-8'))
+    d[key] = val
+
+    with open(getConfigUserPath(), 'w', encoding='utf-8') as f:
+        json.dump(d, f, ensure_ascii=False, indent=4)
+    f.close()
+
+    saveConfigCurrent()
+
+
+
+###########################################################################
+#
+#
+#                           Current config file
+#
+#
+###########################################################################
+
+
+
+def initConfig() -> None:
+    """
+    Initialize the configuration file:
+        1. load the default package config file.
+        2. Load the user config file.
+        3. Create the current config file by overwrite the package file by the
+           user one.
+    """
+
+    # If there is no folder for the pyplotter package, we create one
+    if not os.path.isdir(user_config_dir('pyplotter')):
+        from pathlib import Path
+        Path(user_config_dir('pyplotter')).mkdir(parents=True)
+
+    # If there is no file for the user config, we create one
+    if not os.path.isfile(getConfigUserPath()):
+        with open(getConfigUserPath(), 'w', encoding='utf-8') as f:
+            json.dump({'user' : True}, f, ensure_ascii=False, indent=4)
+        f.close()
+
+    # If there is no file for the current config, we create one
+    if not os.path.isfile(getConfigCurrentPath()):
+        with open(getConfigCurrentPath(), 'w', encoding='utf-8') as f:
+            json.dump(configPackage, f, ensure_ascii=False, indent=4)
+        f.close()
+
+    # Overwrite the package file by the user one
+    saveConfigCurrent()

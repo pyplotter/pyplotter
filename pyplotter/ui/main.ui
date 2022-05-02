@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1024</width>
-    <height>605</height>
+    <height>612</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -693,6 +693,64 @@
     </size>
    </property>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1024</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuConfig">
+    <property name="title">
+     <string>Config</string>
+    </property>
+    <widget class="QMenu" name="menustyle">
+     <property name="title">
+      <string>style</string>
+     </property>
+     <addaction name="actionqb"/>
+     <addaction name="actionqdark"/>
+     <addaction name="actionwhite"/>
+    </widget>
+    <addaction name="menustyle"/>
+   </widget>
+   <addaction name="menuConfig"/>
+  </widget>
+  <action name="actionqb">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>qb</string>
+   </property>
+  </action>
+  <action name="actionqdark">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>qdark</string>
+   </property>
+  </action>
+  <action name="actionwhite">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>white</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

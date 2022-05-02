@@ -6,7 +6,8 @@ import numpy as np
 from typing import Callable, Tuple, List, Optional
 import multiprocess as mp
 
-from .config import config
+from .config import loadConfigCurrent
+config = loadConfigCurrent()
 
 
 def timestamp2string(timestamp :int,
@@ -151,13 +152,17 @@ def getParameterData(databaseAbsPath: str,
     row = cur.fetchall()[0]
 
     table_name = row['result_table_name']
-    nbParamDependent = len(json.loads(row['run_description'])['interdependencies_']['dependencies'])
+    temp = json.loads(row['run_description'])
+    if 'interdependencies_' in temp.keys():
+        nbParamDependent = len(temp['interdependencies_']['dependencies'])
+    else:
+        nbParamDependent = len([i for i in temp['interdependencies']['paramspecs'] if i['name']==paramDependentName][0]['depends_on'])
 
     cur.execute("SELECT MAX(id) FROM '"+table_name+"'")
     rows = cur.fetchall()
 
-    total = int(rows[0]['max(id)']/nbParamDependent)
-    callEvery = int(total/100*config['displayedDownloadQcodesPercentage'])
+    nbPoint = int(rows[0]['max(id)']/nbParamDependent)
+    callEvery = int(nbPoint/100*config['displayedDownloadQcodesPercentage'])
 
     closeDatabase(conn, cur)
 
@@ -174,22 +179,31 @@ def getParameterData(databaseAbsPath: str,
                                                                                paramDependentName,
                                                                                table_name)
 
-    # We download the data while updating the progress bar
-    # First, we compute the id limits to download the data in
-    # 100/config['displayedDownloadQcodesPercentage'] request
-    d = np.empty((total, len(paramIndependentName)+1))
-    ids = np.arange(0, total, callEvery)
-    if ids[-1]!=total:
-        ids = np.append(ids, total)
-    iteration = 100/len(ids)
     conn, cur = openDatabase(databaseAbsPath)
-    for i in range(len(ids)-1):
-        cur.execute('{0} LIMIT {1} OFFSET {2}'.format(request,
-                                                      callEvery,
-                                                      ids[i]))
-        d[ids[i]:ids[i+1],] = np.array(cur.fetchall())
+    # For small run, we download all at once
+    if nbPoint<=100:
 
-        queueProgressBar.put(queueProgressBar.get() + iteration)
+        cur.execute(request)
+        d = np.array(cur.fetchall())
+
+        queueProgressBar.put(queueProgressBar.get() + 100)
+    else:
+        # We download the data while updating the progress bar
+        # First, we compute the id limits to download the data in
+        # 100/config['displayedDownloadQcodesPercentage'] request
+        d = np.empty((nbPoint, len(paramIndependentName)+1))
+        ids = np.arange(0, nbPoint, callEvery)
+        if ids[-1]!=nbPoint:
+            ids = np.append(ids, nbPoint)
+        iteration = 100/len(ids)
+        for i in range(len(ids)-1):
+            cur.execute('{0} LIMIT {1} OFFSET {2}'.format(request,
+                                                        callEvery,
+                                                        ids[i]))
+            d[ids[i]:ids[i+1],] = np.array(cur.fetchall())
+
+            queueProgressBar.put(queueProgressBar.get() + iteration)
+    queueProgressBar.put(100)
 
     closeDatabase(conn, cur)
 

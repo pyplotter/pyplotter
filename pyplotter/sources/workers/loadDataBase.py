@@ -2,7 +2,8 @@
 from PyQt5 import QtCore, QtTest
 import multiprocess as mp
 
-from ..config import config
+from ..config import loadConfigCurrent
+config = loadConfigCurrent()
 from ..qcodesdatabase import getRunInfos
 
 class loadDataBaseSignal(QtCore.QObject):
@@ -91,8 +92,11 @@ class loadDataBaseThread(QtCore.QRunnable):
 
         runInfos: dict = queueData.get()
         queueData.close()
+        queueData.join_thread()
         queueProgressBar.close()
+        queueProgressBar.join_thread()
         queueDone.close()
+        queueDone.join_thread()
 
 
 
