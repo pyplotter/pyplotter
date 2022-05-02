@@ -160,8 +160,14 @@ def getParameterData(databaseAbsPath: str,
 
     cur.execute("SELECT MAX(id) FROM '"+table_name+"'")
     rows = cur.fetchall()
+    maxId = rows[0]['max(id)']
 
-    nbPoint = int(rows[0]['max(id)']/nbParamDependent)
+    if maxId is None:
+        queueData.put(None)
+        queueDone.put(True)
+        return
+
+    nbPoint = int(maxId/nbParamDependent)
     callEvery = int(nbPoint/100*config['displayedDownloadQcodesPercentage'])
 
     closeDatabase(conn, cur)
