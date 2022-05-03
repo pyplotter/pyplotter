@@ -161,9 +161,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Add filtering function to the GUI
         self.initFilteringGUI()
 
-        # Initialize font size spin button with the config file
-        self.spinBoxFontSize.setValue(self.config['axisLabelFontSize'])
-
 
         # Connect UI
         self.checkBoxLogX.stateChanged.connect(self.checkBoxLogState)
@@ -181,7 +178,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.radioButtonFFTnoDC.clicked.connect(lambda:self.clickFFT(self.radioButtonFFTnoDC))
         self.radioButtonIFFT.clicked.connect(lambda:self.clickFFT(self.radioButtonIFFT))
 
-        self.spinBoxFontSize.valueChanged.connect(self.clickFontSize)
 
         # Add a radio button for each model of the list
         self.plotDataItemButtonGroup = QtWidgets.QButtonGroup()
@@ -203,16 +199,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if self.config['plot1dGrid']:
             self.plotItem.showGrid(x=True, y=True)
 
-        self.plotItem.setLabel(axis='bottom',
-                               text=xLabelText,
-                               units=xLabelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
-        self.plotItem.setLabel(axis='left',
-                               text=yLabelText,
-                               units=yLabelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                      'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
 
         font=QtGui.QFont()
@@ -221,6 +207,19 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.plotItem.getAxis('left').setTickFont(font)
         self.plotItem.getAxis('bottom').setPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTicksColor'])
         self.plotItem.getAxis('left').setPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTicksColor'])
+        self.plotItem.getAxis('bottom').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTickLabelsColor'])
+        self.plotItem.getAxis('left').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTickLabelsColor'])
+
+        self.plotItem.setLabel(axis='bottom',
+                               text=xLabelText,
+                               units=xLabelUnits,
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphxLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel(axis='left',
+                               text=yLabelText,
+                               units=yLabelUnits,
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                      'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
         self.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
         self.setStyleSheet("color: "+str(self.config['styles'][self.config['style']]['dialogTextColor'])+";")
@@ -971,37 +970,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
                 self.updateLegend()
                 self.updateyLabel()
-
-
-
-    def clickFontSize(self) -> None:
-        """
-        Called when user click on the spinBoxFontSize button.
-        Modify the size of the label and ticks label accordingly to
-        the button number.
-        Modify the config file so that other plot window launched
-        afterwards have the same fontsize.
-        """
-
-
-        self.config['axisLabelFontSize'] = int(self.spinBoxFontSize.value())
-        self.config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
-
-        self.plotItem.setLabel(axis='bottom',
-                               text=self.plotItem.axes['bottom']['item'].labelText,
-                               units=self.plotItem.axes['bottom']['item'].labelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
-        self.plotItem.setLabel(axis='left',
-                               text=self.plotItem.axes['left']['item'].labelText,
-                               units=self.plotItem.axes['left']['item'].labelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
-
-        font=QtGui.QFont()
-        font.setPixelSize(self.config['tickLabelFontSize'])
-        self.plotItem.getAxis('bottom').setTickFont(font)
-        self.plotItem.getAxis('left').setTickFont(font)
 
 
 

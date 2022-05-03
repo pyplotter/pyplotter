@@ -714,8 +714,19 @@
      <addaction name="actionqdark"/>
      <addaction name="actionwhite"/>
     </widget>
+    <widget class="QMenu" name="menuplot">
+     <property name="title">
+      <string>plot</string>
+     </property>
+     <addaction name="actionAxisLabelColor"/>
+     <addaction name="actionAxisTickLabelsColor"/>
+     <addaction name="actionTitleColor"/>
+     <addaction name="actionAxisTicksColor"/>
+     <addaction name="actionFontsize"/>
+    </widget>
     <addaction name="menustyle"/>
     <addaction name="actionDefaultPath"/>
+    <addaction name="menuplot"/>
    </widget>
    <addaction name="menuConfig"/>
   </widget>
@@ -755,6 +766,31 @@
   <action name="actionDefaultPath">
    <property name="text">
     <string>Select default folder</string>
+   </property>
+  </action>
+  <action name="actionAxisLabelColor">
+   <property name="text">
+    <string>Axis label color</string>
+   </property>
+  </action>
+  <action name="actionAxisTickLabelsColor">
+   <property name="text">
+    <string>Axis tick labels color</string>
+   </property>
+  </action>
+  <action name="actionTitleColor">
+   <property name="text">
+    <string>Title color</string>
+   </property>
+  </action>
+  <action name="actionAxisTicksColor">
+   <property name="text">
+    <string>Axis ticks color</string>
+   </property>
+  </action>
+  <action name="actionFontsize">
+   <property name="text">
+    <string>Font-size</string>
    </property>
   </action>
  </widget>

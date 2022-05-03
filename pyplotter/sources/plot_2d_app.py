@@ -151,9 +151,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Reference to the fit window
         self.extractiofitWindow = None
 
-        # Initialize font size spin button with the config file
-        self.spinBoxFontSize.setValue(self.config['axisLabelFontSize'])
-
 
         # Get plotItem from the widget
         self.plotItem = self.widget.getPlotItem()
@@ -171,6 +168,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Allow ticklabels to be changed
         font=QtGui.QFont()
         font.setPixelSize(self.config['tickLabelFontSize'])
+        self.plotItem.getAxis('bottom').setTickFont(font)
+        self.plotItem.getAxis('left').setTickFont(font)
+        self.plotItem.getAxis('bottom').setPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTicksColor'])
+        self.plotItem.getAxis('left').setPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTicksColor'])
+        self.histWidget.item.axis.setPen(self.config['styles'][self.config['style']]['pyqtgraphzAxisTicksColor'])
+
 
         # Create a histogram item linked to the imageitem
         self.histWidget.setImageItem(self.imageItem)
@@ -189,25 +192,17 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                text=self.xLabelText,
                                units=self.xLabelUnits,
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                                'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
                                text=self.yLabelText,
                                units=self.yLabelUnits,
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                                'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
         # The only reliable way I have found to correctly display the zLabel
         # is by using a Qlabel from the GUI
         self.plot2dzLabel.setText(zLabelText+' ('+zLabelUnits+')')
         self.plot2dzLabel.setFont(font)
-
-        # Style
-        self.plotItem.getAxis('bottom').setTickFont(font)
-        self.plotItem.getAxis('left').setTickFont(font)
-        self.plotItem.getAxis('bottom').setPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTicksColor'])
-        self.plotItem.getAxis('left').setPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTicksColor'])
-        self.histWidget.item.axis.setPen(self.config['styles'][self.config['style']]['pyqtgraphzAxisTicksColor'])
-
         self.setWindowTitle(windowTitle)
 
         self.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
@@ -227,7 +222,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxUnwrapX.stateChanged.connect(self.zDataTransformation)
         self.checkBoxUnwrapY.stateChanged.connect(self.zDataTransformation)
         self.pushButton3d.clicked.connect(self.launched3d)
-        self.spinBoxFontSize.valueChanged.connect(self.clickFontSize)
         self.plotItem.scene().sigMouseClicked.connect(self.plotItemDoubleClicked)
         self.radioButtonSliceSingleAny.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
@@ -510,40 +504,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
                 self.updateImageItem(self.xDataRef, self.yDataRef, self.imageView.image.T)
                 self.swapSlices()
-
-
-
-    def clickFontSize(self) -> None:
-        """
-        Called when user click on the spinBoxFontSize button.
-        Modify the size of the label and ticks label accordingly to
-        the button number.
-        Modify the config file so that other plot window launched
-        afterwards have the same fontsize.
-        """
-
-
-        self.config['axisLabelFontSize'] = int(self.spinBoxFontSize.value())
-        self.config['tickLabelFontSize'] = int(self.spinBoxFontSize.value())
-
-        self.plotItem.setLabel(axis='bottom',
-                               text=self.plotItem.axes['bottom']['item'].labelText,
-                               units=self.plotItem.axes['bottom']['item'].labelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
-        self.plotItem.setLabel(axis='left',
-                               text=self.plotItem.axes['left']['item'].labelText,
-                               units=self.plotItem.axes['left']['item'].labelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
-
-        font=QtGui.QFont()
-        font.setPixelSize(self.config['tickLabelFontSize'])
-        self.plotItem.getAxis('bottom').setTickFont(font)
-        self.plotItem.getAxis('left').setTickFont(font)
-
-        self.plot2dzLabel.setFont(font)
-        self.histWidget.axis.setTickFont(font)
 
 
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'pyplotter\ui\plot2d_widget.ui'
+# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\plot2d_widget.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #
@@ -60,7 +60,7 @@ class Ui_Dialog(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, -85, 232, 570))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 232, 567))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
@@ -133,28 +133,6 @@ class Ui_Dialog(object):
         self.checkBoxCrossHair.setChecked(False)
         self.checkBoxCrossHair.setObjectName("checkBoxCrossHair")
         self.verticalLayout.addWidget(self.checkBoxCrossHair)
-        self.horizontalLayoutFontSize = QtWidgets.QHBoxLayout()
-        self.horizontalLayoutFontSize.setObjectName("horizontalLayoutFontSize")
-        self.labelSpinBox = QtWidgets.QLabel(self.groupBoxDisplay)
-        font = QtGui.QFont()
-        font.setPointSize(8)
-        font.setBold(False)
-        font.setWeight(50)
-        self.labelSpinBox.setFont(font)
-        self.labelSpinBox.setObjectName("labelSpinBox")
-        self.horizontalLayoutFontSize.addWidget(self.labelSpinBox)
-        self.spinBoxFontSize = QtWidgets.QSpinBox(self.groupBoxDisplay)
-        font = QtGui.QFont()
-        font.setPointSize(8)
-        font.setBold(False)
-        font.setWeight(50)
-        self.spinBoxFontSize.setFont(font)
-        self.spinBoxFontSize.setProperty("value", 12)
-        self.spinBoxFontSize.setObjectName("spinBoxFontSize")
-        self.horizontalLayoutFontSize.addWidget(self.spinBoxFontSize)
-        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayoutFontSize.addItem(spacerItem1)
-        self.verticalLayout.addLayout(self.horizontalLayoutFontSize)
         self.verticalLayout_3.addWidget(self.groupBoxDisplay)
         self.groupBoxInteraction = QtWidgets.QGroupBox(self.scrollAreaWidgetContents)
         font = QtGui.QFont()
@@ -218,8 +196,8 @@ class Ui_Dialog(object):
         self.checkBoxSubtractAverageY.setFont(font)
         self.checkBoxSubtractAverageY.setObjectName("checkBoxSubtractAverageY")
         self.horizontalLayout_6.addWidget(self.checkBoxSubtractAverageY)
-        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout_6.addItem(spacerItem2)
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_6.addItem(spacerItem1)
         self.verticalLayout_5.addLayout(self.horizontalLayout_6)
         self.horizontalLayout_11 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_11.setObjectName("horizontalLayout_11")
@@ -247,8 +225,8 @@ class Ui_Dialog(object):
         self.checkBoxUnwrapY.setFont(font)
         self.checkBoxUnwrapY.setObjectName("checkBoxUnwrapY")
         self.horizontalLayout_11.addWidget(self.checkBoxUnwrapY)
-        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout_11.addItem(spacerItem3)
+        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_11.addItem(spacerItem2)
         self.verticalLayout_5.addLayout(self.horizontalLayout_11)
         self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
@@ -271,8 +249,8 @@ class Ui_Dialog(object):
         self.comboBoxDerivative.setObjectName("comboBoxDerivative")
         self.comboBoxDerivative.addItem("")
         self.horizontalLayout_7.addWidget(self.comboBoxDerivative)
-        spacerItem4 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        self.horizontalLayout_7.addItem(spacerItem4)
+        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_7.addItem(spacerItem3)
         self.verticalLayout_5.addLayout(self.horizontalLayout_7)
         self.verticalLayout_3.addWidget(self.groupBoxInteraction)
         self.groupBoxSlicing = QtWidgets.QGroupBox(self.scrollAreaWidgetContents)
@@ -417,7 +395,6 @@ class Ui_Dialog(object):
         self.checkBoxSwapxy.setText(_translate("Dialog", "Swap x/y"))
         self.checkBoxAspectEqual.setText(_translate("Dialog", "equal aspect"))
         self.checkBoxCrossHair.setText(_translate("Dialog", "cross hair (fastest without)"))
-        self.labelSpinBox.setText(_translate("Dialog", "Font size:"))
         self.groupBoxInteraction.setTitle(_translate("Dialog", "Map interaction"))
         self.checkBoxFindSlope.setText(_translate("Dialog", "find slope"))
         self.checkBoxDrawIsoCurve.setText(_translate("Dialog", "Draw isocurve"))
@@ -442,5 +419,5 @@ class Ui_Dialog(object):
         self.checkBoxMaximum.setText(_translate("Dialog", "maximum"))
         self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:<br/>z:</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("Dialog", "Interaction"))
+from ..ui.plot_widget import PlotWidget
 from .histogram_lut_widget import HistogramLUTWidget
-from .plot_widget import PlotWidget

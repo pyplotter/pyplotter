@@ -31,6 +31,7 @@ from ..ui import main
 from ..ui.view_tree import ViewTree
 from ..ui.db_menu_widget import dbMenuWidget
 from ..ui.my_table_widget_item import MyTableWidgetItem
+from .dialog_fontsize import MenuDialogFontSize
 
 pg.setConfigOption('background', None)
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
@@ -241,6 +242,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self.actionqdark.triggered.connect(self.menuBackgroundQdark)
         self.actionwhite.triggered.connect(self.menuBackgroundWhite)
         self.actionDefaultPath.triggered.connect(self.menuDefaultPath)
+        self.actionAxisLabelColor.triggered.connect(self.menuAxisLabelColor)
+        self.actionAxisTickLabelsColor.triggered.connect(self.menuAxisTickLabelsColor)
+        self.actionAxisTicksColor.triggered.connect(self.menuAxisTicksColor)
+        self.actionTitleColor.triggered.connect(self.menuTitleColor)
+        self.actionFontsize.triggered.connect(self.menuFontsize)
 
         if config['style']=='qbstyles':
             self.actionqb.setChecked(True)
@@ -384,9 +390,74 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                                           options=QtWidgets.QFileDialog.ReadOnly|QtWidgets.QFileDialog.ShowDirsOnly)
         if path != '':
 
-            updateUserConfig('path', os.path.abspath(path))
             updateUserConfig('root', os.path.splitdrive(path)[0])
 
+
+
+    def menuAxisLabelColor(self):
+
+        color = QtWidgets.QColorDialog.getColor()
+
+        if color.isValid():
+
+            for label in ('pyqtgraphxLabelTextColor',
+                          'pyqtgraphyLabelTextColor',
+                          'pyqtgraphzLabelTextColor'):
+                config['styles'][config['style']][label] = color.name()
+                updateUserConfig(['styles', config['style'], label], color.name())
+
+            self.updatePlotsStyle(config)
+
+
+
+    def menuAxisTicksColor(self):
+
+        color = QtWidgets.QColorDialog.getColor()
+
+        if color.isValid():
+
+            for axis in ('pyqtgraphxAxisTicksColor',
+                         'pyqtgraphyAxisTicksColor',
+                         'pyqtgraphzAxisTicksColor'):
+                config['styles'][config['style']][axis] = color.name()
+                updateUserConfig(['styles', config['style'], axis], color.name())
+
+            self.updatePlotsStyle(config)
+
+
+    def menuAxisTickLabelsColor(self):
+
+        color = QtWidgets.QColorDialog.getColor()
+
+        if color.isValid():
+
+            for axis in ('pyqtgraphxAxisTickLabelsColor',
+                         'pyqtgraphyAxisTickLabelsColor',
+                         'pyqtgraphzAxisTickLabelsColor'):
+                config['styles'][config['style']][axis] = color.name()
+                updateUserConfig(['styles', config['style'], axis], color.name())
+
+            self.updatePlotsStyle(config)
+
+
+
+    def menuTitleColor(self):
+
+        color = QtWidgets.QColorDialog.getColor()
+
+        if color.isValid():
+
+            config['styles'][config['style']]['pyqtgraphTitleTextColor'] = color.name()
+            updateUserConfig(['styles', config['style'], 'pyqtgraphTitleTextColor'], color.name())
+
+            self.updatePlotsStyle(config)
+
+
+
+    def menuFontsize(self):
+
+        self.menuDialogFontSize = MenuDialogFontSize(config,
+                                                     self.updatePlotsStyle)
 
 
     ###########################################################################
@@ -1935,10 +2006,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         if len(self._plotRefs) > 0:
 
-            # Build the list of 1d plot windows
             for plot in self._plotRefs.values():
                 plot.config = config
-                # plot.setStyleSheet(self.qapp.setStyle('Oxygen'))
                 plot.updateStyle()
 
 

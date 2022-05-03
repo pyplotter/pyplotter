@@ -52,30 +52,37 @@ class PlotApp(dbMenuWidget):
 
     def updateStyle(self) -> None:
 
-        self.plotItem.setTitle(title=self.plotItem.titleLabel.text,
-                               color=self.config['styles'][self.config['style']]['pyqtgraphTitleTextColor'])
+        for qlabel in self.findChildren(QtWidgets.QLabel)+self.findChildren(QtWidgets.QCheckBox)+self.findChildren(QtWidgets.QGroupBox):
+            qlabel.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
+            qlabel.setStyleSheet("color: "+str(self.config['styles'][self.config['style']]['dialogTextColor'])+";")
 
-        self.plotItem.setLabel(axis='bottom',
-                               text=self.plotItem.axes['bottom']['item'].labelText,
-                               units=self.plotItem.axes['bottom']['item'].labelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
-        self.plotItem.setLabel(axis='left',
-                               text=self.plotItem.axes['left']['item'].labelText,
-                               units=self.plotItem.axes['left']['item'].labelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
-
+        self.plotItem.getAxis('bottom')._updateLabel()
         font=QtGui.QFont()
         font.setPixelSize(self.config['tickLabelFontSize'])
         self.plotItem.getAxis('bottom').setTickFont(font)
         self.plotItem.getAxis('left').setTickFont(font)
         self.plotItem.getAxis('bottom').setPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTicksColor'])
         self.plotItem.getAxis('left').setPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTicksColor'])
+        self.plotItem.getAxis('bottom').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTickLabelsColor'])
+        self.plotItem.getAxis('left').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTickLabelsColor'])
 
-        for qlabel in self.findChildren(QtWidgets.QLabel)+self.findChildren(QtWidgets.QCheckBox)+self.findChildren(QtWidgets.QGroupBox):
-            qlabel.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
-            qlabel.setStyleSheet("color: "+str(self.config['styles'][self.config['style']]['dialogTextColor'])+";")
+        if self.plotType=='2d':
+            self.plot2dzLabel.setFont(font)
+            self.histWidget.axis.setTickFont(font)
+
+        self.plotItem.setTitle(title=self.plotItem.titleLabel.text,
+                               color=self.config['styles'][self.config['style']]['pyqtgraphTitleTextColor'])
+
+        self.plotItem.setLabel(axis='bottom',
+                               text=self.plotItem.axes['bottom']['item'].labelText,
+                               units=self.plotItem.axes['bottom']['item'].labelUnits,
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphxLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
+        self.plotItem.setLabel(axis='left',
+                               text=self.plotItem.axes['left']['item'].labelText,
+                               units=self.plotItem.axes['left']['item'].labelUnits,
+                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
 
 

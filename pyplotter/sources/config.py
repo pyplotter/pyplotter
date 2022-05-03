@@ -2,6 +2,7 @@
 import json
 import os
 from platformdirs import user_config_dir
+from typing import List, Union
 
 # This file create a python dict containing all personalized parameters
 configPackage = {
@@ -130,7 +131,10 @@ configPackage = {
                             'pyqtgraphzLabelTextColor' : '#ffffff',
                             'pyqtgraphxAxisTicksColor' : '#ffffff',
                             'pyqtgraphyAxisTicksColor' : '#ffffff',
-                            'pyqtgraphzAxisTicksColor' : '#ffffff'},
+                            'pyqtgraphzAxisTicksColor' : '#ffffff',
+                            'pyqtgraphxAxisTickLabelsColor': '#ffffff',
+                            'pyqtgraphyAxisTickLabelsColor': '#ffffff',
+                            'pyqtgraphzAxisTickLabelsColor': '#ffffff'},
             'qbstyles' : {'dialogBackgroundColor'    : '#0c1c23',
                             'pyqtgraphBackgroundColor' : '#0c1c23',
                             'dialogTextColor'          : '#dadcdd',
@@ -140,7 +144,10 @@ configPackage = {
                             'pyqtgraphzLabelTextColor' : '#dadcdd',
                             'pyqtgraphxAxisTicksColor' : '#dadcdd',
                             'pyqtgraphyAxisTicksColor' : '#dadcdd',
-                            'pyqtgraphzAxisTicksColor' : '#dadcdd'},
+                            'pyqtgraphzAxisTicksColor' : '#dadcdd',
+                            'pyqtgraphxAxisTickLabelsColor': '#dadcdd',
+                            'pyqtgraphyAxisTickLabelsColor': '#dadcdd',
+                            'pyqtgraphzAxisTickLabelsColor': '#dadcdd'},
             'white' : {'dialogBackgroundColor'    : '#ffffff',
                        'pyqtgraphBackgroundColor' : '#ffffff',
                        'dialogTextColor'          : '#000000',
@@ -150,7 +157,10 @@ configPackage = {
                        'pyqtgraphzLabelTextColor' : '#000000',
                        'pyqtgraphxAxisTicksColor' : '#000000',
                        'pyqtgraphyAxisTicksColor' : '#000000',
-                       'pyqtgraphzAxisTicksColor' : '#000000'}},
+                       'pyqtgraphzAxisTicksColor' : '#000000',
+                       'pyqtgraphxAxisTickLabelsColor': '#000000',
+                       'pyqtgraphyAxisTickLabelsColor': '#000000',
+                       'pyqtgraphzAxisTickLabelsColor': '#000000'}},
 # Font size of the axis and tick labels
 # Handy if user wants to have larger font
 'axisLabelFontSize' : 12,
@@ -274,21 +284,42 @@ def getConfigUserPath() -> str:
 
     return os.path.join(user_config_dir('pyplotter'), 'user_config.py')
 
+# def nested_update(obj, key, value):
+#     if isinstance(obj, dict):
+#         for k, v in obj.items():
+#             if isinstance(v, dict):
+#                 nested_update(v, key, value)
+#             elif k == key:
+#                 obj[k] = value
 
 
-def updateUserConfig(key: str,
-                     val: str) -> None:
+def nested_update(obj, keys, value):
+    if len(keys)>1:
+        nested_update(obj[keys[0]], keys[1:], value)
+    else:
+        obj[keys[0]]=value
+
+
+
+def updateUserConfig(key: Union[str, List[str]],
+                     val: Union[str, int]) -> None:
     """
     Update the user config file located in user_config_dir('pyplotter') directory.
     Usually C:/Users/.../AppData/Local/pyplotter/pyplotter on windows 10.
 
     Args:
-        key: key to be updated
+        key: key(s) to be updated
         val: val to be updated
     """
 
     d = json.load(open(getConfigUserPath(), 'r', encoding='utf-8'))
-    d[key] = val
+
+    if isinstance(key, str):
+        d[key] = val
+    elif isinstance(key, list):
+        temp = configPackage[key[0]]
+        nested_update(temp, key[1:], val)
+        d[key[0]] = temp
 
     with open(getConfigUserPath(), 'w', encoding='utf-8') as f:
         json.dump(d, f, ensure_ascii=False, indent=4)
