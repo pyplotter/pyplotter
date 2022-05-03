@@ -31,7 +31,8 @@ from ..ui import main
 from ..ui.view_tree import ViewTree
 from ..ui.db_menu_widget import dbMenuWidget
 from ..ui.my_table_widget_item import MyTableWidgetItem
-from .dialog_fontsize import MenuDialogFontSize
+from .dialogs.dialog_fontsize import MenuDialogFontSize
+from .dialogs.dialog_colorbar import MenuDialogColormap
 
 pg.setConfigOption('background', None)
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
@@ -247,6 +248,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self.actionAxisTicksColor.triggered.connect(self.menuAxisTicksColor)
         self.actionTitleColor.triggered.connect(self.menuTitleColor)
         self.actionFontsize.triggered.connect(self.menuFontsize)
+        self.actionColormap.triggered.connect(self.menuColormap)
 
         if config['style']=='qbstyles':
             self.actionqb.setChecked(True)
@@ -457,6 +459,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
     def menuFontsize(self):
 
         self.menuDialogFontSize = MenuDialogFontSize(config,
+                                                     self.updatePlotsStyle)
+
+
+
+    def menuColormap(self):
+
+        self.menuDialogColormap = MenuDialogColormap(config,
                                                      self.updatePlotsStyle)
 
 

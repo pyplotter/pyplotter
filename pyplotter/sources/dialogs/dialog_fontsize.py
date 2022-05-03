@@ -1,9 +1,7 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtWidgets, QtGui
-import numpy as np
-from ..ui.dialog_fontsize import Ui_DialogFontsize
-from .config import loadConfigCurrent, updateUserConfig
-
+from PyQt5 import QtWidgets
+from ...ui.dialog_fontsize import Ui_DialogFontsize
+from ..config import updateUserConfig
 
 
 class MenuDialogFontSize(QtWidgets.QDialog, Ui_DialogFontsize):
@@ -33,6 +31,3 @@ class MenuDialogFontSize(QtWidgets.QDialog, Ui_DialogFontsize):
             updateUserConfig(label, value)
 
         self.updatePlotsStyle(self.config)
-
-    def accepted(self):
-        print('coucou')

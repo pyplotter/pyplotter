@@ -12,7 +12,7 @@ from ..ui.plot1d_widget import Ui_Dialog
 from .config import loadConfigCurrent
 from .plot_app import PlotApp
 from . import fit
-from . import filtering
+from .dialogs import filtering
 
 
 

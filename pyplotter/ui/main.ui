@@ -723,6 +723,7 @@
      <addaction name="actionTitleColor"/>
      <addaction name="actionAxisTicksColor"/>
      <addaction name="actionFontsize"/>
+     <addaction name="actionColormap"/>
     </widget>
     <addaction name="menustyle"/>
     <addaction name="actionDefaultPath"/>
@@ -791,6 +792,11 @@
   <action name="actionFontsize">
    <property name="text">
     <string>Font-size</string>
+   </property>
+  </action>
+  <action name="actionColormap">
+   <property name="text">
+    <string>colormap</string>
    </property>
   </action>
  </widget>

@@ -17,7 +17,7 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
                        windowsLengthChanged : Callable[[int], None],
                        polyorderChanged     : Callable[[int], None]) -> None:
         """
-        QDialog window launched when user filters its data with the 
+        QDialog window launched when user filters its data with the
         Savitzky-Golay filter, see SavitzkyGolay class.
         Allow user to modify the filter parameters.
         When user modifies the filter parameter, the filtered data are
@@ -38,15 +38,15 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
             Function called when the polyorder parameter is changed.
             See SavitzkyGolay class.
         """
-        
+
         QtWidgets.QDialog.__init__(self)
 
-        
+
         self.setMinimumSize(200, 200)
 
         # SavitzkyGolay needs two parameters
 
-        
+
         spinBoxPolyorder = QtWidgets.QSpinBox()
         spinBoxPolyorder.setMinimum(1)
         spinBoxPolyorder.setMaximum(2)
@@ -60,7 +60,7 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
         layoutPolyorder.addWidget(spinBoxPolyorder)
 
 
-        
+
         spinBoxWindowLenght = QtWidgets.QSpinBox()
         spinBoxWindowLenght.setSingleStep(2)
         spinBoxWindowLenght.setMinimum(3)
@@ -74,7 +74,7 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
         layoutWindowLenght = QtWidgets.QHBoxLayout()
         layoutWindowLenght.addWidget(labeWindowLength)
         layoutWindowLenght.addWidget(spinBoxWindowLenght)
-        
+
 
 
         layout = QtWidgets.QVBoxLayout()
@@ -118,7 +118,7 @@ class SavitzkyGolay:
         self.windowLength       = 3
         self.polyorder          = 1
         self.updatePlotDataItem = updatePlotDataItem
-        
+
 
 
     def checkBoxLabel(self) -> str:

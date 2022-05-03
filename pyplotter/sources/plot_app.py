@@ -84,6 +84,10 @@ class PlotApp(dbMenuWidget):
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
+        # Update colormap
+        if self.plotType=='2d':
+            index = self.comboBoxcm.findText(self.config['plot2dcm'])
+            self.comboBoxcm.setCurrentIndex(index)
 
 
     ####################################

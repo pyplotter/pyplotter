@@ -332,6 +332,8 @@ class Ui_MainWindow(object):
         self.actionAxisTicksColor.setObjectName("actionAxisTicksColor")
         self.actionFontsize = QtWidgets.QAction(MainWindow)
         self.actionFontsize.setObjectName("actionFontsize")
+        self.actionColormap = QtWidgets.QAction(MainWindow)
+        self.actionColormap.setObjectName("actionColormap")
         self.menustyle.addAction(self.actionqb)
         self.menustyle.addAction(self.actionqdark)
         self.menustyle.addAction(self.actionwhite)
@@ -340,6 +342,7 @@ class Ui_MainWindow(object):
         self.menuplot.addAction(self.actionTitleColor)
         self.menuplot.addAction(self.actionAxisTicksColor)
         self.menuplot.addAction(self.actionFontsize)
+        self.menuplot.addAction(self.actionColormap)
         self.menuConfig.addAction(self.menustyle.menuAction())
         self.menuConfig.addAction(self.actionDefaultPath)
         self.menuConfig.addAction(self.menuplot.menuAction())
@@ -409,4 +412,5 @@ class Ui_MainWindow(object):
         self.actionTitleColor.setText(_translate("MainWindow", "Title color"))
         self.actionAxisTicksColor.setText(_translate("MainWindow", "Axis ticks color"))
         self.actionFontsize.setText(_translate("MainWindow", "Font-size"))
+        self.actionColormap.setText(_translate("MainWindow", "colormap"))
 from ..ui.qtable_widget_key import QTableWidgetKey
