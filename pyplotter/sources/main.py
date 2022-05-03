@@ -291,6 +291,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         # Flag
         self._dataDowloadingFlag = False
         self._progressBars = {}
+        self._databaseClicking = False  # To avoid the opening of two database as once
 
         self._currentDatabase    = None
         self._oldTotalRun        = None
@@ -706,7 +707,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         which will then contain all runs.
         """
 
-        self.databaseClicking = True
+        if self._databaseClicking:
+            return
+
+        self._databaseClicking = True
 
         # We show the database is now opened
         if self.isDatabaseStared():
@@ -844,7 +848,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self.nbTotalRun = nbTotalRun
 
         # Done
-        self.databaseClicking = False
+        self._databaseClicking = False
 
         # We show the database is now closed
         if self.isDatabaseStared():
@@ -887,7 +891,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         # on a run, the runClicked event is happenning even if no run have been clicked
         # This is due to the "currentCellChanged" event handler.
         # We catch that false event and return nothing
-        if self.databaseClicking:
+        if self._databaseClicking:
             return
 
         runId          = self.getRunId()
