@@ -392,6 +392,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                                           options=QtWidgets.QFileDialog.ReadOnly|QtWidgets.QFileDialog.ShowDirsOnly)
         if path != '':
 
+            updateUserConfig('path', os.path.abspath(path))
             updateUserConfig('root', os.path.splitdrive(path)[0])
 
 
