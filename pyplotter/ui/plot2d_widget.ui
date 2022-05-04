@@ -122,7 +122,7 @@
               <x>0</x>
               <y>0</y>
               <width>232</width>
-              <height>567</height>
+              <height>597</height>
              </rect>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -151,6 +151,13 @@
                 <property name="bottomMargin">
                  <number>1</number>
                 </property>
+                <item>
+                 <widget class="QPushButton" name="pushButtonExport">
+                  <property name="text">
+                   <string>export as png</string>
+                  </property>
+                 </widget>
+                </item>
                 <item>
                  <widget class="QPushButton" name="pushButton3d">
                   <property name="text">

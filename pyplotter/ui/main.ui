@@ -799,6 +799,11 @@
     <string>colormap</string>
    </property>
   </action>
+  <action name="actionqt_material">
+   <property name="text">
+    <string>qt-material</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
