@@ -40,6 +40,53 @@ class PlotApp(dbMenuWidget):
         self.plotItem.titleLabel.mousePressEvent = self.clickTitle
         self.plotItem.scene().sigMouseMoved.connect(self.mouseMoved)
         self.checkBoxCrossHair.stateChanged.connect(self.checkBoxCrossHairState)
+        self.pushButtonCopy.clicked.connect(self.pushButtonCopyClicked)
+
+
+
+    ####################################
+    #
+    #           Copie plot to clipboard
+    #
+    ####################################
+
+
+
+    def pushButtonCopyClicked(self) -> None:
+        """
+        Called when user wants to place a screenshot of its plot in the
+        clipboard.
+        """
+
+        screen    = QtWidgets.QApplication.primaryScreen()
+        clipboard = QtWidgets.QApplication.clipboard()
+
+        # We remove -25 because otherwise the tabwidget is still visible
+        pixmap = screen.grabWindow(self.winId(),
+                                   x=0,
+                                   y=0,
+                                   width=self.frameGeometry().width()-self.tabWidget.frameGeometry().width()-25)
+        clipboard.setPixmap(pixmap)
+
+        self.pushButtonCopy.setText('Copied to clipboard !')
+
+        self._clipboardTimer = QtCore.QTimer()
+        self._clipboardTimer.timeout.connect(self.pushButtonCopyUpdate)
+        self._clipboardTimer.setInterval(2000)
+        self._clipboardTimer.start()
+
+
+
+    def pushButtonCopyUpdate(self):
+        """
+        Called 2s after the user click on the pushButtonCopy.
+        Update its text and delete the timer
+        """
+
+        self.pushButtonCopy.setText('Click to copy')
+        self._clipboardTimer.stop()
+        self._clipboardTimer.deleteLater()
+        self._clipboardTimer = None
 
 
 

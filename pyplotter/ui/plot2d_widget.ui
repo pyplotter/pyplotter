@@ -122,7 +122,7 @@
               <x>0</x>
               <y>0</y>
               <width>232</width>
-              <height>597</height>
+              <height>569</height>
              </rect>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -152,18 +152,22 @@
                  <number>1</number>
                 </property>
                 <item>
-                 <widget class="QPushButton" name="pushButtonExport">
-                  <property name="text">
-                   <string>export as png</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="pushButton3d">
-                  <property name="text">
-                   <string>3d</string>
-                  </property>
-                 </widget>
+                 <layout class="QHBoxLayout" name="horizontalLayout_12">
+                  <item>
+                   <widget class="QPushButton" name="pushButton3d">
+                    <property name="text">
+                     <string>3d</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="pushButtonCopy">
+                    <property name="text">
+                     <string>Click to copie</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </item>
                 <item>
                  <layout class="QHBoxLayout" name="horizontalLayout_4">

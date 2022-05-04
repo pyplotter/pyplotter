@@ -225,7 +225,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxUnwrapX.stateChanged.connect(self.zDataTransformation)
         self.checkBoxUnwrapY.stateChanged.connect(self.zDataTransformation)
         self.pushButton3d.clicked.connect(self.launched3d)
-        self.pushButtonExport.clicked.connect(self.pushButtonExportClicked)
         self.plotItem.scene().sigMouseClicked.connect(self.plotItemDoubleClicked)
         self.radioButtonSliceSingleAny.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
@@ -303,32 +302,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def o(self):
         self.close()
-
-
-
-    ####################################
-    #
-    #           Export as png
-    #
-    ####################################
-
-
-    def pushButtonExportClicked(self):
-
-        # w = QtWidgets.QWidget()
-
-        screen = QtWidgets.QApplication.primaryScreen()
-
-        screenshot = screen.grabWindow(self.winId(),
-                                       x=0,
-                                       y=0,
-                                       width=self.frameGeometry().width()-self.tabWidget.frameGeometry().width()-25)
-        # screenshot = screen.grabWindow(self.winId())
-        screenshot.save('shot.jpg', 'jpg')
-        # w.close()
-
-        # p = QtGui.QPixmap.grabWindow(self.horizontalLayout)
-        # p.save('test', 'jpg')
 
 
 

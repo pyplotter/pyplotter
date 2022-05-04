@@ -133,7 +133,7 @@
               <x>0</x>
               <y>0</y>
               <width>250</width>
-              <height>487</height>
+              <height>517</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -191,6 +191,13 @@
                   <property name="bottomMargin">
                    <number>1</number>
                   </property>
+                  <item>
+                   <widget class="QPushButton" name="pushButtonCopy">
+                    <property name="text">
+                     <string>Click to copie</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item>
                    <layout class="QHBoxLayout" name="horizontalLayoutLog">
                     <item>
