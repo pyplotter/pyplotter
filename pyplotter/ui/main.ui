@@ -126,7 +126,7 @@
         <item>
          <widget class="QGroupBox" name="groupBoxLivePlot">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="maximumSize">
            <size>
@@ -168,7 +168,7 @@
              <item>
               <widget class="QPushButton" name="pushButtonLivePlot">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="maximumSize">
                 <size>
@@ -190,7 +190,7 @@
              <item>
               <widget class="QSpinBox" name="spinBoxLivePlot">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="minimumSize">
                 <size>
@@ -223,7 +223,7 @@
            <item>
             <widget class="QLabel" name="labelLivePlotDataBase">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="maximumSize">
               <size>

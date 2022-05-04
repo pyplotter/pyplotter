@@ -47,7 +47,6 @@ def openDatabase(databaseAbsPath: str,
 
 
 
-
 def closeDatabase(conn: sqlite3.Connection,
                   cur: sqlite3.Cursor) -> None:
     """
@@ -63,10 +62,6 @@ def closeDatabase(conn: sqlite3.Connection,
 
 
 
-
-
-
-
 def getParameterInfo(databaseAbsPath: str,
                      runId: int,
                      parameterName: str) -> Tuple[dict, List[dict]]:
@@ -78,7 +73,7 @@ def getParameterInfo(databaseAbsPath: str,
     ----------
     databaseAbsPath: str
         Absolute path of the current database
-    runId : int
+    runId: int
         id of the run.
     parameterName : str
         Name of the dependent parameter.
@@ -114,7 +109,6 @@ def getParameterInfo(databaseAbsPath: str,
 
 
 
-
 def getParameterData(databaseAbsPath: str,
                      runId: int,
                      paramIndependentName: List[str],
@@ -129,7 +123,7 @@ def getParameterData(databaseAbsPath: str,
     ----------
     databaseAbsPath: str
         Absolute path of the current database
-    runId : int
+    runId: int
         Run from which data are downloaded
     paramIndependentName : str
         Independent parameter name
@@ -238,7 +232,6 @@ def getNbIndependentFromRow(row : sqlite3.Row) -> List[int]:
 
 
 
-
 def getNbDependentFromRow(row : sqlite3.Row) -> int:
     """
     Get the number of dependent parameter from a row object of sqlite3.
@@ -254,9 +247,6 @@ def getNbDependentFromRow(row : sqlite3.Row) -> int:
     d = json.loads(row['run_description'])
 
     return len([i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0])
-
-
-
 
 
 
@@ -381,10 +371,8 @@ def getRunInfos(databaseAbsPath: str,
 
 
 
-
-
 def getDependentSnapshotFromRunId(databaseAbsPath: str,
-                                  runId : int) -> Tuple[list, dict]:
+                                  runId: int) -> Tuple[list, dict]:
     """
     Get the list of dependent parameters from a runId.
     Return a tuple of dependent parameters, each parameter
@@ -392,7 +380,7 @@ def getDependentSnapshotFromRunId(databaseAbsPath: str,
 
     Parameters
     ----------
-    runId : int
+    runId: int
         id of the run.
 
     Return
@@ -427,3 +415,83 @@ def getDependentSnapshotFromRunId(databaseAbsPath: str,
     return dependents, snapshotDict
 
 
+
+def getNbTotalRun(databaseAbsPath: str) -> int:
+    """
+    Return the number of run in the database
+    """
+
+    conn, cur = openDatabase(databaseAbsPath,
+                             returnDict=True)
+
+    cur.execute("SELECT MAX(run_id) FROM 'runs'")
+
+    rows = cur.fetchall()
+    nbTotalRun = rows[0]['max(run_id)']
+
+    closeDatabase(conn, cur)
+
+    return nbTotalRun
+
+
+
+def getRunName(databaseAbsPath: str,
+               runId: int) -> str:
+    """
+    Return the name of the run
+    """
+
+    conn, cur = openDatabase(databaseAbsPath,
+                             returnDict=True)
+
+    cur.execute("SELECT name FROM 'runs' WHERE run_id="+str(runId)+")")
+
+    rows = cur.fetchall()
+    runName = rows[0]['name']
+
+    closeDatabase(conn, cur)
+
+    return runName
+
+
+
+def getNbTotalRunAndLastRunName(databaseAbsPath: str) -> Tuple[int, str]:
+    """
+    Return the number of run in the database and the name of the last run
+    """
+
+    conn, cur = openDatabase(databaseAbsPath,
+                             returnDict=True)
+
+    cur.execute("SELECT MAX(run_id) FROM 'runs'")
+
+    rows = cur.fetchall()
+    nbTotalRun = rows[0]['max(run_id)']
+    cur.execute("SELECT name FROM 'runs' WHERE run_id='{}'".format(nbTotalRun))
+
+    rows = cur.fetchall()
+    runName = rows[0]['name']
+
+    closeDatabase(conn, cur)
+
+    return nbTotalRun, runName
+
+
+
+def isRunCompleted(databaseAbsPath: str,
+                   runId: int) -> bool:
+    """
+    Return True if the run is marked as completed, False otherwise
+    """
+
+    conn, cur = openDatabase(databaseAbsPath,
+                             returnDict=True)
+
+    cur.execute("SELECT is_completed FROM 'runs' WHERE run_id="+str(runId))
+
+    rows = cur.fetchall()
+    isCompleted = rows[0]['is_completed']
+
+    closeDatabase(conn, cur)
+
+    return isCompleted

@@ -2,7 +2,7 @@
 from datetime import datetime
 import os
 import numpy as np
-from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5 import QtGui, QtCore, QtWidgets, QtTest
 import time
 from typing import Union, Callable, List, Optional, Tuple
 import uuid
@@ -33,6 +33,7 @@ from ..ui.db_menu_widget import dbMenuWidget
 from ..ui.my_table_widget_item import MyTableWidgetItem
 from .dialogs.dialog_fontsize import MenuDialogFontSize
 from .dialogs.dialog_colorbar import MenuDialogColormap
+from .qcodesdatabase import getNbTotalRunAndLastRunName, isRunCompleted
 
 pg.setConfigOption('background', None)
 pg.setConfigOption('useOpenGL', config['pyqtgraphOpenGL'])
@@ -1466,7 +1467,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         """
 
         if livePlot:
-            return self._livePlotPath+str(runId)+str(name)
+            return self._livePlotDatabasePath+str(runId)+str(name)
         else:
             return self._currentDatabase+str(runId)+str(name)
 
@@ -1512,7 +1513,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         windowTitle = ''
 
         if livePlot:
-            windowTitle += os.path.basename(self._livePlotPath)
+            windowTitle += os.path.basename(self._livePlotDatabasePath)
         else:
             windowTitle += str(self._currentDatabase)
 
@@ -1541,10 +1542,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         if livePlot:
             # If user only wants the database path
             if config['displayOnlyDbNameInPlotTitle']:
-                title = os.path.basename(self._livePlotPath)
+                title = os.path.basename(self._livePlotDatabasePath)
             # If user wants the database path
             else:
-                title = os.path.basename(self._livePlotPath)
+                title = os.path.basename(self._livePlotDatabasePath)
             return title+'<br>'+str(self._livePlotRunId)
 
         else:
@@ -1591,7 +1592,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         """
 
         if livePlot:
-            dataPath = self._livePlotPath + str(self._livePlotRunId)
+            dataPath = self._livePlotDatabasePath + str(self._livePlotRunId)
         else:
             path = os.path.abspath(self._currentDatabase)
 
@@ -1693,7 +1694,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             # If there are slices, we update them as well
             # plotSlice = self.getPlotSliceFromRef(plotRef)
             # if plotSlice is not None:
-            for curveId, lineItem in self._plotRefs[plotRef].infiniteLines.items():
+            for curveId, lineItem in self._plotRefs[plotRef].sliceItems.items():
 
                 # We find its orientation
                 if lineItem.angle==90:
@@ -1816,7 +1817,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                           livePlot=True)
 
         dataBaseName    = self._livePlotDataBaseName
-        dataBaseAbsPath = os.path.normpath(os.path.join(self._livePlotPath, self._livePlotDataBaseName)).replace("\\", "/")
+        dataBaseAbsPath = os.path.normpath(os.path.join(self._livePlotDatabasePath, self._livePlotDataBaseName)).replace("\\", "/")
 
         # We get the liveplot parameters
         self.livePlotGetPlotParameters()
@@ -1903,16 +1904,16 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         """
 
         # We get the last run id of the database
-        self._livePlotRunId:int   = self._livePlotDatabase.getNbTotalRun()
-        self._livePlotRunName:str = self._livePlotDatabase.getRunName(self._livePlotRunId )
+        self._livePlotRunId, self._livePlotRunName = getNbTotalRunAndLastRunName(self._livePlotDatabasePath)
+
         # While the run is not completed, we update the plot
-        if not self._livePlotDatabase.isRunCompleted(self._livePlotRunId):
+        if not isRunCompleted(self._livePlotDatabasePath, self._livePlotRunId):
 
             ## 1. We get the livePlot dataset
             # We access the db only once.
             # The next iteration will access the cache of the dataset.
             if not hasattr(self, '_livePlotDataSet'):
-                self._livePlotDataSet = self._livePlotDatabase.load_by_id(self._livePlotRunId)
+                self._livePlotDataSet = self.loadDataset(captured_run_id=self._livePlotRunId)
             ## 2. If we do not see the attribute attached to the launched plot
             if not hasattr(self, '_livePlotGetPlotParameters'):
                 self.livePlotLaunchPlot()
@@ -1957,7 +1958,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                 self.labelLivePlotDataBase.setText('')
                 self.groupBoxLivePlot.setStyleSheet('QGroupBox:title{color: white}')
                 self.setStatusBarMessage('LivePlot disable')
-                del(self._livePlotPath)
+                del(self._livePlotDatabasePath)
                 del(self._livePlotDatabase)
                 if hasattr(self, '_livePlotDataSet'):
                     del(self._livePlotDataSet)
@@ -1973,23 +1974,28 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         This database will be monitored and any new run will be plotted.
         """
 
+        self.setStatusBarMessage('Load QCoDeS LivePlot dataset cache feature')
+        QtTest.QTest.qWait(100)
+        from qcodes import initialise_or_create_database_at, load_by_run_spec
+        self.loadDataset = load_by_run_spec
+        self.setStatusBarMessage('Ready')
+
         fname = QtWidgets.QFileDialog.getOpenFileName(self,
                                                       'Open QCoDeS database',
                                                       self.currentPath,
                                                       'QCoDeS database (*.db).')
 
         if fname[0]!='':
-            self._livePlotPath = os.path.abspath(fname[0])
+            self._livePlotDatabasePath = os.path.abspath(fname[0])
             self._livePlotDataBaseName = os.path.basename(fname[0])[:-3]
+
+            self._livePlotDataBase = initialise_or_create_database_at(self._livePlotDatabasePath)
             self.labelLivePlotDataBase.setText(self._livePlotDataBaseName)
             self.groupBoxLivePlot.setStyleSheet('QGroupBox:title{color: green}')
 
             self.labelLivePlotDataBase.adjustSize()
             self.setStatusBarMessage('LivePlot enable for: {}.'.format(self._livePlotDataBaseName))
             self.statusBar.setStyleSheet('color: green; font-weight: bold;')
-
-            self._livePlotDatabase = QcodesDatabase(self.setStatusBarMessage)
-            self._livePlotDatabase.databasePath = self._livePlotPath
 
             # We call the liveplot function once manually to be sure it has been
             # initialized properly

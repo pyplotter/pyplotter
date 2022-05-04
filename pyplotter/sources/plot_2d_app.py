@@ -371,11 +371,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.yDataRef = y
         self.zDataRef = z
 
-
-        self.checkBoxSubtractAverageXState()
-        self.checkBoxSubtractAverageYState()
-
-        self.comboBoxDerivativeActivated(None)
+        self.zDataTransformation()
 
         self.checkBoxSwapxyState(1)
 
