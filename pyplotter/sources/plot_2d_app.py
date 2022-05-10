@@ -221,7 +221,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxSwapxy.stateChanged.connect(self.checkBoxSwapxyState)
         self.checkBoxAspectEqual.stateChanged.connect(self.checkBoxAspectEqualState)
         self.checkBoxSubtractAverageX.stateChanged.connect(self.zDataTransformation)
-        self.checkBoxSubtractAverageY.stateChanged.connect(self.zDataTransformation)
+        self.checkBoxSubtractAverageX.stateChanged.connect(self.zDataTransformation)
+        self.spinBoxSubtractPolyX.valueChanged.connect(self.zDataTransformation)
+        self.spinBoxSubtractPolyY.valueChanged.connect(self.zDataTransformation)
         self.checkBoxUnwrapX.stateChanged.connect(self.zDataTransformation)
         self.checkBoxUnwrapY.stateChanged.connect(self.zDataTransformation)
         self.pushButton3d.clicked.connect(self.launched3d)
@@ -1319,16 +1321,29 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         done.
         """
 
-
         zData = np.copy(self.zDataRef)
+
+        # global average removal
         if self.checkBoxSubtractAverageX.isChecked():
             zData = zData - np.nanmean(zData, axis=0)
         if self.checkBoxSubtractAverageY.isChecked():
             zData = (zData.T - np.nanmean(zData, axis=1)).T
+
+        # Data unwrapping
         if self.checkBoxUnwrapX.isChecked():
             zData[~np.isnan(zData)] = np.unwrap(np.ravel(zData[~np.isnan(zData)], order='F'))
         if self.checkBoxUnwrapY.isChecked():
             zData[~np.isnan(zData)] = np.unwrap(np.ravel(zData[~np.isnan(zData)], order='C'))
+
+        # Polynomial fit removal
+        if self.spinBoxSubtractPolyX.value()>0:
+            for i, z in enumerate(zData):
+                c = np.polynomial.Polynomial.fit(self.yData, z, self.spinBoxSubtractPolyX.value())
+                zData[i] = c(self.yData)
+        if self.spinBoxSubtractPolyY.value()>0:
+            for i, z in enumerate(zData.T):
+                c = np.polynomial.Polynomial.fit(self.xData, z, self.spinBoxSubtractPolyY.value())
+                zData[:,i] = c(self.xData)
 
         # Depending on the asked derivative, we calculate the new z data and
         # the new z label
