@@ -1,0 +1,22 @@
+pyplotter-0.3.3
+
+  * Initial release as a working pip package.
+
+  Highlights:
+    - Load database from another process
+
+  Performance Enhancements:
+    - Load qcodes only if liveplot is used
+
+  New Features:
+    - Allow copie of plots into the clipboard via a button
+    - Add use fonfigurable parameters
+    - Add cut anywhere in 2d plots
+    - Add find slope feature
+
+  Bug Fixes:
+    - does not bug anymore if empty run
+
+
+  Others:
+    - Prevent the opening of two database as once
