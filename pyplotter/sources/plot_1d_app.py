@@ -1488,8 +1488,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 self.removePlot(self.plotRef+'histogram', curveId)
 
             # Remove the displayed statistics info
-            self.horizontalLayoutStatistics.removeWidget(self.labelStatistics)
-            del(self.labelStatistics)
+            if hasattr(self, 'labelStatistics'):
+                self.horizontalLayoutStatistics.removeWidget(self.labelStatistics)
+                del(self.labelStatistics)
 
 
 
