@@ -13,6 +13,7 @@ from .config import loadConfigCurrent
 from .plot_app import PlotApp
 from . import fit
 from .dialogs import filtering
+from .functions import _parse_number
 
 
 
@@ -1417,7 +1418,26 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # If user wants to plot the histogram, we add a new plotWindow
         if self.checkBoxStatistics.isChecked():
 
-            y, x = np.histogram(self.selectedY, bins=self.spinBoxStatistics.value())
+            y, x   = np.histogram(self.selectedY, bins=self.spinBoxStatistics.value())
+            mean   = np.nanmean(self.selectedY)
+            std    = np.nanstd(self.selectedY)
+            median = np.nanmedian(self.selectedY)
+
+            # We add some statistics info on the GUI
+            txt = 'mean: {}{}<br/>'\
+                  'std: {}{}<br/>'\
+                  'median: {}{}'.format(_parse_number(mean, self.config['fitParameterNbNumber'], unified=True),
+                                        xLabelUnits,
+                                        _parse_number(std, self.config['fitParameterNbNumber'], unified=True),
+                                        xLabelUnits,
+                                        _parse_number(median, self.config['fitParameterNbNumber'], unified=True),
+                                        xLabelUnits)
+
+            if hasattr(self, 'labelStatistics'):
+                self.labelStatistics.setText(txt)
+            else:
+                self.labelStatistics = QtWidgets.QLabel(txt)
+                self.verticalLayoutStatistics.addWidget(self.labelStatistics)
 
             # Is there already a histogram plot associated to the plot1d
             plot = self.getPlotFromRef(self.plotRef, 'histogram')
@@ -1427,6 +1447,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                         curveId   = curveId,
                                         autoRange = True,
                                         histogram = True)
+
             # If not, we create one
             else:
 
@@ -1465,6 +1486,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             plot = self.getPlotFromRef(self.plotRef, 'histogram')
             if plot is not None:
                 self.removePlot(self.plotRef+'histogram', curveId)
+
+            # Remove the displayed statistics info
+            self.horizontalLayoutStatistics.removeWidget(self.labelStatistics)
+            del(self.labelStatistics)
 
 
 
