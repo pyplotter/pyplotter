@@ -1,4 +1,5 @@
 # This Python file uses the following encoding: utf-8
+from webbrowser import BackgroundBrowser
 from PyQt5 import QtWidgets, QtGui, QtCore
 import numpy as np
 import lmfit
@@ -1118,6 +1119,139 @@ class LorentzianDip(Fit1d):
                                         self.x_units,
                                         _parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
                                         self.y_units)
+
+
+
+
+class GaussianPeak(Fit1d):
+
+
+
+    def __init__(self, x_data: np.ndarray,
+                       y_data: np.ndarray,
+                       x_units: str='',
+                       y_units: str='') -> None:
+
+
+        self.fitType = '1d'
+        Fit1d.__init__(self, x_data, y_data, x_units, y_units)
+
+
+
+    def displayedLabel(self) -> str:
+        """
+        Fit model label shown in the Plot1dApp GUI.
+
+        Returns
+        -------
+        label : str
+            Fit model label shown in the Plot1dApp GUI.
+        """
+
+        return 'Gaussian peak'
+
+    @staticmethod
+    def fwhm2sigma(fwhm: lmfit.parameter.Parameters) -> float:
+        """
+        Return the FWHM from the standard deviation
+        """
+        return fwhm.value/2.3548
+
+
+    def getInitialParams(self) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
+
+
+        # Guess initial value
+        background   = np.mean(np.sort(self.y_data)[:10])
+        center       = self.x_data[np.argmax(self.y_data)]
+        height       = np.mean(np.sort(self.y_data)[-2:])
+        intersection = (height+background)/2
+        c1           = np.abs(self.y_data[:np.abs(self.y_data - height).argmin()]-intersection).argmin()
+        c2           = np.abs(self.y_data[np.abs(self.y_data - height).argmin()+1:]-intersection).argmin()+np.abs(self.y_data - height).argmin()+1
+        fwhm         = self.x_data[c2]-self.x_data[c1]
+        height      -= background
+
+        params = lmfit.Parameters()
+        # add with tuples: (NAME VALUE VARY MIN  MAX  EXPR  BRUTE_STEP)
+        params.add('background', background, True, None, None)
+        params.add('center', center, True, None, None)
+        params.add('fwhm', fwhm, True, 0, None)
+        params.add('height', height, True, None, None)
+
+        return params
+
+
+
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
+        # Unsure about the FWHM
+        sigma = self.fwhm2sigma(p['fwhm'])
+        a = p['height']#/sigma/2.5066282746310002
+        dx = (x - p['center'])
+        y = a*np.exp(-dx**2/2/sigma**2)
+
+        return y+p['background']
+
+
+
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
+        return 'background={}{}<br/>'\
+               'center    ={}{}<br/>'\
+               'fwhm      ={}{}<br/>'\
+               'sigma     ={}{}<br/>'\
+               'SNR       ={}  <br/>'\
+               'height    ={}{}'.format(_parse_number(p['background'].value, config['fitParameterNbNumber'], unified=True),
+                                        self.y_units,
+                                        _parse_number(p['center'].value, config['fitParameterNbNumber'], unified=True),
+                                        self.x_units,
+                                        _parse_number(p['fwhm'].value, config['fitParameterNbNumber'], unified=True),
+                                        self.x_units,
+                                        _parse_number(self.fwhm2sigma(p['fwhm']), config['fitParameterNbNumber'], unified=True),
+                                        self.x_units,
+                                        _parse_number(self.fwhm2sigma(p['fwhm'])/p['center'].value, config['fitParameterNbNumber'], unified=True),
+                                        _parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
+                                        self.y_units)
+
+
+
 
 
 ####################################

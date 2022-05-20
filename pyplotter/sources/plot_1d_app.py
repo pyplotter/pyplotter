@@ -3,7 +3,7 @@ from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 import pyqtgraph as pg
-from typing import List, Union, Callable, Optional
+from typing import List, Union, Callable, Optional, Tuple
 import inspect
 from scipy.integrate import cumtrapz
 
@@ -463,6 +463,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         if autoRange:
             self.autoRange()
+
+        # If a curve selection has been done, we update it
+        self.selectPlotDataItem()
+
+        # If a fit curve is already displayed, we update it
+        if 'fit' in list(self.curves.keys()):
+            self.radioButtonFitState()
 
 
 
@@ -1469,7 +1476,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def getSelectedData(self, curveId: str) -> List[np.ndarray]:
+    def getSelectedData(self, curveId: str) -> Tuple[np.ndarray, np.ndarray]:
         """
         Return the x and y data of the curve specified by its curve id troncated
         between the infiniteLines "a" and "b".
@@ -1487,11 +1494,16 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         n = np.abs(self.curves[curveId].xData-a).argmin()
         m = np.abs(self.curves[curveId].xData-b).argmin()
         if n<m:
-            x = self.curves[curveId].xData[n:m]
-            y = self.curves[curveId].yData[n:m]
+            x: np.ndarray = self.curves[curveId].xData[n:m]
+            y: np.ndarray = self.curves[curveId].yData[n:m]
         else:
             x = self.curves[curveId].xData[m:n]
             y = self.curves[curveId].yData[m:n]
+
+
+        # If we are dealing with histogram data
+        if len(x)==len(y)+1:
+            x = x[:-2]+(x[1]-x[0])/2
 
         return x, y
 
@@ -1680,7 +1692,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def selectPlotDataItem(self, rb: QtWidgets.QRadioButton) -> None:
+    def selectPlotDataItem(self) -> None:
         """
         Method called when user clicks on a radioButton of the list of
         plotDataItem.
@@ -1692,11 +1704,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             updateSelectionInifiteLine
             updatePlotDataItemStyle
             enableWhenPlotDataItemSelected
-
-        Parameters
-        ----------
-        rb : QtWidgets.QRadioButton
-            Qt radio button being clicked.
         """
         radioButton = self.plotDataItemButtonGroup.checkedButton()
 
@@ -1749,15 +1756,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 if checkBox.curveId==radioButton.curveId:
                     checkBox.setEnabled(False)
 
-            self.selectedX     = self.curves[radioButton.curveId].xData
-            self.selectedY     = self.curves[radioButton.curveId].yData
-            self.selectedLabel = self.curves[radioButton.curveId].curveLabel
-            self.selectedUnits = self.curves[radioButton.curveId].curveUnits
-
             # The addSliceItem method has be launched before the update
             self.updateSelectionInifiteLine(radioButton.curveId)
             self.updatePlotDataItemStyle(radioButton.curveId)
             self.enableWhenPlotDataItemSelected(True)
+
+            self.selectedX, self.selectedY = self.getSelectedData(radioButton.curveId)
+            self.selectedLabel = self.curves[radioButton.curveId].curveLabel
+            self.selectedUnits = self.curves[radioButton.curveId].curveUnits
 
 
 
