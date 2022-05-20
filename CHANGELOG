@@ -1,3 +1,14 @@
+pyplotter-0.3.4
+
+  New Features:
+    - Add statistics interaction with 1d plot
+    - Add Gaussian peak for 1d fit
+    - Add poly slice background removal for 2d plot
+
+  Bug Fixes:
+    - Fix selected data bug when data are invertly sorted
+
+
 pyplotter-0.3.3
 
   * Initial release as a working pip package.
@@ -16,7 +27,6 @@ pyplotter-0.3.3
 
   Bug Fixes:
     - does not bug anymore if empty run
-
 
   Others:
     - Prevent the opening of two database as once
