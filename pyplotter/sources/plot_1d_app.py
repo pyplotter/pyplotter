@@ -1486,7 +1486,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         b = self.sliceItems['b'].value()
         n = np.abs(self.curves[curveId].xData-a).argmin()
         m = np.abs(self.curves[curveId].xData-b).argmin()
-        if a<b:
+        if n<m:
             x = self.curves[curveId].xData[n:m]
             y = self.curves[curveId].yData[n:m]
         else:
