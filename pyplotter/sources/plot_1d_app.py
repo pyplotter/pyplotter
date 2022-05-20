@@ -44,6 +44,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        timestampXAxis     : bool=False,
                        livePlot           : bool=False,
                        curveSlicePosition : Optional[float]=None,
+                       histogram          : Optional[bool]=False,
                        parent             = None):
         """
         Class handling the plot of 1d data.
@@ -171,6 +172,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxDifferentiate.clicked.connect(self.clickDifferentiate)
         self.checkBoxIntegrate.clicked.connect(self.clickIntegrate)
 
+        self.checkBoxStatistics.clicked.connect(self.clickStatistics)
+        self.spinBoxStatistics.valueChanged.connect(self.clickStatistics)
+
         self.checkBoxUnwrap.clicked.connect(self.clickUnwrap)
         self.checkBoxRemoveSlop.clicked.connect(self.clickRemoveSlop)
 
@@ -240,7 +244,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              curveLabel         = yLabelText,
                              curveUnits         = yLabelUnits,
                              curveLegend        = curveLegend,
-                             curveSlicePosition = curveSlicePosition)
+                             curveSlicePosition = curveSlicePosition,
+                             histogram=histogram)
 
         # AutoRange only after the first data item is added
         self.autoRange()
@@ -311,7 +316,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if self.filteringWindow is not None:
             self.filteringWindow.close()
 
-        for curveType in ['fft', 'derivative', 'primitive', 'unwrap', 'unslop']:
+        for curveType in ['fft', 'derivative', 'primitive', 'unwrap', 'unslop', 'histogram']:
             plot = self.getPlotFromRef(self.plotRef, curveType)
             if plot is not None:
                 [self.removePlot(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
@@ -415,7 +420,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                  curveId            : str,
                                  curveLegend        : Optional[str]=None,
                                  curveSlicePosition : Optional[str]=None,
-                                 autoRange          : bool=False) -> None:
+                                 autoRange          : bool=False,
+                                 histogram          : Optional[bool]=False) -> None:
         """
         Method called by a plot2d when use drag a sliceLine.
         Updating an existing plotDataItem and the plot legendItem
@@ -439,7 +445,14 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Can be slow for heavy data array.
         """
 
-        self.curves[curveId].setData(x=x, y=y)
+        # Set option if plotting histogram
+        stepMode: Optional[str] = None
+        if histogram:
+            stepMode = 'center'
+
+        self.curves[curveId].setData(x=x,
+                                     y=y,
+                                     stepMode=stepMode)
 
         if curveLegend is not None:
             self.curves[curveId].curveLegend = curveLegend
@@ -461,7 +474,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                               curveLegend       : str,
                               showInLegend      : bool=True,
                               hidden            : bool=False,
-                              curveSlicePosition: Optional[float]=None) -> None:
+                              curveSlicePosition: Optional[float]=None,
+                              histogram: Optional[bool]=False) -> None:
         """
         Method adding a plotDataItem to the plotItem.
 
@@ -494,8 +508,16 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Get the dataPlotItem color
         colorIndex, mkpen = self.getLineColor()
 
+        # Set option if plotting histogram
+        stepMode: Optional[str] = None
+        if histogram:
+            stepMode = 'center'
+
         # Create plotDataItem and save its reference
-        self.curves[curveId] = self.plotItem.plot(x, y, pen=mkpen)
+        self.curves[curveId] = self.plotItem.plot(x,
+                                                  y,
+                                                  pen=mkpen,
+                                                  stepMode=stepMode)
 
         # Create usefull attribute
         self.curves[curveId].colorIndex         = colorIndex
@@ -679,6 +701,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     nb += 1
 
         return nb
+
 
 
     ####################################
@@ -1361,6 +1384,85 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     ####################################
     #
+    #           Method to related to statistics
+    #
+    ####################################
+
+
+    def clickStatistics(self) -> None:
+        """
+        Method called when user click on the integrate checkbox.
+        Add a plot containing the histogram of the chosen data.
+        """
+
+        # Get xLabel information
+        xLabelText  = self.plotItem.axes['left']['item'].labelText
+        xLabelUnits = self.plotItem.axes['left']['item'].labelUnits
+
+        # Build new curve information
+        yLabelText  = 'Count'
+        yLabelUnits = ''
+        title   = self.windowTitle+' - histogram'
+        curveId = self.selectedLabel+'histogram'
+        plotRef = self.plotRef+'histogram'
+
+
+        # If user wants to plot the histogram, we add a new plotWindow
+        if self.checkBoxStatistics.isChecked():
+
+            y, x = np.histogram(self.selectedY, bins=self.spinBoxStatistics.value())
+
+            # Is there already a histogram plot associated to the plot1d
+            plot = self.getPlotFromRef(self.plotRef, 'histogram')
+            if plot is not None:
+                plot.updatePlotDataItem(x         = x,
+                                        y         = y,
+                                        curveId   = curveId,
+                                        autoRange = True,
+                                        histogram = True)
+            # If not, we create one
+            else:
+
+                def buffer(**kwargs):
+                    """
+                    Function called when a histogram plot is closed.
+                    Uncheck its associated checkbox and called the usual close
+                    function
+                    """
+
+                    self.checkBoxStatistics.setChecked(False)
+                    self.cleanCheckBox(**kwargs)
+
+
+                self.addPlot(plotRef        = plotRef,
+                             dataBaseName   = self.dataBaseName,
+                             dataBaseAbsPath= self.dataBaseAbsPath,
+                             data           = [x, y],
+                             xLabelText     = xLabelText,
+                             xLabelUnits    = xLabelUnits,
+                             yLabelText     = yLabelText,
+                             yLabelUnits    = yLabelUnits,
+                             cleanCheckBox  = buffer,
+                             plotTitle      = title,
+                             windowTitle    = title,
+                             runId          = 1,
+                             linkedTo2dPlot = False,
+                             curveId        = curveId,
+                             curveLegend    = yLabelText,
+                             curveLabel     = yLabelText,
+                             timestampXAxis = False,
+                             livePlot       = False,
+                             histogram      = True)
+        # Otherwise, we close the existing one
+        else:
+            plot = self.getPlotFromRef(self.plotRef, 'histogram')
+            if plot is not None:
+                self.removePlot(self.plotRef+'histogram', curveId)
+
+
+
+    ####################################
+    #
     #           Method to related to data selection
     #
     ####################################
@@ -1444,6 +1546,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         plot = self.getPlotFromRef(self.plotRef, 'unslop')
         if plot is not None:
             self.clickRemoveSlop()
+
+        # If a histogram curve is already displayed, we update it
+        plot = self.getPlotFromRef(self.plotRef, 'histogram')
+        if plot is not None:
+            self.clickStatistics()
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
         lineItem.mouseHovering  = False
@@ -1628,7 +1735,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             for checkBox in [self.checkBoxDifferentiate, self.checkBoxIntegrate, self.checkBoxUnwrap, self.checkBoxRemoveSlop]:
                 checkBox.setChecked(False)
 
-            for curveType in ['fft', 'derivative', 'primitive', 'derivative', 'unwrap', 'unslop']:
+            for curveType in ['fft', 'derivative', 'primitive', 'derivative', 'unwrap', 'unslop', 'histogram']:
                 plot = self.getPlotFromRef(self.plotRef, curveType)
                 if plot is not None:
                     [self.removePlot(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
@@ -1668,6 +1775,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         self.groupBoxFFT.setEnabled(enable)
         self.groupBoxCalculus.setEnabled(enable)
+        self.groupBoxStatistics.setEnabled(enable)
         self.groupBoxFiltering.setEnabled(enable)
         self.groupBoxFit.setEnabled(enable)
         self.groupBoxNormalize.setEnabled(enable)

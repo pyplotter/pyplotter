@@ -1349,6 +1349,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         plotRefs = [plotRef for plotRef in plotRefs if 'fft' not in plotRef]
         plotRefs = [plotRef for plotRef in plotRefs if 'derivative' not in plotRef]
         plotRefs = [plotRef for plotRef in plotRefs if 'primitive' not in plotRef]
+        plotRefs = [plotRef for plotRef in plotRefs if 'histogram' not in plotRef]
 
         # Close everything
         [self._plotRefs[plotRef].o() for plotRef in plotRefs]
@@ -2113,7 +2114,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                       livePlot           : bool=False,
                       progressBarKey     : Optional[str]=None,
                       zLabelText         : Optional[str]=None,
-                      zLabelUnits        : Optional[str]=None) -> None:
+                      zLabelUnits        : Optional[str]=None,
+                      histogram          : Optional[bool]=False) -> None:
         """
         Methods called once the data are downloaded to add a plot of the data.
         Discriminate between 1d and 2d plot through the length of data list.
@@ -2208,7 +2210,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                               linkedTo2dPlot     = linkedTo2dPlot,
                               curveSlicePosition = curveSlicePosition,
                               livePlot           = livePlot,
-                              timestampXAxis     = timestampXAxis)
+                              timestampXAxis     = timestampXAxis,
+                              histogram          = histogram)
 
                 self._plotRefs[plotRef] = p
                 self._plotRefs[plotRef].show()
