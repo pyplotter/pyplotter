@@ -131,9 +131,9 @@
             <property name="geometry">
              <rect>
               <x>0</x>
-              <y>-213</y>
+              <y>0</y>
               <width>250</width>
-              <height>585</height>
+              <height>615</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -197,6 +197,48 @@
                      <string>Click to copie</string>
                     </property>
                    </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayoutXAxis">
+                    <item>
+                     <widget class="QLabel" name="labelXAxis">
+                      <property name="font">
+                       <font>
+                        <pointsize>8</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>x axis:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QComboBox" name="comboBoxXAxis">
+                      <property name="font">
+                       <font>
+                        <pointsize>8</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacerXAxis">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
                   </item>
                   <item>
                    <layout class="QHBoxLayout" name="horizontalLayoutLog">

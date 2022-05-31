@@ -170,6 +170,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxSymbol.stateChanged.connect(self.checkBoxSymbolState)
         self.checkBoxSplitYAxis.stateChanged.connect(self.checkBoxSplitYAxisState)
 
+        self.comboBoxXAxis.activated.connect(self.comboBoxXAxisActivated)
+
         self.checkBoxDifferentiate.clicked.connect(self.clickDifferentiate)
         self.checkBoxIntegrate.clicked.connect(self.clickIntegrate)
 
@@ -242,8 +244,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.addPlotDataItem(x                  = x,
                              y                  = y,
                              curveId            = curveId,
-                             curveLabel         = yLabelText,
-                             curveUnits         = yLabelUnits,
+                             curveXLabel        = xLabelText,
+                             curveXUnits        = xLabelUnits,
+                             curveYLabel        = yLabelText,
+                             curveYUnits        = yLabelUnits,
                              curveLegend        = curveLegend,
                              curveSlicePosition = curveSlicePosition,
                              histogram=histogram)
@@ -334,6 +338,58 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.fitWindow.close()
         self.close()
 
+
+
+    ####################################
+    #
+    #           Method related to the plotDataItem
+    #
+    ####################################
+
+
+
+
+    def updateListXAxis(self) -> None:
+
+        self.comboBoxXAxis.clear()
+
+        for curve in self.curves.values():
+            if self.comboBoxXAxis.findText(curve.curveXLabel)==-1:
+                self.comboBoxXAxis.addItem(curve.curveXLabel)
+            if self.comboBoxXAxis.findText(curve.curveYLabel)==-1:
+                self.comboBoxXAxis.addItem(curve.curveYLabel)
+
+        self.comboBoxXAxis.setCurrentIndex(self.comboBoxXAxis.findText(self.plotItem.getAxis('bottom').labelText))
+
+
+
+    def comboBoxXAxisActivated(self, index:int) -> None:
+
+        # Get a curve containing the data to update the plot
+        # Either in its x or y axis
+        for curve in self.curves.values():
+            if curve.curveXLabel==self.comboBoxXAxis.currentText():
+                newXData  = curve.x
+                newXLabel = curve.curveXLabel
+                newXUnits = curve.curveXUnits
+                break
+            if curve.curveYLabel==self.comboBoxXAxis.currentText():
+                newXData  = curve.y
+                newXLabel = curve.curveYLabel
+                newXUnits = curve.curveYUnits
+                break
+
+        # We update the curve
+        for curve in self.curves.values():
+            curve.setData(x=newXData,
+                          y=curve.y)
+
+        # We update the x label
+        self.plotItem.setLabel(axis ='bottom',
+                               text =newXLabel,
+                               units=newXUnits)
+
+        self.autoRange()
 
 
     ####################################
@@ -477,8 +533,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     def addPlotDataItem(self, x                 : np.ndarray,
                               y                 : np.ndarray,
                               curveId           : str,
-                              curveLabel        : str,
-                              curveUnits        : str,
+                              curveXLabel        : str,
+                              curveXUnits        : str,
+                              curveYLabel        : str,
+                              curveYUnits        : str,
                               curveLegend       : str,
                               showInLegend      : bool=True,
                               hidden            : bool=False,
@@ -496,9 +554,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         curveId : str
             Id of the curve.
             See getCurveId from MainApp
-        curveLabel : str
+        curveYLabel: str
             y label of the curve.
-        curveUnits : str
+        curveYUnits: str
             y units of the curve.
         curveLegend : str
             Legend label of the curve.
@@ -528,9 +586,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                   stepMode=stepMode)
 
         # Create usefull attribute
+        self.curves[curveId].x                  = x
+        self.curves[curveId].y                  = y
         self.curves[curveId].colorIndex         = colorIndex
-        self.curves[curveId].curveLabel         = curveLabel
-        self.curves[curveId].curveUnits         = curveUnits
+        self.curves[curveId].curveXLabel        = curveXLabel
+        self.curves[curveId].curveXUnits        = curveXUnits
+        self.curves[curveId].curveYLabel        = curveYLabel
+        self.curves[curveId].curveYUnits        = curveYUnits
         self.curves[curveId].curveLegend        = curveLegend
         self.curves[curveId].showInLegend       = showInLegend
         self.curves[curveId].hidden             = hidden
@@ -538,6 +600,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.curves[curveId].mkpen              = mkpen
 
         self.updateListDataPlotItem(curveId)
+        self.updateListXAxis()
 
 
 
@@ -561,6 +624,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             del(self.curves[curveId])
 
             self.updateListDataPlotItem(curveId)
+            self.updateListXAxis()
 
 
 
@@ -586,20 +650,20 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 pass
             # If there is more than one plotDataItem
             # We check of the share the same unit
-            elif len(curvesNotHidden)>1 and len(set(curve.curveUnits for curve in curvesNotHidden.values()))==1:
+            elif len(curvesNotHidden)>1 and len(set(curve.curveYUnits for curve in curvesNotHidden.values()))==1:
                 self.plotItem.setLabel(axis ='left',
                                        text ='',
-                                       units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveUnits)
+                                       units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveYUnits)
             # We check of the share the same label
-            elif len(set(curve.curveLabel for curve in curvesNotHidden.values()))>1:
+            elif len(set(curve.curveYLabel for curve in curvesNotHidden.values()))>1:
                 self.plotItem.setLabel(axis ='left',
                                        text ='',
                                        units='a.u')
             # If there is only one plotDataItem or if the plotDataItems share the same label
             elif len(curvesNotHidden)==1:
                 self.plotItem.setLabel(axis ='left',
-                                       text =curvesNotHidden[list(curvesNotHidden.keys())[0]].curveLabel,
-                                       units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveUnits)
+                                       text =curvesNotHidden[list(curvesNotHidden.keys())[0]].curveYLabel,
+                                       units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveYUnits)
             else:
                 self.plotItem.setLabel(axis ='left',
                                        text ='None',
@@ -664,7 +728,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                         createButton = False
                 # Otherwise, we create it
                 if createButton:
-                    radioButton = QtWidgets.QRadioButton(self.curves[curveId].curveLabel)
+                    radioButton = QtWidgets.QRadioButton(self.curves[curveId].curveYLabel)
                     radioButton.curveId = curveId
                     self.plotDataItemButtonGroup.addButton(radioButton, len(self.plotDataItemButtonGroup.buttons()))
                     radioButton.clicked.connect(self.selectPlotDataItem)
@@ -682,7 +746,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                             createButton = False
                 # Otherwise, we create it
                 if createButton:
-                    checkBox = QtWidgets.QCheckBox(self.curves[curveId].curveLabel)
+                    checkBox = QtWidgets.QCheckBox(self.curves[curveId].curveYLabel)
                     checkBox.curveId = curveId
                     checkBox.stateChanged.connect(lambda : self.hidePlotDataItem(checkBox))
 
@@ -778,7 +842,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                         curveId not in self.curves):
                         cb = QtWidgets.QCheckBox()
                         label = plot.windowTitle+'\n'+\
-                                plot.curves[curveId].curveLabel
+                                plot.curves[curveId].curveYLabel
 
                         cb.setText(label)
 
@@ -829,9 +893,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.addPlotDataItem(x           = plot.curves[curveId].xData,
                                  y           = plot.curves[curveId].yData,
                                  curveId     = curveId,
-                                 curveLabel  = plot.curves[curveId].curveLabel,
-                                 curveUnits  = plot.curves[curveId].curveUnits,
-                                 curveLegend = '{} - {}'.format(runId, plot.curves[curveId].curveLabel))
+                                 curveXLabel = plot.curves[curveId].curveXLabel,
+                                 curveXUnits = plot.curves[curveId].curveXUnits,
+                                 curveYLabel = plot.curves[curveId].curveYLabel,
+                                 curveYUnits = plot.curves[curveId].curveYUnits,
+                                 curveLegend = '{} - {}'.format(runId, plot.curves[curveId].curveYLabel))
 
         else:
             self.removePlotDataItem(curveId)
@@ -953,13 +1019,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
                 # Display the correct information on each axis about their curve
                 self.plotItem.setLabel(axis='left',
-                                    text=self.curves[leftCurveId].curveLabel,
-                                    units=self.curves[leftCurveId].curveUnits,
+                                    text=self.curves[leftCurveId].curveYLabel,
+                                    units=self.curves[leftCurveId].curveYUnits,
                                     **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
                                         'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
                 self.plotItem.setLabel(axis='right',
-                                    text=self.curves[rightCurveId].curveLabel,
-                                    units=self.curves[rightCurveId].curveUnits,
+                                    text=self.curves[rightCurveId].curveYLabel,
+                                    units=self.curves[rightCurveId].curveYUnits,
                                     **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
                                         'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
@@ -1107,7 +1173,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                      linkedTo2dPlot = False,
                      curveId        = curveId,
                      curveLegend    = yLabelText,
-                     curveLabel     = yLabelText,
+                     curveYLabel    = yLabelText,
                      timestampXAxis = False,
                      livePlot       = False)
 
@@ -1170,7 +1236,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveLabel     = yLabelText,
+                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False)
         # Otherwise, we close the existing one
@@ -1231,7 +1297,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveLabel     = yLabelText,
+                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False)
         # Otherwise, we close the existing one
@@ -1308,7 +1374,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveLabel     = yLabelText,
+                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False)
         # Otherwise, we close the existing one
@@ -1379,7 +1445,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveLabel     = yLabelText,
+                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False)
         # Otherwise, we close the existing one
@@ -1477,7 +1543,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveLabel     = yLabelText,
+                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False,
                              histogram      = True)
@@ -1708,8 +1774,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.addPlotDataItem(x            = x,
                                  y            = y,
                                  curveId      = curveId+'-selection',
-                                 curveLabel   = self.curves[curveId].curveLabel,
-                                 curveUnits   = self.curves[curveId].curveUnits,
+                                 curveXLabel  = self.curves[curveId].curveXLabel,
+                                 curveXUnits  = self.curves[curveId].curveXUnits,
+                                 curveYLabel  = self.curves[curveId].curveYLabel,
+                                 curveYUnits  = self.curves[curveId].curveYUnits,
                                  curveLegend  = 'Selection',
                                  showInLegend = True)
 
@@ -1788,8 +1856,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.enableWhenPlotDataItemSelected(True)
 
             self.selectedX, self.selectedY = self.getSelectedData(radioButton.curveId)
-            self.selectedLabel = self.curves[radioButton.curveId].curveLabel
-            self.selectedUnits = self.curves[radioButton.curveId].curveUnits
+            self.selectedYLabel = self.curves[radioButton.curveId].curveYLabel
+            self.selectedXLabel = self.curves[radioButton.curveId].curveXLabel
+            self.selectedYUnits = self.curves[radioButton.curveId].curveYUnits
+            self.selectedXUnits = self.curves[radioButton.curveId].curveXUnits
 
 
 
@@ -1880,8 +1950,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.addPlotDataItem(x           = x,
                              y           = y,
                              curveId     = 'fit',
-                             curveLabel  = self.selectedLabel,
-                             curveUnits  = self.selectedUnits,
+                             curveXLabel = self.selectedXLabel,
+                             curveXUnits = self.selectedXUnits,
+                             curveYLabel = self.selectedYLabel,
+                             curveYUnits = self.selectedYUnits,
                              curveLegend = obj.displayedLegend(params))
 
 
@@ -1920,8 +1992,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.addPlotDataItem(x           = x,
                              y           = y,
                              curveId     = 'filtering',
-                             curveLabel  = self.selectedLabel,
-                             curveUnits  = self.selectedUnits,
+                             curveXLabel = self.selectedXLabel,
+                             curveXUnits = self.selectedXUnits,
+                             curveYLabel = self.selectedYLabel,
+                             curveYUnits = self.selectedYUnits,
                              curveLegend = legend)
 
 

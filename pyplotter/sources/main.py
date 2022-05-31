@@ -1244,7 +1244,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
                 if plot.plotType=='1d':
                     if plotRef in plot.plotRef:
-                        if paramDependent['label'] in [curve.curveLabel for curve in plot.curves.values()]:
+                        if paramDependent['label'] in [curve.curveYLabel for curve in plot.curves.values()]:
                             return True
                 if plot.plotType=='2d':
                     if plotRef in plot.plotRef:
@@ -2217,19 +2217,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                 self._plotRefs[plotRef].show()
             else:
 
-                if curveLabel is None:
-                    curveLabel = yLabelText
-                if curveUnits is None:
-                    curveUnits = yLabelUnits
-                if curveLegend is None:
-                    curveLegend = yLabelText
-
                 self._plotRefs[plotRef].addPlotDataItem(x                  = data[0],
                                                         y                  = data[1],
                                                         curveId            = curveId,
-                                                        curveLabel         = curveLabel,
-                                                        curveUnits         = curveUnits,
-                                                        curveLegend        = curveLegend,
+                                                        curveXLabel        = xLabelText,
+                                                        curveXUnits        = xLabelUnits,
+                                                        curveYLabel        = yLabelText,
+                                                        curveYUnits        = yLabelUnits,
+                                                        curveLegend        = yLabelText,
                                                         curveSlicePosition = curveSlicePosition,
                                                         hidden             = hidden)
 
