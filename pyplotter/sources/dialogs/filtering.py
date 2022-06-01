@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets
 import numpy as np
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Any
 from scipy.signal import savgol_filter
 
 
@@ -14,7 +14,7 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
 
     def __init__(self, windowsLength        : int,
                        polyorder            : int,
-                       windowsLengthChanged : Callable[[int], None],
+                       windowsLengthChanged : Callable[[int, int], None],
                        polyorderChanged     : Callable[[int], None]) -> None:
         """
         QDialog window launched when user filters its data with the
@@ -31,7 +31,7 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
         polyorder : int
             Initial value of the polyorder parameter.
             See SavitzkyGolay class.
-        windowsLengthChanged : Callable[[int], None]
+        windowsLengthChanged : Callable[[int, int], None]
             Function called when the window length parameter is changed.
             See SavitzkyGolay class.
         polyorderChanged : Callable[[int], None]
@@ -192,11 +192,11 @@ class SavitzkyGolay:
                                                             self.windowLength,
                                                             self.polyorder),
                                 curveId     = 'filtering',
-                                curveLegend = self.legend2display())
+                                curveLegend = self.legend2display()) # type: ignore
 
 
 
-    def runFiltering(self) -> Tuple[np.ndarray]:
+    def runFiltering(self) -> Tuple[np.ndarray, Any, SavitzkyGolayWindow, str]:
         """
         Filter the data.
 
