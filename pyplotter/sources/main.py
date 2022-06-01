@@ -22,6 +22,7 @@ from .runpropertiesextra import RunPropertiesExtra
 from .workers.loadDataBase import loadDataBaseThread
 from .workers.loadDataFromRun import LoadDataFromRunThread
 from .workers.loadDataFromCache import LoadDataFromCacheThread
+from .workers.check_nb_run_database_thread import dataBaseCheckNbRunThread
 from .workers.loadRunInfo import loadRunInfoThread
 from .config import loadConfigCurrent, updateUserConfig
 config = loadConfigCurrent()
@@ -864,6 +865,46 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             currentRow = self.tableWidgetFolder.currentIndex().row()
             item = self.tableWidgetFolder.item(currentRow, 0)
             item.setIcon(QtGui.QIcon(PICTURESPATH+'database.png'))
+
+        self.dataBaseCheckNbRun()
+
+
+
+    def dataBaseCheckNbRun(self):
+        """
+        Method called by dataBaseClickedDone.
+        Launch a thread every config['delayBetweendataBaseNbRunCheck'] ms
+        which will launch a process to get the nb of run in the database.
+        If that number is the same as the database currently displayed, nothing
+        happen, otherwise, the method dataBaseClicked is called which will
+        refresh the diaplayed database.
+        """
+
+        # From launch a thread which will periodically check if the database has
+        # more run that what is currently displayed
+        worker = dataBaseCheckNbRunThread(self.dataBaseAbsPath,
+                                          self.nbTotalRun)
+
+        # Connect signals
+        worker.signals.dataBaseUpdate.connect(self.dataBaseUpdate)
+        worker.signals.dataBaseCheckNbRun.connect(self.dataBaseCheckNbRun)
+
+        # Execute the thread
+        self.threadpool.start(worker)
+
+
+    def dataBaseUpdate(self, databasePathToUpdate: str) -> None:
+        """Method called by dataBaseCheckNbRunThread when the displayed database
+        has not the same number of total run.
+        Call dataBaseClicked if the displayed database shares the same path
+        as the database check by the thread.
+
+        Args:
+            databasePathToUpdate : path of the checked database
+        """
+
+        if databasePathToUpdate==self.dataBaseAbsPath:
+            self.dataBaseClicked()
 
 
 

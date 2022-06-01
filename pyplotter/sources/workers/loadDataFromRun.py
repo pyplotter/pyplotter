@@ -4,7 +4,7 @@ import numpy as np
 from typing import Tuple
 import multiprocessing as mp
 
-from ..qcodesdatabase import getParameterData, getParameterInfo
+from ..qcodesdatabase import getParameterDatamp, getParameterInfo
 from ..config import loadConfigCurrent
 config = loadConfigCurrent()
 
@@ -108,7 +108,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         queueDone: mp.Queue = mp.Queue()
         queueDone.put(False)
 
-        self.worker = mp.Process(target=getParameterData,
+        self.worker = mp.Process(target=getParameterDatamp,
                                  args=(self.dataBaseAbsPath,
                                        self.runId,
                                        [paramIndependent['name'] for paramIndependent in paramsIndependent],
@@ -141,7 +141,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         queueDone.close()
         queueDone.join_thread()
 
-        # If getParameterData failed, or the database is empty we emit a specific
+        # If getParameterDatamp failed, or the database is empty we emit a specific
         # signal which will flag the data download as done without launching a
         # new plot window
         if d is None or len(d)==0:

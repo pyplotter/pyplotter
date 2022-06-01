@@ -4,7 +4,7 @@ import multiprocess as mp
 
 from ..config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..qcodesdatabase import getRunInfos
+from ..qcodesdatabase import getRunInfosmp
 
 class loadDataBaseSignal(QtCore.QObject):
     """
@@ -68,7 +68,7 @@ class loadDataBaseThread(QtCore.QRunnable):
         queueDone: mp.Queue = mp.Queue()
         queueDone.put(False)
 
-        self.worker = mp.Process(target=getRunInfos,
+        self.worker = mp.Process(target=getRunInfosmp,
                                  args=(self.databaseAbsPath,
                                        queueData,
                                        queueProgressBar,
