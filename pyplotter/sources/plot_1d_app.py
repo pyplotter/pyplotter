@@ -44,7 +44,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        curveLegend        : Optional[str]=None,
                        timestampXAxis     : bool=False,
                        livePlot           : bool=False,
-                       curveSlicePosition : Optional[float]=None,
                        histogram          : Optional[bool]=False,
                        parent             = None):
         """
@@ -98,9 +97,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             See pyqtgraph doc about DateAxisItem, by default False
         livePlot : bool, optional
             If the plot is a livePlot one, by default False
-        curveSlicePosition : Optional, float
-            If the curve is a slice of a 2d map, contains its position if the
-            slice axis
         parent : [type], optional
             [description], by default None
         """
@@ -249,7 +245,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              curveYLabel        = yLabelText,
                              curveYUnits        = yLabelUnits,
                              curveLegend        = curveLegend,
-                             curveSlicePosition = curveSlicePosition,
                              histogram=histogram)
 
         # AutoRange only after the first data item is added
@@ -476,7 +471,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                  y                  : np.ndarray,
                                  curveId            : str,
                                  curveLegend        : Optional[str]=None,
-                                 curveSlicePosition : Optional[str]=None,
                                  autoRange          : bool=False,
                                  histogram          : Optional[bool]=False) -> None:
         """
@@ -494,9 +488,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             See getCurveId from MainApp
         curveLegend : str
             Legend label of the curve.
-        curveSlicePosition : Optional, float
-            If the curve is a slice of a 2d map, contains its position if the
-            slice axis
         autoRange : bool
             If the view should perform an autorange after updating the data.
             Can be slow for heavy data array.
@@ -514,9 +505,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if curveLegend is not None:
             self.curves[curveId].curveLegend = curveLegend
             self.updateLegend()
-
-        if curveSlicePosition is not None:
-            self.curves[curveId].curveSlicePosition = curveSlicePosition
 
         if autoRange:
             self.autoRange()
@@ -540,7 +528,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                               curveLegend       : str,
                               showInLegend      : bool=True,
                               hidden            : bool=False,
-                              curveSlicePosition: Optional[float]=None,
                               histogram: Optional[bool]=False) -> None:
         """
         Method adding a plotDataItem to the plotItem.
@@ -566,9 +553,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         hidden : bool
             If the plotDataItem is hidden.
             Default False.
-        curveSlicePosition : Optional, float
-            If the curve is a slice of a 2d map, contains its position if the
-            slice axis
         """
 
         # Get the dataPlotItem color
@@ -596,7 +580,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.curves[curveId].curveLegend        = curveLegend
         self.curves[curveId].showInLegend       = showInLegend
         self.curves[curveId].hidden             = hidden
-        self.curves[curveId].curveSlicePosition = curveSlicePosition
         self.curves[curveId].mkpen              = mkpen
 
         self.updateListDataPlotItem(curveId)

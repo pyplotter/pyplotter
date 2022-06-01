@@ -2105,7 +2105,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                       windowTitle        : str,
                       cleanCheckBox      : Callable[[str, str, int, Union[str, list]], None]=None,
                       linkedTo2dPlot     : bool=False,
-                      curveSlicePosition : Optional[str]=None,
                       curveLegend        : Optional[str]=None,
                       hidden             : bool=False,
                       curveLabel         : Optional[str]=None,
@@ -2208,7 +2207,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                               curveId            = curveId,
                               curveLegend        = curveLegend,
                               linkedTo2dPlot     = linkedTo2dPlot,
-                              curveSlicePosition = curveSlicePosition,
                               livePlot           = livePlot,
                               timestampXAxis     = timestampXAxis,
                               histogram          = histogram)
@@ -2225,7 +2223,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                                         curveYLabel        = yLabelText,
                                                         curveYUnits        = yLabelUnits,
                                                         curveLegend        = yLabelText,
-                                                        curveSlicePosition = curveSlicePosition,
                                                         hidden             = hidden)
 
 
