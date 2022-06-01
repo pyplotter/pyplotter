@@ -35,6 +35,9 @@
     </property>
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_3">
+      <property name="topMargin">
+       <number>6</number>
+      </property>
       <property name="bottomMargin">
        <number>1</number>
       </property>

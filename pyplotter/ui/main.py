@@ -22,7 +22,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_4.setSpacing(4)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_3.setContentsMargins(-1, -1, -1, 1)
+        self.verticalLayout_3.setContentsMargins(-1, 6, -1, 1)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.TopHorizontalLayout = QtWidgets.QHBoxLayout()
         self.TopHorizontalLayout.setContentsMargins(-1, 0, -1, -1)
