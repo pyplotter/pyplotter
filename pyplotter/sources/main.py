@@ -565,6 +565,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         row = 0
         for file in sorted(os.listdir(self.currentPath), reverse=True):
 
+            # We do not display files and folders starting with a "."
+            if file[0]=='.':
+                continue
+
             abs_filename = os.path.join(self.currentPath, file)
             file_extension = os.path.splitext(abs_filename)[-1][1:]
 
@@ -596,7 +600,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             else:
                 if file not in config['forbiddenFile']:
                     if file_extension.lower() in config['authorizedExtension']:
-
 
                         # We look if the file is already opened by someone else
                         DatabaseAlreadyOpened = False
