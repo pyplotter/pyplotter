@@ -1105,7 +1105,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             y = np.abs(np.fft.fft(self.selectedY))[x>=0]
             x = x[x>=0]
             text = 'fft'
-            curveId = self.selectedLabel+'fft'
+            curveId = self.selectedYLabel+'fft'
 
         elif self.radioButtonFFTnoDC.isChecked():
 
@@ -1113,7 +1113,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             y = np.abs(np.fft.fft(self.selectedY))[x>=0][1:]
             x = x[x>=0][1:]
             text = 'fft'
-            curveId = self.selectedLabel+'fftnodc'
+            curveId = self.selectedYLabel+'fftnodc'
 
         elif self.radioButtonIFFT.isChecked():
 
@@ -1121,12 +1121,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             y = np.abs(np.fft.ifft(self.selectedY))[x>=0]
             x = x[x>=0]
             text = 'ifft'
-            curveId = self.selectedLabel+'ifft'
+            curveId = self.selectedYLabel+'ifft'
 
         xLabelText  = '1/'+self.plotItem.axes['bottom']['item'].labelText
         xLabelUnits = '1/'+self.plotItem.axes['bottom']['item'].labelUnits
-        yLabelText  = text.upper()+'( '+self.selectedLabel+' )'
-        yLabelUnits = self.selectedUnits+'/'+self.plotItem.axes['bottom']['item'].labelUnits
+        yLabelText  = text.upper()+'( '+self.selectedYLabel+' )'
+        yLabelUnits = self.selectedYUnits+'/'+self.plotItem.axes['bottom']['item'].labelUnits
         title  = self.windowTitle+' - '+text.upper()
 
         fftPlot = self.getPlotFromRef(self.plotRef, 'fft')
@@ -1156,7 +1156,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                      linkedTo2dPlot = False,
                      curveId        = curveId,
                      curveLegend    = yLabelText,
-                     curveYLabel    = yLabelText,
                      timestampXAxis = False,
                      livePlot       = False)
 
@@ -1175,7 +1174,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Build new curve information
         yLabelText  = 'Unwrap({})'.format(self.plotItem.axes['left']['item'].labelText)
         title       = self.windowTitle+' - unwrap'
-        curveId     = self.selectedLabel+'unwrap'
+        curveId     = self.selectedYLabel+'unwrap'
         plotRef     = self.plotRef+'unwrap'
 
         # If user wants to plot the unwrap, we add a new plotWindow
@@ -1219,7 +1218,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False)
         # Otherwise, we close the existing one
@@ -1235,7 +1233,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Build new curve information
         yLabelText  = 'Unslop({})'.format(self.plotItem.axes['left']['item'].labelText)
         title       = self.windowTitle+' - unslop'
-        curveId     = self.selectedLabel+'unslop'
+        curveId     = self.selectedYLabel+'unslop'
         plotRef     = self.plotRef+'unslop'
 
         # If user wants to plot the unslop, we add a new plotWindow
@@ -1280,7 +1278,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False)
         # Otherwise, we close the existing one
@@ -1310,10 +1307,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
 
         # Build new curve information
-        yLabelText  = '∂('+self.selectedLabel+')/∂('+xLabelText+')'
-        yLabelUnits = self.selectedUnits+'/'+xLabelUnits
+        yLabelText  = '∂('+self.selectedYLabel+')/∂('+xLabelText+')'
+        yLabelUnits = self.selectedYUnits+'/'+xLabelUnits
         title       = self.windowTitle+' - derivative'
-        curveId     = self.selectedLabel+'derivative'
+        curveId     = self.selectedYLabel+'derivative'
         plotRef     = self.plotRef+'derivative'
 
         # If user wants to plot the derivative, we add a new plotWindow
@@ -1357,7 +1354,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False)
         # Otherwise, we close the existing one
@@ -1379,10 +1375,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
 
         # Build new curve information
-        yLabelText  = '∫ '+self.selectedLabel+'  d '+xLabelText
-        yLabelUnits = self.selectedUnits+' x '+xLabelUnits
+        yLabelText  = '∫ '+self.selectedYLabel+'  d '+xLabelText
+        yLabelUnits = self.selectedYUnits+' x '+xLabelUnits
         title   = self.windowTitle+' - primitive'
-        curveId = self.selectedLabel+'primitive'
+        curveId = self.selectedYLabel+'primitive'
         plotRef = self.plotRef+'primitive'
 
 
@@ -1428,7 +1424,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False)
         # Otherwise, we close the existing one
@@ -1460,7 +1455,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         yLabelText  = 'Count'
         yLabelUnits = ''
         title   = self.windowTitle+' - histogram'
-        curveId = self.selectedLabel+'histogram'
+        curveId = self.selectedYLabel+'histogram'
         plotRef = self.plotRef+'histogram'
 
 
@@ -1526,7 +1521,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              linkedTo2dPlot = False,
                              curveId        = curveId,
                              curveLegend    = yLabelText,
-                             curveYLabel    = yLabelText,
                              timestampXAxis = False,
                              livePlot       = False,
                              histogram      = True)
@@ -1839,10 +1833,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.enableWhenPlotDataItemSelected(True)
 
             self.selectedX, self.selectedY = self.getSelectedData(radioButton.curveId)
-            self.selectedYLabel = self.curves[radioButton.curveId].curveYLabel
-            self.selectedXLabel = self.curves[radioButton.curveId].curveXLabel
-            self.selectedYUnits = self.curves[radioButton.curveId].curveYUnits
-            self.selectedXUnits = self.curves[radioButton.curveId].curveXUnits
+            self.selectedYLabel :str = self.curves[radioButton.curveId].curveYLabel
+            self.selectedXLabel :str = self.curves[radioButton.curveId].curveXLabel
+            self.selectedYUnits :str = self.curves[radioButton.curveId].curveYUnits
+            self.selectedXUnits :str = self.curves[radioButton.curveId].curveXUnits
 
 
 
