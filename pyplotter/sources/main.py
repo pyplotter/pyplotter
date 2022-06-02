@@ -529,6 +529,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             # Create, append and connect buttons
             if bu_text is not None:
                 bu = QtWidgets.QPushButton(bu_text)
+                bu.setStyleSheet("font-weight: normal;")
                 width = bu.fontMetrics().boundingRect(bu_text).width() + 15
                 bu.setMaximumWidth(width)
                 d = os.path.join(path[0], os.sep, *path[1:i+1])
@@ -898,6 +899,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self.threadpool.start(worker)
 
 
+
     def dataBaseUpdate(self, databasePathToUpdate: str) -> None:
         """Method called by dataBaseCheckNbRunThread when the displayed database
         has not the same number of total run.
@@ -1041,7 +1043,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self.labelFilter.setEnabled(True)
 
         # Update the run snapshot
-        self.removeSnapshot()
+        self.cleanSnapshot()
         self.addSnapshot(snapshotDict)
 
 
@@ -1212,30 +1214,36 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
 
 
-    def removeSnapshot(self) -> None:
+    def cleanSnapshot(self) -> None:
         """
         Remove the snapshot of the run.
         Due to a weird bug of pyqt, the method is call twice
         """
+        current_item = self.snapShotTreeView.invisibleRootItem()
+        children = []
+        for child in range(current_item.childCount()):
+            children.append(current_item.child(child))
+        for child in children:
+            current_item.removeChild(child)
+        # items = (self.snapShotTreeView.itemAt(i) for i in range(self.snapShotTreeView.count()+5))
+        # root = self.snapShotTreeView.invisibleRootItem()
+        # for item in self.snapShotTreeView.selectedItems():
+        #     (item.parent() or root).removeChild(item)
+                # widget = item.widget()
+                # if isinstance(widget, ViewTree):
+                #     widget.close()
+                # if isinstance(item, QtWidgets.QSpacerItem):
+                #     self.verticalLayout_7.removeItem(item)
 
-        items = (self.verticalLayout_7.itemAt(i) for i in range(self.verticalLayout_7.count()+5))
-        for item in items:
-            if item is not None:
-                widget = item.widget()
-                if isinstance(widget, ViewTree):
-                    widget.close()
-                if isinstance(item, QtWidgets.QSpacerItem):
-                    self.verticalLayout_7.removeItem(item)
+        # # Here we recall the method once
+        # if not hasattr(self, '_cleanSnapshotTwice'):
+        #     self._cleanSnapshotTwice = True
+        #     self.cleanSnapshot()
+        # else:
+        #     del(self._cleanSnapshotTwice)
 
-        # Here we recall the method once
-        if not hasattr(self, '_removeSnapshotTwice'):
-            self._removeSnapshotTwice = True
-            self.removeSnapshot()
-        else:
-            del(self._removeSnapshotTwice)
-
-        verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout_7.addItem(verticalSpacer)
+        # verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        # self.verticalLayout_7.addItem(verticalSpacer)
 
 
 
@@ -1247,10 +1255,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             snapshotDict (dict): Dictionnary of the snapshot
         """
 
-        self.snapShotTreeView = ViewTree(snapshotDict)
-        self.verticalLayout_7.addWidget(self.snapShotTreeView)
-        verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout_7.addItem(verticalSpacer)
+        self.snapShotTreeView.addSnapshot(snapshotDict)
+        # self.verticalLayout_7.addWidget(self.snapShotTreeView)
+        # verticalSpacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        # self.verticalLayout_7.addItem(verticalSpacer)
 
 
 
