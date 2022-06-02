@@ -740,7 +740,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         # Modify the resize mode so that the initial view has an optimized
         # column width
-        self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
 
         # self.qcodesDatabase.databasePath = os.path.join(self.currentPath, self._currentDatabase)
 
@@ -778,18 +778,18 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         Each call add n rows into the table.
         """
 
+
+        if lrunId[0]==1:
+            self.statusBar.clearMessage()
+            self.tableWidgetDataBase.setRowCount(nbTotalRun)
+        self.updateProgressBar(progressBarKey, int(lrunId[0]/nbTotalRun*100), text='Displaying database: run '+str(lrunId[0])+'/'+str(nbTotalRun))
+
         # We go through all lists of parameters and for each list element, we add
         # a row in the table
         for (runId, dim, experimentName, sampleName, runName, started, completed,
              runRecords) in zip(lrunId,
              ldim, lexperimentName, lsampleName, lrunName, lstarted, lcompleted,
              lrunRecords):
-
-            if runId==1:
-                self.statusBar.clearMessage()
-                self.tableWidgetDataBase.setRowCount(nbTotalRun)
-
-            self.updateProgressBar(progressBarKey, int(runId/nbTotalRun*100), text='Displaying database: run '+str(runId)+'/'+str(nbTotalRun))
 
             itemRunId = MyTableWidgetItem(str(runId))
 
@@ -841,7 +841,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         if not error:
             self.tableWidgetDataBase.setSortingEnabled(True)
             self.tableWidgetDataBase.sortItems(0, QtCore.Qt.DescendingOrder)
-            self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.Interactive)
+            self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
             # Enable database interaction
             self.checkBoxHidden.setEnabled(True)
