@@ -285,6 +285,17 @@
                   <height>0</height>
                  </size>
                 </property>
+                <property name="font">
+                 <font>
+                  <pointsize>8</pointsize>
+                 </font>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true"/>
+                </property>
+                <property name="lineWidth">
+                 <number>0</number>
+                </property>
                 <property name="sizeAdjustPolicy">
                  <enum>QAbstractScrollArea::AdjustIgnored</enum>
                 </property>
@@ -296,6 +307,9 @@
                 </property>
                 <property name="selectionBehavior">
                  <enum>QAbstractItemView::SelectRows</enum>
+                </property>
+                <property name="showGrid">
+                 <bool>false</bool>
                 </property>
                 <property name="sortingEnabled">
                  <bool>true</bool>
@@ -387,6 +401,14 @@
               </item>
               <item>
                <widget class="QTableWidgetKey" name="tableWidgetDataBase">
+                <property name="font">
+                 <font>
+                  <pointsize>8</pointsize>
+                 </font>
+                </property>
+                <property name="lineWidth">
+                 <number>0</number>
+                </property>
                 <property name="sizeAdjustPolicy">
                  <enum>QAbstractScrollArea::AdjustIgnored</enum>
                 </property>
@@ -398,6 +420,9 @@
                 </property>
                 <property name="selectionBehavior">
                  <enum>QAbstractItemView::SelectRows</enum>
+                </property>
+                <property name="showGrid">
+                 <bool>false</bool>
                 </property>
                 <property name="sortingEnabled">
                  <bool>true</bool>
@@ -512,6 +537,14 @@
               </item>
               <item>
                <widget class="QTableWidget" name="tableWidgetParameters">
+                <property name="font">
+                 <font>
+                  <pointsize>8</pointsize>
+                 </font>
+                </property>
+                <property name="lineWidth">
+                 <number>0</number>
+                </property>
                 <property name="editTriggers">
                  <set>QAbstractItemView::NoEditTriggers</set>
                 </property>
@@ -520,6 +553,9 @@
                 </property>
                 <property name="selectionBehavior">
                  <enum>QAbstractItemView::SelectRows</enum>
+                </property>
+                <property name="showGrid">
+                 <bool>false</bool>
                 </property>
                 <property name="sortingEnabled">
                  <bool>true</bool>

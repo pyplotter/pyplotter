@@ -562,7 +562,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         ## Display the current dir content
         self.clearTableWidget(self.tableWidgetFolder)
-        self.tableWidgetFolder.setSortingEnabled(True)
         row = 0
         for file in sorted(os.listdir(self.currentPath), reverse=True):
 
@@ -637,6 +636,10 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                         fileSizeItem.setTextAlignment(QtCore.Qt.AlignVCenter)
                         self.tableWidgetFolder.setItem(row, 1, fileSizeItem)
                         row += 1
+
+        self.tableWidgetFolder.setSortingEnabled(True)
+        self.tableWidgetFolder.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.tableWidgetFolder.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         # Allow item event again
         self._folderUpdating = False
@@ -741,6 +744,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         # Modify the resize mode so that the initial view has an optimized
         # column width
         self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.tableWidgetDataBase.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
 
         # self.qcodesDatabase.databasePath = os.path.join(self.currentPath, self._currentDatabase)
 
@@ -842,6 +846,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             self.tableWidgetDataBase.setSortingEnabled(True)
             self.tableWidgetDataBase.sortItems(0, QtCore.Qt.DescendingOrder)
             self.tableWidgetDataBase.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            self.tableWidgetDataBase.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
             # Enable database interaction
             self.checkBoxHidden.setEnabled(True)
@@ -972,6 +977,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         ## Fill the tableWidgetParameters with the run parameters
 
         self.clearTableWidget(self.tableWidgetParameters)
+        self.tableWidgetParameters.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.tableWidgetParameters.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
+
         for dependent in dependentList:
 
             rowPosition = self.tableWidgetParameters.rowCount()
@@ -1025,6 +1033,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
 
         self.tableWidgetParameters.setSortingEnabled(True)
+        self.tableWidgetParameters.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.tableWidgetParameters.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         ## Fill the listWidgetMetada with the station snapshot
         self.lineEditFilter.setEnabled(True)
