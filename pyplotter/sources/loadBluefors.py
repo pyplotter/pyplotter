@@ -130,10 +130,9 @@ class LoadBlueFors:
 
                 runId       = 0
                 curveId     = self.main.getCurveId(name=fakeParamDependent['name'],
-                                                   runId=runId,
-                                                   livePlot=False)
-                plotTitle   = self.main.getPlotTitle(livePlot=False)
-                windowTitle = self.main.getWindowTitle(runId=runId, livePlot=False)
+                                                   runId=runId)
+                plotTitle   = self.main.getPlotTitle()
+                windowTitle = self.main.getWindowTitle(runId=runId)
                 plotRef     = self.main.getPlotRef(fakeParamDependent)
 
                 # For BF log file the databaseName  and dataBaseAbsPathis the filename and the directory

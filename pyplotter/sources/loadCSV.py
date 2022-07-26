@@ -213,10 +213,9 @@ class LoadCSV:
 
             runId       = 0
             curveId     = self.main.getCurveId(name=columnName,
-                                               runId=runId,
-                                               livePlot=False)
-            plotTitle   = self.main.getPlotTitle(livePlot=False)
-            windowTitle = self.main.getWindowTitle(runId=runId, livePlot=False)
+                                               runId=runId)
+            plotTitle   = self.main.getPlotTitle()
+            windowTitle = self.main.getWindowTitle(runId=runId)
 
             # For CSV the databaseName is the filename
             dataBaseName    = os.path.basename(filePath)
