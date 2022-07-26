@@ -307,8 +307,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         self.threadpool = QtCore.QThreadPool()
 
-        self.menuOpenLiveplot()
-
 
 
     ###########################################################################
@@ -1426,13 +1424,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         # If the close plot window is a liveplot one
         if plotRef in self.getLivePlotRef():
-            if hasattr(self, '_livePlotDataSet'):
-                if self._plotRefs[plotRef].plotType=='1d':
-                    curveIds = self._plotRefs[plotRef].curves.keys()
-                    [self.removePlot(plotRef, curveId) for curveId in curveIds]
-                else:
-                    self.removePlot(plotRef, '')
-                del(self._livePlotDataSet)
+            # if hasattr(self, '_livePlotDataSet'):
+            if self._plotRefs[plotRef].plotType=='1d':
+                curveIds = list(self._plotRefs[plotRef].curves.keys())
+                [self.removePlot(plotRef, curveId) for curveId in curveIds]
+            else:
+                self.removePlot(plotRef, '')
+            # del(self._livePlotDataSet)
         else:
             if self.getWindowTitle(runId=runId, runName=self.getRunName())==windowTitle and self.getRunId()==runId:
 
@@ -1464,35 +1462,28 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
 
 
-    def getRunId(self, livePlot: bool=False) -> int:
+    def getRunId(self) -> int:
         """
         Return the current selected run id.
-        if Live plot mode, return the total number of run.
         """
 
-        if livePlot:
-            return self._livePlotRunId
-        else:
+        # First we try to get it from the database table
+        currentRow = self.tableWidgetDataBase.currentIndex().row()
+        runId = self.tableWidgetDataBase.model().index(currentRow, 0).data()
 
-            # If not in liveplot mode we get the runId from the gui to avoid
-            # a sql call
-            # First we try to get it from the database table
-            currentRow = self.tableWidgetDataBase.currentIndex().row()
-            runId = self.tableWidgetDataBase.model().index(currentRow, 0).data()
+        # If it doesn't exist, we try the parameter table
+        if runId is None:
 
-            # If it doesn't exist, we try the parameter table
-            if runId is None:
+            item = self.tableWidgetParameters.item(0, 0)
 
-                item = self.tableWidgetParameters.item(0, 0)
+            # This occurs when user is looking to csv, s2p of bluefors files
+            # In this case the runid is 0
+            if item is None:
+                runId = 0
+            else:
+                runId = item.text()
 
-                # This occurs when user is looking to csv, s2p of bluefors files
-                # In this case the runid is 0
-                if item is None:
-                    runId = 0
-                else:
-                    runId = item.text()
-
-            return int(runId)
+        return int(runId)
 
 
 

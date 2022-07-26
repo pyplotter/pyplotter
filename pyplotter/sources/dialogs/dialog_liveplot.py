@@ -1,17 +1,12 @@
 # This Python file uses the following encoding: utf-8
 from __future__ import annotations
-from PyQt5 import QtWidgets, QtCore, QtGui, QtTest
+from PyQt5 import QtWidgets, QtCore, QtTest
 import numpy as np
-import pyqtgraph as pg
-from typing import List, Union, Callable, Optional, Tuple
-import inspect
-from scipy.integrate import cumtrapz
 import os
 from datetime import datetime
 
 from ..workers.loadDataFromCache import LoadDataFromCacheThread
 from ...ui.dialog_liveplot import Ui_LivePlot
-from ..config import loadConfigCurrent
 from ..qcodesdatabase import getNbTotalRunAndLastRunName, isRunCompleted
 
 
@@ -36,20 +31,20 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self._plotRefs        = _plotRefs
 
 
-        # Connect event
+        # Connect events
         self.pushButtonLivePlot.clicked.connect(self.livePlotPushButton)
         self.spinBoxLivePlotRefreshRate.setValue(int(config['livePlotTimer']))
         self.spinBoxLivePlotRefreshRate.valueChanged.connect(self.livePlotSpinBoxChanged)
 
-        # Internal attributes
-        self._livePlotFetchData  = False
+        # Will contain the timer updating the liveplot
         self._livePlotTimer      = None
+
+        # Will contain the timer updating the "last time update" of the display
         self._livePlotClockTimer = None
+
         self.threadpool = QtCore.QThreadPool()
 
         self.show()
-
-
 
 
 
@@ -61,6 +56,8 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
     #
     ###########################################################################
 
+
+
     def getPlotTitle(self):
 
         # If user only wants the database path
@@ -70,6 +67,7 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         else:
             title = os.path.basename(self._livePlotDatabasePath)
         return title+'<br>'+str(self._livePlotRunId)
+
 
 
     def getWindowTitle(self) -> str:
@@ -132,23 +130,6 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
 
 
-
-    # def livePlotUpdateMessage(self, message: str) -> None:
-    #     """
-    #     Update the GUI information message of all livePlot window
-    #     with the message attribute.
-
-    #     Parameters
-    #     ----------
-    #     message : str
-    #         Message to be displayed on the livePlot window(s).
-    #     """
-    #     for plotRef in self.getLivePlotRef():
-    #         title = self._plotRefs[plotRef].labelLivePlot.text()
-    #         a = title.find(self.config['livePlotMessageStart'])
-    #         newTitle = '{}{}{}'.format(title[:a], self.config['livePlotMessageStart'], message)
-    #         self._plotRefs[plotRef].labelLivePlot.setText(newTitle)
-
     def livePlotClockUpdate(self):
 
         ## Update displayed information
@@ -167,8 +148,6 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
 
         # # New data since last time we interogate the dataCache?
-        # print(len(self._plotRefs[plotRef].curves[self.getCurveId(yParamName, self._livePlotRunId)].x), len(data[0]))
-        # if len(self._plotRefs[plotRef].curves[self.getCurveId(yParamName, self._livePlotRunId)].x)!=len(data[0]):
         if self.labelLivePlotLastUpdateInfo.text()!='None':
             datetimeLastUpdate = datetime.strptime(self.labelLivePlotLastUpdateInfo.text(), '%Y-%m-%d %H:%M:%S')
             t = ''
@@ -180,7 +159,6 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 t += '{:02}min '.format(minutes)
             t += '{:02}s'.format(seconds)
             self.labelLivePlotSinceLastUpdateInfo.setText(t)
-
 
 
 
@@ -206,18 +184,15 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             marked as completed by qcodes.
         """
 
-        ## Update displayed information
         # Last time since we interogated the dataCache
         self.labelLivePlotLastRefreshInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
-
-        if len(self._plotRefs[plotRef].curves[self.getCurveId(yParamName, self._livePlotRunId)].x)!=len(data[0]):
-        # New data since last time we interogate the dataCache?
-            self.labelLivePlotLastUpdateInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-
-
         # 1d plot
         if len(data)==2:
+            # New data since last time we interogate the dataCache?
+            if len(self._plotRefs[plotRef].curves[self.getCurveId(yParamName, self._livePlotRunId)].x)!=len(data[0]):
+                self.labelLivePlotLastUpdateInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
             self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
                                                        y           = data[1],
                                                        curveId     = self.getCurveId(yParamName, self._livePlotRunId),
@@ -225,6 +200,10 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                                        autoRange   = True)
         # 2d plot
         elif len(data)==3:
+            # New data since last time we interogate the dataCache?
+            if len(self._plotRefs[plotRef].xData)!=len(data[0]):
+                self.labelLivePlotLastUpdateInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+
             self._plotRefs[plotRef].livePlotUpdate(x=data[0],
                                                    y=data[1],
                                                    z=data[2])
@@ -441,7 +420,7 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         # We get the last run id of the database
         self._livePlotRunId, self._livePlotRunName = getNbTotalRunAndLastRunName(self._livePlotDatabasePath)
-        print(self._livePlotDatabasePath, self._livePlotRunId, isRunCompleted(self._livePlotDatabasePath, self._livePlotRunId))
+
         # While the run is not completed, we update the plot
         if not isRunCompleted(self._livePlotDatabasePath, self._livePlotRunId):
 
@@ -513,8 +492,10 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 self.labelLivePlotSinceLastUpdateInfo.setText('None')
                 self.labelLivePlotLastRefreshInfo.setText('None')
                 self.labelLivePlotSinceLastRefresh.setText('None')
-                del(self._livePlotDatabasePath)
-                del(self._livePlotDatabase)
+                if hasattr(self, '_livePlotDatabasePath'):
+                    del(self._livePlotDatabasePath)
+                if hasattr(self, '_livePlotDataBase'):
+                    del(self._livePlotDataBase)
                 if hasattr(self, '_livePlotDataSet'):
                     del(self._livePlotDataSet)
             else:
@@ -570,4 +551,3 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             self._livePlotClockTimer.start()
 
         self.pushButtonLivePlot.setText('Modify database')
-
