@@ -502,6 +502,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                      y=y,
                                      stepMode=stepMode)
 
+
+        self.curves[curveId].x = x
+        self.curves[curveId].y = y
+
         if curveLegend is not None:
             self.curves[curveId].curveLegend = curveLegend
             self.updateLegend()
