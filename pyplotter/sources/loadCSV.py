@@ -110,7 +110,7 @@ class LoadCSV:
         self.main.tableWidgetDataBase.setSortingEnabled(True)
         self.main.tableWidgetParameters.setSortingEnabled(True)
 
-        self.main.removeSnapshot()
+        self.main.cleanSnapshot()
 
 
 
