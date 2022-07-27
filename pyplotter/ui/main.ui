@@ -616,7 +616,7 @@
     </size>
    </property>
   </widget>
-  <widget class="QMenuBar" name="menuBar">
+  <widget class="MenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
@@ -625,41 +625,6 @@
      <height>21</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuConfig">
-    <property name="title">
-     <string>Config</string>
-    </property>
-    <widget class="QMenu" name="menustyle">
-     <property name="title">
-      <string>style</string>
-     </property>
-     <addaction name="actionqb"/>
-     <addaction name="actionqdark"/>
-     <addaction name="actionwhite"/>
-    </widget>
-    <widget class="QMenu" name="menuplot">
-     <property name="title">
-      <string>plot</string>
-     </property>
-     <addaction name="actionAxisLabelColor"/>
-     <addaction name="actionAxisTickLabelsColor"/>
-     <addaction name="actionTitleColor"/>
-     <addaction name="actionAxisTicksColor"/>
-     <addaction name="actionFontsize"/>
-     <addaction name="actionColormap"/>
-    </widget>
-    <addaction name="menustyle"/>
-    <addaction name="actionDefaultPath"/>
-    <addaction name="menuplot"/>
-   </widget>
-   <widget class="QMenu" name="menuLiveplot">
-    <property name="title">
-     <string>Liveplot</string>
-    </property>
-    <addaction name="actionOpenliveplot"/>
-   </widget>
-   <addaction name="menuConfig"/>
-   <addaction name="menuLiveplot"/>
   </widget>
   <action name="actionqb">
    <property name="checkable">
@@ -760,6 +725,11 @@
    <class>SnapshotQLineEdit</class>
    <extends>QLineEdit</extends>
    <header location="global">..ui.snapshot_q_line_edit</header>
+  </customwidget>
+  <customwidget>
+   <class>MenuBar</class>
+   <extends>QMenuBar</extends>
+   <header location="global">..ui.menu_bar</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -20,9 +20,7 @@ from .plot_2d_app import Plot2dApp
 from ..ui import main
 from ..ui.db_menu_widget import dbMenuWidget
 from ..ui.my_table_widget_item import MyTableWidgetItem
-from .dialogs.dialog_fontsize import MenuDialogFontSize
-from .dialogs.dialog_colorbar import MenuDialogColormap
-from .dialogs.dialog_liveplot import MenuDialogLiveplot
+from ..sources.dialogs.dialog_liveplot import MenuDialogLiveplot
 
 
 # Get the folder path for pictures
@@ -64,27 +62,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         self.snapshotLineEditFilter.signalSnapshotLineEditFilterTextEdited.connect(self.snapShotTreeView.searchItem)
 
-        self.actionqb.triggered.connect(self.menuBackgroundQb)
-        self.actionqdark.triggered.connect(self.menuBackgroundQdark)
-        self.actionwhite.triggered.connect(self.menuBackgroundWhite)
-        self.actionDefaultPath.triggered.connect(self.menuDefaultPath)
-        self.actionAxisLabelColor.triggered.connect(self.menuAxisLabelColor)
-        self.actionAxisTickLabelsColor.triggered.connect(self.menuAxisTickLabelsColor)
-        self.actionAxisTicksColor.triggered.connect(self.menuAxisTicksColor)
-        self.actionTitleColor.triggered.connect(self.menuTitleColor)
-        self.actionFontsize.triggered.connect(self.menuFontsize)
-        self.actionColormap.triggered.connect(self.menuColormap)
-        self.actionOpenliveplot.triggered.connect(self.menuOpenLiveplot)
-
-        if config['style']=='qbstyles':
-            self.actionqb.setChecked(True)
-            self.actionqb.setEnabled(False)
-        elif config['style']=='qdarkstyle':
-            self.actionqdark.setChecked(True)
-            self.actionqdark.setEnabled(False)
-        elif config['style']=='white':
-            self.actionwhite.setChecked(True)
-            self.actionwhite.setEnabled(False)
+        # Connect menuBar signal
+        self.menuBar.signalUpdateStyle.connect(self.updateStyle)
+        self.menuBar.signalOpenDialogLivePlot.connect(self.openDialogLiveplot)
 
         self.setStatusBarMessage('Ready')
 
@@ -120,9 +100,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self._databaseClicking = False  # To avoid the opening of two database as once
 
         self._currentDatabase    = None
-        self._oldTotalRun        = None
-        self._livePlotFetchData  = False
-        self._livePlotTimer      = None
 
         # Handle connection and requests to qcodes database
         # self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
@@ -137,174 +114,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         self.threadpool = QtCore.QThreadPool()
 
-
-
-    ###########################################################################
-    #
-    #
-    #                           Menu
-    #
-    #
-    ###########################################################################
-
-
-    def menuBackgroundQb(self, checked):
-
-        self.actionqb.setChecked(True)
-        self.actionqdark.setChecked(False)
-        self.actionwhite.setChecked(False)
-
-        self.actionqb.setEnabled(False)
-        self.actionqdark.setEnabled(True)
-        self.actionwhite.setEnabled(True)
-
-        config['style'] = 'qdarkstyle'
-
-        import qdarkstyle
-
-        self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-
-        updateUserConfig('style', 'qdarkstyle')
-
-        self.updatePlotsStyle(config)
-
-
-
-    def menuBackgroundQdark(self, checked):
-
-        self.actionqb.setChecked(False)
-        self.actionqdark.setChecked(True)
-        self.actionwhite.setChecked(False)
-
-        self.actionqb.setEnabled(True)
-        self.actionqdark.setEnabled(False)
-        self.actionwhite.setEnabled(True)
-
-        config['style'] = 'qbstyles'
-        import qdarkstyle
-
-        self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-
-        updateUserConfig('style', 'qbstyles')
-
-        self.updatePlotsStyle(config)
-
-
-
-    def menuBackgroundWhite(self, checked):
-
-        self.actionqb.setChecked(False)
-        self.actionqdark.setChecked(False)
-        self.actionwhite.setChecked(True)
-
-        self.actionqb.setEnabled(True)
-        self.actionqdark.setEnabled(True)
-        self.actionwhite.setEnabled(False)
-
-        config['style'] = 'white'
-        self.qapp.setStyleSheet(self.qapp.setStyle('Oxygen'))
-
-        updateUserConfig('style', 'white')
-
-        self.updatePlotsStyle(config)
-
-
-
-    def menuDefaultPath(self):
-
-        # Ask user to chose a path
-        path = QtWidgets.QFileDialog.getExistingDirectory(self,
-                                                          caption='Open folder',
-                                                          directory=os.getcwd(),
-                                                          options=QtWidgets.QFileDialog.ReadOnly|QtWidgets.QFileDialog.ShowDirsOnly)
-        if path != '':
-
-            updateUserConfig('path', os.path.abspath(path))
-            updateUserConfig('root', os.path.splitdrive(path)[0])
-
-
-
-    def menuAxisLabelColor(self):
-
-        color = QtWidgets.QColorDialog.getColor()
-
-        if color.isValid():
-
-            for label in ('pyqtgraphxLabelTextColor',
-                          'pyqtgraphyLabelTextColor',
-                          'pyqtgraphzLabelTextColor'):
-                config['styles'][config['style']][label] = color.name()
-                updateUserConfig(['styles', config['style'], label], color.name())
-
-            self.updatePlotsStyle(config)
-
-
-
-    def menuAxisTicksColor(self):
-
-        color = QtWidgets.QColorDialog.getColor()
-
-        if color.isValid():
-
-            for axis in ('pyqtgraphxAxisTicksColor',
-                         'pyqtgraphyAxisTicksColor',
-                         'pyqtgraphzAxisTicksColor'):
-                config['styles'][config['style']][axis] = color.name()
-                updateUserConfig(['styles', config['style'], axis], color.name())
-
-            self.updatePlotsStyle(config)
-
-
-    def menuAxisTickLabelsColor(self):
-
-        color = QtWidgets.QColorDialog.getColor()
-
-        if color.isValid():
-
-            for axis in ('pyqtgraphxAxisTickLabelsColor',
-                         'pyqtgraphyAxisTickLabelsColor',
-                         'pyqtgraphzAxisTickLabelsColor'):
-                config['styles'][config['style']][axis] = color.name()
-                updateUserConfig(['styles', config['style'], axis], color.name())
-
-            self.updatePlotsStyle(config)
-
-
-
-    def menuTitleColor(self):
-
-        color = QtWidgets.QColorDialog.getColor()
-
-        if color.isValid():
-
-            config['styles'][config['style']]['pyqtgraphTitleTextColor'] = color.name()
-            updateUserConfig(['styles', config['style'], 'pyqtgraphTitleTextColor'], color.name())
-
-            self.updatePlotsStyle(config)
-
-
-
-    def menuFontsize(self):
-
-        self.menuDialogFontSize = MenuDialogFontSize(config,
-                                                     self.updatePlotsStyle)
-
-
-
-    def menuColormap(self):
-
-        self.menuDialogColormap = MenuDialogColormap(config,
-                                                     self.updatePlotsStyle)
-
-
-
-    def menuOpenLiveplot(self):
-
-        self.menuDialogLiveplot = MenuDialogLiveplot(config,
-                                                     self.addPlot,
-                                                     self.cleanCheckBox,
-                                                     self.getLivePlotRef,
-                                                     self._plotRefs)
 
 
     ###########################################################################
@@ -1409,19 +1218,56 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
     ###########################################################################
     #
     #
-    #                           Plotting
+    #                           Menu Signal
     #
     #
     ###########################################################################
 
 
-    def updatePlotsStyle(self, config: dict) -> None:
+
+    def openDialogLiveplot(self):
+
+        self.menuDialogLiveplot = MenuDialogLiveplot(config,
+                                                     self.addPlot,
+                                                     self.cleanCheckBox,
+                                                     self.getLivePlotRef,
+                                                     self._plotRefs)
+
+
+
+    def updateStyle(self, newConfig: dict) -> None:
+        """
+        Update the style of the full app.
+
+        Args:
+            newConfig: New configuration dict containing the style to be applied.
+        """
+
+        if newConfig['style']!=config['style']:
+            if newConfig['style']=='qdarkstyle':
+                import qdarkstyle
+                self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+            elif newConfig['style']=='qbstyles':
+                import qdarkstyle
+                self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+            elif newConfig['style']=='white':
+                self.qapp.setStyleSheet(self.qapp.setStyle('Oxygen'))
 
         if len(self._plotRefs) > 0:
 
             for plot in self._plotRefs.values():
-                plot.config = config
+                plot.config = newConfig
                 plot.updateStyle()
+
+
+
+    ###########################################################################
+    #
+    #
+    #                           Plotting
+    #
+    #
+    ###########################################################################
 
 
 
