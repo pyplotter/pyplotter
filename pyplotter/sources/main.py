@@ -62,7 +62,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
         self.checkBoxHidden.stateChanged.connect(lambda : self.checkBoxHiddenState(self.checkBoxHidden))
 
-        self.lineEditFilter.textChanged.connect(self.lineEditFilterTextEdited)
+        self.snapshotLineEditFilter.signalSnapshotLineEditFilterTextEdited.connect(self.snapShotTreeView.searchItem)
 
         self.actionqb.triggered.connect(self.menuBackgroundQb)
         self.actionqdark.triggered.connect(self.menuBackgroundQdark)
@@ -870,12 +870,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         self.tableWidgetParameters.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         ## Fill the listWidgetMetada with the station snapshot
-        self.lineEditFilter.setEnabled(True)
+        self.snapshotLineEditFilter.setEnabled(True)
         self.labelFilter.setEnabled(True)
 
         # Update the run snapshot
-        self.cleanSnapshot()
-        self.addSnapshot(snapshotDict)
+        self.snapShotTreeView.cleanSnapshot()
+        self.snapShotTreeView.addSnapshot(snapshotDict)
 
 
         self.setStatusBarMessage('Ready')
@@ -1030,57 +1030,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         if text is not None:
             self._progressBars[key].setFormat(text)
         self._progressBars[key].setValue(int(val*self._progressBars[key].decimal))
-
-
-
-    ###########################################################################
-    #
-    #
-    #                           Snapshot
-    #
-    #
-    ###########################################################################
-
-
-
-    def cleanSnapshot(self) -> None:
-        """
-        Remove the snapshot of the run.
-        Due to a weird bug of pyqt, the method is call twice
-        """
-        current_item = self.snapShotTreeView.invisibleRootItem()
-        children = []
-        for child in range(current_item.childCount()):
-            children.append(current_item.child(child))
-        for child in children:
-            current_item.removeChild(child)
-
-
-
-    def addSnapshot(self, snapshotDict: dict) -> None:
-        """
-        Add a ViewTree to the GUI to display the run shapshot
-
-        Args:
-            snapshotDict (dict): Dictionnary of the snapshot
-        """
-
-        self.snapShotTreeView.addSnapshot(snapshotDict)
-
-
-
-    def lineEditFilterTextEdited(self, text : str) -> None:
-        """
-        Called when user types text in the filter lineEdit widget.
-        Looked for the all keys which contains the entered string
-
-        Parameters
-        ----------
-        text : str
-            Text to be found in the run snapshot
-        """
-
-        self.snapShotTreeView.searchItem(text)
 
 
 

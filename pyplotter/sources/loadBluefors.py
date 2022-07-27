@@ -93,7 +93,7 @@ class LoadBlueFors:
         self.clearTableWidget(self.main.tableWidgetParameters)
         self.main.tableWidgetDataBase.setSortingEnabled(True)
         self.main.tableWidgetParameters.setSortingEnabled(True)
-        self.main.cleanSnapshot()
+        self.main.snapShotTreeView.cleanSnapshot()
 
 
         # Fill the table parameters with BlueFors info
@@ -190,7 +190,7 @@ class LoadBlueFors:
         """
 
         # Disable widget received for qcodes database
-        self.main.lineEditFilter.setEnabled(False)
+        self.main.snapshotLineEditFilter.setEnabled(False)
         self.main.labelFilter.setEnabled(False)
 
         fileName = os.path.basename(os.path.normpath(filePath))[:-13]

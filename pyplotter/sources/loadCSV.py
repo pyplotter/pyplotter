@@ -93,7 +93,7 @@ class LoadCSV:
         """
 
         # Disable widget received for qcodes database
-        self.main.lineEditFilter.setEnabled(False)
+        self.main.snapshotLineEditFilter.setEnabled(False)
         self.main.labelFilter.setEnabled(False)
 
         ## Update label
@@ -110,7 +110,7 @@ class LoadCSV:
         self.main.tableWidgetDataBase.setSortingEnabled(True)
         self.main.tableWidgetParameters.setSortingEnabled(True)
 
-        self.main.cleanSnapshot()
+        self.main.snapShotTreeView.cleanSnapshot()
 
 
 
@@ -177,7 +177,7 @@ class LoadCSV:
 
             try:
                 ts = Touchstone(filePath)
-                self.main.addSnapshot({'comment': ts.get_comments()})
+                self.main.snapShotTreeView.addSnapshot({'comment': ts.get_comments()})
                 independentParameter = 'Frequency'
                 columnsName = list(ts.get_sparameter_data('db').keys())[1:]
                 x = ts.get_sparameter_data('db')['frequency']

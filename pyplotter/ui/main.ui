@@ -418,7 +418,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="lineEditFilter">
+            <widget class="SnapshotQLineEdit" name="snapshotLineEditFilter">
              <property name="enabled">
               <bool>false</bool>
              </property>
@@ -453,7 +453,7 @@
           </layout>
          </item>
          <item>
-          <widget class="ViewTree" name="snapShotTreeView">
+          <widget class="SnapshotViewTree" name="snapShotTreeView">
            <column>
             <property name="text">
              <string/>
@@ -752,9 +752,14 @@
    <header location="global">..ui.qtable_widget_key</header>
   </customwidget>
   <customwidget>
-   <class>ViewTree</class>
+   <class>SnapshotViewTree</class>
    <extends>QTreeWidget</extends>
-   <header location="global">..ui.view_tree</header>
+   <header location="global">..ui.snapshot_view_tree</header>
+  </customwidget>
+  <customwidget>
+   <class>SnapshotQLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header location="global">..ui.snapshot_q_line_edit</header>
   </customwidget>
  </customwidgets>
  <resources/>

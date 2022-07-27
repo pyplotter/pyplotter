@@ -2,21 +2,20 @@
 from PyQt5 import QtWidgets, QtCore
 from typing import Any
 
-class ViewTree(QtWidgets.QTreeWidget):
+from numpy import delete
+
+class SnapshotViewTree(QtWidgets.QTreeWidget):
 
 
-    def __init__(self, value:dict) -> None:
+    def __init__(self, parent=None) -> None:
         """
         TreeWidget which accept python dictionnary and diaply it as nicely
         organized tree.
         Code from:
         https://stackoverflow.com/questions/21805047/qtreewidget-to-mirror-python-dictionary
-
-        Args:
-            value (dict): Python dict to be displayed.
         """
 
-        super().__init__()
+        super(SnapshotViewTree, self).__init__(parent)
 
         self.setHeaderHidden(True)
         self.setSizeAdjustPolicy(self.AdjustToContents)
@@ -25,7 +24,11 @@ class ViewTree(QtWidgets.QTreeWidget):
         self.treeWidgetItemsMarked = None
 
 
+
     def addSnapshot(self, snapshot: dict) -> None:
+        """
+        Add the snapshot to the ViewTree.
+        """
         self.fillItem(self.invisibleRootItem(), snapshot)
 
 
@@ -50,8 +53,11 @@ class ViewTree(QtWidgets.QTreeWidget):
             new_item(item, str(value))
 
 
+
+    @QtCore.pyqtSlot(str)
     def searchItem(self, text: str) -> None:
         """
+        Call from the SnapshotQLineEdit object, see snapshot_view_tree file.
         Search inside the Tree for the string "text".
         If found, expand recursively all treeWidgetItems from the found items
         to the top level.
@@ -82,3 +88,17 @@ class ViewTree(QtWidgets.QTreeWidget):
                         parent = parent.parent()
 
                 self.treeWidgetItemsMarked = treeWidgetItems
+
+
+
+    def cleanSnapshot(self) -> None:
+        """
+        Clean the snapshot.
+        """
+
+        current_item = self.invisibleRootItem()
+        children = []
+        for child in range(current_item.childCount()):
+            children.append(current_item.child(child))
+        for child in children:
+            current_item.removeChild(child)

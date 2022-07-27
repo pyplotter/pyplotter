@@ -1,7 +1,6 @@
 
 # This Python file uses the following encoding: utf-8
 # Correct bug with pyqtgraph and python3.8 by replacing function name
-import os
 import numpy as np
 try:
     import pyqtgraph as pg
