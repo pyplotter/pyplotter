@@ -4,13 +4,12 @@ import numpy as np
 import datetime
 from typing import Tuple, Union
 from math import log10
-import pyqtgraph as pg
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..ui.plot_widget import PlotWidget
 from ..ui.db_menu_widget import dbMenuWidget
-
+from .pyqtgraph import pg
 
 class PlotApp(dbMenuWidget):
     """

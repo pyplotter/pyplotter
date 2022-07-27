@@ -2,7 +2,6 @@
 from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
-import pyqtgraph as pg
 from typing import List, Union, Callable, Optional, Tuple
 import inspect
 from scipy.integrate import cumtrapz
@@ -14,7 +13,7 @@ from .plot_app import PlotApp
 from . import fit
 from .dialogs import filtering
 from .functions import _parse_number
-
+from .pyqtgraph import pg
 
 
 class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):

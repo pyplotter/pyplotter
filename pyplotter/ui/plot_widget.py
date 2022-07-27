@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-import pyqtgraph as pg
+from..sources.pyqtgraph import pg
 
 class PlotWidget(pg.PlotWidget):
     """

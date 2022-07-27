@@ -285,13 +285,6 @@ def getConfigUserPath() -> str:
 
     return os.path.join(user_config_dir('pyplotter'), 'user_config.py')
 
-# def nested_update(obj, key, value):
-#     if isinstance(obj, dict):
-#         for k, v in obj.items():
-#             if isinstance(v, dict):
-#                 nested_update(v, key, value)
-#             elif k == key:
-#                 obj[k] = value
 
 
 def nested_update(obj, keys, value):

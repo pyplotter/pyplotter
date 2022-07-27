@@ -1,8 +1,6 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
-import pyqtgraph as pg
-import pyqtgraph.opengl as gl
 from typing import Union, Tuple, Callable, Optional, List
 import inspect
 from math import atan2
@@ -14,6 +12,7 @@ from .plot_app import PlotApp
 from .plot_1d_app import Plot1dApp
 from .config import loadConfigCurrent
 from . import fit
+from .pyqtgraph import pg
 
 
 
@@ -322,9 +321,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         This is just a funny feature.
         """
 
-
-
         ## Create a GL View widget to display data
+        import pyqtgraph.opengl as gl
+
         w = gl.GLViewWidget()
         w.show()
         w.setWindowTitle(self.windowTitle)
