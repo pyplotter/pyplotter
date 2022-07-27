@@ -333,7 +333,6 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         plotTitle   = self.getPlotTitle()
         windowTitle = self.getWindowTitle()
 
-        dataBaseName    = self._livePlotDataBaseName
         dataBaseAbsPath = os.path.normpath(os.path.join(self._livePlotDatabasePath, self._livePlotDataBaseName)).replace("\\", "/")
 
         # We get the liveplot parameters
@@ -356,7 +355,6 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                   [0., 1.]])]
 
             self.addPlot(plotRef        = plotRef,
-                         dataBaseName   = dataBaseName,
                          dataBaseAbsPath= dataBaseAbsPath,
                          data           = data,
                          xLabelText     = xParamLabel,

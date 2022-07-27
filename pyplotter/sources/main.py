@@ -1013,8 +1013,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
             plotRef         = self.getPlotRef(paramDependent=dependent)
             plotTitle       = self.getPlotTitle()
             windowTitle     = self.getWindowTitle(runId=runId, runName=runName)
-            dataBaseName    = self._currentDatabase
-            dataBaseAbsPath = os.path.normpath(os.path.join(self.currentPath, dataBaseName)).replace("\\", "/")
+            dataBaseAbsPath = os.path.normpath(os.path.join(self.currentPath, self._currentDatabase)).replace("\\", "/")
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda state,
@@ -1025,7 +1024,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                       windowTitle           = windowTitle,
                                       dependent             = dependent,
                                       plotRef               = plotRef,
-                                      dataBaseName          = dataBaseName,
                                       dataBaseAbsPath       = dataBaseAbsPath: self.parameterClicked(state,
                                                                                                      dependentParamName,
                                                                                                      runId,
@@ -1034,7 +1032,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                                                                                      windowTitle,
                                                                                                      dependent,
                                                                                                      plotRef,
-                                                                                                     dataBaseName,
                                                                                                      dataBaseAbsPath))
 
 
@@ -1087,7 +1084,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                          windowTitle        : str,
                          paramDependent     : dict,
                          plotRef            : str,
-                         dataBaseName       : str,
                          dataBaseAbsPath    : str) -> None:
         """
         Handle event when user clicked on data line.
@@ -1127,7 +1123,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                              plotTitle          = plotTitle,
                              windowTitle        = windowTitle,
                              plotRef            = plotRef,
-                             dataBaseName       = dataBaseName,
                              dataBaseAbsPath    = dataBaseAbsPath,
                              dependentParamName = dependentParamName)
 
@@ -1675,7 +1670,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                                 plotTitle      : str,
                                 windowTitle    : str,
                                 plotRef        : str,
-                                dataBaseName   : str,
                                 dataBaseAbsPath: str,
                                 progressBarKey : str,
                                 data           : List[np.ndarray],
@@ -1692,7 +1686,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         """
 
         self.addPlot(plotRef        = plotRef,
-                     dataBaseName   = dataBaseName,
                      dataBaseAbsPath= dataBaseAbsPath,
                      data           = data,
                      xLabelText     = xLabelText,
@@ -1710,7 +1703,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
 
 
     def addPlot(self, plotRef            : str,
-                      dataBaseName       : str,
                       dataBaseAbsPath    : str,
                       data               : List[np.ndarray],
                       xLabelText         : str,
@@ -1817,7 +1809,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                               runId              = runId,
                               cleanCheckBox      = cleanCheckBox,
                               plotRef            = plotRef,
-                              dataBaseName       = dataBaseName,
                               dataBaseAbsPath    = dataBaseAbsPath,
                               addPlot            = self.addPlot,
                               removePlot         = self.removePlot,
@@ -1863,7 +1854,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                               runId           = runId,
                               cleanCheckBox   = cleanCheckBox,
                               plotRef         = plotRef,
-                              dataBaseName    = dataBaseName,
                               dataBaseAbsPath = dataBaseAbsPath,
                               addPlot         = self.addPlot,
                               removePlot      = self.removePlot,
@@ -1975,7 +1965,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
                       plotTitle          : str,
                       windowTitle        : str,
                       plotRef            : str,
-                      dataBaseName       : str,
                       dataBaseAbsPath    : str,
                       dependentParamName : str) -> None:
         """
@@ -2006,14 +1995,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, RunPropertiesExtra, dbM
         progressBarKey = self.addProgressBarInStatusBar()
 
         worker = LoadDataFromRunThread(runId,
-                                curveId,
-                                plotTitle,
-                                windowTitle,
-                                dependentParamName,
-                                plotRef,
-                                dataBaseName,
-                                dataBaseAbsPath,
-                                progressBarKey)
+                                       curveId,
+                                       plotTitle,
+                                       windowTitle,
+                                       dependentParamName,
+                                       plotRef,
+                                       dataBaseAbsPath,
+                                       progressBarKey)
         # Connect signals
         # To update the status bar
         worker.signals.setStatusBarMessage.connect(self.setStatusBarMessage)

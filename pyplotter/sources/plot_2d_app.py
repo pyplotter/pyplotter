@@ -36,7 +36,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        runId          : int,
                        cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None],
                        plotRef        : str,
-                       dataBaseName   : str,
                        dataBaseAbsPath: str,
                        addPlot        : Callable,
                        removePlot     : Callable,
@@ -264,7 +263,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.comboBoxcm.currentIndexChanged.connect(self.comboBoxcmChanged)
 
         # Should be initialize last
-        PlotApp.__init__(self, dataBaseName, dataBaseAbsPath)
+        PlotApp.__init__(self, dataBaseAbsPath)
 
 
 
@@ -1181,7 +1180,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                          runId           = runId,
                          cleanCheckBox   = cleanCheckBox,
                          plotRef         = plotRef,
-                         dataBaseName    = self.dataBaseName,
                          dataBaseAbsPath = self.dataBaseAbsPath,
                          curveId         = curveId,
                          linkedTo2dPlot  = True,
@@ -1202,7 +1200,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                          runId           = runId,
                          cleanCheckBox   = cleanCheckBox,
                          plotRef         = plotRefHorizontal,
-                         dataBaseName    = self.dataBaseName,
                          dataBaseAbsPath = self.dataBaseAbsPath,
                          curveId         = curveId,
                          linkedTo2dPlot  = True,
@@ -1218,7 +1215,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                          runId           = runId,
                          cleanCheckBox   = cleanCheckBox,
                          plotRef         = plotRefVertical,
-                         dataBaseName    = self.dataBaseName,
                          dataBaseAbsPath = self.dataBaseAbsPath,
                          curveId         = curveId,
                          linkedTo2dPlot  = True,
@@ -1720,7 +1716,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                          runId          = self.runId,
                          cleanCheckBox  = self.cleanCheckBoxExtraction,
                          plotRef        = self.plotRef+'extraction',
-                         dataBaseName   = self.dataBaseName,
                          dataBaseAbsPath = self.dataBaseAbsPath,
                          curveId        = labels[0],
                          linkedTo2dPlot = False,

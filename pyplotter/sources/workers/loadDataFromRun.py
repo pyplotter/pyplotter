@@ -19,11 +19,11 @@ class LoadDataFromRunSignal(QtCore.QObject):
     # When the run method is done
     # Signature
     # runId: int, curveId:str, plotTitle: str, windowTitle:str
-    # plotRef: str, dataBaseName: str, dataBaseAbsPath: str, progressBarKey: str, data: tuple
+    # plotRef: str, dataBaseAbsPath: str, progressBarKey: str, data: tuple
     # xLabelText: str, xLabelUnits: str,
     # yLabelText: str, yLabelUnits: str,
     # zLabelText: str, zLabelUnits: str,
-    updateDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, str, str, tuple, str, str, str, str, str, str)
+    updateDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, str, tuple, str, str, str, str, str, str)
     # Signal used to update the status bar
     setStatusBarMessage = QtCore.pyqtSignal(str, bool)
     # Signal to update the progress bar
@@ -44,7 +44,6 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                        windowTitle        : str,
                        dependentParamName : str,
                        plotRef            : str,
-                       dataBaseName       : str,
                        dataBaseAbsPath    : str,
                        progressBarKey     : str) -> None:
         """
@@ -76,7 +75,6 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         self.windowTitle        = windowTitle
         self.dependentParamName = dependentParamName
         self.plotRef            = plotRef
-        self.dataBaseName       = dataBaseName
         self.dataBaseAbsPath    = dataBaseAbsPath
         self.progressBarKey     = progressBarKey
 
@@ -190,7 +188,6 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                                              self.plotTitle,
                                              self.windowTitle,
                                              self.plotRef,
-                                             self.dataBaseName,
                                              self.dataBaseAbsPath,
                                              self.progressBarKey,
                                              data,

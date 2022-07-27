@@ -213,13 +213,10 @@ class LoadCSV:
 
             runId       = 0
             curveId     = self.main.getCurveId(name=columnName,
-                                               runId=runId,
-                                               livePlot=False)
-            plotTitle   = self.main.getPlotTitle(livePlot=False)
-            windowTitle = self.main.getWindowTitle(runId=runId, livePlot=False)
+                                               runId=runId)
+            plotTitle   = self.main.getPlotTitle()
+            windowTitle = self.main.getWindowTitle(runId=runId)
 
-            # For CSV the databaseName is the filename
-            dataBaseName    = os.path.basename(filePath)
             dataBaseAbsPath = os.path.normpath(filePath).replace("\\", "/")
 
             # Each checkbox at its own event attached to it
@@ -234,7 +231,6 @@ class LoadCSV:
                                       plotTitle       = plotTitle,
                                       windowTitle     = windowTitle,
                                       plotRef         = self.main.getPlotRef(fakeParamDependent),
-                                      dataBaseName    = dataBaseName,
                                       dataBaseAbsPath = dataBaseAbsPath: self.csvParameterClicked(cb,
                                                                                                   xLabelText,
                                                                                                   xLabelUnits,
@@ -246,7 +242,6 @@ class LoadCSV:
                                                                                                   plotTitle,
                                                                                                   windowTitle,
                                                                                                   plotRef,
-                                                                                                  dataBaseName,
                                                                                                   dataBaseAbsPath))
 
             i += 1
@@ -266,7 +261,6 @@ class LoadCSV:
                                   plotTitle       : str,
                                   windowTitle     : str,
                                   plotRef         : str,
-                                  dataBaseName    : str,
                                   dataBaseAbsPath : str) -> None:
         """
         Call when user click on a parameter from a csv file in the tableWidgetParameters.
@@ -298,7 +292,6 @@ class LoadCSV:
                               curveId         = curveId,
                               plotTitle       = plotTitle,
                               windowTitle     = windowTitle,
-                              dataBaseName    = dataBaseName,
                               dataBaseAbsPath = dataBaseAbsPath)
 
         else:

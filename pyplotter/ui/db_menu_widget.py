@@ -1,12 +1,11 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtGui, QtWidgets
+import os
 
 class dbMenuWidget:
 
-    def clickDb(self, dataBaseName: str,
-                      dataBaseAbsPath: str) -> None:
+    def clickDb(self, dataBaseAbsPath: str) -> None:
 
-        self.dataBaseName = dataBaseName
         self.dataBaseAbsPath = dataBaseAbsPath
         self.menu = QtWidgets.QMenu()
 
@@ -28,7 +27,7 @@ class dbMenuWidget:
     def clickTitleCopyDb(self, q:QtWidgets.QAction) -> None:
 
         cb = QtWidgets.QApplication.clipboard()
-        cb.setText(self.dataBaseName, mode=cb.Clipboard)
+        cb.setText(self.getDatabaseNameFromPath(self.dataBaseAbsPath), mode=cb.Clipboard)
 
 
     def clickTitleCopyDbAbsPath(self, q:QtWidgets.QAction) -> None:
@@ -39,4 +38,8 @@ class dbMenuWidget:
     def clickTitleCopyDbRePath(self, q:QtWidgets.QAction) -> None:
 
         cb = QtWidgets.QApplication.clipboard()
-        cb.setText('../data/{}'.format(self.dataBaseName), mode=cb.Clipboard)
+        cb.setText('../data/{}'.format(self.getDatabaseNameFromPath(self.dataBaseAbsPath)), mode=cb.Clipboard)
+
+    @staticmethod
+    def getDatabaseNameFromPath(dataBaseAbsPath: str) -> str:
+        return os.path.basename(dataBaseAbsPath)[:-3]

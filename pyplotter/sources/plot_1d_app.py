@@ -34,7 +34,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        runId              : int,
                        cleanCheckBox      : Callable[[str, str, int, Union[str, list]], None],
                        plotRef            : str,
-                       dataBaseName       : str,
                        dataBaseAbsPath    : str,
                        addPlot            : Callable,
                        removePlot         : Callable,
@@ -251,7 +250,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.autoRange()
 
         # Should be initialize last
-        PlotApp.__init__(self, dataBaseName, dataBaseAbsPath)
+        PlotApp.__init__(self, dataBaseAbsPath)
 
         self.resize(*self.config['dialogWindowSize'])
 
@@ -1146,7 +1145,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.removePlot(ifftPlot, curveId)
 
         self.addPlot(plotRef        = self.plotRef+'fft',
-                     dataBaseName   = self.dataBaseName,
                      dataBaseAbsPath= self.dataBaseAbsPath,
                      data           = [x, y],
                      xLabelText     = xLabelText,
@@ -1208,7 +1206,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.cleanCheckBox(**kwargs)
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseName   = self.dataBaseName,
                              dataBaseAbsPath= self.dataBaseAbsPath,
                              data           = [x, y],
                              xLabelText     = self.plotItem.axes['bottom']['item'].labelText,
@@ -1268,7 +1265,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.cleanCheckBox(**kwargs)
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseName   = self.dataBaseName,
                              dataBaseAbsPath= self.dataBaseAbsPath,
                              data           = [x, y],
                              xLabelText     = self.plotItem.axes['bottom']['item'].labelText,
@@ -1344,7 +1340,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.cleanCheckBox(**kwargs)
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseName   = self.dataBaseName,
                              dataBaseAbsPath= self.dataBaseAbsPath,
                              data           = [x, y],
                              xLabelText     = xLabelText,
@@ -1414,7 +1409,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseName   = self.dataBaseName,
                              dataBaseAbsPath= self.dataBaseAbsPath,
                              data           = [x, y],
                              xLabelText     = xLabelText,
@@ -1511,7 +1505,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseName   = self.dataBaseName,
                              dataBaseAbsPath= self.dataBaseAbsPath,
                              data           = [x, y],
                              xLabelText     = xLabelText,

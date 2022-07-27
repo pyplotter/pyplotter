@@ -18,8 +18,7 @@ class PlotApp(dbMenuWidget):
     """
 
 
-    def __init__(self, dataBaseName       : str,
-                       dataBaseAbsPath    : str,) -> None:
+    def __init__(self, dataBaseAbsPath    : str,) -> None:
 
         # Crosshair lines
         self.vLine = None
@@ -27,7 +26,6 @@ class PlotApp(dbMenuWidget):
         # self.crossHairRemove
 
         # For the right-click on the plot title
-        self.dataBaseName   = dataBaseName
         self.dataBaseAbsPath= dataBaseAbsPath
 
         # Help deciding when drawing crosshair
@@ -147,7 +145,7 @@ class PlotApp(dbMenuWidget):
     def clickTitle(self, b: QtWidgets.QGraphicsSceneMouseEvent) -> None:
 
         if b.button()==2:
-            self.clickDb(self.dataBaseName, self.dataBaseAbsPath)
+            self.clickDb(self.dataBaseAbsPath)
 
     def eventFilter(self, object : PlotWidget,
                           event  : QtGui.QFocusEvent) -> bool:

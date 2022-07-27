@@ -93,7 +93,7 @@ class LoadBlueFors:
         self.clearTableWidget(self.main.tableWidgetParameters)
         self.main.tableWidgetDataBase.setSortingEnabled(True)
         self.main.tableWidgetParameters.setSortingEnabled(True)
-        self.main.removeSnapshot()
+        self.main.cleanSnapshot()
 
 
         # Fill the table parameters with BlueFors info
@@ -130,14 +130,11 @@ class LoadBlueFors:
 
                 runId       = 0
                 curveId     = self.main.getCurveId(name=fakeParamDependent['name'],
-                                                   runId=runId,
-                                                   livePlot=False)
-                plotTitle   = self.main.getPlotTitle(livePlot=False)
-                windowTitle = self.main.getWindowTitle(runId=runId, livePlot=False)
+                                                   runId=runId)
+                plotTitle   = self.main.getPlotTitle()
+                windowTitle = self.main.getWindowTitle(runId=runId)
                 plotRef     = self.main.getPlotRef(fakeParamDependent)
 
-                # For BF log file the databaseName  and dataBaseAbsPathis the filename and the directory
-                dataBaseName    = fileName
                 dataBaseAbsPath = os.path.normpath(directory).replace("\\", "/")
 
                 # Each checkbox at its own event attached to it
@@ -148,7 +145,6 @@ class LoadBlueFors:
                                           plotTitle       = plotTitle,
                                           windowTitle     = windowTitle,
                                           plotRef         = plotRef,
-                                          dataBaseName    = dataBaseName,
                                           dataBaseAbsPath = dataBaseAbsPath: self.blueForsLogClicked(cb,
                                                                                          filePath,
                                                                                          runId,
@@ -156,7 +152,6 @@ class LoadBlueFors:
                                                                                          plotTitle,
                                                                                          windowTitle,
                                                                                          plotRef,
-                                                                                         dataBaseName,
                                                                                          dataBaseAbsPath))
 
         self.main.setStatusBarMessage('Ready')
@@ -170,7 +165,6 @@ class LoadBlueFors:
                                  plotTitle       : str,
                                  windowTitle     : str,
                                  plotRef         : str,
-                                 dataBaseName    : str,
                                  dataBaseAbsPath : str) -> None:
         """
         When user clicked on BF log file.
@@ -265,7 +259,6 @@ class LoadBlueFors:
                                   plotTitle       = plotTitle,
                                   windowTitle     = windowTitle,
                                   timestampXAxis  = True,
-                                  dataBaseName    = dataBaseName,
                                   dataBaseAbsPath = dataBaseAbsPath)
 
         else:
