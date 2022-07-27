@@ -5,12 +5,16 @@ pyplotter-0.3.4
     - Add Gaussian peak for 1d fit
     - Add poly slice background removal for 2d plot
     - Add possibility to plot 1d curve for different x axis
+    - New main window interface
+    - New Liveplot interface
 
   Bug Fixes:
     - Fix selected data bug when data are invertly sorted
+    - Liveplot is working again
 
   Others:
     - Database refresh themselves when the nb of run changes
+
 
 pyplotter-0.3.3
 
