@@ -7,7 +7,7 @@ from ..sources.config import loadConfigCurrent, updateUserConfig
 config = loadConfigCurrent()
 
 from ..sources.dialogs.dialog_fontsize import MenuDialogFontSize
-from ..sources.dialogs.dialog_colormap import MenuDialogColormap
+from ..sources.dialogs.dialogMenuColormap import DialogMenuColormap
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -189,26 +189,24 @@ class MenuBar(QtWidgets.QMenuBar):
 
     def menuFontsize(self):
 
-        self.menuDialogFontSize = MenuDialogFontSize(config,
-                                                     self.updateStyle)
+        self.menuDialogFontSize = MenuDialogFontSize(config)
+        self.menuDialogFontSize.signalUpdateStyle.connect(self.updateStyle)
 
 
 
     def menuColormap(self):
 
-        self.menuDialogColormap = MenuDialogColormap(config,
-                                                     self.updateStyle)
+        self.DialogMenuColormap = DialogMenuColormap(config)
+        self.DialogMenuColormap.signalUpdateStyle.connect(self.updateStyle)
 
 
 
-    @QtCore.pyqtSlot()
     def menuOpenLiveplot(self):
 
         self.signalOpenDialogLivePlot.emit()
 
 
-
-    @QtCore.pyqtSlot()
+    QtCore.pyqtSlot(dict)
     def updateStyle(self, config: dict) -> None:
 
         self.signalUpdateStyle.emit(config)

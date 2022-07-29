@@ -93,7 +93,7 @@ class LoadBlueFors:
         self.clearTableWidget(self.main.tableWidgetParameters)
         self.main.tableWidgetDataBase.setSortingEnabled(True)
         self.main.tableWidgetParameters.setSortingEnabled(True)
-        self.main.snapShotTreeView.cleanSnapshot()
+        self.main.lineEditFilterSnapshot.cleanSnapshot()
 
 
         # Fill the table parameters with BlueFors info
@@ -135,7 +135,7 @@ class LoadBlueFors:
                 windowTitle = self.main.getWindowTitle(runId=runId)
                 plotRef     = self.main.getPlotRef(fakeParamDependent)
 
-                dataBaseAbsPath = os.path.normpath(directory).replace("\\", "/")
+                databaseAbsPath = os.path.normpath(directory).replace("\\", "/")
 
                 # Each checkbox at its own event attached to it
                 cb.toggled.connect(lambda cb              = cb,
@@ -145,14 +145,14 @@ class LoadBlueFors:
                                           plotTitle       = plotTitle,
                                           windowTitle     = windowTitle,
                                           plotRef         = plotRef,
-                                          dataBaseAbsPath = dataBaseAbsPath: self.blueForsLogClicked(cb,
+                                          databaseAbsPath = databaseAbsPath: self.blueForsLogClicked(cb,
                                                                                          filePath,
                                                                                          runId,
                                                                                          curveId,
                                                                                          plotTitle,
                                                                                          windowTitle,
                                                                                          plotRef,
-                                                                                         dataBaseAbsPath))
+                                                                                         databaseAbsPath))
 
         self.main.setStatusBarMessage('Ready')
 
@@ -165,7 +165,7 @@ class LoadBlueFors:
                                  plotTitle       : str,
                                  windowTitle     : str,
                                  plotRef         : str,
-                                 dataBaseAbsPath : str) -> None:
+                                 databaseAbsPath : str) -> None:
         """
         When user clicked on BF log file.
         Basically, launch a 1d plot window.
@@ -190,7 +190,7 @@ class LoadBlueFors:
         """
 
         # Disable widget received for qcodes database
-        self.main.snapshotLineEditFilter.setEnabled(False)
+        self.main.lineEditFilterSnapshot.setEnabled(False)
         self.main.labelFilter.setEnabled(False)
 
         fileName = os.path.basename(os.path.normpath(filePath))[:-13]
@@ -259,7 +259,7 @@ class LoadBlueFors:
                                   plotTitle       = plotTitle,
                                   windowTitle     = windowTitle,
                                   timestampXAxis  = True,
-                                  dataBaseAbsPath = dataBaseAbsPath)
+                                  databaseAbsPath = databaseAbsPath)
 
         else:
 

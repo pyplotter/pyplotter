@@ -6,19 +6,16 @@ config = loadConfigCurrent()
 from ..qcodesdatabase import getDependentSnapshotFromRunId
 
 
-class loadRunInfoSignal(QtCore.QObject):
+class LoadRunInfoSignal(QtCore.QObject):
     """
     Class containing the signal of the loadRunInfoThread, see below
     """
 
-
     # When the run method is done
-    updateRunInfo = QtCore.pyqtSignal(int, list, dict, str, str, bool)
+    updateRunInfo = QtCore.pyqtSignal(int, list, dict, str, str, str, bool)
 
+class LoadRunInfoThread(QtCore.QRunnable):
 
-
-
-class loadRunInfoThread(QtCore.QRunnable):
 
 
     def __init__(self, databaseAbsPath: str,
@@ -41,15 +38,15 @@ class loadRunInfoThread(QtCore.QRunnable):
             Name of the current run
         """
 
-        super(loadRunInfoThread, self).__init__()
+        super(LoadRunInfoThread, self).__init__()
+
+        self.signal = LoadRunInfoSignal()
 
         self.databaseAbsPath = databaseAbsPath
         self.runId           = runId
         self.experimentName  = experimentName
         self.runName         = runName
         self.doubleClicked   = doubleClicked
-
-        self.signals = loadRunInfoSignal()
 
 
 
@@ -62,12 +59,10 @@ class loadRunInfoThread(QtCore.QRunnable):
         dependentList, snapshotDict = getDependentSnapshotFromRunId(self.databaseAbsPath,
                                                                     self.runId)
 
-        self.signals.updateRunInfo.emit(self.runId,
-                                        dependentList,
-                                        snapshotDict,
-                                        self.experimentName,
-                                        self.runName,
-                                        self.doubleClicked)
-
-
-
+        self.signal.updateRunInfo.emit(self.runId,
+                                       dependentList,
+                                       snapshotDict,
+                                       self.experimentName,
+                                       self.runName,
+                                       self.databaseAbsPath,
+                                       self.doubleClicked)

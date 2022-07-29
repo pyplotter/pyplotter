@@ -3,7 +3,8 @@ from PyQt5 import QtCore, QtWidgets
 
 
 
-class MyTableWidgetItem(QtWidgets.QTableWidgetItem):
+
+class TableWidgetItemNumOrdered(QtWidgets.QTableWidgetItem):
     """
     Custom class to be able to sort numerical table column
     """
@@ -13,4 +14,4 @@ class MyTableWidgetItem(QtWidgets.QTableWidgetItem):
 
             return int(self.data(QtCore.Qt.EditRole)) < int(other.data(QtCore.Qt.EditRole))
 
-        return super(MyTableWidgetItem, self).__lt__(other)
+        return super(TableWidgetItemNumOrdered, self).__lt__(other)

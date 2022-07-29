@@ -93,7 +93,7 @@ class LoadCSV:
         """
 
         # Disable widget received for qcodes database
-        self.main.snapshotLineEditFilter.setEnabled(False)
+        self.main.lineEditFilterSnapshot.setEnabled(False)
         self.main.labelFilter.setEnabled(False)
 
         ## Update label
@@ -110,7 +110,7 @@ class LoadCSV:
         self.main.tableWidgetDataBase.setSortingEnabled(True)
         self.main.tableWidgetParameters.setSortingEnabled(True)
 
-        self.main.snapShotTreeView.cleanSnapshot()
+        self.main.lineEditFilterSnapshot.cleanSnapshot()
 
 
 
@@ -177,7 +177,7 @@ class LoadCSV:
 
             try:
                 ts = Touchstone(filePath)
-                self.main.snapShotTreeView.addSnapshot({'comment': ts.get_comments()})
+                self.main.lineEditFilterSnapshot.addSnapshot({'comment': ts.get_comments()})
                 independentParameter = 'Frequency'
                 columnsName = list(ts.get_sparameter_data('db').keys())[1:]
                 x = ts.get_sparameter_data('db')['frequency']
@@ -217,7 +217,7 @@ class LoadCSV:
             plotTitle   = self.main.getPlotTitle()
             windowTitle = self.main.getWindowTitle(runId=runId)
 
-            dataBaseAbsPath = os.path.normpath(filePath).replace("\\", "/")
+            databaseAbsPath = os.path.normpath(filePath).replace("\\", "/")
 
             # Each checkbox at its own event attached to it
             cb.toggled.connect(lambda cb              = cb,
@@ -231,7 +231,7 @@ class LoadCSV:
                                       plotTitle       = plotTitle,
                                       windowTitle     = windowTitle,
                                       plotRef         = self.main.getPlotRef(fakeParamDependent),
-                                      dataBaseAbsPath = dataBaseAbsPath: self.csvParameterClicked(cb,
+                                      databaseAbsPath = databaseAbsPath: self.csvParameterClicked(cb,
                                                                                                   xLabelText,
                                                                                                   xLabelUnits,
                                                                                                   yLabelText,
@@ -242,7 +242,7 @@ class LoadCSV:
                                                                                                   plotTitle,
                                                                                                   windowTitle,
                                                                                                   plotRef,
-                                                                                                  dataBaseAbsPath))
+                                                                                                  databaseAbsPath))
 
             i += 1
 
@@ -261,7 +261,7 @@ class LoadCSV:
                                   plotTitle       : str,
                                   windowTitle     : str,
                                   plotRef         : str,
-                                  dataBaseAbsPath : str) -> None:
+                                  databaseAbsPath : str) -> None:
         """
         Call when user click on a parameter from a csv file in the tableWidgetParameters.
         Launch a plot if user check a parameter and remove curve otherwise.
@@ -292,7 +292,7 @@ class LoadCSV:
                               curveId         = curveId,
                               plotTitle       = plotTitle,
                               windowTitle     = windowTitle,
-                              dataBaseAbsPath = dataBaseAbsPath)
+                              databaseAbsPath = databaseAbsPath)
 
         else:
 

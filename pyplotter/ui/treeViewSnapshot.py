@@ -2,10 +2,10 @@
 from PyQt5 import QtWidgets, QtCore
 from typing import Any
 
-from numpy import delete
 
-class SnapshotViewTree(QtWidgets.QTreeWidget):
+class TreeViewSnapshot(QtWidgets.QTreeWidget):
 
+    signalLineEditSnapshotClean = QtCore.pyqtSignal()
 
     def __init__(self, parent=None) -> None:
         """
@@ -15,21 +15,13 @@ class SnapshotViewTree(QtWidgets.QTreeWidget):
         https://stackoverflow.com/questions/21805047/qtreewidget-to-mirror-python-dictionary
         """
 
-        super(SnapshotViewTree, self).__init__(parent)
+        super(TreeViewSnapshot, self).__init__(parent)
 
         self.setHeaderHidden(True)
         self.setSizeAdjustPolicy(self.AdjustToContents)
 
         # We save the items marked to easily unmarke them
         self.treeWidgetItemsMarked = None
-
-
-
-    def addSnapshot(self, snapshot: dict) -> None:
-        """
-        Add the snapshot to the ViewTree.
-        """
-        self.fillItem(self.invisibleRootItem(), snapshot)
 
 
 
@@ -91,6 +83,17 @@ class SnapshotViewTree(QtWidgets.QTreeWidget):
 
 
 
+    ############################################################################
+    #
+    #
+    #                           Called from other widgets
+    #
+    #
+    ############################################################################
+
+
+
+    @QtCore.pyqtSlot()
     def cleanSnapshot(self) -> None:
         """
         Clean the snapshot.
@@ -102,3 +105,14 @@ class SnapshotViewTree(QtWidgets.QTreeWidget):
             children.append(current_item.child(child))
         for child in children:
             current_item.removeChild(child)
+
+        self.signalLineEditSnapshotClean.emit()
+
+
+
+    @QtCore.pyqtSlot(dict)
+    def addSnapshot(self, snapshot: dict) -> None:
+        """
+        Add the snapshot to the treeView.
+        """
+        self.fillItem(self.invisibleRootItem(), snapshot)

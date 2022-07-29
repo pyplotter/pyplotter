@@ -4,9 +4,9 @@ import os
 
 class dbMenuWidget:
 
-    def clickDb(self, dataBaseAbsPath: str) -> None:
+    def clickDb(self, databaseAbsPath: str) -> None:
 
-        self.dataBaseAbsPath = dataBaseAbsPath
+        self.databaseAbsPath = databaseAbsPath
         self.menu = QtWidgets.QMenu()
 
         copyDb = QtWidgets.QAction('Copy dataBase name', self)
@@ -27,19 +27,19 @@ class dbMenuWidget:
     def clickTitleCopyDb(self, q:QtWidgets.QAction) -> None:
 
         cb = QtWidgets.QApplication.clipboard()
-        cb.setText(self.getDatabaseNameFromPath(self.dataBaseAbsPath), mode=cb.Clipboard)
+        cb.setText(self.getDatabaseNameFromPath(self.databaseAbsPath), mode=cb.Clipboard)
 
 
     def clickTitleCopyDbAbsPath(self, q:QtWidgets.QAction) -> None:
 
         cb = QtWidgets.QApplication.clipboard()
-        cb.setText(self.dataBaseAbsPath, mode=cb.Clipboard)
+        cb.setText(self.databaseAbsPath, mode=cb.Clipboard)
 
     def clickTitleCopyDbRePath(self, q:QtWidgets.QAction) -> None:
 
         cb = QtWidgets.QApplication.clipboard()
-        cb.setText('../data/{}'.format(self.getDatabaseNameFromPath(self.dataBaseAbsPath)), mode=cb.Clipboard)
+        cb.setText('../data/{}'.format(self.getDatabaseNameFromPath(self.databaseAbsPath)), mode=cb.Clipboard)
 
     @staticmethod
-    def getDatabaseNameFromPath(dataBaseAbsPath: str) -> str:
-        return os.path.basename(dataBaseAbsPath)[:-3]
+    def getDatabaseNameFromPath(databaseAbsPath: str) -> str:
+        return os.path.basename(databaseAbsPath)[:-3]

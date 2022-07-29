@@ -1,50 +1,47 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtCore, QtTest
+from PyQt5 import QtCore, QtWidgets, QtTest
 import multiprocess as mp
 
 from ..config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..qcodesdatabase import getRunInfosmp
 
-class loadDataBaseSignal(QtCore.QObject):
+class LoadDataBaseSignal(QtCore.QObject):
     """
     Class containing the signal of the loadDataBaseThread, see below
     """
 
-
-    # When the run method is done
-    updateDatabase = QtCore.pyqtSignal(str, bool, int)
     # Signal used to update the status bar
-    setStatusBarMessage = QtCore.pyqtSignal(str, bool)
+    sendStatusBarMessage = QtCore.pyqtSignal(str, str)
     # Signal used to add n rows in the database table
     addRows = QtCore.pyqtSignal(list, list, list, list, list, list, list, list, int, str)
     # Signal used to update the progress bar
-    updateProgressBar = QtCore.pyqtSignal(str, int)
+    updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
+    # When the run method is done
+    databaseClickDone = QtCore.pyqtSignal(QtWidgets.QProgressBar, bool, int)
 
-
-
-
-class loadDataBaseThread(QtCore.QRunnable):
+class LoadDataBaseThread(QtCore.QRunnable):
 
 
     def __init__(self, databaseAbsPath:str,
-                       progressBarKey: str):
+                       progressBar: QtWidgets.QProgressBar):
         """
 
         Parameters
         ----------
         databaseAbsPath : str
             Absolute path of the current database
-        progressBarKey : str
+        progressBar : str
             Key to the progress bar in the dict progressBars
         """
 
-        super(loadDataBaseThread, self).__init__()
+        super(LoadDataBaseThread, self).__init__()
+
+        self.signal = LoadDataBaseSignal()
+
 
         self.databaseAbsPath = databaseAbsPath
-        self.progressBarKey  = progressBarKey
-
-        self.signals = loadDataBaseSignal()
+        self.progressBar     = progressBar
 
 
 
@@ -57,7 +54,7 @@ class loadDataBaseThread(QtCore.QRunnable):
         table displaying all the info of each run.
         """
 
-        self.signals.setStatusBarMessage.emit('Gathered runs infos database', False)
+        self.signal.sendStatusBarMessage.emit('Gathering runs informations', 'orange')
 
         # Queue will contain the numpy array of the run data
         queueData: mp.Queue = mp.Queue()
@@ -85,7 +82,7 @@ class loadDataBaseThread(QtCore.QRunnable):
             progressBar = queueProgressBar.get()
             queueProgressBar.put(progressBar)
 
-            self.signals.updateProgressBar.emit(self.progressBarKey, progressBar)
+            self.signal.updateProgressBar.emit(self.progressBar, progressBar, '')
 
             done = queueDone.get()
             queueDone.put(done)
@@ -102,13 +99,13 @@ class loadDataBaseThread(QtCore.QRunnable):
 
         # If database is empty
         if runInfos is None:
-            self.signals.setStatusBarMessage.emit('Database empty', True)
+            self.signal.sendStatusBarMessage.emit('Database empty', 'red')
             QtTest.QTest.qWait(1000) # To let user see the error message
-            self.signals.updateDatabase.emit(self.progressBarKey, False, 0)
+            self.signal.databaseClickDone.emit(self.progressBar, False, 0)
             return
 
         # Going through the database here
-        self.signals.setStatusBarMessage.emit('Loading database', False)
+        self.signal.sendStatusBarMessage.emit('Loading database', 'orange')
         nbTotalRun = len(runInfos)
 
 
@@ -136,16 +133,18 @@ class loadDataBaseThread(QtCore.QRunnable):
 
             # If we reach enough data, we emit the signal.
             if key%config['NbRunEmit']==0:
-                self.signals.addRows.emit(runId,
-                                         dim,
-                                         experimentName,
-                                         sampleName,
-                                         runName,
-                                         started,
-                                         completed,
-                                         runRecords,
-                                         nbTotalRun,
-                                         self.progressBarKey)
+                self.signal.addRows.emit(runId,
+                                          dim,
+                                          experimentName,
+                                          sampleName,
+                                          runName,
+                                          started,
+                                          completed,
+                                          runRecords,
+                                          nbTotalRun,
+                                          self.databaseAbsPath)
+                self.signal.updateProgressBar.emit(self.progressBar, int(runId[0]/nbTotalRun*100), 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
+
 
                 runId           = []
                 dim             = []
@@ -158,7 +157,7 @@ class loadDataBaseThread(QtCore.QRunnable):
 
         # If there is still information to be transferred, we do so
         if len(runId)!=0:
-            self.signals.addRows.emit(runId,
+            self.signal.addRows.emit(runId,
                                       dim,
                                       experimentName,
                                       sampleName,
@@ -167,10 +166,8 @@ class loadDataBaseThread(QtCore.QRunnable):
                                       completed,
                                       runRecords,
                                       nbTotalRun,
-                                      self.progressBarKey)
+                                      self.databaseAbsPath)
+            self.signal.updateProgressBar.emit(self.progressBar, int(runId[0]/nbTotalRun*100), 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
 
         # Signal that the whole database has been looked at
-        self.signals.updateDatabase.emit(self.progressBarKey, False, nbTotalRun)
-
-
-
+        self.signal.databaseClickDone.emit(self.progressBar, False, nbTotalRun)

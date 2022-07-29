@@ -7,7 +7,7 @@ from math import log10
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..ui.plot_widget import PlotWidget
+from ..ui.plotWidget import PlotWidget
 from ..ui.db_menu_widget import dbMenuWidget
 from .pyqtgraph import pg
 
@@ -17,7 +17,7 @@ class PlotApp(dbMenuWidget):
     """
 
 
-    def __init__(self, dataBaseAbsPath    : str,) -> None:
+    def __init__(self, databaseAbsPath    : str,) -> None:
 
         # Crosshair lines
         self.vLine = None
@@ -25,7 +25,7 @@ class PlotApp(dbMenuWidget):
         # self.crossHairRemove
 
         # For the right-click on the plot title
-        self.dataBaseAbsPath= dataBaseAbsPath
+        self.databaseAbsPath= databaseAbsPath
 
         # Help deciding when drawing crosshair
         self.widget.installEventFilter(self)
@@ -144,7 +144,7 @@ class PlotApp(dbMenuWidget):
     def clickTitle(self, b: QtWidgets.QGraphicsSceneMouseEvent) -> None:
 
         if b.button()==2:
-            self.clickDb(self.dataBaseAbsPath)
+            self.clickDb(self.databaseAbsPath)
 
     def eventFilter(self, object : PlotWidget,
                           event  : QtGui.QFocusEvent) -> bool:

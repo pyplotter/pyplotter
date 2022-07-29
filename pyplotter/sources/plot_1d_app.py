@@ -21,6 +21,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     Class to handle ploting in 1d.
     """
 
+    signalRemovePlotFromRef  = QtCore.pyqtSignal(str, str)
+    signalAddPlotToRefs      = QtCore.pyqtSignal(str)
+    signalRemovePlotfromRefs = QtCore.pyqtSignal(str, str)
+
 
     def __init__(self, x                  : np.ndarray,
                        y                  : np.ndarray,
@@ -31,17 +35,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        yLabelUnits        : str,
                        windowTitle        : str,
                        runId              : int,
-                       cleanCheckBox      : Callable[[str, str, int, Union[str, list]], None],
                        plotRef            : str,
-                       dataBaseAbsPath    : str,
-                       addPlot            : Callable,
-                       removePlot         : Callable,
-                       getPlotFromRef     : Callable,
-                       linkedTo2dPlot     : bool=False,
+                       databaseAbsPath    : str,
                        curveId            : Optional[str]=None,
                        curveLegend        : Optional[str]=None,
-                       timestampXAxis     : bool=False,
-                       livePlot           : bool=False,
+                       linkedTo2dPlot     : Optional[bool]=False,
+                       timestampXAxis     : Optional[bool]=False,
+                       livePlot           : Optional[bool]=False,
                        histogram          : Optional[bool]=False,
                        parent             = None):
         """
@@ -111,12 +111,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.plotType       = '1d'
         self.windowTitle    = windowTitle
         self.runId          = runId
-        self.cleanCheckBox  = cleanCheckBox
         self.plotRef        = plotRef
 
-        self.addPlot        = addPlot
-        self.removePlot     = removePlot
-        self.getPlotFromRef = getPlotFromRef
 
         # References of PlotDataItem
         # Structures
@@ -249,7 +245,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.autoRange()
 
         # Should be initialize last
-        PlotApp.__init__(self, dataBaseAbsPath)
+        PlotApp.__init__(self, databaseAbsPath)
 
         self.resize(*self.config['dialogWindowSize'])
 
@@ -317,7 +313,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         for curveType in ['fft', 'derivative', 'primitive', 'unwrap', 'unslop', 'histogram']:
             plot = self.getPlotFromRef(self.plotRef, curveType)
             if plot is not None:
-                [self.removePlot(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
+                [self.signalRemovePlotfromRefs.emit(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
 
         self.cleanCheckBox(plotRef     = self.plotRef,
                            windowTitle = self.windowTitle,
@@ -1133,18 +1129,18 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         fftPlot = self.getPlotFromRef(self.plotRef, 'fft')
         if fftPlot is not None:
-            self.removePlot(fftPlot, curveId)
+            self.signalRemovePlotfromRefs.emit(fftPlot, curveId)
 
         fftnodcPlot = self.getPlotFromRef(self.plotRef, 'fftnodc')
         if fftnodcPlot is not None:
-            self.removePlot(fftnodcPlot, curveId)
+            self.signalRemovePlotfromRefs.emit(fftnodcPlot, curveId)
 
         ifftPlot = self.getPlotFromRef(self.plotRef, 'ifft')
         if ifftPlot is not None:
-            self.removePlot(ifftPlot, curveId)
+            self.signalRemovePlotfromRefs.emit(ifftPlot, curveId)
 
         self.addPlot(plotRef        = self.plotRef+'fft',
-                     dataBaseAbsPath= self.dataBaseAbsPath,
+                     databaseAbsPath= self.databaseAbsPath,
                      data           = [x, y],
                      xLabelText     = xLabelText,
                      xLabelUnits    = xLabelUnits,
@@ -1205,7 +1201,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.cleanCheckBox(**kwargs)
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseAbsPath= self.dataBaseAbsPath,
+                             databaseAbsPath= self.databaseAbsPath,
                              data           = [x, y],
                              xLabelText     = self.plotItem.axes['bottom']['item'].labelText,
                              xLabelUnits    = self.plotItem.axes['bottom']['item'].labelUnits,
@@ -1224,7 +1220,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'unwrap')
             if plot is not None:
-                self.removePlot(self.plotRef+'unwrap', curveId)
+                self.signalRemovePlotfromRefs.emit(self.plotRef+'unwrap', curveId)
 
 
 
@@ -1264,7 +1260,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.cleanCheckBox(**kwargs)
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseAbsPath= self.dataBaseAbsPath,
+                             databaseAbsPath= self.databaseAbsPath,
                              data           = [x, y],
                              xLabelText     = self.plotItem.axes['bottom']['item'].labelText,
                              xLabelUnits    = self.plotItem.axes['bottom']['item'].labelUnits,
@@ -1283,7 +1279,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'unslop')
             if plot is not None:
-                self.removePlot(self.plotRef+'unslop', curveId)
+                self.signalRemovePlotfromRefs.emit(self.plotRef+'unslop', curveId)
 
 
 
@@ -1339,7 +1335,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                     self.cleanCheckBox(**kwargs)
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseAbsPath= self.dataBaseAbsPath,
+                             databaseAbsPath= self.databaseAbsPath,
                              data           = [x, y],
                              xLabelText     = xLabelText,
                              xLabelUnits    = xLabelUnits,
@@ -1358,7 +1354,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'derivative')
             if plot is not None:
-                self.removePlot(self.plotRef+'derivative', curveId)
+                self.signalRemovePlotfromRefs.emit(self.plotRef+'derivative', curveId)
 
 
 
@@ -1408,7 +1404,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseAbsPath= self.dataBaseAbsPath,
+                             databaseAbsPath= self.databaseAbsPath,
                              data           = [x, y],
                              xLabelText     = xLabelText,
                              xLabelUnits    = xLabelUnits,
@@ -1427,7 +1423,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'primitive')
             if plot is not None:
-                self.removePlot(self.plotRef+'primitive', curveId)
+                self.signalRemovePlotfromRefs.emit(self.plotRef+'primitive', curveId)
 
 
 
@@ -1504,7 +1500,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
                 self.addPlot(plotRef        = plotRef,
-                             dataBaseAbsPath= self.dataBaseAbsPath,
+                             databaseAbsPath= self.databaseAbsPath,
                              data           = [x, y],
                              xLabelText     = xLabelText,
                              xLabelUnits    = xLabelUnits,
@@ -1524,7 +1520,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'histogram')
             if plot is not None:
-                self.removePlot(self.plotRef+'histogram', curveId)
+                self.signalRemovePlotfromRefs.emit(self.plotRef+'histogram', curveId)
 
             # Remove the displayed statistics info
             if hasattr(self, 'labelStatistics'):
@@ -1812,7 +1808,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             for curveType in ['fft', 'derivative', 'primitive', 'derivative', 'unwrap', 'unslop', 'histogram']:
                 plot = self.getPlotFromRef(self.plotRef, curveType)
                 if plot is not None:
-                    [self.removePlot(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
+                    [self.signalRemovePlotfromRefs.emit(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
 
             self.enableWhenPlotDataItemSelected(False)
 
