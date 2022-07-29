@@ -20,6 +20,7 @@ from ..sources.functions import (clearTableWidget,
 from ..sources.plot_app import PlotApp
 from ..sources.plot_1d_app import Plot1dApp
 from ..sources.plot_2d_app import Plot2dApp
+from ..sources.pyqtgraph import pg
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -33,11 +34,18 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     signalUpdateProgressBar       = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
     signalRemoveProgressBar       = QtCore.pyqtSignal(QtWidgets.QProgressBar)
     signalParameterClick          = QtCore.pyqtSignal(str, str, str, str, str, int, str)
-    signalAddPlotToRefs           = QtCore.pyqtSignal(str, PlotApp)
+    signalAddPlotToRefs           = QtCore.pyqtSignal(str, Plot1dApp)
     signalCleanSnapshot           = QtCore.pyqtSignal()
     signalAddSnapshot             = QtCore.pyqtSignal(dict)
     signalLineEditSnapshotEnabled = QtCore.pyqtSignal(bool)
     signalLabelSnapshotEnabled    = QtCore.pyqtSignal(bool)
+
+    # Propagation of the plot signals to the main app
+    # signalClosePlot           = QtCore.pyqtSignal(str, Plot1dApp)
+    # signalAddCurveToRefs           = QtCore.pyqtSignal(str, pg.PlotDataItem)
+    signalLoadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str)
+
+
 
     def __init__(self, parent=None) -> None:
         super(TableWidgetParameter, self).__init__(parent)
@@ -201,170 +209,173 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         # If data download failed
         worker.signal.loadedDataEmpty.connect(self.loadedDataEmpty)
         # When data download is done
-        worker.signal.loadedDataFull.connect(self.loadedDataFull)
+        worker.signal.loadedDataFull.connect(self.signalLoadedDataFull)
 
         # Execute the thread
         self.threadpool.start(worker)
 
 
 
-    def addPlot(self, plotRef            : str,
-                      databaseAbsPath    : str,
-                      data               : List[np.ndarray],
-                      xLabelText         : str,
-                      xLabelUnits        : str,
-                      yLabelText         : str,
-                      yLabelUnits        : str,
-                      runId              : int,
-                      curveId            : str,
-                      plotTitle          : str,
-                      windowTitle        : str,
-                      linkedTo2dPlot     : bool=False,
-                      curveLegend        : Optional[str]=None,
-                      hidden             : bool=False,
-                      curveLabel         : Optional[str]=None,
-                      curveUnits         : Optional[str]=None,
-                      timestampXAxis     : Optional[bool]=None,
-                      livePlot           : bool=False,
-                      progressBar        : Optional[QtWidgets.QProgressBar]=None,
-                      zLabelText         : Optional[str]=None,
-                      zLabelUnits        : Optional[str]=None,
-                      histogram          : Optional[bool]=False) -> None:
-        """
-        Methods called once the data are downloaded to add a plot of the data.
-        Discriminate between 1d and 2d plot through the length of data list.
-        For 1d plot, data having the sample plotRef do not launch a new plot
-        window but instead are plotted in the window sharing the same plotRef.
-        Once the data are plotted, run updateList1dCurvesLabels.
+    # def addPlot(self, plotRef            : str,
+    #                   databaseAbsPath    : str,
+    #                   data               : List[np.ndarray],
+    #                   xLabelText         : str,
+    #                   xLabelUnits        : str,
+    #                   yLabelText         : str,
+    #                   yLabelUnits        : str,
+    #                   runId              : int,
+    #                   curveId            : str,
+    #                   plotTitle          : str,
+    #                   windowTitle        : str,
+    #                   linkedTo2dPlot     : bool=False,
+    #                   curveLegend        : Optional[str]=None,
+    #                   hidden             : bool=False,
+    #                   curveLabel         : Optional[str]=None,
+    #                   curveUnits         : Optional[str]=None,
+    #                   timestampXAxis     : Optional[bool]=None,
+    #                   livePlot           : bool=False,
+    #                   progressBar        : Optional[QtWidgets.QProgressBar]=None,
+    #                   zLabelText         : Optional[str]=None,
+    #                   zLabelUnits        : Optional[str]=None,
+    #                   histogram          : Optional[bool]=False) -> None:
+    #     """
+    #     Methods called once the data are downloaded to add a plot of the data.
+    #     Discriminate between 1d and 2d plot through the length of data list.
+    #     For 1d plot, data having the sample plotRef do not launch a new plot
+    #     window but instead are plotted in the window sharing the same plotRef.
+    #     Once the data are plotted, run updateList1dCurvesLabels.
 
-        Parameters
-        ----------
-        plotRef : str
-            Reference of the plot.
-        progressBar : str
-            Key to the progress bar in the dict progressBars.
-        data : list
-            For 1d plot: [xData, yData]
-            For 2d plot: [xData, yData, zData]
-        xLabelText : str
-            Label text for the xAxix.
-        xLabelUnits : str
-            Label units for the xAxix.
-        yLabelText : str
-            Label text for the yAxix.
-        yLabelUnits : str
-            Label units for the yAxix.
-        runId : int
-            Data run id in the current database
-        curveId : str
-            Id of the curve, see getCurveId.
-        plotTitle : str
-            Plot title, see getPlotTitle.
-        windowTitle : str
-            Window title, see getWindowTitle.
-        zLabelText : str, default None
-            Only for 2d data.
-            Label text for the zAxis.
-        zLabelUnits : str, default None
-            Only for 2d data.
-            Label units for the zAxis.
-        """
+    #     Parameters
+    #     ----------
+    #     plotRef : str
+    #         Reference of the plot.
+    #     progressBar : str
+    #         Key to the progress bar in the dict progressBars.
+    #     data : list
+    #         For 1d plot: [xData, yData]
+    #         For 2d plot: [xData, yData, zData]
+    #     xLabelText : str
+    #         Label text for the xAxix.
+    #     xLabelUnits : str
+    #         Label units for the xAxix.
+    #     yLabelText : str
+    #         Label text for the yAxix.
+    #     yLabelUnits : str
+    #         Label units for the yAxix.
+    #     runId : int
+    #         Data run id in the current database
+    #     curveId : str
+    #         Id of the curve, see getCurveId.
+    #     plotTitle : str
+    #         Plot title, see getPlotTitle.
+    #     windowTitle : str
+    #         Window title, see getWindowTitle.
+    #     zLabelText : str, default None
+    #         Only for 2d data.
+    #         Label text for the zAxis.
+    #     zLabelUnits : str, default None
+    #         Only for 2d data.
+    #         Label units for the zAxis.
+    #     """
 
-        # If the method is called from a thread with a progress bar, we remove
-        # it
-        if progressBar is not None:
-            self.signalRemoveProgressBar.emit(progressBar)
+    #     # If the method is called from a thread with a progress bar, we remove
+    #     # it
+    #     if progressBar is not None:
+    #         self.signalRemoveProgressBar.emit(progressBar)
 
-        # If data is None it means the data download encounter an error.
-        # We do not add plot
-        if data is None:
-            return
+    #     # If data is None it means the data download encounter an error.
+    #     # We do not add plot
+    #     if data is None:
+    #         return
 
-        self.signalSendStatusBarMessage.emit('Launching '+str(len(data)-1)+'d plot', 'orange')
-
-
-        # If some parameters are not given, we find then from the GUI
-        # if cleanCheckBox is None:
-        #     cleanCheckBox = self.cleanCheckBox
+    #     self.signalSendStatusBarMessage.emit('Launching '+str(len(data)-1)+'d plot', 'orange')
 
 
-        # 1D plot
-        if len(data)==2:
-
-            # Specific 1d optional parameter
-            # print(timestampXAxis)
-            # if timestampXAxis is None:
-            #     timestampXAxis = self.LoadBlueFors.isBlueForsFolder(self._currentDatabase)
-            # print(self.LoadBlueFors.isBlueForsFolder(self._currentDatabase))
-            # print(timestampXAxis)
-            # If the plotRef is not stored we launched a new window
-            # Otherwise we add a new PlotDataItem on an existing plot1dApp
-            if plotRef not in self._plotRefs:
+    #     # If some parameters are not given, we find then from the GUI
+    #     # if cleanCheckBox is None:
+    #     #     cleanCheckBox = self.cleanCheckBox
 
 
-                p = Plot1dApp(x                  = data[0],
-                              y                  = data[1],
-                              title              = plotTitle,
-                              xLabelText         = xLabelText,
-                              xLabelUnits        = xLabelUnits,
-                              yLabelText         = yLabelText,
-                              yLabelUnits        = yLabelUnits,
-                              windowTitle        = windowTitle,
-                              runId              = runId,
-                              plotRef            = plotRef,
-                              databaseAbsPath    = databaseAbsPath,
-                              curveId            = curveId,
-                              curveLegend        = curveLegend,
-                              linkedTo2dPlot     = linkedTo2dPlot,
-                              livePlot           = livePlot,
-                              timestampXAxis     = timestampXAxis,
-                              histogram          = histogram)
+    #     # 1D plot
+    #     if len(data)==2:
 
-                self._plotRefs[plotRef] = p
-                self._plotRefs[plotRef].show()
-            else:
-
-                self._plotRefs[plotRef].addPlotDataItem(x                  = data[0],
-                                                        y                  = data[1],
-                                                        curveId            = curveId,
-                                                        curveXLabel        = xLabelText,
-                                                        curveXUnits        = xLabelUnits,
-                                                        curveYLabel        = yLabelText,
-                                                        curveYUnits        = yLabelUnits,
-                                                        curveLegend        = yLabelText,
-                                                        hidden             = hidden)
+    #         # Specific 1d optional parameter
+    #         # print(timestampXAxis)
+    #         # if timestampXAxis is None:
+    #         #     timestampXAxis = self.LoadBlueFors.isBlueForsFolder(self._currentDatabase)
+    #         # print(self.LoadBlueFors.isBlueForsFolder(self._currentDatabase))
+    #         # print(timestampXAxis)
+    #         # If the plotRef is not stored we launched a new window
+    #         # Otherwise we add a new PlotDataItem on an existing plot1dApp
+    #         if plotRef not in self._plotRefs:
 
 
-        # 2D plot
-        elif len(data)==3:
+    #             p = Plot1dApp(x                  = data[0],
+    #                           y                  = data[1],
+    #                           title              = plotTitle,
+    #                           xLabelText         = xLabelText,
+    #                           xLabelUnits        = xLabelUnits,
+    #                           yLabelText         = yLabelText,
+    #                           yLabelUnits        = yLabelUnits,
+    #                           windowTitle        = windowTitle,
+    #                           runId              = runId,
+    #                           plotRef            = plotRef,
+    #                           databaseAbsPath    = databaseAbsPath,
+    #                           curveId            = curveId,
+    #                           curveLegend        = curveLegend,
+    #                           linkedTo2dPlot     = linkedTo2dPlot,
+    #                           livePlot           = livePlot,
+    #                           timestampXAxis     = timestampXAxis,
+    #                           histogram          = histogram)
 
-            # Determine if we should open a new Plot2dApp
-            if plotRef not in self._plotRefs:
-                p = Plot2dApp(x               = data[0],
-                              y               = data[1],
-                              z               = data[2],
-                              title           = plotTitle,
-                              xLabelText      = xLabelText,
-                              xLabelUnits     = xLabelUnits,
-                              yLabelText      = yLabelText,
-                              yLabelUnits     = yLabelUnits,
-                              zLabelText      = zLabelText,
-                              zLabelUnits     = zLabelUnits,
-                              windowTitle     = windowTitle,
-                              runId           = runId,
-                              plotRef         = plotRef,
-                              databaseAbsPath = databaseAbsPath,
-                              livePlot        = livePlot)
+    #             self.signalAddPlotToRefs.emit(plotRef, p)
+    #             self._plotRefs[plotRef] = p
+    #             self._plotRefs[plotRef].show()
+    #         else:
 
-                self._plotRefs[plotRef] = p
-                self._plotRefs[plotRef].show()
+    #             self._plotRefs[plotRef].addPlotDataItem(x                  = data[0],
+    #                                                     y                  = data[1],
+    #                                                     curveId            = curveId,
+    #                                                     curveXLabel        = xLabelText,
+    #                                                     curveXUnits        = xLabelUnits,
+    #                                                     curveYLabel        = yLabelText,
+    #                                                     curveYUnits        = yLabelUnits,
+    #                                                     curveLegend        = yLabelText,
+    #                                                     hidden             = hidden)
 
-        self.signalSendStatusBarMessage.emit('Ready', 'green')
-        self.signalAddPlotToRefs.emit(plotRef, p)
-        # self.updateList1dCurvesLabels()
 
-        # Flag
-        self._dataDowloadingFlag = False
+    #     # 2D plot
+    #     elif len(data)==3:
+
+    #         # Determine if we should open a new Plot2dApp
+    #         if plotRef not in self._plotRefs:
+    #             p = Plot2dApp(x               = data[0],
+    #                           y               = data[1],
+    #                           z               = data[2],
+    #                           title           = plotTitle,
+    #                           xLabelText      = xLabelText,
+    #                           xLabelUnits     = xLabelUnits,
+    #                           yLabelText      = yLabelText,
+    #                           yLabelUnits     = yLabelUnits,
+    #                           zLabelText      = zLabelText,
+    #                           zLabelUnits     = zLabelUnits,
+    #                           windowTitle     = windowTitle,
+    #                           runId           = runId,
+    #                           plotRef         = plotRef,
+    #                           databaseAbsPath = databaseAbsPath,
+    #                           livePlot        = livePlot)
+
+    #             self._plotRefs[plotRef] = p
+    #             self._plotRefs[plotRef].show()
+
+    #     self.signalSendStatusBarMessage.emit('Ready', 'green')
+
+    #     # p.signalClosePlot.connect(self.signalClosePlot)
+    #     # self.signalAddCurveToRefs.emit(plotRef, self._plotRefs[plotRef].curves[curveId])
+    #     # self.updateList1dCurvesLabels()
+
+    #     # Flag
+    #     self._dataDowloadingFlag = False
 
 
 

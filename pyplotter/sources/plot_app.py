@@ -28,8 +28,8 @@ class PlotApp(dbMenuWidget):
         self.databaseAbsPath= databaseAbsPath
 
         # Help deciding when drawing crosshair
-        self.widget.installEventFilter(self)
-        self.widgetHovered = False
+        self.plotWidget.installEventFilter(self)
+        self.plotWidgetHovered = False
 
         self.displayCrossHair = False
 
@@ -153,10 +153,10 @@ class PlotApp(dbMenuWidget):
         """
 
         if event.type()==QtCore.QEvent.Enter:
-            self.widgetHovered = True
+            self.plotWidgetHovered = True
             return True
         elif event.type()==QtCore.QEvent.Leave:
-            self.widgetHovered = False
+            self.plotWidgetHovered = False
         return False
 
 
@@ -207,7 +207,7 @@ class PlotApp(dbMenuWidget):
 
         if self.mousePos[0] > xmin and self.mousePos[0] < xmax \
         and self.mousePos[1] > ymin and self.mousePos[1] < ymax \
-        and self.widgetHovered:
+        and self.plotWidgetHovered:
             return True
         else:
             return False

@@ -261,29 +261,6 @@ def getWindowTitle(databaseAbsPath: str,
 
 
 
-# def getPlotFromRef(plotRefs : dict,
-#                    plotRef  : str,
-#                    curveType: str) -> Union[Plot1dApp, Plot2dApp, None]:
-#     """
-#     Return the 1d plot containing the FFT of a 1d plot.
-
-#     Parameters
-#     ----------
-#     plotRef : str
-#         Reference of the 1d plot from which the data comes from.
-#     curveType : str ['fft', 'derivative']
-#         curveType of the data looked for
-#     """
-
-#     ref = plotRef+curveType
-
-#     if ref in plotRefs.keys():
-#         return plotRefs[ref]
-#     else:
-#         return None
-
-
-
 
 def findXYIndex(y: np.ndarray) -> Tuple[int, int]:
     """

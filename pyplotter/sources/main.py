@@ -17,12 +17,12 @@ from .loadBluefors import LoadBlueFors
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
 from .plot_1d_app import Plot1dApp
-# from .plot_2d_app import Plot2dApp
+from .plot_2d_app import Plot2dApp
 from ..ui import main
 from ..ui.db_menu_widget import dbMenuWidget
 # from ..ui.tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
 from ..sources.dialogs.dialog_liveplot import MenuDialogLiveplot
-
+from .pyqtgraph import pg
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../ui/pictures/')
@@ -31,6 +31,7 @@ PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../ui/
 class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
+    signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
 
 
     def __init__(self, QApplication,
@@ -46,6 +47,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
         self.hBoxLayoutPath = HBoxLayoutLabelPath()
         self.verticalLayout_12.addLayout(self.hBoxLayoutPath)
 
+
+        self.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
         # Connect UI
 
         # Resize the cell to the column content automatically
@@ -105,12 +108,22 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
         self.tableWidgetParameter.signalAddSnapshot.connect(self.treeViewSnapshot.addSnapshot)
         self.tableWidgetParameter.signalLineEditSnapshotEnabled.connect(self.lineEditFilterSnapshot.enabled)
         self.tableWidgetParameter.signalLabelSnapshotEnabled.connect(self.labelSnapshot.enabled)
+        self.tableWidgetParameter.signalAddPlotToRefs.connect(self.addPlotToRefs)
+        self.tableWidgetParameter.signalLoadedDataFull.connect(self.loadedDataFull)
         self.tableWidgetParameter.first_call()
+        # self.tableWidgetParameter.signalAddCurveToRefs.connect(self.addCurveToRefs)
+
+        # self.tableWidgetParameter.signalClosePlot.connect(self.closePlot)
+
+
 
         # References of all opened plot window.
         # Structure:
         # {plotRef : plotApp}
         self._plotRefs = {}
+
+        # {curveRefs : curve}
+        self._curveRefs = {}
 
         # Attribute to control the display of data file info when user click of put focus on a item list
         self._folderUpdating  = False # To avoid calling the signal when updating folder content
@@ -145,42 +158,33 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
     ###########################################################################
 
 
-
-
-
-    def updateLabelPath(self) -> None:
+    @QtCore.pyqtSlot(dict)
+    def updateStyle(self, newConfig: dict) -> None:
         """
-        Update the label path by creating a horizontal list of buttons to
-        quickly browse back the folder arborescence.
+        Update the style of the full app.
+
+        Args:
+            newConfig: New configuration dict containing the style to be applied.
         """
 
-        self.clearLayout(self.labelPath)
+        if newConfig['style']!=config['style']:
+            if newConfig['style']=='qdarkstyle':
+                import qdarkstyle
+                self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+            elif newConfig['style']=='qbstyles':
+                import qdarkstyle
+                self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+            elif newConfig['style']=='white':
+                self.qapp.setStyleSheet(self.qapp.setStyle('Oxygen'))
 
-        path = os.path.normpath(self.currentPath).split(os.sep)
-        root = os.path.normpath(config['root']).split(os.sep)
+        if len(self._plotRefs) > 0:
 
-        # Display path until root
-        for i, text in enumerate(path):
+            for plot in self._plotRefs.values():
+                plot.config = newConfig
+                plot.updateStyle()
 
-            # Build button text depending of where we are
-            if text==root[0]:
-                bu_text = 'root'
-            elif text not in root:
-                bu_text = text
-            else:
-                bu_text = None
 
-            # Create, append and connect buttons
-            if bu_text is not None:
-                bu = QtWidgets.QPushButton(bu_text)
-                bu.setStyleSheet("font-weight: normal;")
-                width = bu.fontMetrics().boundingRect(bu_text).width() + 15
-                bu.setMaximumWidth(width)
-                d = os.path.join(path[0], os.sep, *path[1:i+1])
-                bu.clicked.connect(lambda bu, directory=d : self.folderClicked(directory))
-                self.labelPath.addWidget(bu)
 
-        self.labelPath.setAlignment(QtCore.Qt.AlignLeft)
 
 
 
@@ -724,21 +728,21 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
 
 
-    @staticmethod
-    def clearLayout(layout: QtWidgets.QLayout) -> None:
-        """
-        Clear a pyqt layout, from:
-        https://stackoverflow.com/questions/4528347/clear-all-widgets-in-a-layout-in-pyqt
+    # @staticmethod
+    # def clearLayout(layout: QtWidgets.QLayout) -> None:
+    #     """
+    #     Clear a pyqt layout, from:
+    #     https://stackoverflow.com/questions/4528347/clear-all-widgets-in-a-layout-in-pyqt
 
-        Parameters
-        ----------
-        layout : QtWidgets.QLayout
-            Qt layout to be cleared
-        """
-        while layout.count():
-            child = layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+    #     Parameters
+    #     ----------
+    #     layout : QtWidgets.QLayout
+    #         Qt layout to be cleared
+    #     """
+    #     while layout.count():
+    #         child = layout.takeAt(0)
+    #         if child.widget():
+    #             child.widget().deleteLater()
 
 
 
@@ -823,28 +827,28 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
 
 
-    def getRunId(self) -> int:
-        """
-        Return the current selected run id.
-        """
+    # def getRunId(self) -> int:
+    #     """
+    #     Return the current selected run id.
+    #     """
 
-        # First we try to get it from the database table
-        currentRow = self.tableWidgetDataBase.currentIndex().row()
-        runId = self.tableWidgetDataBase.model().index(currentRow, 0).data()
+    #     # First we try to get it from the database table
+    #     currentRow = self.tableWidgetDataBase.currentIndex().row()
+    #     runId = self.tableWidgetDataBase.model().index(currentRow, 0).data()
 
-        # If it doesn't exist, we try the parameter table
-        if runId is None:
+    #     # If it doesn't exist, we try the parameter table
+    #     if runId is None:
 
-            item = self.tableWidgetParameters.item(0, 0)
+    #         item = self.tableWidgetParameters.item(0, 0)
 
-            # This occurs when user is looking to csv, s2p of bluefors files
-            # In this case the runid is 0
-            if item is None:
-                runId = 0
-            else:
-                runId = item.text()
+    #         # This occurs when user is looking to csv, s2p of bluefors files
+    #         # In this case the runid is 0
+    #         if item is None:
+    #             runId = 0
+    #         else:
+    #             runId = item.text()
 
-        return int(runId)
+    #     return int(runId)
 
 
 
@@ -866,130 +870,130 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
 
 
-    def getRunExperimentName(self) -> str:
-        """
-        Return the experiment name of the current selected run.
-        if Live plot mode, return the experiment name of the last recorded run.
-        """
+    # def getRunExperimentName(self) -> str:
+    #     """
+    #     Return the experiment name of the current selected run.
+    #     if Live plot mode, return the experiment name of the last recorded run.
+    #     """
 
-        currentRow = self.tableWidgetDataBase.currentIndex().row()
-        experimentName =  self.tableWidgetDataBase.model().index(currentRow, 2).data()
-        if experimentName is None:
-            experimentName = self.tableWidgetParameters.item(0, 1).text()
+    #     currentRow = self.tableWidgetDataBase.currentIndex().row()
+    #     experimentName =  self.tableWidgetDataBase.model().index(currentRow, 2).data()
+    #     if experimentName is None:
+    #         experimentName = self.tableWidgetParameters.item(0, 1).text()
 
-        return str(experimentName)
-
-
-
-    def getRunName(self) -> str:
-        """
-        Return the name of the current selected run.
-        if Live plot mode, return the run name of the last recorded run.
-        """
-
-        currentRow = self.tableWidgetDataBase.currentIndex().row()
-        runName =  self.tableWidgetDataBase.model().index(currentRow, 4).data()
-        if runName is None:
-            runName = self.tableWidgetParameters.item(0, 1).text()
-
-        return str(runName)
+    #     return str(experimentName)
 
 
 
-    def getWindowTitle(self, runId: int=None,
-                             runName: str='') -> str:
-        """
-        Return a title which will be used as a plot window title.
-        """
+    # def getRunName(self) -> str:
+    #     """
+    #     Return the name of the current selected run.
+    #     if Live plot mode, return the run name of the last recorded run.
+    #     """
 
-        windowTitle = str(self._currentDatabase)
+    #     currentRow = self.tableWidgetDataBase.currentIndex().row()
+    #     runName =  self.tableWidgetDataBase.model().index(currentRow, 4).data()
+    #     if runName is None:
+    #         runName = self.tableWidgetParameters.item(0, 1).text()
 
-        if config['displayRunIdInPlotTitle']:
-            windowTitle += ' - '+str(runId)
-
-        if config['displayRunNameInPlotTitle']:
-            windowTitle += ' - '+runName
-
-        return windowTitle
+    #     return str(runName)
 
 
 
-    def getPlotTitle(self) -> str:
-        """
-        Return a plot title in a normalize way displaying the folders and
-        file name.
-        """
+    # def getWindowTitle(self, runId: int=None,
+    #                          runName: str='') -> str:
+    #     """
+    #     Return a title which will be used as a plot window title.
+    #     """
 
-        # If no database have been selected ever
-        if self._currentDatabase is None:
-            return ''
-        # If BlueFors log files
-        elif self.LoadBlueFors.isBlueForsFolder(self._currentDatabase):
-            return self._currentDatabase
-        # If csv or s2p files we return the filename without the extension
-        elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
-            return self._currentDatabase[:-4]
-        else:
-            # If user only wants the database path
-            if config['displayOnlyDbNameInPlotTitle']:
-                title = self._currentDatabase
-            # If user wants the database path
-            else:
-                title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
-                title = '/'.join(title)
+    #     windowTitle = str(self._currentDatabase)
 
-            title = title+'<br>'+str(self.getRunId())+' - '+self.getRunExperimentName()
-            return title
+    #     if config['displayRunIdInPlotTitle']:
+    #         windowTitle += ' - '+str(runId)
+
+    #     if config['displayRunNameInPlotTitle']:
+    #         windowTitle += ' - '+runName
+
+    #     return windowTitle
 
 
 
-    def getPlotRef(self, paramDependent : dict) -> str:
-        """
-        Return a reference for a plot window.
-        Handle the difference between 1d plot and 2d plot.
+    # def getPlotTitle(self) -> str:
+    #     """
+    #     Return a plot title in a normalize way displaying the folders and
+    #     file name.
+    #     """
 
-        Parameters
-        ----------
-        paramDependent : dict
-            qcodes dictionary of a dependent parameter
+    #     # If no database have been selected ever
+    #     if self._currentDatabase is None:
+    #         return ''
+    #     # If BlueFors log files
+    #     elif self.LoadBlueFors.isBlueForsFolder(self._currentDatabase):
+    #         return self._currentDatabase
+    #     # If csv or s2p files we return the filename without the extension
+    #     elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
+    #         return self._currentDatabase[:-4]
+    #     else:
+    #         # If user only wants the database path
+    #         if config['displayOnlyDbNameInPlotTitle']:
+    #             title = self._currentDatabase
+    #         # If user wants the database path
+    #         else:
+    #             title = os.path.normpath(self.currentPath).split(os.path.sep)[2:]
+    #             title = '/'.join(title)
 
-        Return
-        ------
-        plotRef : str
-            Unique reference for a plot window.
-        """
-
-        path = os.path.abspath(self._currentDatabase)
-
-        # If BlueFors log files
-        if self.LoadBlueFors.isBlueForsFolder(self._currentDatabase):
-            dataPath = path
-        # If csv or s2p files we return the filename without the extension
-        elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
-            dataPath = path
-        else:
-            dataPath = path+str(self.getRunId())
-
-
-        if len(paramDependent['depends_on'])==2:
-            return dataPath+paramDependent['name']
-        else:
-            return dataPath
+    #         title = title+'<br>'+str(self.getRunId())+' - '+self.getRunExperimentName()
+    #         return title
 
 
 
-    def getLivePlotRef(self) -> list:
-        """
-        Return a list of the live plot windows references.
-        Return an empty list if no liveplot window
-        """
-        refs = []
-        # We get which open plot window is the liveplot one
-        for ref, plot in self._plotRefs.items():
-            if plot.livePlot:
-                refs.append(ref)
+    # def getPlotRef(self, paramDependent : dict) -> str:
+    #     """
+    #     Return a reference for a plot window.
+    #     Handle the difference between 1d plot and 2d plot.
 
-        return refs
+    #     Parameters
+    #     ----------
+    #     paramDependent : dict
+    #         qcodes dictionary of a dependent parameter
+
+    #     Return
+    #     ------
+    #     plotRef : str
+    #         Unique reference for a plot window.
+    #     """
+
+    #     path = os.path.abspath(self._currentDatabase)
+
+    #     # If BlueFors log files
+    #     if self.LoadBlueFors.isBlueForsFolder(self._currentDatabase):
+    #         dataPath = path
+    #     # If csv or s2p files we return the filename without the extension
+    #     elif self._currentDatabase[-3:].lower() in ['csv', 's2p']:
+    #         dataPath = path
+    #     else:
+    #         dataPath = path+str(self.getRunId())
+
+
+    #     if len(paramDependent['depends_on'])==2:
+    #         return dataPath+paramDependent['name']
+    #     else:
+    #         return dataPath
+
+
+
+    # def getLivePlotRef(self) -> list:
+    #     """
+    #     Return a list of the live plot windows references.
+    #     Return an empty list if no liveplot window
+    #     """
+    #     refs = []
+    #     # We get which open plot window is the liveplot one
+    #     for ref, plot in self._plotRefs.items():
+    #         if plot.livePlot:
+    #             refs.append(ref)
+
+    #     return refs
 
 
 
@@ -1013,32 +1017,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
 
 
-    def updateStyle(self, newConfig: dict) -> None:
-        """
-        Update the style of the full app.
-
-        Args:
-            newConfig: New configuration dict containing the style to be applied.
-        """
-
-        if newConfig['style']!=config['style']:
-            if newConfig['style']=='qdarkstyle':
-                import qdarkstyle
-                self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-            elif newConfig['style']=='qbstyles':
-                import qdarkstyle
-                self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-            elif newConfig['style']=='white':
-                self.qapp.setStyleSheet(self.qapp.setStyle('Oxygen'))
-
-        if len(self._plotRefs) > 0:
-
-            for plot in self._plotRefs.values():
-                plot.config = newConfig
-                plot.updateStyle()
-
-
-
     ###########################################################################
     #
     #
@@ -1049,7 +1027,225 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
 
 
-    @QtCore.pyqtSlot(str)
+    @QtCore.pyqtSlot(int, str, str, str, str, str, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str)
+    def loadedDataFull(self, runId          : int,
+                      curveId        : str,
+                      plotTitle      : str,
+                      windowTitle    : str,
+                      plotRef        : str,
+                      databaseAbsPath: str,
+                      progressBar    : QtWidgets.QProgressBar,
+                      data           : List[np.ndarray],
+                      xLabelText     : str,
+                      xLabelUnits    : str,
+                      yLabelText     : str,
+                      yLabelUnits    : str,
+                      zLabelText     : str,
+                      zLabelUnits    : str) -> None:
+        """
+        Call from loaddata thread.
+        Just past the argument to the addPlot method.
+        Usefull because progressBar is an optional parameter
+        """
+
+        self.signalRemoveProgressBar.emit(progressBar)
+
+        self.addPlot(plotRef        = plotRef,
+                     databaseAbsPath= databaseAbsPath,
+                     data           = data,
+                     xLabelText     = xLabelText,
+                     xLabelUnits    = xLabelUnits,
+                     yLabelText     = yLabelText,
+                     yLabelUnits    = yLabelUnits,
+                     zLabelText     = zLabelText,
+                     zLabelUnits    = zLabelUnits,
+                     runId          = runId,
+                     curveId        = curveId,
+                     plotTitle      = plotTitle,
+                     windowTitle    = windowTitle)
+
+
+
+
+    def addPlot(self, plotRef            : str,
+                      databaseAbsPath    : str,
+                      data               : List[np.ndarray],
+                      xLabelText         : str,
+                      xLabelUnits        : str,
+                      yLabelText         : str,
+                      yLabelUnits        : str,
+                      runId              : int,
+                      curveId            : str,
+                      plotTitle          : str,
+                      windowTitle        : str,
+                      linkedTo2dPlot     : bool=False,
+                      curveLegend        : Optional[str]=None,
+                      hidden             : bool=False,
+                      curveLabel         : Optional[str]=None,
+                      curveUnits         : Optional[str]=None,
+                      timestampXAxis     : Optional[bool]=None,
+                      livePlot           : bool=False,
+                      zLabelText         : Optional[str]=None,
+                      zLabelUnits        : Optional[str]=None,
+                      histogram          : Optional[bool]=False) -> None:
+        """
+        Methods called once the data are downloaded to add a plot of the data.
+        Discriminate between 1d and 2d plot through the length of data list.
+        For 1d plot, data having the sample plotRef do not launch a new plot
+        window but instead are plotted in the window sharing the same plotRef.
+        Once the data are plotted, run updateList1dCurvesLabels.
+
+        Parameters
+        ----------
+        plotRef : str
+            Reference of the plot.
+        progressBar : str
+            Key to the progress bar in the dict progressBars.
+        data : list
+            For 1d plot: [xData, yData]
+            For 2d plot: [xData, yData, zData]
+        xLabelText : str
+            Label text for the xAxix.
+        xLabelUnits : str
+            Label units for the xAxix.
+        yLabelText : str
+            Label text for the yAxix.
+        yLabelUnits : str
+            Label units for the yAxix.
+        runId : int
+            Data run id in the current database
+        curveId : str
+            Id of the curve, see getCurveId.
+        plotTitle : str
+            Plot title, see getPlotTitle.
+        windowTitle : str
+            Window title, see getWindowTitle.
+        zLabelText : str, default None
+            Only for 2d data.
+            Label text for the zAxis.
+        zLabelUnits : str, default None
+            Only for 2d data.
+            Label units for the zAxis.
+        """
+
+        # If the method is called from a thread with a progress bar, we remove
+        # it
+
+        # If data is None it means the data download encounter an error.
+        # We do not add plot
+        if data is None:
+            return
+
+        self.signalSendStatusBarMessage.emit('Launching '+str(len(data)-1)+'d plot', 'orange')
+
+
+        # If some parameters are not given, we find then from the GUI
+        # if cleanCheckBox is None:
+        #     cleanCheckBox = self.cleanCheckBox
+
+
+        # 1D plot
+        if len(data)==2:
+
+            # Specific 1d optional parameter
+            # print(timestampXAxis)
+            # if timestampXAxis is None:
+            #     timestampXAxis = self.LoadBlueFors.isBlueForsFolder(self._currentDatabase)
+            # print(self.LoadBlueFors.isBlueForsFolder(self._currentDatabase))
+            # print(timestampXAxis)
+            # If the plotRef is not stored we launched a new window
+            # Otherwise we add a new PlotDataItem on an existing plot1dApp
+            if plotRef not in self._plotRefs:
+
+
+                p = Plot1dApp(x                  = data[0],
+                              y                  = data[1],
+                              title              = plotTitle,
+                              xLabelText         = xLabelText,
+                              xLabelUnits        = xLabelUnits,
+                              yLabelText         = yLabelText,
+                              yLabelUnits        = yLabelUnits,
+                              windowTitle        = windowTitle,
+                              runId              = runId,
+                              plotRef            = plotRef,
+                              databaseAbsPath    = databaseAbsPath,
+                              curveId            = curveId,
+                              curveLegend        = curveLegend,
+                              linkedTo2dPlot     = linkedTo2dPlot,
+                              livePlot           = livePlot,
+                              timestampXAxis     = timestampXAxis,
+                              histogram          = histogram)
+
+                self._plotRefs[plotRef] = p
+                self._plotRefs[plotRef].show()
+            else:
+
+                self._plotRefs[plotRef].addPlotDataItem(x                  = data[0],
+                                                        y                  = data[1],
+                                                        curveId            = curveId,
+                                                        curveXLabel        = xLabelText,
+                                                        curveXUnits        = xLabelUnits,
+                                                        curveYLabel        = yLabelText,
+                                                        curveYUnits        = yLabelUnits,
+                                                        curveLegend        = yLabelText,
+                                                        hidden             = hidden)
+
+
+        # 2D plot
+        elif len(data)==3:
+
+            # Determine if we should open a new Plot2dApp
+            if plotRef not in self._plotRefs:
+                p = Plot2dApp(x               = data[0],
+                              y               = data[1],
+                              z               = data[2],
+                              title           = plotTitle,
+                              xLabelText      = xLabelText,
+                              xLabelUnits     = xLabelUnits,
+                              yLabelText      = yLabelText,
+                              yLabelUnits     = yLabelUnits,
+                              zLabelText      = zLabelText,
+                              zLabelUnits     = zLabelUnits,
+                              windowTitle     = windowTitle,
+                              runId           = runId,
+                              plotRef         = plotRef,
+                              databaseAbsPath = databaseAbsPath,
+                              livePlot        = livePlot)
+
+                self._plotRefs[plotRef] = p
+                self._plotRefs[plotRef].show()
+
+        self.signalSendStatusBarMessage.emit('Ready', 'green')
+
+        p.signalClosePlot.connect(self.closePlot)
+        # self.signalAddCurveToRefs.emit(plotRef, self._plotRefs[plotRef].curves[curveId])
+        # self.updateList1dCurvesLabels()
+
+        # Flag
+        self._dataDowloadingFlag = False
+
+
+
+
+    # @QtCore.pyqtSlot(str, pg.PlotDataItem)
+    # def addCurveToRefs(self, plotRef: str,
+    #                          curve: pg.PlotDataItem) -> None:
+    #     # print(curve)
+    #     # self._curveRefs[plotRef] = curve
+    #     print(self._plotRefs[plotRef].curves)
+
+    def lol(self, plotRef: str):
+
+        if plotRef not in self._plotRefs:
+            self.signalAddPlot.emit()
+        else:
+            self.signalAddCurveToPlot.emit()
+
+
+
+
+
+    @QtCore.pyqtSlot(str, Plot1dApp)
     def addPlotToRefs(self, plotRef: str,
                             plot: Plot1dApp) -> None:
 
@@ -1057,8 +1253,86 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
 
 
+
+
+    @QtCore.pyqtSlot(str)
+    def closePlot(self, plotRef: str) -> None:
+
+
+        # When the plot is closed, we need to uncheck the visible checkbox
+        # in the tableWidgetParameter.
+        windowTitle = self._plotRefs[plotRef].windowTitle
+        for curveId, curve in self._plotRefs[plotRef].curves.items():
+
+
+        if self.getWindowTitle(runId=runId, runName=self.getRunName())==windowTitle and self.getRunId()==runId:
+
+            # If 1d plot
+            if self._plotRefs[plotRef].plotType=='1d':
+
+                # If the current displayed parameters correspond to the one which has
+                # been closed, we uncheck all the checkbox listed in the table
+                for row in range(self.tableWidgetParameters.rowCount()):
+                    widget = self.tableWidgetParameters.cellWidget(row, 2)
+                    widget.setChecked(False)
+            # If 2d plot
+            else:
+                # We uncheck only the plotted parameter
+                for row in range(self.tableWidgetParameters.rowCount()):
+                    if label==self.tableWidgetParameters.item(row, 3).text():
+                        widget = self.tableWidgetParameters.cellWidget(row, 2)
+                        widget.setChecked(False)
+
+        # if self.fitWindow is not None:
+        #     self.fitWindow.close()
+
+        # if self.filteringWindow is not None:
+        #     self.filteringWindow.close()
+
+        # for curveType in ['fft',
+        #                   'derivative',
+        #                   'primitive',
+        #                   'unwrap',
+        #                   'unslop',
+        #                   'histogram']:
+        #     plot = self.getPlotFromRef(self.plotRef, curveType)
+        # for curveId in self._plotRefs[plotRef].curves.keys():
+        #     self.removeCurvefromPlotRefs(plotRef, curveId)
+        # # for ref in self._plotRefs.items()
+        #     # if plot is not None:
+        #     #     [self.signalremoveCurvefromPlotRefs.emit(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
+
+        # self.cleanCheckBox(plotRef     = self.plotRef,
+        #                    windowTitle = self.windowTitle,
+        #                    runId       = self.runId,
+        #                    label       = '')
+
+
+
     @QtCore.pyqtSlot(str, str)
-    def removePlotfromRefs(self, plotRef: str,
+    def removeCurvefromPlotRefs(self, plotRef: str,
+                                 curveId: str) -> None:
+
+        if self._plotRefs[plotRef].plotType=='1d':
+            # If there is more than one curve, we remove one curve
+            if self._plotRefs[plotRef].nbPlotDataItemFromData()>1:
+                self._plotRefs[plotRef].removePlotDataItem(curveId=curveId)
+            # If there is one curve we close the plot window
+            else:
+                self._plotRefs[plotRef].o()
+                del(self._plotRefs[plotRef])
+
+            # Update the list of currently plotted dependent parametered on all
+            # the plotted window
+            self.updateList1dCurvesLabels()
+        elif self._plotRefs[plotRef].plotType=='2d':
+            self._plotRefs[plotRef].o()
+            del(self._plotRefs[plotRef])
+
+
+
+    @QtCore.pyqtSlot(str, str)
+    def removeCurvefromPlotRefs(self, plotRef: str,
                                  curveId: str) -> None:
 
         if self._plotRefs[plotRef].plotType=='1d':

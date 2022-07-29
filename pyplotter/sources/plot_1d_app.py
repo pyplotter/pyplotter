@@ -22,8 +22,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     """
 
     signalRemovePlotFromRef  = QtCore.pyqtSignal(str, str)
-    signalAddPlotToRefs      = QtCore.pyqtSignal(str)
-    signalRemovePlotfromRefs = QtCore.pyqtSignal(str, str)
+    signalremoveCurvefromPlotRefs = QtCore.pyqtSignal(str, str)
+
+    signalClosePlot           = QtCore.pyqtSignal(str)
+    # signalAddCurveToRefs          = QtCore.pyqtSignal(str, pg.PlotDataItem)
 
 
     def __init__(self, x                  : np.ndarray,
@@ -143,7 +145,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
         # Get plotItem from the widget
-        self.plotItem = self.widget.getPlotItem()
+        self.plotItem = self.plotWidget.getPlotItem()
 
         # Create legendItem
         self.legendItem = self.plotItem.addLegend()
@@ -304,21 +306,22 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         We propagate that event to the mainWindow
         """
 
-        if self.fitWindow is not None:
-            self.fitWindow.close()
+        self.signalClosePlot.emit(self.plotRef)
+        # if self.fitWindow is not None:
+        #     self.fitWindow.close()
 
-        if self.filteringWindow is not None:
-            self.filteringWindow.close()
+        # if self.filteringWindow is not None:
+        #     self.filteringWindow.close()
 
-        for curveType in ['fft', 'derivative', 'primitive', 'unwrap', 'unslop', 'histogram']:
-            plot = self.getPlotFromRef(self.plotRef, curveType)
-            if plot is not None:
-                [self.signalRemovePlotfromRefs.emit(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
+        # for curveType in ['fft', 'derivative', 'primitive', 'unwrap', 'unslop', 'histogram']:
+        #     plot = self.getPlotFromRef(self.plotRef, curveType)
+        #     if plot is not None:
+        #         [self.signalremoveCurvefromPlotRefs.emit(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
 
-        self.cleanCheckBox(plotRef     = self.plotRef,
-                           windowTitle = self.windowTitle,
-                           runId       = self.runId,
-                           label       = '')
+        # self.cleanCheckBox(plotRef     = self.plotRef,
+        #                    windowTitle = self.windowTitle,
+        #                    runId       = self.runId,
+        #                    label       = '')
 
 
 
@@ -580,7 +583,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.curves[curveId].hidden             = hidden
         self.curves[curveId].mkpen              = mkpen
 
-        self.updateListDataPlotItem(curveId)
+        # self.signalAddCurveToRefs.emit(self.plotRef, self.curves[curveId])
+
+        # self.updateListDataPlotItem(curveId)
         self.updateListXAxis()
 
 
@@ -1129,15 +1134,15 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         fftPlot = self.getPlotFromRef(self.plotRef, 'fft')
         if fftPlot is not None:
-            self.signalRemovePlotfromRefs.emit(fftPlot, curveId)
+            self.signalremoveCurvefromPlotRefs.emit(fftPlot, curveId)
 
         fftnodcPlot = self.getPlotFromRef(self.plotRef, 'fftnodc')
         if fftnodcPlot is not None:
-            self.signalRemovePlotfromRefs.emit(fftnodcPlot, curveId)
+            self.signalremoveCurvefromPlotRefs.emit(fftnodcPlot, curveId)
 
         ifftPlot = self.getPlotFromRef(self.plotRef, 'ifft')
         if ifftPlot is not None:
-            self.signalRemovePlotfromRefs.emit(ifftPlot, curveId)
+            self.signalremoveCurvefromPlotRefs.emit(ifftPlot, curveId)
 
         self.addPlot(plotRef        = self.plotRef+'fft',
                      databaseAbsPath= self.databaseAbsPath,
@@ -1220,7 +1225,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'unwrap')
             if plot is not None:
-                self.signalRemovePlotfromRefs.emit(self.plotRef+'unwrap', curveId)
+                self.signalremoveCurvefromPlotRefs.emit(self.plotRef+'unwrap', curveId)
 
 
 
@@ -1279,7 +1284,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'unslop')
             if plot is not None:
-                self.signalRemovePlotfromRefs.emit(self.plotRef+'unslop', curveId)
+                self.signalremoveCurvefromPlotRefs.emit(self.plotRef+'unslop', curveId)
 
 
 
@@ -1354,7 +1359,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'derivative')
             if plot is not None:
-                self.signalRemovePlotfromRefs.emit(self.plotRef+'derivative', curveId)
+                self.signalremoveCurvefromPlotRefs.emit(self.plotRef+'derivative', curveId)
 
 
 
@@ -1423,7 +1428,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'primitive')
             if plot is not None:
-                self.signalRemovePlotfromRefs.emit(self.plotRef+'primitive', curveId)
+                self.signalremoveCurvefromPlotRefs.emit(self.plotRef+'primitive', curveId)
 
 
 
@@ -1520,7 +1525,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             plot = self.getPlotFromRef(self.plotRef, 'histogram')
             if plot is not None:
-                self.signalRemovePlotfromRefs.emit(self.plotRef+'histogram', curveId)
+                self.signalremoveCurvefromPlotRefs.emit(self.plotRef+'histogram', curveId)
 
             # Remove the displayed statistics info
             if hasattr(self, 'labelStatistics'):
@@ -1808,7 +1813,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             for curveType in ['fft', 'derivative', 'primitive', 'derivative', 'unwrap', 'unslop', 'histogram']:
                 plot = self.getPlotFromRef(self.plotRef, curveType)
                 if plot is not None:
-                    [self.signalRemovePlotfromRefs.emit(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
+                    [self.signalremoveCurvefromPlotRefs.emit(self.plotRef+curveType, curveId) for curveId in plot.curves.keys()]
 
             self.enableWhenPlotDataItemSelected(False)
 

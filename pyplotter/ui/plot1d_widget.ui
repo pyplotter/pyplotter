@@ -29,7 +29,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="PlotWidget" name="widget" native="true"/>
+      <widget class="PlotWidget" name="plotWidget" native="true"/>
      </item>
      <item>
       <widget class="QTabWidget" name="tabWidget">
@@ -133,7 +133,7 @@
               <x>0</x>
               <y>0</y>
               <width>250</width>
-              <height>615</height>
+              <height>613</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -863,7 +863,7 @@
   <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
-   <header>..ui.plot_widget</header>
+   <header>..ui.plotWidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

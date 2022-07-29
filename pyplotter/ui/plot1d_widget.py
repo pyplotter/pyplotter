@@ -22,9 +22,9 @@ class Ui_Dialog(object):
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.widget = PlotWidget(Dialog)
-        self.widget.setObjectName("widget")
-        self.horizontalLayout.addWidget(self.widget)
+        self.plotWidget = PlotWidget(Dialog)
+        self.plotWidget.setObjectName("plotWidget")
+        self.horizontalLayout.addWidget(self.plotWidget)
         self.tabWidget = QtWidgets.QTabWidget(Dialog)
         self.tabWidget.setEnabled(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
@@ -63,7 +63,7 @@ class Ui_Dialog(object):
         self.scrollAreaInteraction.setWidgetResizable(True)
         self.scrollAreaInteraction.setObjectName("scrollAreaInteraction")
         self.scrollAreaWidgetInteraction = QtWidgets.QWidget()
-        self.scrollAreaWidgetInteraction.setGeometry(QtCore.QRect(0, 0, 250, 615))
+        self.scrollAreaWidgetInteraction.setGeometry(QtCore.QRect(0, 0, 250, 613))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -443,4 +443,4 @@ class Ui_Dialog(object):
         self.groupBoxFit.setTitle(_translate("Dialog", "Fit"))
         self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("Dialog", "Interaction"))
-from .plotWidget import PlotWidget
+from ..ui.plotWidget import PlotWidget
