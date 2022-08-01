@@ -30,15 +30,18 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     Custom class to be able to sort numerical table column
     """
 
-    signalSendStatusBarMessage    = QtCore.pyqtSignal(str, str)
-    signalUpdateProgressBar       = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
-    signalRemoveProgressBar       = QtCore.pyqtSignal(QtWidgets.QProgressBar)
-    signalParameterClick          = QtCore.pyqtSignal(str, str, str, str, str, int, str)
-    signalAddPlotToRefs           = QtCore.pyqtSignal(str, Plot1dApp)
-    signalCleanSnapshot           = QtCore.pyqtSignal()
-    signalAddSnapshot             = QtCore.pyqtSignal(dict)
-    signalLineEditSnapshotEnabled = QtCore.pyqtSignal(bool)
-    signalLabelSnapshotEnabled    = QtCore.pyqtSignal(bool)
+    signalSendStatusBarMessage       = QtCore.pyqtSignal(str, str)
+    signalUpdateProgressBar          = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
+    signalRemoveProgressBar          = QtCore.pyqtSignal(QtWidgets.QProgressBar)
+    signalParameterClick             = QtCore.pyqtSignal(str, str, str, str, str, int, str)
+    signalAddPlotToRefs              = QtCore.pyqtSignal(str, Plot1dApp)
+    signalCleanSnapshot              = QtCore.pyqtSignal()
+    signalAddSnapshot                = QtCore.pyqtSignal(dict)
+    signalLineEditSnapshotEnabled    = QtCore.pyqtSignal(bool)
+    signalLabelSnapshotEnabled       = QtCore.pyqtSignal(bool)
+    signalUpdateLabelCurrentSnapshot = QtCore.pyqtSignal(str)
+    signalUpdateLabelCurrentRun      = QtCore.pyqtSignal(str)
+    signalAddCheckbox                = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, int)
 
     # Propagation of the plot signals to the main app
     # signalClosePlot           = QtCore.pyqtSignal(str, Plot1dApp)
@@ -539,78 +542,46 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
     @QtCore.pyqtSlot(int, list, dict, str, str, str, bool)
     def runClick(self, runId: int,
-                       dependentList: list,
+                       paramDependentList: list,
                        snapshotDict: dict,
                        experimentName: str,
                        runName: str,
                        databaseAbsPath: str,
                        doubleClicked: bool) -> None:
 
-        runIdStr = str(runId)
-
-        ## Update label
-        # self.labelCurrentRun.setText(runIdStr)
-        # self.labelCurrentMetadata.setText(runIdStr)
-
         ## Fill the tableWidgetParameters with the run parameters
-
         clearTableWidget(self)
         self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
         self.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
 
-        for dependent in dependentList:
 
-            rowPosition = self.rowCount()
+        plotTitle       = getPlotTitle(databaseAbsPath=databaseAbsPath,
+                                       runId=runId,
+                                       experimentName=experimentName)
+        windowTitle     = getWindowTitle(databaseAbsPath=databaseAbsPath,
+                                         runId=runId,
+                                         runName=runName)
 
-            self.insertRow(rowPosition)
-
-            cb = QtWidgets.QCheckBox()
-
-            # We check if that parameter is already plotted
-            # if self.isParameterPlotted(dependent):
-            #     cb.setChecked(True)
-
-            self.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(runIdStr))
-            self.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(str(experimentName)))
-            self.setCellWidget(rowPosition, 2, cb)
-            self.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(dependent['label']))
-            self.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(dependent['unit']))
-
-
-            independentString = config['sweptParameterSeparator'].join(dependent['depends_on'])
-            self.setCellWidget(rowPosition, 5, QtWidgets.QLabel(independentString))
+        for paramDependent in paramDependentList:
 
             curveId         = getCurveId(databaseAbsPath=databaseAbsPath,
-                                         name=dependent['name'],
-                                         runId=runId)
+                                        name=paramDependent['name'],
+                                        runId=runId)
             plotRef         = getPlotRef(databaseAbsPath=databaseAbsPath,
-                                         paramDependent=dependent,
-                                         runId=runId)
-            plotTitle       = getPlotTitle(databaseAbsPath=databaseAbsPath,
-                                           runId=runId,
-                                           experimentName=experimentName)
-            windowTitle     = getWindowTitle(databaseAbsPath=databaseAbsPath,
-                                             runId=runId,
-                                             runName=runName)
+                                        paramDependent=paramDependent,
+                                        runId=runId)
 
-            # Each checkbox at its own event attached to it
-            cb.toggled.connect(lambda state,
-                                      dependentParamName    = dependent['name'],
-                                      runId                 = runId,
-                                      curveId               = curveId,
-                                      plotTitle             = plotTitle,
-                                      windowTitle           = windowTitle,
-                                      dependent             = dependent,
-                                      plotRef               = plotRef,
-                                      databaseAbsPath       = databaseAbsPath: self.parameterClicked(state,
-                                                                                                     dependentParamName,
-                                                                                                     runId,
-                                                                                                     curveId,
-                                                                                                     plotTitle,
-                                                                                                     windowTitle,
-                                                                                                     dependent,
-                                                                                                     plotRef,
-                                                                                                     databaseAbsPath))
+            rowPosition = self.rowCount()
+            self.insertRow(rowPosition)
+            self.signalAddCheckbox.emit(runId,
+                                        paramDependent,
+                                        experimentName,
+                                        curveId,
+                                        plotRef,
+                                        plotTitle,
+                                        windowTitle,
+                                        databaseAbsPath,
+                                        rowPosition)
 
 
         self.setSortingEnabled(True)
@@ -624,9 +595,69 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         # Update the run snapshot
         self.signalCleanSnapshot.emit()
         self.signalAddSnapshot.emit(snapshotDict)
+        self.signalUpdateLabelCurrentSnapshot.emit(str(runId))
+        self.signalUpdateLabelCurrentRun     .emit(str(runId))
+        self.signalUpdateLabelCurrentRun.emit(str(runId))
+
+
+        ## Update label
 
         self.signalSendStatusBarMessage.emit('Ready', 'green')
 
         # If a double click is detected, we launch a plot of the first parameter
         if doubleClicked:
             self.parameterCellClicked(0, 2)
+
+
+
+    @QtCore.pyqtSlot(int, dict, str, str, str, str, str, str, int, bool)
+    def addCheckbox(self, runId: int,
+                          paramDependent: dict,
+                          experimentName: str,
+                          curveId: str,
+                          plotRef: str,
+                          plotTitle: str,
+                          windowTitle: str,
+                          databaseAbsPath: str,
+                          rowPosition: int,
+                          isParameterPlotted: bool) -> None:
+        """
+        Called from main.
+        """
+
+        runIdStr = str(runId)
+
+        cb = QtWidgets.QCheckBox()
+
+        if isParameterPlotted:
+            cb.setChecked(True)
+
+        self.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(runIdStr))
+        self.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(experimentName))
+        self.setCellWidget(rowPosition, 2, cb)
+        self.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(paramDependent['label']))
+        self.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(paramDependent['unit']))
+
+
+        independentString = config['sweptParameterSeparator'].join(paramDependent['depends_on'])
+        self.setCellWidget(rowPosition, 5, QtWidgets.QLabel(independentString))
+
+        # Each checkbox at its own event attached to it
+        cb.toggled.connect(lambda state,
+                                  dependentParamName    = paramDependent['name'],
+                                  runId                 = runId,
+                                  curveId               = curveId,
+                                  plotTitle             = plotTitle,
+                                  windowTitle           = windowTitle,
+                                  dependent             = paramDependent,
+                                  plotRef               = plotRef,
+                                  databaseAbsPath       = databaseAbsPath: self.parameterClicked(state,
+                                                                                                 dependentParamName,
+                                                                                                 runId,
+                                                                                                 curveId,
+                                                                                                 plotTitle,
+                                                                                                 windowTitle,
+                                                                                                 dependent,
+                                                                                                 plotRef,
+                                                                                                 databaseAbsPath))
+

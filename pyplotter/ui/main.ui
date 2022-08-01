@@ -365,7 +365,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="labelCurrentMetadata">
+            <widget class="QLabel" name="labelCurrentSnapshot">
              <property name="minimumSize">
               <size>
                <width>0</width>

@@ -2,6 +2,7 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 from typing import List
 import os
+from time import time
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
@@ -37,13 +38,15 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # When user wants to look at a run
         self.cellClicked.connect(self.runClick)
-        self.doubleClicked.connect(self.runDoubleClick)
 
         # When user wants to hide or stars a run
         self.keyPressed.connect(self.tableWidgetDataBasekeyPress)
 
         # Flag
         self._dataDowloadingFlag = False
+        # Use to differentiate click to doubleClick
+        self.lastClickTime = time()
+        self.lastClickRow  = 100
 
         # To avoid the opening of two databases as once
         self._databaseClicking = False
@@ -102,15 +105,15 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
     def databaseClickAddRows(self, lrunId          : List[int],
-                                     ldim            : List[str],
-                                     lexperimentName : List[str],
-                                     lsampleName     : List[str],
-                                     lrunName        : List[str],
-                                     lstarted        : List[str],
-                                     lcompleted      : List[str],
-                                     lrunRecords     : List[str],
-                                     nbTotalRun      : int,
-                                     databaseAbsPath : str) -> None:
+                                   ldim            : List[str],
+                                   lexperimentName : List[str],
+                                   lsampleName     : List[str],
+                                   lrunName        : List[str],
+                                   lstarted        : List[str],
+                                   lcompleted      : List[str],
+                                   lrunRecords     : List[str],
+                                   nbTotalRun      : int,
+                                   databaseAbsPath : str) -> None:
         """
         Called by another thread to fill the database table.
         Each call add n rows into the table.
@@ -236,29 +239,25 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
 
-    def runDoubleClick(self) -> None:
-        """
-        Called when user double click on the database table.
-        Display the measured dependent parameters in the table Parameters.
-        Simulate the user clicking on the first dependent parameter, effectively
-        launching its plot.
-        """
-
-        # We simulate a single click while propagating the double-click info
-        self.runClick(doubleClicked=True)
-
-
-
     def runClick(self, currentRow: int=0,
                        currentColumn: int=0,
                        previousRow: int=0,
-                       previousColumn: int=0,
-                       doubleClicked: bool=False) -> None:
+                       previousColumn: int=0) -> None:
         """
         When clicked display the measured dependent parameters in the
         tableWidgetPtableWidgetParameters.
         Database is accessed through a thread, see runClickFromThread.
         """
+
+        # We check if use click or doubleClick
+        doubleClick = False
+        if currentRow==self.lastClickRow:
+            if time() - self.lastClickTime<0.5:
+                doubleClick = True
+
+        # Keep track of the last click time
+        self.lastClickTime = time()
+        self.lastClickRow  = currentRow
 
         # When the user click on another database while having already clicked
         # on a run, the runClick event is happenning even if no run have been clicked
@@ -279,7 +278,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                                    runId,
                                    experimentName,
                                    runName,
-                                   doubleClicked)
+                                   doubleClick)
         worker.signal.updateRunInfo.connect(self.signalRunClick)
 
         # Execute the thread

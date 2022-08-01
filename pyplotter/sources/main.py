@@ -32,6 +32,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
     signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
+    signalAddCheck   = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, int, bool)
 
 
     def __init__(self, QApplication,
@@ -49,6 +50,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
 
         self.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
+        self.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
+        self.signalAddCheck.connect(self.tableWidgetParameter.addCheckbox)
         # Connect UI
 
         # Resize the cell to the column content automatically
@@ -59,7 +62,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
         # Connect event
         # self.tableWidgetDataBase.currentCellChanged.connect(self.runClicked)
-        # self.tableWidgetDataBase.doubleClicked.connect(self.runDoubleClicked)
+        # self.tableWidgetDataBase.doubleClick.connect(self.rundoubleClick)
         # self.tableWidgetDataBase.keyPressed.connect(self.tableWidgetDataBasekeyPress)
         # self.tableWidgetParameters.cellClicked.connect(self.parameterCellClicked)
 
@@ -67,7 +70,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
         self.lineEditFilterSnapshot.signallineEditFilterSnapshotTextEdited.connect(self.treeViewSnapshot.searchItem)
 
-        self.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
 
         # Connect menuBar signal
         self.menuBarMain.signalUpdateStyle.connect(self.updateStyle)
@@ -108,8 +110,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
         self.tableWidgetParameter.signalAddSnapshot.connect(self.treeViewSnapshot.addSnapshot)
         self.tableWidgetParameter.signalLineEditSnapshotEnabled.connect(self.lineEditFilterSnapshot.enabled)
         self.tableWidgetParameter.signalLabelSnapshotEnabled.connect(self.labelSnapshot.enabled)
+        self.tableWidgetParameter.signalUpdateLabelCurrentSnapshot.connect(self.labelCurrentSnapshot.setText)
+        self.tableWidgetParameter.signalUpdateLabelCurrentRun.connect(self.labelCurrentRun.setText)
         self.tableWidgetParameter.signalAddPlotToRefs.connect(self.addPlotToRefs)
         self.tableWidgetParameter.signalLoadedDataFull.connect(self.loadedDataFull)
+        self.tableWidgetParameter.signalAddCheckbox.connect(self.addCheckbox)
         self.tableWidgetParameter.first_call()
         # self.tableWidgetParameter.signalAddCurveToRefs.connect(self.addCurveToRefs)
 
@@ -404,7 +409,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
 
 
-    # def runDoubleClicked(self) -> None:
+    # def rundoubleClick(self) -> None:
     #     """
     #     Called when user double click on the database table.
     #     Display the measured dependent parameters in the table Parameters.
@@ -413,7 +418,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
     #     """
 
     #     # We simulate a single click while propagating the double-click info
-    #     self.runClicked(doubleClicked=True)
+    #     self.runClicked(doubleClick=True)
 
 
 
@@ -421,7 +426,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
     #                      currentColumn: int=0,
     #                      previousRow: int=0,
     #                      previousColumn: int=0,
-    #                      doubleClicked: bool=False) -> None:
+    #                      doubleClick: bool=False) -> None:
     #     """
     #     When clicked display the measured dependent parameters in the
     #     tableWidgetPtableWidgetParameters.
@@ -445,7 +450,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
     #                                runId,
     #                                experimentName,
     #                                runName,
-    #                                doubleClicked)
+    #                                doubleClick)
     #     worker.signals.updateRunInfo.connect(self.runClickedFromThread)
     #     # Execute the thread
     #     self.threadpool.start(worker)
@@ -457,7 +462,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
     #                                snapshotDict: dict,
     #                                experimentName: str,
     #                                runName: str,
-    #                                doubleClicked: bool):
+    #                                doubleClick: bool):
 
     #     runIdStr = str(runId)
 
@@ -480,7 +485,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
     #         cb = QtWidgets.QCheckBox()
 
     #         # We check if that parameter is already plotted
-    #         if self.isParameterPlotted(dependent):
+    #         if self.addCheckbox(dependent):
     #             cb.setChecked(True)
 
     #         self.tableWidgetParameters.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(runIdStr))
@@ -536,7 +541,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
     #     self.setStatusBarMessage('Ready')
 
     #     # If a double click is detected, we launch a plot of the first parameter
-    #     if doubleClicked:
+    #     if doubleClick:
     #         self.parameterCellClicked(0, 2)
 
 
@@ -698,19 +703,22 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
 
 
-    def isParameterPlotted(self, paramDependent: dict) -> bool:
+    @QtCore.pyqtSlot(int, dict, str, str, str, str, str, str, int)
+    def addCheckbox(self, runId,
+                                 paramDependent,
+                                 experimentName,
+                                 curveId,
+                                 plotRef,
+                                 plotTitle,
+                                 windowTitle,
+                                 databaseAbsPath,
+                                 rowPosition) -> bool:
         """
         Return True when the displayed parameter is currently plotted.
-
-        Parameters
-        ----------
-        paramDependent : dict
-            qcodes dictionary of a dependent parameter
         """
 
+        parameterPlotted = False
         if len(self._plotRefs) > 0:
-
-            plotRef = self.getPlotRef(paramDependent)
 
             # We iterate over all plotWindow
             for plot in self._plotRefs.values():
@@ -718,13 +726,23 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
                 if plot.plotType=='1d':
                     if plotRef in plot.plotRef:
                         if paramDependent['label'] in [curve.curveYLabel for curve in plot.curves.values()]:
-                            return True
+                            parameterPlotted = True
                 if plot.plotType=='2d':
                     if plotRef in plot.plotRef:
                         if plot.zLabelText==paramDependent['label']:
-                            return True
+                            parameterPlotted = True
 
-        return False
+        self.signalAddCheck.emit(runId,
+                                 paramDependent,
+                                 experimentName,
+                                 curveId,
+                                 plotRef,
+                                 plotTitle,
+                                 windowTitle,
+                                 databaseAbsPath,
+                                 rowPosition,
+                                 parameterPlotted)
+
 
 
 
@@ -1176,6 +1194,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
                               timestampXAxis     = timestampXAxis,
                               histogram          = histogram)
 
+                p.signalClosePlot.connect(self.closePlot)
                 self._plotRefs[plotRef] = p
                 self._plotRefs[plotRef].show()
             else:
@@ -1217,7 +1236,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
         self.signalSendStatusBarMessage.emit('Ready', 'green')
 
-        p.signalClosePlot.connect(self.closePlot)
         # self.signalAddCurveToRefs.emit(plotRef, self._plotRefs[plotRef].curves[curveId])
         # self.updateList1dCurvesLabels()
 
@@ -1257,31 +1275,31 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow, dbMenuWidget):
 
     @QtCore.pyqtSlot(str)
     def closePlot(self, plotRef: str) -> None:
+        pass
+
+    #     # When the plot is closed, we need to uncheck the visible checkbox
+    #     # in the tableWidgetParameter.
+    #     windowTitle = self._plotRefs[plotRef].windowTitle
+    #     for curveId, curve in self._plotRefs[plotRef].curves.items():
 
 
-        # When the plot is closed, we need to uncheck the visible checkbox
-        # in the tableWidgetParameter.
-        windowTitle = self._plotRefs[plotRef].windowTitle
-        for curveId, curve in self._plotRefs[plotRef].curves.items():
+    #     if self.getWindowTitle(runId=runId, runName=self.getRunName())==windowTitle and self.getRunId()==runId:
 
+    #         # If 1d plot
+    #         if self._plotRefs[plotRef].plotType=='1d':
 
-        if self.getWindowTitle(runId=runId, runName=self.getRunName())==windowTitle and self.getRunId()==runId:
-
-            # If 1d plot
-            if self._plotRefs[plotRef].plotType=='1d':
-
-                # If the current displayed parameters correspond to the one which has
-                # been closed, we uncheck all the checkbox listed in the table
-                for row in range(self.tableWidgetParameters.rowCount()):
-                    widget = self.tableWidgetParameters.cellWidget(row, 2)
-                    widget.setChecked(False)
-            # If 2d plot
-            else:
-                # We uncheck only the plotted parameter
-                for row in range(self.tableWidgetParameters.rowCount()):
-                    if label==self.tableWidgetParameters.item(row, 3).text():
-                        widget = self.tableWidgetParameters.cellWidget(row, 2)
-                        widget.setChecked(False)
+    #             # If the current displayed parameters correspond to the one which has
+    #             # been closed, we uncheck all the checkbox listed in the table
+    #             for row in range(self.tableWidgetParameters.rowCount()):
+    #                 widget = self.tableWidgetParameters.cellWidget(row, 2)
+    #                 widget.setChecked(False)
+    #         # If 2d plot
+    #         else:
+    #             # We uncheck only the plotted parameter
+    #             for row in range(self.tableWidgetParameters.rowCount()):
+    #                 if label==self.tableWidgetParameters.item(row, 3).text():
+    #                     widget = self.tableWidgetParameters.cellWidget(row, 2)
+    #                     widget.setChecked(False)
 
         # if self.fitWindow is not None:
         #     self.fitWindow.close()

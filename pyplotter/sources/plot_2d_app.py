@@ -225,7 +225,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.checkBoxUnwrapX.stateChanged.connect(self.zDataTransformation)
         self.checkBoxUnwrapY.stateChanged.connect(self.zDataTransformation)
         self.pushButton3d.clicked.connect(self.launched3d)
-        self.plotItem.scene().sigMouseClicked.connect(self.plotItemDoubleClicked)
+        self.plotItem.scene().sigMouseClicked.connect(self.plotItemdoubleClick)
         self.radioButtonSliceSingleAny.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
         self.radioButtonSliceSingleVertical.toggled.connect(self.radioBoxSliceChanged)
@@ -1042,7 +1042,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def plotItemDoubleClicked(self, e) -> None:
+    def plotItemdoubleClick(self, e) -> None:
         """
         When a use double click on the 2D plot, we create a slice of the colormap
         """
@@ -1061,8 +1061,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                          curveLegend   = sliceLegend,
                                          sliceItem     = self.getCurrentSliceItem())
             # If there is already
-            # 1. The user doubleClicked on an sliceItem and we remove it
-            # 2. The doubleClicked somewhere else on the map and we create another slice
+            # 1. The user doubleClick on an sliceItem and we remove it
+            # 2. The doubleClick somewhere else on the map and we create another slice
             else:
                 # We check if user double click on an sliceItem
                 clickedCurveId = self.sliceIdClickedOn()
@@ -1082,7 +1082,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     def removeSliceItemAndPlot(self, curveId: str) -> None:
         """
         Called when a used double click on a slice to remove it, see
-        plotItemDoubleClicked.
+        plotItemdoubleClick.
         Remove the sliceItem from the 2d plot and its associated slice from the
         attached 1d plot.
 
