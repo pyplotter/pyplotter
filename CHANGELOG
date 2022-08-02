@@ -11,6 +11,7 @@ pyplotter-0.3.4
   Bug Fixes:
     - Fix selected data bug when data are invertly sorted
     - Liveplot is working again
+    - Allow new configuration values to be added in package config
 
   Others:
     - Database refresh themselves when the nb of run changes

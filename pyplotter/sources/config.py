@@ -2,7 +2,8 @@
 import json
 import os
 from platformdirs import user_config_dir
-from typing import List, Union
+from typing import List, Union, Any
+import collections
 
 # This file create a python dict containing all personalized parameters
 configPackage = {
@@ -126,6 +127,7 @@ configPackage = {
 'styles' : {'qdarkstyle' : {'dialogBackgroundColor'    : '#272822',
                             'pyqtgraphBackgroundColor' : '#272822',
                             'dialogTextColor'          : '#ffffff',
+                            'plot1dSelectionLineColor' : '#ffffff',
                             'pyqtgraphTitleTextColor'  : '#ffffff',
                             'pyqtgraphxLabelTextColor' : '#ffffff',
                             'pyqtgraphyLabelTextColor' : '#ffffff',
@@ -139,6 +141,7 @@ configPackage = {
             'qbstyles' : {'dialogBackgroundColor'    : '#0c1c23',
                             'pyqtgraphBackgroundColor' : '#0c1c23',
                             'dialogTextColor'          : '#dadcdd',
+                            'plot1dSelectionLineColor' : '#dadcdd',
                             'pyqtgraphTitleTextColor'  : '#dadcdd',
                             'pyqtgraphxLabelTextColor' : '#dadcdd',
                             'pyqtgraphyLabelTextColor' : '#dadcdd',
@@ -152,6 +155,7 @@ configPackage = {
             'white' : {'dialogBackgroundColor'    : '#ffffff',
                        'pyqtgraphBackgroundColor' : '#ffffff',
                        'dialogTextColor'          : '#000000',
+                       'plot1dSelectionLineColor' : '#000000',
                        'pyqtgraphTitleTextColor'  : '#000000',
                        'pyqtgraphxLabelTextColor' : '#000000',
                        'pyqtgraphyLabelTextColor' : '#000000',
@@ -239,6 +243,26 @@ def getConfigCurrentPath() -> str:
 
 
 
+def deep_update(source: dict,
+                overrides: Any) -> dict:
+    """
+    Update a nested dictionary or similar mapping.
+    Modify ``source`` in place.
+
+    From:
+    https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
+    """
+
+    for key, value in overrides.items():
+        if isinstance(value, collections.Mapping) and value:
+            returned = deep_update(source.get(key, {}), value)
+            source[key] = returned
+        else:
+            source[key] = overrides[key]
+    return source
+
+
+
 def saveConfigCurrent() -> None:
     """
     Save the current config file.
@@ -247,8 +271,7 @@ def saveConfigCurrent() -> None:
     configCurrent = configPackage
     configUser    = json.load(open(getConfigUserPath(), 'r', encoding='utf-8'))
 
-    for key, val in configUser.items():
-        configCurrent[key] = val
+    configCurrent = deep_update(configCurrent, configUser)
 
     with open(getConfigCurrentPath(), 'w', encoding='utf-8') as f:
         json.dump(configCurrent, f, ensure_ascii=False, indent=4)
