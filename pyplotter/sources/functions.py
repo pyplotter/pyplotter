@@ -4,12 +4,10 @@ from math import log10
 from typing import Callable, Union, Tuple, Optional
 import os
 import numpy as np
+import pandas as pd
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
-
-# from ..sources.plot_1d_app import Plot1dApp
-# from ..sources.plot_2d_app import Plot2dApp
 
 
 
@@ -77,6 +75,12 @@ def _parse_number(number: float,
 
 
 
+def pandasTimestamp2Int(dates: np.ndarray) -> np.ndarray:
+
+    return (dates - pd.Timestamp('1970-01-01'))//pd.Timedelta('1s')
+
+
+
 def clearTableWidget(tableWidget : QtWidgets.QTableWidget) -> None:
     """
     Method to remove all row from a table widget.
@@ -87,6 +91,7 @@ def clearTableWidget(tableWidget : QtWidgets.QTableWidget) -> None:
 
     tableWidget.setSortingEnabled(False)
     tableWidget.setRowCount(0)
+
 
 
 def clearLayout(layout: QtWidgets.QLayout) -> None:
@@ -106,25 +111,12 @@ def clearLayout(layout: QtWidgets.QLayout) -> None:
 
 
 
-def isBlueForsFolder(folderName : Optional[str]=None) -> bool:
+def isBlueForsFolder(folderName : str) -> bool:
     """
     Return True if a string follow blueFors log folder name pattern.
-
-    Parameters
-    ----------
-    folderName : str
-        Name of the folder
-
-    Returns
-    -------
-    bool
-        Return True if a string follow blueFors log folder name pattern.
     """
 
-    if folderName is None:
-        return False
-    else:
-        return len(folderName.split('-'))==3 and all([len(i)==2 for i in folderName.split('-')])==True
+    return len(folderName.split('-'))==3 and all([len(i)==2 for i in folderName.split('-')])
 
 
 
@@ -218,15 +210,14 @@ def getPlotTitle(databaseAbsPath: str,
     file name.
     """
 
-    currentPath  = os.path.dirname(databaseAbsPath)
-    databaseName = os.path.basename(databaseAbsPath)
+    databaseName = getDatabaseNameFromAbsPath(databaseAbsPath)
 
     # If no database have been selected ever
     if databaseAbsPath is None:
         return ''
     # If BlueFors log files
-    elif isBlueForsFolder(currentPath):
-        return databaseAbsPath
+    elif isBlueForsFolder(os.path.basename(databaseAbsPath)):
+        return os.path.basename(databaseAbsPath)
     # If csv or s2p files we return the filename without the extension
     elif databaseAbsPath[-3:].lower() in ['csv', 's2p']:
         return databaseAbsPath[:-4]
@@ -241,6 +232,10 @@ def getPlotTitle(databaseAbsPath: str,
         return '{}<br>{} - {}'.format(title, runId, experimentName)
 
 
+def getDatabaseNameFromAbsPath(databaseAbsPath: str) -> str:
+        return os.path.basename(databaseAbsPath)[:-3]
+
+
 
 def getWindowTitle(databaseAbsPath: str,
                    runId: int,
@@ -249,7 +244,7 @@ def getWindowTitle(databaseAbsPath: str,
     Return a title which will be used as a plot window title.
     """
 
-    windowTitle = os.path.basename(databaseAbsPath)
+    windowTitle = getDatabaseNameFromAbsPath(databaseAbsPath)
 
     if config['displayRunIdInPlotTitle']:
         windowTitle += ' - '+str(runId)
@@ -258,7 +253,6 @@ def getWindowTitle(databaseAbsPath: str,
         windowTitle += ' - '+runName
 
     return windowTitle
-
 
 
 

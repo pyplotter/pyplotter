@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\dialog_fontsize.ui'
+# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\dialogFontsize.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #

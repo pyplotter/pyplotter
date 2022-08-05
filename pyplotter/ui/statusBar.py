@@ -12,8 +12,10 @@ class StatusBar(QtWidgets.QStatusBar):
 
     signalUpdateStyle        = QtCore.pyqtSignal(dict)
     signalOpenDialogLivePlot = QtCore.pyqtSignal()
-    signalDatabaseClick      = QtCore.pyqtSignal(str, QtWidgets.QProgressBar)
-    signalParameterClick     = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QProgressBar)
+    signalDatabaseLoad      = QtCore.pyqtSignal(str, QtWidgets.QProgressBar)
+    signalCsvLoad      = QtCore.pyqtSignal(str, bool, QtWidgets.QProgressBar)
+    signalBlueForsLoad      = QtCore.pyqtSignal(str, bool, QtWidgets.QProgressBar)
+    signalAddCurve     = QtCore.pyqtSignal(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
 
     def __init__(self, parent: Optional[Any]=None) -> None:
         super(StatusBar, self).__init__(parent)
@@ -40,32 +42,55 @@ class StatusBar(QtWidgets.QStatusBar):
         self.showMessage(text)
 
 
-    @QtCore.pyqtSlot(str)
-    def databaseClick(self, databaseAbsPath:str) -> None:
+
+    @QtCore.pyqtSlot(str, bool)
+    def csvLoad(self, databaseAbsPath: str,
+                      doubleClick: bool) -> None:
 
         progressBar = self.addProgressBar()
-        self.signalDatabaseClick.emit(databaseAbsPath,
+        self.signalCsvLoad.emit(databaseAbsPath,
+                                doubleClick,
+                                progressBar)
+
+    @QtCore.pyqtSlot(str, bool)
+    def blueForsLoad(self, databaseAbsPath: str,
+                           doubleClick: bool) -> None:
+
+        progressBar = self.addProgressBar()
+        self.signalBlueForsLoad.emit(databaseAbsPath,
+                                     doubleClick,
+                                     progressBar)
+
+    @QtCore.pyqtSlot(str)
+    def databaseLoad(self, databaseAbsPath: str) -> None:
+
+        progressBar = self.addProgressBar()
+        self.signalDatabaseLoad.emit(databaseAbsPath,
                                       progressBar)
 
 
-    @QtCore.pyqtSlot(str, str, str, str, str, int, str)
-    def parameterClick(self, curveId: str,
-                             databaseAbsPath: str,
-                             dependentParamName: str,
-                             plotRef: str,
-                             plotTitle: str,
-                             runId: int,
-                             windowTitle: str) -> None:
+    @QtCore.pyqtSlot(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox)
+    def addCurve(self, curveId: str,
+                       databaseAbsPath: str,
+                       dataType: str,
+                       dependentParamName: str,
+                       plotRef: str,
+                       plotTitle: str,
+                       runId: int,
+                       windowTitle: str,
+                       cb: QtWidgets.QCheckBox) -> None:
 
         progressBar = self.addProgressBar()
-        self.signalParameterClick.emit(curveId,
-                                       databaseAbsPath,
-                                       dependentParamName,
-                                       plotRef,
-                                       plotTitle,
-                                       runId,
-                                       windowTitle,
-                                       progressBar)
+        self.signalAddCurve.emit(curveId,
+                                 databaseAbsPath,
+                                 dataType,
+                                 dependentParamName,
+                                 plotRef,
+                                 plotTitle,
+                                 runId,
+                                 windowTitle,
+                                 cb,
+                                 progressBar)
 
     ###########################################################################
     #

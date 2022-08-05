@@ -6,7 +6,7 @@ try:
     import pyqtgraph as pg
 except AttributeError:
     import time
-    time.clock = time.perf_counter
+    time.clock = time.perf_counter # type: ignore
     import pyqtgraph as pg
 from .config import loadConfigCurrent
 config = loadConfigCurrent()

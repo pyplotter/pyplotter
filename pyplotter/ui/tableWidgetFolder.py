@@ -2,6 +2,7 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 from typing import Union
 import os
+from time import time
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
@@ -18,6 +19,9 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
     signalDatabaseClick    = QtCore.pyqtSignal(str)
+    signalCSVClick         = QtCore.pyqtSignal(str, bool)
+    signalBlueForsClick         = QtCore.pyqtSignal(str, bool)
+    signalDatabasePathUpdate         = QtCore.pyqtSignal(str)
     signalUpdateLabelPath    = QtCore.pyqtSignal(str)
 
 
@@ -35,6 +39,11 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
         self._dataDowloadingFlag = False
         # To avoid the opening of two databases as once
         self._flagDatabaseClicking = False
+
+
+        # Use to differentiate click to doubleClick
+        self.lastClickTime = time()
+        self.lastClickRow  = 100
 
 
 
@@ -184,16 +193,14 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
             currentItem =  self.model().index(currentRow, 0).data()
 
             nextPath = os.path.join(self.currentPath, currentItem)
+            self.databaseAbsPath = os.path.normpath(os.path.join(self.currentPath, currentItem)).replace("\\", "/")
 
             # If the folder is a BlueFors folder
             if isBlueForsFolder(currentItem):
-
-                # self.LoadBlueFors.blueForsFolderClicked(directory=nextPath)
-                self.folderClicked(directory=self.currentPath)
+                self.blueForsClick()
             # If it is a csv or a s2p file
             elif nextPath[-3:].lower() in ['csv', 's2p']:
-                # self.LoadCSV.csvFileClicked(nextPath)
-                self.folderClicked(directory=self.currentPath)
+                self.csvClick()
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
                 self.signalSendStatusBarMessage.emit('Updating', 'orange')
@@ -201,7 +208,6 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
                 self.signalSendStatusBarMessage.emit('Ready', 'green')
             # If it is a QCoDeS database
             else:
-                self.databaseAbsPath = os.path.normpath(os.path.join(self.currentPath, currentItem)).replace("\\", "/")
                 # If right clicked
                 if isinstance(b, QtCore.QPoint):
                     # Job done, we restor the usual cursor
@@ -219,11 +225,47 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
 
 
+    def blueForsClick(self, currentRow: int=0,
+                            currentColumn: int=0,
+                            previousRow: int=0,
+                            previousColumn: int=0) -> None:
+
+        doubleClick = False
+        if currentRow==self.lastClickRow:
+            if time() - self.lastClickTime<0.5:
+                doubleClick = True
+
+        # We inform the tableWidgetDatabase of the the databasePath
+        self.signalDatabasePathUpdate.emit(self.databaseAbsPath)
+        self.signalBlueForsClick.emit(self.databaseAbsPath,
+                                      doubleClick)
+
+
+
+    def csvClick(self, currentRow: int=0,
+                       currentColumn: int=0,
+                       previousRow: int=0,
+                       previousColumn: int=0) -> None:
+
+        doubleClick = False
+        if currentRow==self.lastClickRow:
+            if time() - self.lastClickTime<0.5:
+                doubleClick = True
+
+        # We inform the tableWidgetDatabase of the the databasePath
+        self.signalDatabasePathUpdate.emit(self.databaseAbsPath)
+        self.signalCSVClick.emit(self.databaseAbsPath,
+                                 doubleClick)
+
+
     def databaseClick(self) -> None:
         """
         Display the content of the clicked dataBase into the database table
         which will then contain all runs.
         """
+
+        # We inform the tableWidgetDatabase of the the databasePath
+        self.signalDatabasePathUpdate.emit(self.databaseAbsPath)
 
         self.currentPath  = os.path.dirname(self.databaseAbsPath)
         self.databaseName = os.path.basename(self.databaseAbsPath)
@@ -292,7 +334,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
 
     @QtCore.pyqtSlot()
-    def databaseStars(self):
+    def slotFromTableWidgetDataBaseDatabaseStars(self):
 
         databaseName = os.path.basename(self.databaseAbsPath)
 
@@ -303,7 +345,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
 
     @QtCore.pyqtSlot()
-    def databaseUnstars(self):
+    def slotFromTableWidgetDataBaseDatabaseUnstars(self):
 
         databaseName = os.path.basename(self.databaseAbsPath)
 

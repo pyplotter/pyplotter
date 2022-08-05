@@ -25,14 +25,14 @@ class LoadDataFromRunSignal(QtCore.QObject):
     # xLabelText: str, xLabelUnits: str,
     # yLabelText: str, yLabelUnits: str,
     # zLabelText: str, zLabelUnits: str,
-    loadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str)
+    loadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
     # Signal used to update the status bar
     sendStatusBarMessage = QtCore.pyqtSignal(str, str)
     # Signal to update the progress bar
     updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
     # Signal when the data download is done but the database is empty
     # Useful for the starting of the liveplot
-    loadedDataEmpty = QtCore.pyqtSignal()
+    loadedDataEmpty = QtCore.pyqtSignal(QtWidgets.QCheckBox)
 
 
 
@@ -47,6 +47,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                        plotTitle: str,
                        runId: int,
                        windowTitle: str,
+                       cb: QtWidgets.QCheckBox,
                        progressBar: QtWidgets.QProgressBar) -> None:
         """
         Thread used to get data for a 1d or 2d plot from a runId.
@@ -78,6 +79,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         self.plotTitle          = plotTitle
         self.runId              = runId
         self.windowTitle        = windowTitle
+        self.cb                 = cb
         self.progressBar        = progressBar
 
 
@@ -146,10 +148,10 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         # new plot window
         if d is None:
             self.signal.sendStatusBarMessage.emit('Extracting data failed...', 'red')
-            self.signal.loadedDataEmpty.emit()
+            self.signal.loadedDataEmpty.emit(self.cb)
         elif len(d)==0:
             self.signal.sendStatusBarMessage.emit('Run empty', 'red')
-            self.signal.loadedDataEmpty.emit()
+            self.signal.loadedDataEmpty.emit(self.cb)
         else:
 
             # 1d plot
@@ -196,6 +198,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                                             self.windowTitle,
                                             self.plotRef,
                                             self.databaseAbsPath,
+                                            self.cb,
                                             self.progressBar,
                                             data,
                                             xLabelText,
@@ -203,6 +206,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                                             yLabelText,
                                             yLabelUnits,
                                             zLabelText,
-                                            zLabelUnits)
+                                            zLabelUnits,
+                                            False) # pg.DateAxisItem
 
 

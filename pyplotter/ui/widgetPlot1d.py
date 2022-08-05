@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\plot1d_widget.ui'
+# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\widgetPlot1d.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #
@@ -10,22 +10,20 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_Dialog(object):
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.setWindowModality(QtCore.Qt.NonModal)
-        Dialog.setEnabled(True)
-        Dialog.resize(872, 453)
-        Dialog.setSizeGripEnabled(True)
-        Dialog.setModal(False)
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(Dialog)
+class Ui_widgetPlot1d(object):
+    def setupUi(self, widgetPlot1d):
+        widgetPlot1d.setObjectName("widgetPlot1d")
+        widgetPlot1d.setWindowModality(QtCore.Qt.WindowModal)
+        widgetPlot1d.resize(872, 454)
+        widgetPlot1d.setWindowTitle("")
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(widgetPlot1d)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.plotWidget = PlotWidget(Dialog)
+        self.plotWidget = PlotWidget(widgetPlot1d)
         self.plotWidget.setObjectName("plotWidget")
         self.horizontalLayout.addWidget(self.plotWidget)
-        self.tabWidget = QtWidgets.QTabWidget(Dialog)
+        self.tabWidget = QtWidgets.QTabWidget(widgetPlot1d)
         self.tabWidget.setEnabled(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
@@ -63,7 +61,7 @@ class Ui_Dialog(object):
         self.scrollAreaInteraction.setWidgetResizable(True)
         self.scrollAreaInteraction.setObjectName("scrollAreaInteraction")
         self.scrollAreaWidgetInteraction = QtWidgets.QWidget()
-        self.scrollAreaWidgetInteraction.setGeometry(QtCore.QRect(0, -234, 250, 619))
+        self.scrollAreaWidgetInteraction.setGeometry(QtCore.QRect(0, 0, 250, 619))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -415,40 +413,39 @@ class Ui_Dialog(object):
         self.horizontalLayout.addWidget(self.tabWidget)
         self.horizontalLayout_2.addLayout(self.horizontalLayout)
 
-        self.retranslateUi(Dialog)
+        self.retranslateUi(widgetPlot1d)
         self.tabWidget.setCurrentIndex(0)
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
+        QtCore.QMetaObject.connectSlotsByName(widgetPlot1d)
 
-    def retranslateUi(self, Dialog):
+    def retranslateUi(self, widgetPlot1d):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.groupBoxDisplay.setTitle(_translate("Dialog", "Display"))
-        self.pushButtonCopy.setText(_translate("Dialog", "Click to copie"))
-        self.labelXAxis.setText(_translate("Dialog", "x axis:"))
-        self.checkBoxLogX.setText(_translate("Dialog", "log x"))
-        self.checkBoxLogY.setText(_translate("Dialog", "log y"))
-        self.checkBoxSymbol.setText(_translate("Dialog", "symbol (fastest without)"))
-        self.checkBoxCrossHair.setText(_translate("Dialog", "cross hair (fastest without)"))
-        self.checkBoxSplitYAxis.setText(_translate("Dialog", "split y axis (only for 2 curves)"))
-        self.groupBoxCurveInteraction.setTitle(_translate("Dialog", "Curve interaction"))
-        self.groupBoxHide.setTitle(_translate("Dialog", "Hide curve"))
-        self.groupBoxPlotDataItem.setTitle(_translate("Dialog", "Select curve"))
-        self.radioButtonFitNone.setText(_translate("Dialog", "None"))
-        self.groupBoxCalculus.setTitle(_translate("Dialog", "Calculus"))
-        self.checkBoxDifferentiate.setText(_translate("Dialog", "differentiate"))
-        self.checkBoxIntegrate.setText(_translate("Dialog", "integrate"))
-        self.groupBoxStatistics.setTitle(_translate("Dialog", "Statistics"))
-        self.checkBoxStatistics.setText(_translate("Dialog", "histogram"))
-        self.spinBoxStatistics.setSuffix(_translate("Dialog", "  bin"))
-        self.groupBoxNormalize.setTitle(_translate("Dialog", "Normalize"))
-        self.checkBoxUnwrap.setText(_translate("Dialog", "unwrap"))
-        self.checkBoxRemoveSlope.setText(_translate("Dialog", "remove slop"))
-        self.groupBoxFFT.setTitle(_translate("Dialog", "FFT"))
-        self.checkBoxFFT.setText(_translate("Dialog", "FFT"))
-        self.checkBoxFFTnoDC.setText(_translate("Dialog", "FFT (no DC)"))
-        self.checkBoxIFFT.setText(_translate("Dialog", "IFFT"))
-        self.groupBoxFiltering.setTitle(_translate("Dialog", "Filtering"))
-        self.groupBoxFit.setTitle(_translate("Dialog", "Fit"))
-        self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:</p></body></html>"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("Dialog", "Interaction"))
+        self.groupBoxDisplay.setTitle(_translate("widgetPlot1d", "Display"))
+        self.pushButtonCopy.setText(_translate("widgetPlot1d", "Click to copie"))
+        self.labelXAxis.setText(_translate("widgetPlot1d", "x axis:"))
+        self.checkBoxLogX.setText(_translate("widgetPlot1d", "log x"))
+        self.checkBoxLogY.setText(_translate("widgetPlot1d", "log y"))
+        self.checkBoxSymbol.setText(_translate("widgetPlot1d", "symbol (fastest without)"))
+        self.checkBoxCrossHair.setText(_translate("widgetPlot1d", "cross hair (fastest without)"))
+        self.checkBoxSplitYAxis.setText(_translate("widgetPlot1d", "split y axis (only for 2 curves)"))
+        self.groupBoxCurveInteraction.setTitle(_translate("widgetPlot1d", "Curve interaction"))
+        self.groupBoxHide.setTitle(_translate("widgetPlot1d", "Hide curve"))
+        self.groupBoxPlotDataItem.setTitle(_translate("widgetPlot1d", "Select curve"))
+        self.radioButtonFitNone.setText(_translate("widgetPlot1d", "None"))
+        self.groupBoxCalculus.setTitle(_translate("widgetPlot1d", "Calculus"))
+        self.checkBoxDifferentiate.setText(_translate("widgetPlot1d", "differentiate"))
+        self.checkBoxIntegrate.setText(_translate("widgetPlot1d", "integrate"))
+        self.groupBoxStatistics.setTitle(_translate("widgetPlot1d", "Statistics"))
+        self.checkBoxStatistics.setText(_translate("widgetPlot1d", "histogram"))
+        self.spinBoxStatistics.setSuffix(_translate("widgetPlot1d", "  bin"))
+        self.groupBoxNormalize.setTitle(_translate("widgetPlot1d", "Normalize"))
+        self.checkBoxUnwrap.setText(_translate("widgetPlot1d", "unwrap"))
+        self.checkBoxRemoveSlope.setText(_translate("widgetPlot1d", "remove slop"))
+        self.groupBoxFFT.setTitle(_translate("widgetPlot1d", "FFT"))
+        self.checkBoxFFT.setText(_translate("widgetPlot1d", "FFT"))
+        self.checkBoxFFTnoDC.setText(_translate("widgetPlot1d", "FFT (no DC)"))
+        self.checkBoxIFFT.setText(_translate("widgetPlot1d", "IFFT"))
+        self.groupBoxFiltering.setTitle(_translate("widgetPlot1d", "Filtering"))
+        self.groupBoxFit.setTitle(_translate("widgetPlot1d", "Fit"))
+        self.labelCoordinate.setText(_translate("widgetPlot1d", "<html><head/><body><p>x:<br/>y:</p></body></html>"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("widgetPlot1d", "Interaction"))
 from .plotWidget import PlotWidget

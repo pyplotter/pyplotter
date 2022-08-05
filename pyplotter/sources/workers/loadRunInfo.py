@@ -12,7 +12,7 @@ class LoadRunInfoSignal(QtCore.QObject):
     """
 
     # When the run method is done
-    updateRunInfo = QtCore.pyqtSignal(int, list, dict, str, str, str, bool)
+    updateRunInfo = QtCore.pyqtSignal(int, list,dict, str, str, str, str, bool)
 
 class LoadRunInfoThread(QtCore.QRunnable):
 
@@ -65,4 +65,5 @@ class LoadRunInfoThread(QtCore.QRunnable):
                                        self.experimentName,
                                        self.runName,
                                        self.databaseAbsPath,
+                                       'qcodes', # dataType
                                        self.doubleClicked)

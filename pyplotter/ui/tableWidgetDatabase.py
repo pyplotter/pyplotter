@@ -10,6 +10,7 @@ from ..sources.runpropertiesextra import RunPropertiesExtra
 from .tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
 from ..sources.workers.loadDataBase import LoadDataBaseThread
 from ..sources.workers.loadRunInfo import LoadRunInfoThread
+from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
 from ..sources.functions import clearTableWidget
 
 # Get the folder path for pictures
@@ -25,10 +26,12 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     signalRemoveProgressBar        = QtCore.pyqtSignal(QtWidgets.QProgressBar)
     signalDatabaseClickDone        = QtCore.pyqtSignal()
     keyPressed                     = QtCore.pyqtSignal(str, int)
-    signalRunClick                 = QtCore.pyqtSignal(int, list, dict, str, str, str, bool)
+    signalRunClick                 = QtCore.pyqtSignal(int, list, dict, str, str, str, str, bool)
     signalDatabaseStars            = QtCore.pyqtSignal()
     signalDatabaseUnstars          = QtCore.pyqtSignal()
     signalCheckBoxHiddenHideRow    = QtCore.pyqtSignal(int)
+
+    signal2StatusBarDatabaseUpdate = QtCore.pyqtSignal(str)
 
 
 
@@ -56,7 +59,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
     def first_call(self):
-        # Only used to propagate information
+        ## Only used to propagate information
+        # Contain the databaseAbsPath
         self.setColumnHidden(8, True)
 
 
@@ -70,7 +74,10 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
     @QtCore.pyqtSlot(str, QtWidgets.QProgressBar)
     def databaseClick(self, databaseAbsPath: str,
-                              progressBar: QtWidgets.QProgressBar) -> None:
+                            progressBar: QtWidgets.QProgressBar) -> None:
+        """
+        Called from the statusBarMain, when user clicks on a database.
+        """
 
         self.currentPath  = os.path.dirname(databaseAbsPath)
         self.databaseName = os.path.basename(databaseAbsPath)
@@ -104,6 +111,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
 
+    QtCore.pyqtSlot(list, list, list, list, list, list, list, list, int, str)
     def databaseClickAddRows(self, lrunId          : List[int],
                                    ldim            : List[str],
                                    lexperimentName : List[str],
@@ -159,8 +167,10 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
 
+    @QtCore.pyqtSlot(QtWidgets.QProgressBar, bool, str, int)
     def databaseClickDone(self,progressBar    : QtWidgets.QProgressBar,
                                error          : bool,
+                               databaseAbsPath: str,
                                nbTotalRun     : int) -> None:
         """
         Called when the database table has been filled
@@ -193,14 +203,17 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # Done
         self._databaseClicking = False
-
         self.signalDatabaseClickDone.emit()
 
-        # self.dataBaseCheckNbRun()
+        # We periodically check if there is not a new run to display
+        self.databaseAbsPath = databaseAbsPath
+        self.dataBaseCheckNbRun(databaseAbsPath,
+                                nbTotalRun)
 
 
 
-    def dataBaseCheckNbRun(self):
+    def dataBaseCheckNbRun(self, databaseAbsPath: str,
+                                 nbTotalRun:  int):
         """
         Method called by databaseClickDone.
         Launch a thread every config['delayBetweendataBaseNbRunCheck'] ms
@@ -212,30 +225,35 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # From launch a thread which will periodically check if the database has
         # more run that what is currently displayed
-        worker = dataBaseCheckNbRunThread(self.databaseAbsPath,
-                                          self.nbTotalRun)
+        self.workerCheck = dataBaseCheckNbRunThread(databaseAbsPath,
+                                          nbTotalRun)
 
         # Connect signals
-        worker.signals.dataBaseUpdate.connect(self.dataBaseUpdate)
-        worker.signals.dataBaseCheckNbRun.connect(self.dataBaseCheckNbRun)
+        self.workerCheck.signal.dataBaseUpdate.connect(self.signal2StatusBarDatabaseUpdate)
+        self.workerCheck.signal.sendStatusBarMessage.connect(self.signalSendStatusBarMessage)
+        self.workerCheck.signal.dataBaseCheckNbRun.connect(self.slotDataBaseCheckNbRun)
 
         # Execute the thread
-        self.threadpool.start(worker)
+        self.threadpool.start(self.workerCheck)
 
 
 
-    def dataBaseUpdate(self, databasePathToUpdate: str) -> None:
-        """Method called by dataBaseCheckNbRunThread when the displayed database
-        has not the same number of total run.
-        Call databaseClick if the displayed database shares the same path
-        as the database check by the thread.
+    QtCore.pyqtSlot(str, int)
+    def slotDataBaseCheckNbRun(self, databaseAbsPath: str,
+                                     nbTotalRun:  int):
+        # If we are style displaying the same database
+        if self.databaseAbsPath==databaseAbsPath:
+            self.nbTotalRun = nbTotalRun
+            self.dataBaseCheckNbRun(databaseAbsPath,
+                                    nbTotalRun)
 
-        Args:
-            databasePathToUpdate : path of the checked database
-        """
 
-        if databasePathToUpdate==self.databaseAbsPath:
-            self.databaseClick()
+
+    QtCore.pyqtSlot(str)
+    def updateDatabasePath(self, databaseAbsPath: str):
+        self.databaseAbsPath=databaseAbsPath
+        if hasattr(self, 'workerCheck'):
+            self.workerCheck._stop = True
 
 
 
@@ -381,8 +399,9 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     ############################################################################
 
 
+
     @QtCore.pyqtSlot(int)
-    def checkBoxHiddenClick(self, state: int) -> None:
+    def slotFromCheckBoxHiddenCheckBoxHiddenClick(self, state: int) -> None:
         """
         Call when user clicks on the "Show hidden checkbox.
         When check, show all databse run.
@@ -411,9 +430,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                     self.setRowHidden(row, False)
 
 
+    @QtCore.pyqtSlot()
+    def slotClearTable(self) -> None:
 
-    @QtCore.pyqtSlot(int, bool)
-    def hideRow(self, row: int,
-                      hide: bool) -> None:
-
-        self.setRowHidden(row, hide)
+        clearTableWidget(self)

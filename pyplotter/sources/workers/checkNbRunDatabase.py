@@ -15,7 +15,9 @@ class dataBaseCheckNbRunSignal(QtCore.QObject):
     dataBaseUpdate     = QtCore.pyqtSignal(str)
 
     # When the nb of run didn't change
-    dataBaseCheckNbRun = QtCore.pyqtSignal()
+    dataBaseCheckNbRun = QtCore.pyqtSignal(str, int)
+
+    sendStatusBarMessage = QtCore.pyqtSignal(str, str)
 
 
 
@@ -40,15 +42,29 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
         self.databaseAbsPath = databaseAbsPath
         self.nbTotalRun      = nbTotalRun
 
-        self.signals = dataBaseCheckNbRunSignal()
+        self.signal = dataBaseCheckNbRunSignal()
+
+        self._stop = False
 
 
 
     @QtCore.pyqtSlot()
     def run(self):
 
-        QtTest.QTest.qWait(config['delayBetweendataBaseNbRunCheck'])
+        self.signal.sendStatusBarMessage.emit('Ready',
+                                              'green')
+        for twait in range(config['delayBetweendataBaseNbRunCheck']):
+            # We check if the thread ias being stopped
+            if self._stop:
+                return
+            elapsedTime = config['delayBetweendataBaseNbRunCheck']-twait
+            self.signal.sendStatusBarMessage.emit('Ready (Check for new run in {}s)'.format(elapsedTime),
+                                                  'green')
+            QtTest.QTest.qWait(1000)
 
+        # We check if the thread ias being stopped
+        if self._stop:
+            return
         # Queue will contain the nb of run in the database
         queueNbRun: mp.Queue = mp.Queue()
 
@@ -63,10 +79,19 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
         queueNbRun.close()
         queueNbRun.join_thread()
 
+        # We check if the thread ias being stopped
+        if self._stop:
+            return
+
         if self.nbTotalRun<nbTotalRun:
-            self.signals.dataBaseUpdate.emit(self.databaseAbsPath)
+            self.signal.sendStatusBarMessage.emit('New run detected',
+                                                  'orange')
+            QtTest.QTest.qWait(500)
+            self.signal.dataBaseUpdate.emit(self.databaseAbsPath)
         else:
-            self.signals.dataBaseCheckNbRun.emit()
-
-
-
+            self.signal.sendStatusBarMessage.emit('No run detected',
+                                                  'green')
+            QtTest.QTest.qWait(500)
+            # In any case, we rerun the thread
+            self.signal.dataBaseCheckNbRun.emit(self.databaseAbsPath,
+                                                nbTotalRun)

@@ -1,23 +1,48 @@
-# This Python file uses the following encoding: utf-8
+    # This Python file uses the following encoding: utf-8
 from PyQt5 import QtGui, QtCore, QtWidgets
 import numpy as np
 import datetime
-from typing import Tuple, Union
+from typing import Callable, Tuple, Union
 from math import log10
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..ui.plotWidget import PlotWidget
-from ..ui.db_menu_widget import dbMenuWidget
+from ..ui.histogram_lut_widget import HistogramLUTWidget
 from .pyqtgraph import pg
+from ..sources.functions import getDatabaseNameFromAbsPath
 
-class PlotApp(dbMenuWidget):
+class PlotApp():
     """
     Class to handle ploting in 1d.
     """
 
+    # For mypy
+    plotWidget: PlotWidget
+    plotItem: pg.PlotItem
+    checkBoxCrossHair: QtWidgets.QCheckBox
+    pushButtonCopy: QtWidgets.QPushButton
+    winId: Callable
+    frameGeometry: QtCore.QRect
+    tabWidget: QtWidgets.QTabWidget
+    findChildren: Callable
+    config: dict
+    plot2dzLabel: QtWidgets.QLabel
+    histWidget: HistogramLUTWidget
+    plotType: str
+    comboBoxcm: QtWidgets.QComboBox
+    checkBoxLogX: QtWidgets.QCheckBox
+    checkBoxLogY: QtWidgets.QCheckBox
+    labelCoordinate: QtWidgets.QLabel
+    xData: np.ndarray
+    yData: np.ndarray
+    zData: np.ndarray
+    sliceItems: dict
 
-    def __init__(self, databaseAbsPath    : str,) -> None:
+
+    def __init__(self, databaseAbsPath    : str) -> None:
+
+        super(PlotApp, self).__init__()
 
         # Crosshair lines
         self.vLine = None
@@ -38,6 +63,56 @@ class PlotApp(dbMenuWidget):
         self.plotItem.scene().sigMouseMoved.connect(self.mouseMoved)
         self.checkBoxCrossHair.stateChanged.connect(self.checkBoxCrossHairState)
         self.pushButtonCopy.clicked.connect(self.pushButtonCopyClicked)
+
+
+
+    ####################################
+    #
+    #           Click on the plot title
+    #
+    ####################################
+
+
+
+    def clickDb(self, databaseAbsPath: str) -> None:
+
+        self.databaseAbsPath = databaseAbsPath
+        self.menu = QtWidgets.QMenu()
+
+        copyDb = QtWidgets.QAction('Copy dataBase name', self)
+        copyDb.triggered.connect(self.clickTitleCopyDb)
+        self.menu.addAction(copyDb)
+
+        copyDbAbsPath = QtWidgets.QAction('Copy dataBase absolute path', self)
+        copyDbAbsPath.triggered.connect(self.clickTitleCopyDbAbsPath)
+        self.menu.addAction(copyDbAbsPath)
+
+        copyDbRePath = QtWidgets.QAction('Copy dataBase relative path', self)
+        copyDbRePath.triggered.connect(self.clickTitleCopyDbRePath)
+        self.menu.addAction(copyDbRePath)
+
+        self.menu.exec(QtGui.QCursor.pos())
+
+
+
+    def clickTitleCopyDb(self, q:QtWidgets.QAction) -> None:
+
+        cb = QtWidgets.QApplication.clipboard()
+        cb.setText(getDatabaseNameFromAbsPath(self.databaseAbsPath), mode=cb.Clipboard)
+
+
+
+    def clickTitleCopyDbAbsPath(self, q:QtWidgets.QAction) -> None:
+
+        cb = QtWidgets.QApplication.clipboard()
+        cb.setText(self.databaseAbsPath, mode=cb.Clipboard)
+
+
+
+    def clickTitleCopyDbRePath(self, q:QtWidgets.QAction) -> None:
+
+        cb = QtWidgets.QApplication.clipboard()
+        cb.setText('../data/{}'.format(getDatabaseNameFromAbsPath(self.databaseAbsPath)), mode=cb.Clipboard)
 
 
 
@@ -66,7 +141,7 @@ class PlotApp(dbMenuWidget):
         clipboard.setPixmap(pixmap)
 
         self.pushButtonCopy.setText('Copied to clipboard !')
-
+        print('Timer')
         self._clipboardTimer = QtCore.QTimer()
         self._clipboardTimer.timeout.connect(self.pushButtonCopyUpdate)
         self._clipboardTimer.setInterval(2000)
@@ -300,7 +375,7 @@ class PlotApp(dbMenuWidget):
 
             if self.plotType=='1d':
 
-                if self.timestampXAxis:
+                if isinstance(self.plotItem.getAxis('bottom'), pg.DateAxisItem):
                     x = datetime.datetime.utcfromtimestamp(self.mousePos[0]).strftime('%Y-%m-%d %H:%M:%S')
                     self.labelCoordinate.setText('x: {:}<br/>y: {}{:.{nbDecimal}e}'.format(x, spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
                 else:

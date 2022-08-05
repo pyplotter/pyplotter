@@ -6,9 +6,9 @@ import os
 from datetime import datetime
 
 from ..workers.loadDataFromCache import LoadDataFromCacheThread
-from ...ui.dialog_liveplot import Ui_LivePlot
+from ...ui.dialogLiveplot import Ui_LivePlot
 from ..qcodesdatabase import getNbTotalRunAndLastRunName, isRunCompleted
-
+from ...sources.functions import getDatabaseNameFromAbsPath
 
 
 class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
@@ -523,7 +523,7 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         if fname[0]!='':
             self._livePlotDatabasePath = os.path.abspath(fname[0])
-            self._livePlotDataBaseName = os.path.basename(fname[0])[:-3]
+            self._livePlotDataBaseName = getDatabaseNameFromAbsPath(fname[0])
 
             self._livePlotDataBase = initialise_or_create_database_at(self._livePlotDatabasePath)
 
@@ -538,6 +538,7 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             # If the user disable the livePlot previously
             if self.spinBoxLivePlotRefreshRate.value()==0:
                 self.spinBoxLivePlotRefreshRate.setValue(1)
+            print('Timer')
             self._livePlotTimer = QtCore.QTimer()
             self._livePlotTimer.timeout.connect(self.livePlotUpdate)
             self._livePlotTimer.setInterval(self.spinBoxLivePlotRefreshRate.value()*1000)

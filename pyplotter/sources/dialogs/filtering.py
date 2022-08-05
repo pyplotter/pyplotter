@@ -1,57 +1,42 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
-from typing import Callable, Tuple, Any
+from typing import Tuple, Any, Optional
 from scipy.signal import savgol_filter
 
 
 
 
 
-class SavitzkyGolayWindow(QtWidgets.QDialog):
+class SavitzkyGolay(QtWidgets.QDialog):
+
+    # For plot1d GUI
+    checkBoxLabel = 'Savitzky-Golay'
+
+    signalUpdate       = QtCore.pyqtSignal(np.ndarray, np.ndarray, str, str)
+    signalCloseDialog  = QtCore.pyqtSignal(str)
 
 
+    def __init__(self, parent: QtWidgets.QDialog,
+                       xData: np.ndarray,
+                       yData: np.ndarray) -> None:
 
-    def __init__(self, windowsLength        : int,
-                       polyorder            : int,
-                       windowsLengthChanged : Callable[[int, int], None],
-                       polyorderChanged     : Callable[[int], None]) -> None:
-        """
-        QDialog window launched when user filters its data with the
-        Savitzky-Golay filter, see SavitzkyGolay class.
-        Allow user to modify the filter parameters.
-        When user modifies the filter parameter, the filtered data are
-        automaticaly updated by means of the *Changed function.
-
-        Parameters
-        ----------
-        windowsLength : int
-            Initial value of the window length parameter.
-            See SavitzkyGolay class.
-        polyorder : int
-            Initial value of the polyorder parameter.
-            See SavitzkyGolay class.
-        windowsLengthChanged : Callable[[int, int], None]
-            Function called when the window length parameter is changed.
-            See SavitzkyGolay class.
-        polyorderChanged : Callable[[int], None]
-            Function called when the polyorder parameter is changed.
-            See SavitzkyGolay class.
-        """
-
-        QtWidgets.QDialog.__init__(self)
-
+        QtWidgets.QDialog.__init__(self, parent=parent)
 
         self.setMinimumSize(200, 200)
 
         # SavitzkyGolay needs two parameters
+        self.windowLength       = 3
+        self.polyorder          = 1
 
+        self.xData = xData
+        self.yData = yData
 
         spinBoxPolyorder = QtWidgets.QSpinBox()
         spinBoxPolyorder.setMinimum(1)
         spinBoxPolyorder.setMaximum(2)
-        spinBoxPolyorder.setValue(polyorder)
-        spinBoxPolyorder.valueChanged.connect(lambda value: polyorderChanged(value))
+        spinBoxPolyorder.setValue(self.polyorder)
+        spinBoxPolyorder.valueChanged.connect(lambda value: self.polyorderChanged(value))
 
         labePolyorder = QtWidgets.QLabel('Polyorder: ')
 
@@ -65,9 +50,9 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
         spinBoxWindowLenght.setSingleStep(2)
         spinBoxWindowLenght.setMinimum(3)
         spinBoxWindowLenght.setMaximum(10000)
-        spinBoxWindowLenght.setValue(windowsLength)
+        spinBoxWindowLenght.setValue(self.windowLength)
         spinBoxWindowLenght.valueChanged.connect(lambda value,
-                                                        spinBoxPolyorder=spinBoxPolyorder: windowsLengthChanged(value, spinBoxPolyorder))
+                                                        spinBoxPolyorder=spinBoxPolyorder: self.windowLengthChanged(value, spinBoxPolyorder))
 
         labeWindowLength = QtWidgets.QLabel('Window length: ')
 
@@ -90,46 +75,6 @@ class SavitzkyGolayWindow(QtWidgets.QDialog):
 
 
 
-
-class SavitzkyGolay:
-
-
-
-    def __init__(self, xData: np.ndarray,
-                       yData: np.ndarray,
-                       updatePlotDataItem: Callable[[np.ndarray, np.ndarray, str, str, bool], None]=None) -> None:
-        """
-        Instanced when user wants to filter its data using a Savitzky-Golay filter.
-        User can modify the filter parameter by the mean of a QDialog, see
-        SavitzkyGolayWindow class.
-
-        Parameters
-        ----------
-        xData: np.ndarray
-            Array of the selected x axis data
-        yData: np.ndarray
-            Array of the selected y axis data
-        updatePlotDataItem : Callable[[np.ndarray, np.ndarray, str, str, bool], None]
-            Method from Plot1dApp
-        """
-
-        self.xData              = xData
-        self.yData              = yData
-        self.windowLength       = 3
-        self.polyorder          = 1
-        self.updatePlotDataItem = updatePlotDataItem
-
-
-
-    def checkBoxLabel(self) -> str:
-        """
-        Name of the filter displayed in the Plot1dApp.
-        """
-
-        return 'Savitzky-Golay'
-
-
-
     def legend2display(self) -> str:
         """
         Legend of the fitted curve displayed in the Plot1dApp.
@@ -139,7 +84,7 @@ class SavitzkyGolay:
 
 
 
-    def windowsLengthChanged(self, value            : int,
+    def windowLengthChanged(self, value            : int,
                                    spinBoxPolyorder : QtWidgets.QSpinBox) -> None:
         """
         Method called when user press on the spinBoxPolyorder QSpinBox, see
@@ -159,7 +104,7 @@ class SavitzkyGolay:
         self.windowLength = value
         spinBoxPolyorder.setMaximum(value-1)
 
-        self.updateFiltering()
+        self.updateCurve()
 
 
 
@@ -177,26 +122,28 @@ class SavitzkyGolay:
 
         self.polyorder = value
 
-        self.updateFiltering()
+        self.updateCurve()
 
 
 
-    def updateFiltering(self) -> None:
-        """
-        Update the filtered plotDataItem through the Plot1DApp method
-        updatePlotDataItem.
-        """
+    def updateCurve(self, x: Optional[np.ndarray]=None,
+                          y: Optional[np.ndarray]=None) -> None:
 
-        self.updatePlotDataItem(x           = self.xData,
-                                y           = savgol_filter(self.yData,
-                                                            self.windowLength,
-                                                            self.polyorder),
-                                curveId     = 'filtering',
-                                curveLegend = self.legend2display()) # type: ignore
+        if x is not None:
+            self.xData = x
+        if y is not None:
+            self.yData = y
+
+        self.signalUpdate.emit(self.xData,
+                               savgol_filter(self.yData,
+                                             self.windowLength,
+                                             self.polyorder),
+                                'filtering',
+                                self.legend2display())
 
 
 
-    def runFiltering(self) -> Tuple[np.ndarray, Any, SavitzkyGolayWindow, str]:
+    def runFiltering(self) -> Tuple[np.ndarray, Any, str]:
         """
         Filter the data.
 
@@ -206,18 +153,16 @@ class SavitzkyGolay:
             Array of the x axis.
         yFiltered : np.ndarray
             Array of the y axis.
-        filteringWindow :QtWidgets.QDialog
-            Window allowing user to modify filter parameters.
         legend : str
             Legend of the filtered curve.
         """
 
-        filteringWindow  = SavitzkyGolayWindow(self.windowLength,
-                                            self.polyorder,
-                                            self.windowsLengthChanged,
-                                            self.polyorderChanged)
-
-
         return self.xData, savgol_filter(self.yData,
                                          self.windowLength,
-                                         self.polyorder), filteringWindow, self.legend2display()
+                                         self.polyorder), self.legend2display()
+
+
+
+    def closeEvent(self, evnt: QtGui.QCloseEvent) -> None:
+
+        self.signalCloseDialog.emit('filtering')

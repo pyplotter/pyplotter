@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\dialogColormap.ui'
+# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\dialogFontSize.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #
@@ -10,19 +10,19 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_DialogColormap(object):
-    def setupUi(self, DialogColormap):
-        DialogColormap.setObjectName("DialogColormap")
-        DialogColormap.setWindowModality(QtCore.Qt.NonModal)
-        DialogColormap.resize(158, 47)
+class Ui_DialogFontsize(object):
+    def setupUi(self, DialogFontsize):
+        DialogFontsize.setObjectName("DialogFontsize")
+        DialogFontsize.setWindowModality(QtCore.Qt.NonModal)
+        DialogFontsize.resize(158, 47)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(DialogColormap.sizePolicy().hasHeightForWidth())
-        DialogColormap.setSizePolicy(sizePolicy)
-        DialogColormap.setModal(False)
-        self.verticalLayoutWidget = QtWidgets.QWidget(DialogColormap)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(0, 0, 163, 47))
+        sizePolicy.setHeightForWidth(DialogFontsize.sizePolicy().hasHeightForWidth())
+        DialogFontsize.setSizePolicy(sizePolicy)
+        DialogFontsize.setModal(False)
+        self.verticalLayoutWidget = QtWidgets.QWidget(DialogFontsize)
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(0, 0, 158, 47))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
@@ -36,13 +36,20 @@ class Ui_DialogColormap(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.label = QtWidgets.QLabel(self.verticalLayoutWidget)
         self.label.setMinimumSize(QtCore.QSize(0, 0))
-        self.label.setMaximumSize(QtCore.QSize(60, 25))
+        self.label.setMaximumSize(QtCore.QSize(16777215, 25))
         self.label.setObjectName("label")
         self.horizontalLayout.addWidget(self.label)
-        self.comboBoxColormap = QtWidgets.QComboBox(self.verticalLayoutWidget)
-        self.comboBoxColormap.setMaximumSize(QtCore.QSize(85, 16777215))
-        self.comboBoxColormap.setObjectName("comboBoxColormap")
-        self.horizontalLayout.addWidget(self.comboBoxColormap)
+        self.spinBoxFontSize = QtWidgets.QSpinBox(self.verticalLayoutWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.spinBoxFontSize.sizePolicy().hasHeightForWidth())
+        self.spinBoxFontSize.setSizePolicy(sizePolicy)
+        self.spinBoxFontSize.setMinimumSize(QtCore.QSize(0, 0))
+        self.spinBoxFontSize.setMaximumSize(QtCore.QSize(16777215, 25))
+        self.spinBoxFontSize.setMinimum(1)
+        self.spinBoxFontSize.setObjectName("spinBoxFontSize")
+        self.horizontalLayout.addWidget(self.spinBoxFontSize)
         self.verticalLayout.addLayout(self.horizontalLayout)
         self.buttonBox = QtWidgets.QDialogButtonBox(self.verticalLayoutWidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -57,12 +64,13 @@ class Ui_DialogColormap(object):
         self.buttonBox.setObjectName("buttonBox")
         self.verticalLayout.addWidget(self.buttonBox)
 
-        self.retranslateUi(DialogColormap)
-        self.buttonBox.accepted.connect(DialogColormap.accept)
-        self.buttonBox.rejected.connect(DialogColormap.reject)
-        QtCore.QMetaObject.connectSlotsByName(DialogColormap)
+        self.retranslateUi(DialogFontsize)
+        self.buttonBox.accepted.connect(DialogFontsize.accept)
+        self.buttonBox.rejected.connect(DialogFontsize.reject)
+        QtCore.QMetaObject.connectSlotsByName(DialogFontsize)
 
-    def retranslateUi(self, DialogColormap):
+    def retranslateUi(self, DialogFontsize):
         _translate = QtCore.QCoreApplication.translate
-        DialogColormap.setWindowTitle(_translate("DialogColormap", "Colormap"))
-        self.label.setText(_translate("DialogColormap", "colormap:"))
+        DialogFontsize.setWindowTitle(_translate("DialogFontsize", "Font size"))
+        self.label.setText(_translate("DialogFontsize", "Font size:"))
+        self.spinBoxFontSize.setSuffix(_translate("DialogFontsize", "pt"))

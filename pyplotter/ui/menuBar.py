@@ -6,8 +6,8 @@ import os
 from ..sources.config import loadConfigCurrent, updateUserConfig
 config = loadConfigCurrent()
 
-from ..sources.dialogs.dialog_fontsize import MenuDialogFontSize
-from ..sources.dialogs.dialogMenuColormap import DialogMenuColormap
+from ..sources.dialogs.dialogFontsize import MenuDialogFontSize
+from ..sources.dialogs.dialogColormap import DialogMenuColormap
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -19,24 +19,26 @@ class MenuBar(QtWidgets.QMenuBar):
         super(MenuBar, self).__init__(parent)
 
 
-        menuPreferences = self.addMenu('Preferences')
+        self.menuPreferences = self.addMenu('Preferences')
 
-        menuStyle = menuPreferences.addMenu('Style')
-        self.actionqb = menuStyle.addAction('qb')
-        self.actionqdark = menuStyle.addAction('qdark')
-        self.actionwhite = menuStyle.addAction('white')
-        self.actionDefaultPath = menuPreferences.addAction('Select default folder')
+        self.menuStyle = self.menuPreferences.addMenu('Style')
+        self.actionqb = self.menuStyle.addAction('qb')
+        self.actionqdark = self.menuStyle.addAction('qdark')
+        self.actionwhite = self.menuStyle.addAction('white')
+        self.actionDefaultPath = self.menuPreferences.addAction('Select default folder')
+        # self.menuPreferences.addAction(self.menuStyle.menuAction())
 
-        menuPlot = menuPreferences.addMenu('Plot')
-        self.actionAxisLabelColor = menuPlot.addAction('Axis label color')
-        self.actionAxisTickLabelsColor = menuPlot.addAction('Axis tickLabels color')
-        self.actionAxisTicksColor = menuPlot.addAction('Axis ticks color')
-        self.actionTitleColor = menuPlot.addAction('Title color')
-        self.actionFontsize = menuPlot.addAction('Fontsize')
-        self.actionColormap = menuPlot.addAction('Colormap')
+        self.menuPlot = self.menuPreferences.addMenu('Plot')
+        self.actionAxisLabelColor = self.menuPlot.addAction('Axis label color')
+        self.actionAxisTickLabelsColor = self.menuPlot.addAction('Axis tickLabels color')
+        self.actionAxisTicksColor = self.menuPlot.addAction('Axis ticks color')
+        self.actionTitleColor = self.menuPlot.addAction('Title color')
+        self.actionFontsize = self.menuPlot.addAction('Fontsize')
+        self.actionColormap = self.menuPlot.addAction('Colormap')
+        self.menuPreferences.addAction(self.menuPlot.menuAction())
 
-        menuLiveplot    = self.addMenu('Liveplot')
-        self.actionOpenliveplot = menuLiveplot.addAction('Open liveplot')
+        self.menuLiveplot    = self.addMenu('Liveplot')
+        self.actionOpenliveplot = self.menuLiveplot.addAction('Open liveplot')
 
         self.actionqb.triggered.connect(self.menuBackgroundQb)
         self.actionqdark.triggered.connect(self.menuBackgroundQdark)

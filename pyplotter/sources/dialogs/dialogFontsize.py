@@ -1,6 +1,6 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
-from ...ui.dialog_fontsize import Ui_DialogFontsize
+from ...ui.dialogFontsize import Ui_DialogFontsize
 from ..config import updateUserConfig
 
 

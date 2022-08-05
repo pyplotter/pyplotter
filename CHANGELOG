@@ -7,6 +7,7 @@ pyplotter-0.3.4
     - Add possibility to plot 1d curve for different x axis
     - New main window interface
     - New Liveplot interface
+    - Display information about auto database nd of run checking
 
   Bug Fixes:
     - Fix selected data bug when data are invertly sorted
@@ -15,6 +16,7 @@ pyplotter-0.3.4
 
   Others:
     - Database refresh themselves when the nb of run changes
+    - Add latex equation for fit qdialog
 
 
 pyplotter-0.3.3

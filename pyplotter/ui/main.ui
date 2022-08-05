@@ -319,6 +319,21 @@
            </column>
            <column>
             <property name="text">
+             <string>parameter name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>databaseAbsPath</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>dataType</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
              <string>plotted</string>
             </property>
            </column>
@@ -627,6 +642,21 @@
      <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menulol">
+    <property name="title">
+     <string>lol</string>
+    </property>
+    <widget class="QMenu" name="menulola">
+     <property name="title">
+      <string>lola</string>
+     </property>
+     <addaction name="actionlolaa"/>
+     <addaction name="actionlolab"/>
+    </widget>
+    <addaction name="menulola"/>
+    <addaction name="actionlolb"/>
+   </widget>
+   <addaction name="menulol"/>
   </widget>
   <action name="actionqb">
    <property name="checkable">
@@ -709,6 +739,21 @@
   <action name="actionOpenliveplot">
    <property name="text">
     <string>Open liveplot</string>
+   </property>
+  </action>
+  <action name="actionlolb">
+   <property name="text">
+    <string>lolb</string>
+   </property>
+  </action>
+  <action name="actionlolaa">
+   <property name="text">
+    <string>lolaa</string>
+   </property>
+  </action>
+  <action name="actionlolab">
+   <property name="text">
+    <string>lolab</string>
    </property>
   </action>
  </widget>
