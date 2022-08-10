@@ -289,7 +289,6 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-
     def updateListXAxis(self) -> None:
 
         self.comboBoxXAxis.clear()
@@ -331,6 +330,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                units=newXUnits)
 
         self.autoRange()
+
 
 
     ####################################
@@ -474,6 +474,9 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         # we update interaction
         self.interactionUpdateAll()
+
+        # we update the axis
+        self.comboBoxXAxisActivated()
 
 
 
