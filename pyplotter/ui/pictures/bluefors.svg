@@ -30,15 +30,15 @@
    guidetolerance="10"
    inkscape:pageopacity="0"
    inkscape:pageshadow="2"
-   inkscape:window-width="1366"
-   inkscape:window-height="705"
+   inkscape:window-width="1920"
+   inkscape:window-height="1017"
    id="namedview12"
    showgrid="false"
    inkscape:zoom="0.45254834"
-   inkscape:cx="544.03448"
+   inkscape:cx="402.81892"
    inkscape:cy="439.71577"
-   inkscape:window-x="-8"
-   inkscape:window-y="-8"
+   inkscape:window-x="1912"
+   inkscape:window-y="-7"
    inkscape:window-maximized="1"
    inkscape:current-layer="svg10" />
 <metadata
@@ -48,7 +48,7 @@
 
 <text
    xml:space="preserve"
-   style="font-style:normal;font-weight:normal;font-size:795.934021px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:19.89834976;"
+   style="font-style:normal;font-weight:normal;font-size:795.934021px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#00ffff;fill-opacity:1;stroke:#0000ff;stroke-width:19.89834976;"
    x="-41.37505"
    y="784.87286"
    id="text4524"><tspan
@@ -56,6 +56,7 @@
      id="tspan4522"
      x="-41.37505"
      y="784.87286"
-     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Arial;-inkscape-font-specification:'Arial Bold';fill:#ffffff;stroke:#ffffff;stroke-width:19.89834976;">BF</tspan></text>
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Arial;-inkscape-font-specification:'Arial Bold';fill:#00ffff;stroke:#0000ff;stroke-width:19.89834976;">BF</tspan></text>
+
 
 </svg>
