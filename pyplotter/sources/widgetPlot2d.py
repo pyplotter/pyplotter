@@ -29,8 +29,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     signal2MainWindowAddPlot     = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
 
-    # signalGet1dColorIndex     = QtCore.pyqtSignal(str, str, str, str, str)
-    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray)
+    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
     signalRemoveCurve  = QtCore.pyqtSignal(str, str)
 
 
@@ -586,18 +585,21 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         sliceItem.curveId, # curveId
                                         sliceLegend, # curveLegend
                                         sliceX[0], # x
-                                        sliceY) # y
+                                        sliceY, # y
+                                        False) # autorange
             self.signalUpdateCurve.emit(self.plotRef+sliceOrientation+'vertical', # plotRef
                                         sliceItem.curveId, # curveId
                                         sliceLegend, # curveLegend
                                         sliceX[1], # x
-                                        sliceY) # y
+                                        sliceY, # y
+                                        False) # autorange
         else:
             self.signalUpdateCurve.emit(self.plotRef+sliceOrientation, # plotRef
                                         sliceItem.curveId, # curveId
                                         sliceLegend, # curveLegend
                                         sliceX, # x
-                                        sliceY) # y
+                                        sliceY, # y
+                                        False) # autorange
 
         # We update the label of the infinity line with the value corresponding
         # to the cut
@@ -1559,7 +1561,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.maximumCurveId,
                                         '',
                                         x,
-                                        y)
+                                        y,
+                                        False)
 
 
 
@@ -1621,7 +1624,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.minimumCurveId,
                                         '',
                                         x,
-                                        y)
+                                        y,
+                                        False)
 
 
 

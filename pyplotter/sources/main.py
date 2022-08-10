@@ -549,12 +549,13 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
 
 
-    QtCore.pyqtSlot(str, str, str, np.ndarray, np.ndarray)
+    QtCore.pyqtSlot(str, str, str, np.ndarray, np.ndarray, bool)
     def slotUpdateCurve(self, plotRef: str,
                               curveId: str,
                               curveLegend: str,
                               x: np.ndarray,
-                              y: np.ndarray) -> None:
+                              y: np.ndarray,
+                              autoRange: bool) -> None:
 
         if len(x)!=len(y):
             self.signalSendStatusBarMessage('Curve update failed: x and y do not have the same length',
@@ -564,7 +565,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
                                                        y,
                                                        curveId,
                                                        curveLegend,
-                                                       True)
+                                                       autoRange)
 
 
 
@@ -619,7 +620,8 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
             # If sub-interaction plot, we uncheck all curves from the plot
             if curveType in plotRef:
-                self._plotRefs[plotRef[:-len(curveType)]].interactionCurveClose(curveType)
+                if plotRef[:-len(curveType)] in self._plotRefs.keys():
+                    self._plotRefs[plotRef[:-len(curveType)]].interactionCurveClose(curveType)
 
             # If mother plot, we close all sub-interaction plot
             if plotRef+curveType in self._plotRefs.keys():

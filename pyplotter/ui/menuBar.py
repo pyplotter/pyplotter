@@ -19,7 +19,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
     signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
-    signalUpdateCurve          = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray)
+    signalUpdateCurve          = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
     signalUpdate2d             = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
     signalUpdatePlotProperty   = QtCore.pyqtSignal(str, str, str)
 

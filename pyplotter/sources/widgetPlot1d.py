@@ -27,7 +27,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     signalRemovePlotRef  = QtCore.pyqtSignal(str)
 
     signalClose1dPlot  = QtCore.pyqtSignal(str)
-    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray)
+    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
 
     signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
@@ -303,7 +303,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-    def comboBoxXAxisActivated(self) -> None:
+    def comboBoxXAxisActivated(self, autoRange: bool=False) -> None:
 
         # Get a curve containing the data to update the plot
         # Either in its x or y axis
@@ -330,7 +330,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                text =newXLabel,
                                units=newXUnits)
 
-        self.autoRange()
+        if autoRange:
+            self.autoRange()
 
 
 
@@ -430,7 +431,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                  y                  : np.ndarray,
                                  curveId            : str,
                                  curveLegend        : str,
-                                 autoRange          : bool=False) -> None:
+                                 autoRange          : bool) -> None:
         """
         Method called by a plot2d when use drag a sliceLine.
         Updating an existing plotDataItem and the plot legendItem
@@ -476,7 +477,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.interactionUpdateAll()
 
         # we update the axis
-        self.comboBoxXAxisActivated()
+        self.comboBoxXAxisActivated(autoRange)
 
 
 
@@ -1117,7 +1118,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.fftCurveId,
                                         '',
                                         x,
-                                        y)
+                                        y,
+                                        False)
 
 
 
@@ -1174,7 +1176,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.fftNoDcCurveId,
                                         '',
                                         x,
-                                        y)
+                                        y,
+                                        False)
 
 
 
@@ -1231,8 +1234,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.ifftCurveId,
                                         '',
                                         x,
-                                        y)
-
+                                        y,
+                                        False)
 
 
     def clickIFFT(self) -> None:
@@ -1292,7 +1295,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.unwrapCurveId,
                                         '',
                                         x,
-                                        y)
+                                        y,
+                                        False)
 
 
 
@@ -1345,7 +1349,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.removeSlopeCurveId,
                                         '',
                                         x,
-                                        y)
+                                        y,
+                                        False)
 
 
 
@@ -1405,7 +1410,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.differentiateCurveId,
                                         '',
                                         x,
-                                        y)
+                                        y,
+                                        False)
 
 
 
@@ -1466,7 +1472,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.integrateCurveId,
                                         '',
                                         x,
-                                        y)
+                                        y,
+                                        False)
 
 
 
@@ -1539,7 +1546,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.statisticsCurveId,
                                         '',
                                         x,
-                                        y)
+                                        y,
+                                        False)
 
 
     def statisticsUpdateLabel(self) -> None:

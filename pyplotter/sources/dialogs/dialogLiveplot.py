@@ -20,7 +20,7 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
     signal2MainWindowAddPlot = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
-    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray)
+    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
     signalUpdate2d = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
     signalUpdatePlotProperty = QtCore.pyqtSignal(str, str, str)
 
@@ -52,15 +52,10 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self.spinBoxLivePlotRefreshRate.setValue(int(config['livePlotTimer']))
         self.spinBoxLivePlotRefreshRate.valueChanged.connect(self.livePlotSpinBoxChanged)
 
-        # Will contain the timer updating the liveplot
-        # self._livePlotTimer      = None
-
-        # Will contain the timer updating the "last time update" of the display
-        # self._livePlotClockTimer = None
-
         self.threadpool = QtCore.QThreadPool()
 
         self.show()
+
 
 
 
@@ -150,11 +145,13 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
                                     name=yParamName,
                                     runId=self._livePlotRunId)
+
                 self.signalUpdateCurve.emit(plotRef,
                                             curveId,
                                             yParamName,
                                             data[0],
-                                            data[1])
+                                            data[1],
+                                            self.checkBoxLiveplotAutorange.isChecked())
             # 2d plot
             elif len(data)==3:
 
@@ -514,7 +511,7 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             # If the user disable the livePlot previously
             if self.spinBoxLivePlotRefreshRate.value()==0:
                 self.spinBoxLivePlotRefreshRate.setValue(1)
-            print('Timer')
+
             self._livePlotTimer = QtCore.QTimer()
             self._livePlotTimer.timeout.connect(self.livePlotUpdate)
             self._livePlotTimer.setInterval(self.spinBoxLivePlotRefreshRate.value()*1000)
