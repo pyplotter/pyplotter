@@ -303,7 +303,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-    def comboBoxXAxisActivated(self, index:int) -> None:
+    def comboBoxXAxisActivated(self) -> None:
 
         # Get a curve containing the data to update the plot
         # Either in its x or y axis
