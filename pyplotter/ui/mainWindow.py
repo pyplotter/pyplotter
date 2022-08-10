@@ -331,13 +331,13 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "records"))
         item = self.tableWidgetDataBase.horizontalHeaderItem(8)
         item.setText(_translate("MainWindow", "dataBaseAbsPath"))
-from ..ui.checkBoxHidden import CheckBoxHidden
-from ..ui.labelSnapshot import LabelSnapshot
-from ..ui.lineEditSnapshot import LineEditSnapshot
-from ..ui.menuBar import MenuBar
-from ..ui.pushButtonOpenFolder import pushButtonOpenFolder
-from ..ui.statusBar import StatusBar
-from ..ui.tableWidgetDatabase import TableWidgetDatabase
-from ..ui.tableWidgetFolder import TableWidgetFolder
-from ..ui.tableWidgetParameter import TableWidgetParameter
-from ..ui.treeViewSnapshot import TreeViewSnapshot
+from .checkBoxHidden import CheckBoxHidden
+from .labelSnapshot import LabelSnapshot
+from .lineEditSnapshot import LineEditSnapshot
+from .menuBar import MenuBar
+from .pushButtonOpenFolder import pushButtonOpenFolder
+from .statusBar import StatusBar
+from .tableWidgetDatabase import TableWidgetDatabase
+from .tableWidgetFolder import TableWidgetFolder
+from .tableWidgetParameter import TableWidgetParameter
+from .treeViewSnapshot import TreeViewSnapshot

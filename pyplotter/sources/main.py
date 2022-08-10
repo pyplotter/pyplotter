@@ -2,26 +2,24 @@
 import os
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
-from typing import Optional, Tuple
+from typing import Tuple
 
-from ..ui.hBoxLayoutLabelPath import HBoxLayoutLabelPath
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
-from .plot_1d_app import Plot1dApp
-from .plot_2d_app import Plot2dApp
-from ..ui import main
-from ..sources.dialogs.dialogLiveplot import MenuDialogLiveplot
+from .widgetPlot1d import WidgetPlot1d
+from .widgetPlot2d import WidgetPlot2d
+from ..ui import mainWindow
+from ..ui.hBoxLayoutLabelPath import HBoxLayoutLabelPath
 from ..sources.widgetCSV import WidgetCSV
 from ..sources.widgetBlueFors import WidgetBlueFors
-from .pyqtgraph import pg
-from .functions import getCurveId
+
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../ui/pictures/')
 
 
-class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
+class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
     signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
@@ -141,81 +139,21 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.tableWidgetParameter.signalLabelSnapshotEnabled.connect(self.labelSnapshot.enabled)
         self.tableWidgetParameter.signalUpdateLabelCurrentSnapshot.connect(self.labelCurrentSnapshot.setText)
         self.tableWidgetParameter.signalUpdateLabelCurrentRun.connect(self.labelCurrentRun.setText)
-        # self.tableWidgetParameter.signalAddPlotToRefs.connect(self.addPlotToRefs)
         self.tableWidgetParameter.signalLoadedDataFull.connect(self.loadedDataFull)
         self.tableWidgetParameter.signalLoadedDataEmpty.connect(self.loadedDataEmpty)
         self.tableWidgetParameter.signalCSVLoadData.connect(self.widgetCSV.loadData)
         self.tableWidgetParameter.signalBlueForsLoadData.connect(self.widgetBlueFors.loadData)
         self.tableWidgetParameter.signaladdRow.connect(self.addRow)
         self.tableWidgetParameter.first_call()
-        # self.tableWidgetParameter.signalAddCurveToRefs.connect(self.addCurveToRefs)
-
-
-
 
         # References of all opened plot window.
         # Structure:
-        # {plotRef : plotApp}
+        # {plotRef : WidgetPlot}
         self._plotRefs = {}
-
-        # {curveRefs : curve}
-        self._curveRefs = {}
-
-        # Attribute to control the display of data file info when user click of put focus on a item list
-        self._folderUpdating  = False # To avoid calling the signal when updating folder content
-        self._guiInitialized = True # To avoid calling the signal when starting the GUI
-
-
-        # Flag
-        # self._progressBars = {}
-        self._databaseClicking = False  # To avoid the opening of two database as once
-
-        self._currentDatabase    = None
-
-        # Handle connection and requests to qcodes database
-        # self.qcodesDatabase = QcodesDatabase(self.setStatusBarMessage)
-        # Handle log files from bluefors fridges
-        # self.LoadBlueFors = LoadBlueFors(self)
-        # Handle csv files
-        # self.LoadCSV      = LoadCSV(self)
 
         self.threadpool = QtCore.QThreadPool()
 
         self.signalSendStatusBarMessage.emit('Ready', 'green')
-
-
-    ###########################################################################
-    #
-    #
-    #                           Folder browsing
-    #
-    #
-    ###########################################################################
-
-
-    @QtCore.pyqtSlot(dict)
-    def updateStyle(self, newConfig: dict) -> None:
-        """
-        Update the style of the full app.
-
-        Args:
-            newConfig: New configuration dict containing the style to be applied.
-        """
-
-        if newConfig['style']=='qdarkstyle':
-            import qdarkstyle
-            self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-        elif newConfig['style']=='qbstyles':
-            import qdarkstyle
-            self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-        elif newConfig['style']=='white':
-            self.qapp.setStyleSheet(self.qapp.setStyle('Oxygen'))
-
-        if len(self._plotRefs) > 0:
-
-            for plot in self._plotRefs.values():
-                plot.config = newConfig
-                plot.updateStyle()
 
 
 
@@ -271,6 +209,31 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                rowPosition,
                                parameterPlotted)
 
+
+
+    @QtCore.pyqtSlot(dict)
+    def updateStyle(self, newConfig: dict) -> None:
+        """
+        Update the style of the full app.
+
+        Args:
+            newConfig: New configuration dict containing the style to be applied.
+        """
+
+        if newConfig['style']=='qdarkstyle':
+            import qdarkstyle
+            self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        elif newConfig['style']=='qbstyles':
+            import qdarkstyle
+            self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        elif newConfig['style']=='white':
+            self.qapp.setStyleSheet(self.qapp.setStyle('Oxygen'))
+
+        if len(self._plotRefs) > 0:
+
+            for plot in self._plotRefs.values():
+                plot.config = newConfig
+                plot.updateStyle()
 
 
 
@@ -378,7 +341,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.signalEnableCheck.emit(cb)
 
         self.signalRunClickDone.emit()
-
 
 
 
@@ -490,11 +452,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         if len(data)==2:
 
             # If the plotRef is not stored we launched a new window
-            # Otherwise we add a new PlotDataItem on an existing plot1dApp
+            # Otherwise we add a new PlotDataItem on an existing WidgetPlot1d
             if plotRef not in self._plotRefs:
 
 
-                p = Plot1dApp(x                  = data[0],
+                p = WidgetPlot1d(x                  = data[0],
                               y                  = data[1],
                               title              = plotTitle,
                               xLabelText         = xLabelText,
@@ -546,9 +508,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # 2D plot
         elif len(data)==3:
 
-            # Determine if we should open a new Plot2dApp
+            # Determine if we should open a new WidgetPlot2d
             if plotRef not in self._plotRefs:
-                p = Plot2dApp(x               = data[0],
+                p = WidgetPlot2d(x               = data[0],
                               y               = data[1],
                               z               = data[2],
                               title           = plotTitle,
@@ -574,8 +536,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                 self._plotRefs[plotRef].show()
 
         self.signalSendStatusBarMessage.emit('Ready', 'green')
-
-        # self.signalAddCurveToRefs.emit(plotRef, self._plotRefs[plotRef].curves[curveId])
 
 
 

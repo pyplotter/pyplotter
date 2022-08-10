@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
 from math import log10
-from typing import Callable, Union, Tuple, Optional, List
+from typing import Union, Tuple, List
 import os
 import numpy as np
 import pandas as pd
@@ -11,10 +11,10 @@ config = loadConfigCurrent()
 
 
 
-def _parse_number(number: float,
-                  precision: int,
-                  inverse: bool=False,
-                  unified: bool=False) -> Union[str, Tuple[str, str]]:
+def parse_number(number: float,
+                 precision: int,
+                 inverse: bool=False,
+                 unified: bool=False) -> Union[str, Tuple[str, str]]:
     """
     Return a number parsed form human reading with SI prefix
     Example:

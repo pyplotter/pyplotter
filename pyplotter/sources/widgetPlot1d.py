@@ -2,22 +2,21 @@
 from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
-from typing import List, Union, Callable, Optional, Tuple, Dict
+from typing import List, Union, Optional, Tuple, Dict
 import inspect
 from scipy.integrate import cumtrapz
-import os
 
 
-from ..ui.plot1dWidget import Ui_Dialog
+from ..ui.widgetPlot1d import Ui_Dialog
 from .config import loadConfigCurrent
-from .plot_app import PlotApp
-from . import fit
+from .widgetPlot import WidgetPlot
+from .dialogs import dialogFit
 from .dialogs import dialogFiltering
-from .functions import _parse_number, getDatabaseNameFromAbsPath, getCurveColorIndex
+from .functions import parse_number, getDatabaseNameFromAbsPath, getCurveColorIndex
 from .pyqtgraph import pg
 
 
-class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
+class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     """
     Class to handle ploting in 1d.
     """
@@ -226,7 +225,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         self.resize(*self.config['dialogWindowSize'])
 
-        PlotApp.__init__(self, databaseAbsPath=databaseAbsPath)
+        WidgetPlot.__init__(self, databaseAbsPath=databaseAbsPath)
 
         self.show()
 
@@ -737,7 +736,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def updatePlottedCurvesList(self, plots: List[Plot1dApp]) -> None:
+    def updatePlottedCurvesList(self, plots: List[WidgetPlot1d]) -> None:
         """
         Is called by the Main object when the user plots a new 1d curve.
         Build a list of checkbox related to every already plotted curve and
@@ -745,7 +744,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         Parameters
         ----------
-        plots : List[Plot1dApp]
+        plots : List[WidgetPlot1d]
             List containing all the 1d plot window currently displayed.
         """
 
@@ -861,7 +860,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     def toggleNewPlot(self, state: bool,
                             runId: str,
                             curveId: str,
-                            plot: Plot1dApp) -> None:
+                            plot: WidgetPlot1d) -> None:
         """
         Called when user click on the checkbox of the curves tab.
         Add or remove curve in the plot window.
@@ -874,8 +873,8 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Id of the qcodes run, 0 if the curve is not from qcodes.
         curveId : str
             Id of the curve related to the checkbox, see getCurveId in the mainApp.
-        plot : Plot1dApp
-            Plot1dApp where the curve comes from.
+        plot : WidgetPlot1d
+            WidgetPlot1d where the curve comes from.
         """
 
         if state:
@@ -1551,11 +1550,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             # We add some statistics info on the GUI
             txt = 'mean: {}{}<br/>'\
                   'std: {}{}<br/>'\
-                  'median: {}{}'.format(_parse_number(mean, self.config['fitParameterNbNumber'], unified=True),
+                  'median: {}{}'.format(parse_number(mean, self.config['fitParameterNbNumber'], unified=True),
                                         xLabelUnits,
-                                        _parse_number(std, self.config['fitParameterNbNumber'], unified=True),
+                                        parse_number(std, self.config['fitParameterNbNumber'], unified=True),
                                         xLabelUnits,
-                                        _parse_number(median, self.config['fitParameterNbNumber'], unified=True),
+                                        parse_number(median, self.config['fitParameterNbNumber'], unified=True),
                                         xLabelUnits)
 
             self.statisticsLabel.setText(txt)
@@ -1974,12 +1973,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
 
         # Get list of fit model
-        listClasses = [m[0] for m in inspect.getmembers(fit, inspect.isclass) if 'getInitialParams' in [*m[1].__dict__.keys()]]
+        listClasses = [m[0] for m in inspect.getmembers(dialogFit, inspect.isclass) if 'getInitialParams' in [*m[1].__dict__.keys()]]
         # Add a radio button for each model of the list
         self.fitModelButtonGroup = QtWidgets.QButtonGroup()
         for i, j in enumerate(listClasses):
 
-            _class = getattr(fit, j)
+            _class = getattr(dialogFit, j)
 
             font = QtGui.QFont()
             font.setPointSize(8)
@@ -2011,7 +2010,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         radioButton.setChecked(True)
 
         # Find which model has been chosed and instance it
-        _class = getattr(fit, radioButton.fitModel)
+        _class = getattr(dialogFit, radioButton.fitModel)
         dialog = _class(parent=self,
                         xData=self.selectedX,
                         yData=self.selectedY,

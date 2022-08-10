@@ -7,12 +7,12 @@ import os
 from scipy.signal import hilbert
 from typing import Tuple, Optional
 
-from .config import loadConfigCurrent
+from ..config import loadConfigCurrent
 config = loadConfigCurrent()
-from .functions import _parse_number
+from ..functions import parse_number
 
 LOC = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-JSPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'mathjax', 'tex-chtml.js')
+JSPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', 'mathjax', 'tex-chtml.js')
 
 
 
@@ -704,10 +704,10 @@ class ResonanceDipdB(Fit1d):
 
         return 'f0={}{}<br/>'\
                'qi={}<br/>'\
-               'qc={}'.format(_parse_number(p['f0'].value, config['fitParameterNbNumber'], unified=True),
+               'qc={}'.format(parse_number(p['f0'].value, config['fitParameterNbNumber'], unified=True),
                                 self.xUnits,
-                                _parse_number(p['qi'].value, config['fitParameterNbNumber'], unified=True),
-                                _parse_number(p['qc'].value, config['fitParameterNbNumber'], unified=True))
+                                parse_number(p['qi'].value, config['fitParameterNbNumber'], unified=True),
+                                parse_number(p['qc'].value, config['fitParameterNbNumber'], unified=True))
 
 
 
@@ -817,13 +817,13 @@ class LorentzianPeak(Fit1d):
         return 'background={}{}<br/>'\
                'center    ={}{}<br/>'\
                'fwhm      ={}{}<br/>'\
-               'height    ={}{}'.format(_parse_number(p['background'].value, config['fitParameterNbNumber'], unified=True),
+               'height    ={}{}'.format(parse_number(p['background'].value, config['fitParameterNbNumber'], unified=True),
                                         self.yUnits,
-                                        _parse_number(p['center'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(p['center'].value, config['fitParameterNbNumber'], unified=True),
                                         self.xUnits,
-                                        _parse_number(p['fwhm'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(p['fwhm'].value, config['fitParameterNbNumber'], unified=True),
                                         self.xUnits,
-                                        _parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
                                         self.yUnits)
 
 
@@ -931,13 +931,13 @@ class LorentzianDip(Fit1d):
         return 'background={}{}<br/>'\
                'center    ={}{}<br/>'\
                'fwhm      ={}{}<br/>'\
-               'height    ={}{}'.format(_parse_number(p['background'].value, config['fitParameterNbNumber'], unified=True),
+               'height    ={}{}'.format(parse_number(p['background'].value, config['fitParameterNbNumber'], unified=True),
                                         self.yUnits,
-                                        _parse_number(p['center'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(p['center'].value, config['fitParameterNbNumber'], unified=True),
                                         self.xUnits,
-                                        _parse_number(p['fwhm'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(p['fwhm'].value, config['fitParameterNbNumber'], unified=True),
                                         self.xUnits,
-                                        _parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
                                         self.yUnits)
 
 
@@ -1052,14 +1052,14 @@ class GaussianPeak(Fit1d):
                'fwhm      ={}{}<br/>'\
                'sigma     ={}{}<br/>'\
                'SNR       ={}  <br/>'\
-               'height    ={}{}'.format(_parse_number(p['background'].value, config['fitParameterNbNumber'], unified=True),
+               'height    ={}{}'.format(parse_number(p['background'].value, config['fitParameterNbNumber'], unified=True),
                                         self.yUnits,
-                                        _parse_number(p['center'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(p['center'].value, config['fitParameterNbNumber'], unified=True),
                                         self.xUnits,
-                                        _parse_number(p['fwhm'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(p['fwhm'].value, config['fitParameterNbNumber'], unified=True),
                                         self.xUnits,
-                                        _parse_number(self.fwhm2sigma(p['fwhm']), config['fitParameterNbNumber'], unified=True),
+                                        parse_number(self.fwhm2sigma(p['fwhm']), config['fitParameterNbNumber'], unified=True),
                                         self.xUnits,
-                                        _parse_number(self.fwhm2sigma(p['fwhm'])/p['center'].value, config['fitParameterNbNumber'], unified=True),
-                                        _parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(self.fwhm2sigma(p['fwhm'])/p['center'].value, config['fitParameterNbNumber'], unified=True),
+                                        parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
                                         self.yUnits)

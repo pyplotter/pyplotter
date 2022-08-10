@@ -76,7 +76,7 @@ class SavitzkyGolay(QtWidgets.QDialog):
 
     def legend2display(self) -> str:
         """
-        Legend of the fitted curve displayed in the Plot1dApp.
+        Legend of the fitted curve displayed in the WidgetPlot1d.
         """
 
         return 'Savitzky-Golay: wl='+str(self.windowLength)+', po='+str(self.polyorder)

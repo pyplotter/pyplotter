@@ -4,7 +4,7 @@ import multiprocess as mp
 
 from ..config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..qcodesdatabase import getRunInfosmp
+from ..qcodesDatabase import getRunInfosmp
 
 class LoadDataBaseSignal(QtCore.QObject):
     """

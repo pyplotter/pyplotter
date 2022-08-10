@@ -8,7 +8,7 @@ from typing import Tuple
 
 from ..workers.loadDataFromCache import LoadDataFromCacheThread
 from ...ui.dialogLiveplot import Ui_LivePlot
-from ..qcodesdatabase import getNbTotalRunAndLastRunName, isRunCompleted
+from ..qcodesDatabase import getNbTotalRunAndLastRunName, isRunCompleted
 from ...sources.functions import (getDatabaseNameFromAbsPath,
                                   getCurveId,
                                   getWindowTitle,

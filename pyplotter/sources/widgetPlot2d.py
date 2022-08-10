@@ -5,17 +5,16 @@ from typing import Union, Tuple, Optional, List, Dict
 from math import atan2
 import uuid
 
-from ..ui.plot2dWidget import Ui_Dialog
+from ..ui.widgetPlot2d import Ui_Dialog
 from . import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
-from .plot_app import PlotApp
-from .plot_1d_app import Plot1dApp
+from .widgetPlot import WidgetPlot
 from .config import loadConfigCurrent
-from ..sources.functions import getCurveColorIndex, hex_to_rgba
+from .functions import getCurveColorIndex, hex_to_rgba
 from .pyqtgraph import pg
+from .functions import parse_number
 
 
-
-class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
+class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     """
     Class to handle ploting in 2d.
     """
@@ -56,7 +55,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         stuff happening.
         The class allows interactivity with the colormap in particular some data
         treatment launch 1dplot through the main app to keep plot references
-        updated, see Plot1dApp.
+        updated, see WidgetPlot1d.
 
         Parameters
         ----------
@@ -243,7 +242,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.comboBoxcm.currentIndexChanged.connect(self.comboBoxcmChanged)
 
         # Should be initialize last
-        PlotApp.__init__(self, databaseAbsPath)
+        WidgetPlot.__init__(self, databaseAbsPath)
 
         self.show()
 
@@ -845,18 +844,18 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 sliceX        = self.yData
                 sliceY        = self.zData[n]
                 sliceLegend   = '{} = {}{}'.format(self.plotItem.axes['bottom']['item'].labelText,
-                                                   self._parse_number(self.xData[n], 3, unified=True),
+                                                   parse_number(self.xData[n], 3, unified=True),
                                                    self.plotItem.axes['bottom']['item'].labelUnits)
-                sliceLabel = '{}{}'.format(self._parse_number(self.xData[n], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits)
+                sliceLabel = '{}{}'.format(parse_number(self.xData[n], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits)
             elif orientation=='horizontal':
 
                 n = np.abs(self.yData-ySlice).argmin()
                 sliceX        = self.xData
                 sliceY        = self.zData[:,n]
                 sliceLegend   = '{} = {}{}'.format(self.plotItem.axes['left']['item'].labelText,
-                                                   self._parse_number(self.yData[n], 3, unified=True),
+                                                   parse_number(self.yData[n], 3, unified=True),
                                                    self.plotItem.axes['left']['item'].labelUnits)
-                sliceLabel = '{}{}'.format(self._parse_number(self.yData[n], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits)
+                sliceLabel = '{}{}'.format(parse_number(self.yData[n], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits)
             else:
                 # Greatly inspired from
                 # https://stackoverflow.com/questions/7878398/how-to-extract-an-arbitrary-line-of-values-from-a-numpy-array
@@ -898,10 +897,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 # print(yy)
                 # sliceX = yy
 
-                sliceLegend = 'From ({}{}, {}{}) to ({}{}, {}{})'.format(self._parse_number(xSlice[0], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,
-                                                                         self._parse_number(ySlice[0], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits,
-                                                                         self._parse_number(xSlice[1], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,
-                                                                         self._parse_number(ySlice[1], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits,)
+                sliceLegend = 'From ({}{}, {}{}) to ({}{}, {}{})'.format(parse_number(xSlice[0], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                         parse_number(ySlice[0], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits,
+                                                                         parse_number(xSlice[1], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                         parse_number(ySlice[1], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits,)
                 sliceLabel = ''
 
         # If averaged  slice
@@ -920,15 +919,15 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 sliceX        = self.yData
                 sliceY        = np.mean(self.zData[nmin:nmax], axis=0)
                 sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.plotItem.axes['bottom']['item'].labelText,
-                                                                                         self._parse_number(self.xData[nmin], 3, unified=True),
+                                                                                         parse_number(self.xData[nmin], 3, unified=True),
                                                                                          self.plotItem.axes['bottom']['item'].labelUnits,
-                                                                                         self._parse_number(self.xData[nmax], 3, unified=True),
+                                                                                         parse_number(self.xData[nmax], 3, unified=True),
                                                                                          self.plotItem.axes['bottom']['item'].labelUnits,
-                                                                                         self._parse_number((self.xData[nmin]+self.xData[nmax])/2, 3, unified=True),
+                                                                                         parse_number((self.xData[nmin]+self.xData[nmax])/2, 3, unified=True),
                                                                                          self.plotItem.axes['bottom']['item'].labelUnits,
                                                                                          int(nmax-nmin))
-                sliceLabel = ('{}{}'.format(self._parse_number(self.xData[nmin], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits),
-                              '{}{}'.format(self._parse_number(self.xData[nmax], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits))
+                sliceLabel = ('{}{}'.format(parse_number(self.xData[nmin], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits),
+                              '{}{}'.format(parse_number(self.xData[nmax], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits))
             else:
 
                 nmin = np.abs(self.yData-ySlice[0]).argmin()
@@ -942,15 +941,15 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 sliceX        = self.xData
                 sliceY        = np.mean(self.zData[:,nmin:nmax], axis=1)
                 sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.plotItem.axes['left']['item'].labelText,
-                                                                                         self._parse_number(self.yData[nmin], 3, unified=True),
+                                                                                         parse_number(self.yData[nmin], 3, unified=True),
                                                                                          self.plotItem.axes['left']['item'].labelUnits,
-                                                                                         self._parse_number(self.yData[nmax], 3, unified=True),
+                                                                                         parse_number(self.yData[nmax], 3, unified=True),
                                                                                          self.plotItem.axes['left']['item'].labelUnits,
-                                                                                         self._parse_number((self.yData[nmin]+self.yData[nmax])/2, 3, unified=True),
+                                                                                         parse_number((self.yData[nmin]+self.yData[nmax])/2, 3, unified=True),
                                                                                          self.plotItem.axes['left']['item'].labelUnits,
                                                                                          int(nmax-nmin))
-                sliceLabel = ('{}{}'.format(self._parse_number(self.yData[nmin], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits),
-                              '{}{}'.format(self._parse_number(self.yData[nmax], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits))
+                sliceLabel = ('{}{}'.format(parse_number(self.yData[nmin], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits),
+                              '{}{}'.format(parse_number(self.yData[nmax], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits))
 
         return sliceX, sliceY, sliceLegend, sliceLabel
 

@@ -4,7 +4,7 @@ import numpy as np
 from typing import Tuple, Optional
 import multiprocessing as mp
 
-from ..qcodesdatabase import getParameterDatamp, getParameterInfo
+from ..qcodesDatabase import getParameterDatamp, getParameterInfo
 from ..config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..functions import findXYIndex, shapeData2d, make_grid

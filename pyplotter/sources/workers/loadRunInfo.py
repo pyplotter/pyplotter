@@ -3,7 +3,7 @@ from PyQt5 import QtCore
 
 from ..config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..qcodesdatabase import getDependentSnapshotFromRunId
+from ..qcodesDatabase import getDependentSnapshotFromRunId
 
 
 class LoadRunInfoSignal(QtCore.QObject):

@@ -6,7 +6,7 @@ from time import time
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..sources.runpropertiesextra import RunPropertiesExtra
+from ..sources.runPropertiesExtra import RunPropertiesExtra
 from ..sources.functions import clearTableWidget, isBlueForsFolder, sizeof_fmt
 
 # Get the folder path for pictures

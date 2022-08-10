@@ -4,7 +4,7 @@ import multiprocess as mp
 
 from ..config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..qcodesdatabase import getNbTotalRunmp
+from ..qcodesDatabase import getNbTotalRunmp
 
 class dataBaseCheckNbRunSignal(QtCore.QObject):
     """

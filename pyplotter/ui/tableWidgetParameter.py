@@ -11,7 +11,7 @@ from ..sources.functions import (clearTableWidget,
                                  getPlotRef,
                                  getPlotTitle,
                                  getWindowTitle)
-from ..sources.plot_app import PlotApp
+from ..sources.widgetPlot import WidgetPlot
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')

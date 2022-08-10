@@ -6,7 +6,7 @@ from time import time
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..sources.runpropertiesextra import RunPropertiesExtra
+from ..sources.runPropertiesExtra import RunPropertiesExtra
 from .tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
 from ..sources.workers.loadDataBase import LoadDataBaseThread
 from ..sources.workers.loadRunInfo import LoadRunInfoThread
