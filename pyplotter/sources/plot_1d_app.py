@@ -219,7 +219,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                              curveXUnits        = xLabelUnits,
                              curveYLabel        = yLabelText,
                              curveYUnits        = yLabelUnits,
-                             curveLegend        = curveLegend,)
+                             curveLegend        = curveLegend)
 
         # AutoRange only after the first data item is added
         self.autoRange()

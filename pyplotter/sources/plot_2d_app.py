@@ -134,14 +134,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.sliceItems = {}
         self.sliceOrientation = 'vertical'
 
-        # Store the isoCurve and isoLine object
-        self.isoCurve = None
-        self.isoLine  = None
-
-        # Reference to the extracted window
-        self.extractionWindow = None
-
-
         # Keep track of the sub-interaction plots launched fron that plot
         self.interactionRefs: Dict[str, dict] = {}
 
@@ -622,8 +614,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def addSliceItem(self, curveId: str,
                            sliceOrientation: str,
-                           sliceItem: str,
-                           position: Union[float, Tuple[float, float]]) -> None:
+                           sliceItem: str) -> None:
         """
         Method call when user create a slice of the data.
         Create an InfiniteLine or a LinearRegionItem on the 2d plot and connect
@@ -657,26 +648,24 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        width=self.config['crossHairLineWidth'],
                        style=QtCore.Qt.DashLine)
 
-        # If the position has been given it means we are swapping the axes.
-        # otherwise, we create the slice where the user clicked.
-        if position is None:
-            if sliceOrientation=='vertical':
-                angle    = 90.
-                if sliceItem=='LinearRegionItem':
-                    dx = (self.xData[-1]-self.xData[0])/20
-                    position = (self.mousePos[0]-dx, self.mousePos[0]+dx)
-                else:
-                    position = self.mousePos[0]
-            elif sliceOrientation=='horizontal':
-                angle    = 0.
-                if sliceItem=='LinearRegionItem':
-                    dy = (self.yData[-1]-self.yData[0])/20
-                    position = (self.mousePos[1]-dy, self.mousePos[1]+dy)
-                else:
-                    position = self.mousePos[1]
+        # We create the slice where the user clicked.
+        if sliceOrientation=='vertical':
+            angle    = 90.
+            if sliceItem=='LinearRegionItem':
+                dx = (self.xData[-1]-self.xData[0])/20
+                position = (self.mousePos[0]-dx, self.mousePos[0]+dx)
             else:
-                position = (((self.mousePos[0]+self.xData[0])/2,  (self.mousePos[1]+self.yData[0])/2),
-                            ((self.mousePos[0]+self.xData[-1])/2, (self.mousePos[1]+self.yData[-1])/2))
+                position = self.mousePos[0]
+        elif sliceOrientation=='horizontal':
+            angle    = 0.
+            if sliceItem=='LinearRegionItem':
+                dy = (self.yData[-1]-self.yData[0])/20
+                position = (self.mousePos[1]-dy, self.mousePos[1]+dy)
+            else:
+                position = self.mousePos[1]
+        else:
+            position = (((self.mousePos[0]+self.xData[0])/2,  (self.mousePos[1]+self.yData[0])/2),
+                        ((self.mousePos[0]+self.xData[-1])/2, (self.mousePos[1]+self.yData[-1])/2))
 
 
         # If we are adding an InfiniteLine
@@ -777,7 +766,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def getDataSlice(self, sliceItem: Optional[Union[pg.InfiniteLine, pg.LineSegmentROI, pg.LinearRegionItem]]=None) -> Tuple[np.ndarray, np.ndarray, str, Union[str, Tuple[str, str]]]:
+    def getDataSlice(self, sliceItem: Optional[Union[pg.InfiniteLine, pg.LineSegmentROI, pg.LinearRegionItem]]=None) -> Tuple[Union[np.ndarray, Tuple[np.ndarray, np.ndarray]],
+                                                                                                                              Union[np.ndarray, Tuple[np.ndarray, np.ndarray]],
+                                                                                                                              Union[str, Tuple[str, str]],
+                                                                                                                              Union[str, Tuple[str, str]]]:
         """
         Return a vertical or horizontal data slice
 
@@ -790,6 +782,11 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             If not None, return the sliced data from the sliceItem
             position (dragging of the slice).
         """
+
+        sliceX: Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
+        sliceY: Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]
+        sliceLegend: Union[str, Tuple[str, str]]
+        sliceLabel: Union[str, Tuple[str, str]]
 
         # Determine if we are handling single of average slice
         if sliceItem is None:
@@ -872,8 +869,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
                 # Get the slice data
                 nb_points = int(np.hypot(x1_index-x0_index, y1_index-y0_index))
-                x_index = np.linspace(x0_index, x1_index, nb_points).astype(np.int)
-                y_index = np.linspace(y0_index, y1_index, nb_points).astype(np.int)
+                x_index = np.linspace(x0_index, x1_index, nb_points).astype(int)
+                y_index = np.linspace(y0_index, y1_index, nb_points).astype(int)
 
                 # sliceX = np.sqrt(self.xData[x_index]**2 + self.yData[y_index]**2)
                 sliceX = (self.xData[x_index], self.yData[y_index])
@@ -991,7 +988,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             if not self.isThereSlicePlot():
 
                 self.addSliceItemAndPlot(data          = (sliceX, sliceY),
-                                         curveLegend   = sliceLegend,
                                          sliceItem     = self.getCurrentSliceItem())
             # If there is already
             # 1. The user doubleClick on an sliceItem and we remove it
@@ -1003,7 +999,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 # If the user add a new sliceItem and its associated plot
                 if clickedCurveId is None:
                     self.addSliceItemAndPlot(data         = (sliceX, sliceY),
-                                             curveLegend  = sliceLegend,
                                              sliceItem    = self.getCurrentSliceItem())
 
                 # We remove a sliceItem and its associated plot
@@ -1070,11 +1065,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
     def addSliceItemAndPlot(self, data: tuple,
-                                  curveLegend: str,
                                   sliceItem: str,
                                   sliceOrientation: Optional[str]=None,
-                                  plotRef: Optional[str]=None,
-                                  position: Optional[float]=None) -> None:
+                                  plotRef: Optional[str]=None) -> None:
 
         # when we interact with the map, we do not allow swapping
         self.checkBoxSwapxy.setEnabled(False)
@@ -1173,8 +1166,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # To add a slice item, we need to keep track of
         self.addSliceItem(curveId          = curveId,
                           sliceOrientation = sliceOrientation,
-                          sliceItem        = sliceItem,
-                          position         = position)
+                          sliceItem        = sliceItem)
 
 
 
@@ -1326,15 +1318,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Draw isocurve checkbox
         """
 
-        # Uncheck
-        if b==0:
-            self.findSlopeLineRemove(self.findSlopeLines[-1])
-            del(self.findSlopeLines)
-            self.findSlopesb.deleteLater()
-            self.horizontalLayoutFindSlope.removeWidget(self.findSlopesb)
         # Check
-        else:
-
+        if b!=0:
             # Add a spinBox in the GUI and create an empty list to keep track of
             # all the future findSlope widgets
             self.findSlopeLines: List[pg.LineSegmentROI]= []
@@ -1345,6 +1330,14 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.horizontalLayoutFindSlope.addWidget(self.findSlopesb)
 
             self.findSlopesbChanged()
+
+        # Uncheck
+        else:
+            self.findSlopeLineRemove(self.findSlopeLines[-1])
+            del(self.findSlopeLines)
+            self.findSlopesb.deleteLater()
+            self.horizontalLayoutFindSlope.removeWidget(self.findSlopesb)
+
 
 
 
@@ -1462,21 +1455,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Draw isocurve checkbox
         """
 
-        # If the user uncheck the box, we hide the items
-        if b==0:
-
-            self.isoCurve.hide()
-            self.isoLine.hide()
         # When user check the box we create the items and the events
-        else:
+        if b!=0:
 
             # If items do not exist, we create them
-            if self.isoCurve is not None:
+            if not hasattr(self, 'isoCurve'):
 
-                self.isoCurve.show()
-                self.isoLine.show()
-
-            else:
                 z = self.imageView.image
 
                 self.penIsoLine = pg.mkPen(color='w', width=2)
@@ -1501,6 +1485,15 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
                 # Connect event
                 self.isoLine.sigDragged.connect(self.draggedIsoLine)
+            else:
+
+                self.isoCurve.show()
+                self.isoLine.show()
+
+        # If the user uncheck the box, we hide the items
+        else:
+            del(self.isoCurve)
+            del(self.isoLine)
 
 
 

@@ -26,6 +26,15 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
 
+    # Make mypy happy
+    _livePlotRunId: int
+    _livePlotPreviousDataLength: int
+    _livePlotRunName: str
+    _livePlotDatabaseAbsPath: str
+
+    # We make mypy "happy" without loading qcodes lib (save time)
+    _livePlotDataSet: DataSetProtocol # type: ignore
+
     def __init__(self, config: dict) -> None:
 
         QtWidgets.QDialog.__init__(self)
@@ -44,10 +53,10 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self.spinBoxLivePlotRefreshRate.valueChanged.connect(self.livePlotSpinBoxChanged)
 
         # Will contain the timer updating the liveplot
-        self._livePlotTimer      = None
+        # self._livePlotTimer      = None
 
         # Will contain the timer updating the "last time update" of the display
-        self._livePlotClockTimer = None
+        # self._livePlotClockTimer = None
 
         self.threadpool = QtCore.QThreadPool()
 
@@ -274,6 +283,8 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         can each have a different number of independent parameters.
         """
 
+        data: Tuple[np.ndarray, ...]
+
         #    1d.  We launch a plot window with all the dependent parameters
         #         plotted as plotDataItem.
         #    2d.  We launch as many plot window as dependent parameters.
@@ -424,17 +435,17 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         """
 
         # If a Qt timer is running, we modify it following the user input.
-        if self._livePlotTimer is not None:
+        if hasattr(self, '_livePlotTimer'):
 
             # If the timer is 0, we stopped the liveplot
             if val==0:
                 self._livePlotTimer.stop()
                 self._livePlotTimer.deleteLater()
-                self._livePlotTimer = None
+                del(self._livePlotTimer)
 
                 self._livePlotClockTimer.stop()
                 self._livePlotClockTimer.deleteLater()
-                self._livePlotClockTimer = None
+                del(self._livePlotClockTimer)
 
                 # self.labelLivePlotDataBase.setText('')
                 # self.groupBoxLivePlot.setStyleSheet('QGroupBox:title{color: white}')

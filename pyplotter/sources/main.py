@@ -239,7 +239,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                      windowTitle: str,
                      databaseAbsPath: str,
                      dataType: str,
-                     rowPosition: int) -> bool:
+                     rowPosition: int) -> None:
         """
         Return True when the displayed parameter is currently plotted.
         """
@@ -371,7 +371,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                      curveId        = curveId,
                      plotTitle      = plotTitle,
                      windowTitle    = windowTitle,
-                     dateTimeAxis   = dateTimeAxis)
+                     dateTimeAxis   = dateTimeAxis,
+                     curveLegend    = yLabelText)
 
         self.signalRemoveProgressBar.emit(progressBar)
         self.signalEnableCheck.emit(cb)
@@ -388,7 +389,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                   windowTitle    : str,
                                   plotRef        : str,
                                   databaseAbsPath: str,
-                                  data           : Tuple[np.ndarray],
+                                  data           : Tuple[np.ndarray, ...],
                                   xLabelText     : str,
                                   xLabelUnits    : str,
                                   yLabelText     : str,
@@ -412,13 +413,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                      curveId        = curveId,
                      plotTitle      = plotTitle,
                      windowTitle    = windowTitle,
-                     dateTimeAxis   = False)
+                     dateTimeAxis   = False,
+                     curveLegend    = yLabelText)
 
 
 
     def addPlot(self, plotRef            : str,
                       databaseAbsPath    : str,
-                      data               : Tuple[np.ndarray],
+                      data               : Tuple[np.ndarray, ...],
                       xLabelText         : str,
                       xLabelUnits        : str,
                       yLabelText         : str,
@@ -430,7 +432,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                       plotTitle          : str,
                       windowTitle        : str,
                       dateTimeAxis       : bool,
-                      curveLegend        : Optional[str]=None) -> None:
+                      curveLegend        : str) -> None:
         """
         Methods called once the data are downloaded to add a plot of the data.
         Discriminate between 1d and 2d plot through the length of data list.
@@ -538,7 +540,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                                         curveXUnits        = xLabelUnits,
                                                         curveYLabel        = yLabelText,
                                                         curveYUnits        = yLabelUnits,
-                                                        curveLegend        = yLabelText)
+                                                        curveLegend        = curveLegend)
             self.updateList1dCurvesLabels()
 
         # 2D plot
