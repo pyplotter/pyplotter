@@ -504,7 +504,7 @@
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: green;</string>
+             <string notr="true"/>
             </property>
             <property name="text">
              <string/>
@@ -642,120 +642,7 @@
      <height>21</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menulol">
-    <property name="title">
-     <string>lol</string>
-    </property>
-    <widget class="QMenu" name="menulola">
-     <property name="title">
-      <string>lola</string>
-     </property>
-     <addaction name="actionlolaa"/>
-     <addaction name="actionlolab"/>
-    </widget>
-    <addaction name="menulola"/>
-    <addaction name="actionlolb"/>
-   </widget>
-   <addaction name="menulol"/>
   </widget>
-  <action name="actionqb">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="checked">
-    <bool>false</bool>
-   </property>
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>qb</string>
-   </property>
-  </action>
-  <action name="actionqdark">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="checked">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>qdark</string>
-   </property>
-  </action>
-  <action name="actionwhite">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>white</string>
-   </property>
-  </action>
-  <action name="actionDefaultPath">
-   <property name="text">
-    <string>Select default folder</string>
-   </property>
-  </action>
-  <action name="actionAxisLabelColor">
-   <property name="text">
-    <string>Axis label color</string>
-   </property>
-  </action>
-  <action name="actionAxisTickLabelsColor">
-   <property name="text">
-    <string>Axis tick labels color</string>
-   </property>
-  </action>
-  <action name="actionTitleColor">
-   <property name="text">
-    <string>Title color</string>
-   </property>
-  </action>
-  <action name="actionAxisTicksColor">
-   <property name="text">
-    <string>Axis ticks color</string>
-   </property>
-  </action>
-  <action name="actionFontsize">
-   <property name="text">
-    <string>Font-size</string>
-   </property>
-  </action>
-  <action name="actionColormap">
-   <property name="text">
-    <string>colormap</string>
-   </property>
-  </action>
-  <action name="actionqt_material">
-   <property name="text">
-    <string>qt-material</string>
-   </property>
-  </action>
-  <action name="actionSelectDatabase">
-   <property name="text">
-    <string>Select database</string>
-   </property>
-  </action>
-  <action name="actionOpenliveplot">
-   <property name="text">
-    <string>Open liveplot</string>
-   </property>
-  </action>
-  <action name="actionlolb">
-   <property name="text">
-    <string>lolb</string>
-   </property>
-  </action>
-  <action name="actionlolaa">
-   <property name="text">
-    <string>lolaa</string>
-   </property>
-  </action>
-  <action name="actionlolab">
-   <property name="text">
-    <string>lolab</string>
-   </property>
-  </action>
  </widget>
  <customwidgets>
   <customwidget>

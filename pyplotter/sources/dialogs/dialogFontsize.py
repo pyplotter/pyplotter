@@ -10,9 +10,10 @@ class MenuDialogFontSize(QtWidgets.QDialog, Ui_DialogFontsize):
     signalUpdateStyle = QtCore.pyqtSignal(dict)
 
 
-    def __init__(self, config: dict) -> None:
+    def __init__(self, parent: QtWidgets.QMainWindow,
+                       config: dict) -> None:
 
-        super(MenuDialogFontSize, self).__init__()
+        QtWidgets.QDialog.__init__(self, parent)
         self.setupUi(self)
 
         self.config = config

@@ -32,7 +32,7 @@ class LoadDataFromRunSignal(QtCore.QObject):
     updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
     # Signal when the data download is done but the database is empty
     # Useful for the starting of the liveplot
-    loadedDataEmpty = QtCore.pyqtSignal(QtWidgets.QCheckBox)
+    loadedDataEmpty = QtCore.pyqtSignal(QtWidgets.QCheckBox, QtWidgets.QProgressBar)
 
 
 
@@ -148,10 +148,12 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         # new plot window
         if d is None:
             self.signal.sendStatusBarMessage.emit('Extracting data failed...', 'red')
-            self.signal.loadedDataEmpty.emit(self.cb)
+            self.signal.loadedDataEmpty.emit(self.cb,
+                                             self.progressBar)
         elif len(d)==0:
             self.signal.sendStatusBarMessage.emit('Run empty', 'red')
-            self.signal.loadedDataEmpty.emit(self.cb)
+            self.signal.loadedDataEmpty.emit(self.cb,
+                                             self.progressBar)
         else:
 
             # 1d plot

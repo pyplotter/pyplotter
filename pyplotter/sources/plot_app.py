@@ -8,7 +8,7 @@ from math import log10
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..ui.plotWidget import PlotWidget
-from ..ui.histogram_lut_widget import HistogramLUTWidget
+from ..ui.histogramLUTWidget import HistogramLUTWidget
 from .pyqtgraph import pg
 from ..sources.functions import getDatabaseNameFromAbsPath
 
@@ -141,7 +141,7 @@ class PlotApp():
         clipboard.setPixmap(pixmap)
 
         self.pushButtonCopy.setText('Copied to clipboard !')
-        print('Timer')
+
         self._clipboardTimer = QtCore.QTimer()
         self._clipboardTimer.timeout.connect(self.pushButtonCopyUpdate)
         self._clipboardTimer.setInterval(2000)

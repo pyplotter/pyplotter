@@ -1,16 +1,10 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtCore, QtWidgets, QtGui, QtTest
-from typing import List, Callable, Union, Optional
+from PyQt5 import QtCore, QtWidgets, QtTest
 import os
-import numpy as np
 
-from pyplotter.sources.plot_app import PlotApp
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..sources.runpropertiesextra import RunPropertiesExtra
-from .tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
-from ..sources.workers.loadDataBase import LoadDataBaseThread
 from ..sources.workers.loadDataFromRun import LoadDataFromRunThread
 from ..sources.functions import (clearTableWidget,
                                  getCurveId,
@@ -18,9 +12,6 @@ from ..sources.functions import (clearTableWidget,
                                  getPlotTitle,
                                  getWindowTitle)
 from ..sources.plot_app import PlotApp
-from ..sources.plot_1d_app import Plot1dApp
-from ..sources.plot_2d_app import Plot2dApp
-from ..sources.pyqtgraph import pg
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -43,7 +34,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     signalUpdateLabelCurrentRun      = QtCore.pyqtSignal(str)
     signaladdRow                     = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, str, int)
 
-
+    signalLoadedDataEmpty  = QtCore.pyqtSignal(QtWidgets.QCheckBox, QtWidgets.QProgressBar)
     signalLoadedDataFull   = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
     signalCSVLoadData      = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
     signalBlueForsLoadData = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
@@ -216,7 +207,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
             # To update the progress bar
             worker.signal.updateProgressBar.connect(self.signalUpdateProgressBar)
             # If data download failed
-            worker.signal.loadedDataEmpty.connect(self.loadedDataEmpty)
+            worker.signal.loadedDataEmpty.connect(self.signalLoadedDataEmpty)
             # When data download is done
             worker.signal.loadedDataFull.connect(self.signalLoadedDataFull)
 
@@ -260,21 +251,6 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     @QtCore.pyqtSlot(QtWidgets.QCheckBox)
     def enableCheck(self, cb: QtWidgets.QCheckBox) -> None:
 
-        cb.setEnabled(True)
-
-
-
-    @QtCore.pyqtSlot()
-    def loadedDataEmpty(self, cb: QtWidgets.QCheckBox) -> None:
-        """
-        Method called by LoadDataFromRunThread when the data download is done but the
-        database is empty.
-        We signal the data downloading being done by setting the flag False.
-        This will allow the next live plot iteration to try downloading the data
-        again.
-        """
-
-        self._dataDowloadingFlag = False
         cb.setEnabled(True)
 
 

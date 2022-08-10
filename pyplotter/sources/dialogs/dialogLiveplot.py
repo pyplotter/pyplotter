@@ -4,32 +4,39 @@ from PyQt5 import QtWidgets, QtCore, QtTest
 import numpy as np
 import os
 from datetime import datetime
+from typing import Tuple
 
 from ..workers.loadDataFromCache import LoadDataFromCacheThread
 from ...ui.dialogLiveplot import Ui_LivePlot
 from ..qcodesdatabase import getNbTotalRunAndLastRunName, isRunCompleted
-from ...sources.functions import getDatabaseNameFromAbsPath
+from ...sources.functions import (getDatabaseNameFromAbsPath,
+                                  getCurveId,
+                                  getWindowTitle,
+                                  getPlotTitle,
+                                  getPlotRef)
 
 
 class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
+    signal2MainWindowAddPlot = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
+    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray)
+    signalUpdate2d = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
+    signalUpdatePlotProperty = QtCore.pyqtSignal(str, str, str)
 
-    def __init__(self, config,
-                       addPlot,
-                       cleanCheckBox,
-                       getLivePlotRef,
-                       _plotRefs) -> None:
+    signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
 
-        super(MenuDialogLiveplot, self).__init__()
+    def __init__(self, config: dict) -> None:
+
+        QtWidgets.QDialog.__init__(self)
         self.setupUi(self)
 
-        self.config           = config
-        self.addPlot          = addPlot
-        self.cleanCheckBox    = cleanCheckBox
-        self.getLivePlotRef   = getLivePlotRef
-        self._plotRefs        = _plotRefs
+        # Allow resize of the plot window
+        self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
+                            QtCore.Qt.WindowMaximizeButtonHint|
+                            QtCore.Qt.WindowCloseButtonHint)
 
+        self.config           = config
 
         # Connect events
         self.pushButtonLivePlot.clicked.connect(self.livePlotPushButton)
@@ -58,83 +65,11 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
 
 
-    def getPlotTitle(self):
-
-        # If user only wants the database path
-        if self.config['displayOnlyDbNameInPlotTitle']:
-            title = os.path.basename(self._livePlotDatabasePath)
-        # If user wants the database path
-        else:
-            title = os.path.basename(self._livePlotDatabasePath)
-        return title+'<br>'+str(self._livePlotRunId)
-
-
-
-    def getWindowTitle(self) -> str:
-        """
-        Return a title which will be used as a plot window title.
-        """
-
-        windowTitle = os.path.basename(self._livePlotDatabasePath)
-
-        if self.config['displayRunIdInPlotTitle']:
-            windowTitle += ' - '+str(self._livePlotRunId)
-
-        if self.config['displayRunNameInPlotTitle']:
-            windowTitle += ' - '+self._livePlotRunName
-
-        return windowTitle
-
-
-
-    def getPlotRef(self, paramDependent : dict) -> str:
-        """
-        Return a reference for a plot window.
-        Handle the difference between 1d plot and 2d plot.
-
-        Parameters
-        ----------
-        paramDependent : dict
-            qcodes dictionary of a dependent parameter
-
-        Return
-        ------
-        plotRef : str
-            Unique reference for a plot window.
-        """
-
-        dataPath = self._livePlotDatabasePath + str(self._livePlotRunId)
-
-        if len(paramDependent['depends_on'])==2:
-            return dataPath+paramDependent['name']
-        else:
-            return dataPath
-
-
-
-    def getCurveId(self, name: str,
-                         runId: int) -> str:
-        """
-        Return an id for a curve in a plot.
-        Should be unique for every curve.
-
-        Parameters
-        ----------
-        name : str
-            Parameter name from which the curveId is obtained.
-        runId : int
-            Id of the curve, see getCurveId.
-        """
-
-        return self._livePlotDatabasePath+str(runId)+str(name)
-
-
-
     def livePlotClockUpdate(self):
 
         ## Update displayed information
         # Last time since we interogated the dataCache
-        if self.labelLivePlotLastRefreshInfo.text()!='None':
+        if self.labelLivePlotLastRefreshInfo.text()!='':
             datetimeLastUpdate = datetime.strptime(self.labelLivePlotLastRefreshInfo.text(), '%Y-%m-%d %H:%M:%S')
             t = ''
             hours, remainder = divmod((datetime.now()-datetimeLastUpdate).seconds, 3600)
@@ -148,7 +83,7 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
 
         # # New data since last time we interogate the dataCache?
-        if self.labelLivePlotLastUpdateInfo.text()!='None':
+        if self.labelLivePlotLastUpdateInfo.text()!='':
             datetimeLastUpdate = datetime.strptime(self.labelLivePlotLastUpdateInfo.text(), '%Y-%m-%d %H:%M:%S')
             t = ''
             hours, remainder = divmod((datetime.now()-datetimeLastUpdate).seconds, 3600)
@@ -162,13 +97,21 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
 
 
-    def livePlotUpdatePlotData(self, plotRef        : str,
-                                     data           : tuple,
-                                     yParamName     : str,
-                                     lastUpdate     : bool) -> None:
+    @QtCore.pyqtSlot(str, str)
+    def slotLiveplotMessage(self, message: str,
+                                  color: str) -> None:
+
+        self.labelLivePlotInfoInfo.setText('<span style="color: {};">{}</span>'.format(color, message))
+
+
+
+    @QtCore.pyqtSlot(str, tuple, str, bool)
+    def slotUpdatePlotData(self, plotRef        : str,
+                                 data           : Tuple[np.ndarray, ...],
+                                 yParamName     : str,
+                                 lastUpdate     : bool) -> None:
         """
         Methods called in live plot mode to update plot.
-        This method must have the same signature as addPlot.
 
         Parameters
         ----------
@@ -186,61 +129,64 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         # Last time since we interogated the dataCache
         self.labelLivePlotLastRefreshInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        nbPoint = len(data[0])
 
-        # 1d plot
-        if len(data)==2:
-            # New data since last time we interogate the dataCache?
-            if len(self._plotRefs[plotRef].curves[self.getCurveId(yParamName, self._livePlotRunId)].x)!=len(data[0]):
-                self.labelLivePlotLastUpdateInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        if self._livePlotPreviousDataLength!=nbPoint:
 
-            self._plotRefs[plotRef].updatePlotDataItem(x           = data[0],
-                                                       y           = data[1],
-                                                       curveId     = self.getCurveId(yParamName, self._livePlotRunId),
-                                                       curveLegend = None,
-                                                       autoRange   = True)
-        # 2d plot
-        elif len(data)==3:
-            # New data since last time we interogate the dataCache?
-            if len(self._plotRefs[plotRef].xData)!=len(data[0]):
-                self.labelLivePlotLastUpdateInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            self.labelLivePlotLastUpdateInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
-            self._plotRefs[plotRef].livePlotUpdate(x=data[0],
-                                                   y=data[1],
-                                                   z=data[2])
+            # 1d plot
+            if len(data)==2:
+                # New data since last time we interogate the dataCache?
+                curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                    name=yParamName,
+                                    runId=self._livePlotRunId)
+                self.signalUpdateCurve.emit(plotRef,
+                                            curveId,
+                                            '',
+                                            data[0],
+                                            data[1])
+            # 2d plot
+            elif len(data)==3:
+                self.signalUpdate2d.emit(plotRef,
+                                         data[0],
+                                         data[1],
+                                         data[2])
 
-            # If there are slices, we update them as well
-            # plotSlice = self.getPlotSliceFromRef(plotRef)
-            # if plotSlice is not None:
-            for curveId, lineItem in self._plotRefs[plotRef].sliceItems.items():
+        # If all curves have been updated
+        for i, flag in enumerate(self._updatingFlag):
+            if not flag:
+                self._updatingFlag[i] = True
+                break
 
-                # We find its orientation
-                if lineItem.angle==90:
-                    sliceOrientation = 'vertical'
-                else:
-                    sliceOrientation = 'horizontal'
-
-                # We need the data of the slice
-                sliceX, sliceY, sliceLegend = self._plotRefs[plotRef].getDataSlice(lineItem)
-
-                # Get the 1d plot of the slice
-                plotSlice = self._plotRefs[plotRef].getPlotRefFromSliceOrientation(sliceOrientation)
-
-                # We update the slice data
-                plotSlice.updatePlotDataItem(x           = sliceX,
-                                             y           = sliceY,
-                                             curveId     = curveId,
-                                             curveLegend = sliceLegend,
-                                             autoRange   = True)
+        # We save the current data length for the next iteration
+        if all(self._updatingFlag):
+            if self._livePlotPreviousDataLength==nbPoint:
+                self.labelLivePlotInfoInfo.setText('<span style="color: red;">No new data in cache</span>')
+            else:
+                self.labelLivePlotInfoInfo.setText('<span style="color: green;">New data in cache plotted</span>')
+            self._livePlotPreviousDataLength = nbPoint
+            self.labelLivePlotNbPointInfo.setText(str(nbPoint))
 
         # We show to user the time of the last update
         if lastUpdate:
-            # self.labelLivePlotLastUpdateInfo.setText('Measurement done: '+datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
             # We mark all completed livePlot as not livePlot anymore
-            for plotRef in self.getLivePlotRef():
-                self._plotRefs[plotRef].livePlot = False
+            plotTitle   = getPlotTitle(self._livePlotDatabaseAbsPath,
+                                       self._livePlotRunId,
+                                       self._livePlotRunName)
+            self.signalUpdatePlotProperty.emit(plotRef, # plotRef
+                                               'plotTitle', # property
+                                               plotTitle) # value
 
             self.labelLivePlotInProgressState.setText('False')
-
+            self.labelLivePlotRunidid.setText('')
+            self.labelLivePlotRunNameInfo.setText('')
+            self.labelLivePlotInfoInfo.setText('')
+            self.labelLivePlotNbPointInfo.setText('')
+            self.labelLivePlotLastUpdateInfo.setText('')
+            self.labelLivePlotSinceLastUpdateInfo.setText('')
+            self.labelLivePlotLastRefreshInfo.setText('')
+            self.labelLivePlotSinceLastRefreshInfo.setText('')
 
 
     def livePlotGetPlotParameters(self) -> None:
@@ -292,7 +238,9 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 zParamLabels.append(paramsDependent.label)
                 zParamUnits.append(paramsDependent.unit)
 
-                plotRefs.append(self.getPlotRef(paramDependent={'depends_on' : [0, 1], 'name': paramsDependent.name}))
+                plotRefs.append(getPlotRef(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                           paramDependent={'depends_on' : [0, 1], 'name': paramsDependent.name},
+                                           runId=self._livePlotRunId))
                 self._livePlotNbPlot += 1
             # For 1d plot
             else:
@@ -304,7 +252,9 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 zParamLabels.append('')
                 zParamUnits.append('')
 
-                plotRefs.append(self.getPlotRef(paramDependent={'depends_on' : [0]}))
+                plotRefs.append(getPlotRef(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                           paramDependent={'depends_on' : [0]},
+                                           runId=self._livePlotRunId))
                 # We only add 1 1dplot for all 1d curves
                 if plot1dNotAlreadyAdded:
                     self._livePlotNbPlot += 1
@@ -330,10 +280,12 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         # Get dataset params
         paramsIndependent = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)==0]
 
-        plotTitle   = self.getPlotTitle()
-        windowTitle = self.getWindowTitle()
-
-        databaseAbsPath = os.path.normpath(os.path.join(self._livePlotDatabasePath, self._livePlotDataBaseName)).replace("\\", "/")
+        plotTitle   = getPlotTitle(self._livePlotDatabaseAbsPath,
+                                   self._livePlotRunId,
+                                   self._livePlotRunName) + self.config['livePlotTitleAppend']
+        windowTitle = getWindowTitle(self._livePlotDatabaseAbsPath,
+                                     self._livePlotRunId,
+                                     self._livePlotRunName)
 
         # We get the liveplot parameters
         self.livePlotGetPlotParameters()
@@ -347,31 +299,31 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
             # Create empty data for the plot window launching
             if zParamLabel=='':
-                data = [[],[]]
+                data = (np.array([]),
+                        np.array([]))
             else:
-                data = [np.array([0., 1.]),
+                data = (np.array([0., 1.]),
                         np.array([0., 1.]),
                         np.array([[0., 1.],
-                                  [0., 1.]])]
+                                  [0., 1.]]))
 
-            self.addPlot(plotRef        = plotRef,
-                         databaseAbsPath= databaseAbsPath,
-                         data           = data,
-                         xLabelText     = xParamLabel,
-                         xLabelUnits    = xParamUnit,
-                         yLabelText     = yParamLabel,
-                         yLabelUnits    = yParamUnit,
-                         zLabelText     = zParamLabel,
-                         zLabelUnits    = zParamUnit,
-                         cleanCheckBox  = self.cleanCheckBox,
-                         plotTitle      = plotTitle,
-                         windowTitle    = windowTitle,
-                         runId          = self._livePlotRunId,
-                         linkedTo2dPlot = False,
-                         curveId        = self.getCurveId(name=yParamName, runId=self._livePlotRunId),
-                         timestampXAxis = False,
-                         livePlot       = True,
-                         hidden         = hidden)
+            curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                 name=yParamName,
+                                 runId=self._livePlotRunId)
+
+            self.signal2MainWindowAddPlot.emit(self._livePlotRunId, # runId
+                                               curveId, # curveId
+                                               plotTitle, # plotTitle
+                                               windowTitle, # windowTitle
+                                               plotRef, # plotRef
+                                               self._livePlotDatabaseAbsPath, # databaseAbsPath
+                                               data, # data
+                                               xParamLabel, # xLabelText
+                                               xParamUnit, # xLabelUnits
+                                               yParamLabel, # yLabelText
+                                               yParamUnit, # yLabelUnits
+                                               zParamLabel, # zLabelText
+                                               zParamUnit) # zLabelUnits
 
 
 
@@ -379,7 +331,7 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         """
         Method called by livePlotUpdate.
         Obtain the info of the current live plot dataset cache, treat them and
-        send them to the livePlotUpdatePlotData method.
+        send them to the slotUpdatePlotData method.
 
         Parameters
         ----------
@@ -389,9 +341,14 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         """
 
         # We show to user that the plot is being updated
-        # self.livePlotUpdateMessage('Interrogating cache')
+        self.labelLivePlotInfoInfo.setText('<span style="color: orange;">Interrogating cache</span>')
+
+        # Keep track of all the update we should do
+        # The flags are False until the worker update them to True
+        self._updatingFlag = []
 
         for xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef in zip(*self._livePlotGetPlotParameters):
+            self._updatingFlag.append(False)
             worker = LoadDataFromCacheThread(plotRef,
                                              self._livePlotDataSet.cache.data(),
                                              xParamName,
@@ -399,7 +356,8 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                              zParamName,
                                              lastUpdate)
 
-            worker.signals.dataLoaded.connect(self.livePlotUpdatePlotData)
+            worker.signal.dataLoaded.connect(self.slotUpdatePlotData)
+            worker.signal.sendLivePlotInfoMessage.connect(self.slotLiveplotMessage)
 
             # Execute the thread
             self.threadpool.start(worker)
@@ -417,16 +375,15 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         """
 
         # We get the last run id of the database
-        self._livePlotRunId, self._livePlotRunName = getNbTotalRunAndLastRunName(self._livePlotDatabasePath)
+        self._livePlotRunId, self._livePlotRunName = getNbTotalRunAndLastRunName(self._livePlotDatabaseAbsPath)
 
         # While the run is not completed, we update the plot
-        if not isRunCompleted(self._livePlotDatabasePath, self._livePlotRunId):
+        if not isRunCompleted(self._livePlotDatabaseAbsPath, self._livePlotRunId):
 
-            self.labelLivePlotInProgressState.setText('True')
+            self.labelLivePlotInProgressState.setText('<span style="color: green;">True</span>')
             self.labelLivePlotRunidid.setText('{}'.format(self._livePlotRunId))
             self.labelLivePlotRunNameInfo.setText('{}'.format(self._livePlotRunName))
-            self.labelLivePlotDatabasePathInfo.setText('{}'.format(self._livePlotDatabasePath))
-            self.labelLivePlotDatabaseNameInfo.setText('{}'.format(self._livePlotDataBaseName))
+            self.labelLivePlotInfoInfo.setText('<span style="color: green;">New run detected</span>')
 
             ## 1. We get the livePlot dataset
             # We access the db only once.
@@ -435,10 +392,11 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 self._livePlotDataSet = self.loadDataset(captured_run_id=self._livePlotRunId)
             ## 2. If we do not see the attribute attached to the launched plot
             if not hasattr(self, '_livePlotGetPlotParameters'):
+
                 self.livePlotLaunchPlot()
             ## 2. If the user closed some or every liveplot windows
-            elif len(self.getLivePlotRef())!=self._livePlotNbPlot:
-                self.livePlotLaunchPlot()
+            # elif len(self.getLivePlotRef())!=self._livePlotNbPlot:
+            #     self.livePlotLaunchPlot()
             ## 3. If an active livePlot window is detected
             else:
                 self.livePlotUpdatePlot()
@@ -481,19 +439,17 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 # self.labelLivePlotDataBase.setText('')
                 # self.groupBoxLivePlot.setStyleSheet('QGroupBox:title{color: white}')
                 self.pushButtonLivePlot.setText('Select database')
-                self.labelLivePlotInProgressState.setText('None')
-                self.labelLivePlotRunidid.setText('None')
-                self.labelLivePlotRunNameInfo.setText('None')
-                self.labelLivePlotDatabasePathInfo.setText('None')
-                self.labelLivePlotDatabaseNameInfo.setText('None')
-                self.labelLivePlotLastUpdateInfo.setText('None')
-                self.labelLivePlotSinceLastUpdateInfo.setText('None')
-                self.labelLivePlotLastRefreshInfo.setText('None')
-                self.labelLivePlotSinceLastRefresh.setText('None')
-                if hasattr(self, '_livePlotDatabasePath'):
-                    del(self._livePlotDatabasePath)
-                if hasattr(self, '_livePlotDataBase'):
-                    del(self._livePlotDataBase)
+                self.labelLivePlotInProgressState.setText('')
+                self.labelLivePlotRunidid.setText('')
+                self.labelLivePlotRunNameInfo.setText('')
+                self.labelLivePlotDatabasePathInfo.setText('')
+                self.labelLivePlotDatabaseNameInfo.setText('')
+                self.labelLivePlotLastUpdateInfo.setText('')
+                self.labelLivePlotSinceLastUpdateInfo.setText('')
+                self.labelLivePlotLastRefreshInfo.setText('')
+                self.labelLivePlotSinceLastRefreshInfo.setText('')
+                if hasattr(self, '_livePlotDatabaseAbsPath'):
+                    del(self._livePlotDatabaseAbsPath)
                 if hasattr(self, '_livePlotDataSet'):
                     del(self._livePlotDataSet)
             else:
@@ -522,11 +478,13 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                                       'QCoDeS database (*.db).')
 
         if fname[0]!='':
-            self._livePlotDatabasePath = os.path.abspath(fname[0])
+            self._livePlotDatabaseAbsPath = os.path.abspath(fname[0])
             self._livePlotDataBaseName = getDatabaseNameFromAbsPath(fname[0])
 
-            self._livePlotDataBase = initialise_or_create_database_at(self._livePlotDatabasePath)
+            initialise_or_create_database_at(self._livePlotDatabaseAbsPath)
+            self._livePlotPreviousDataLength = 0
 
+            self.labelLivePlotDatabasePathInfo.setText('{}'.format(self._livePlotDatabaseAbsPath))
             self.labelLivePlotDatabaseNameInfo.setText('{}'.format(self._livePlotDataBaseName))
 
             # We call the liveplot function once manually to be sure it has been

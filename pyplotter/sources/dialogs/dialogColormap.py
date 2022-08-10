@@ -11,9 +11,10 @@ class DialogMenuColormap(QtWidgets.QDialog, Ui_DialogColormap):
     signalUpdateStyle = QtCore.pyqtSignal(dict)
 
 
-    def __init__(self, config: dict) -> None:
+    def __init__(self, parent: QtWidgets.QMainWindow,
+                       config: dict) -> None:
 
-        super(DialogMenuColormap, self).__init__()
+        QtWidgets.QDialog.__init__(self, parent)
         self.setupUi(self)
 
         self.config = config

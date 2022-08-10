@@ -1,7 +1,6 @@
 # This Python file uses the following encoding: utf-8
 from __future__ import annotations
-from tkinter.ttk import Progressbar
-from PyQt5 import QtWidgets, QtCore, QtGui, QtTest
+from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 from typing import List, Union, Callable, Optional, Tuple, Dict
 import inspect
@@ -9,12 +8,12 @@ from scipy.integrate import cumtrapz
 import os
 
 
-from ..ui.plot1d_widget import Ui_Dialog
+from ..ui.plot1dWidget import Ui_Dialog
 from .config import loadConfigCurrent
 from .plot_app import PlotApp
 from . import fit
-from .dialogs import filtering
-from .functions import _parse_number, getDatabaseNameFromAbsPath
+from .dialogs import dialogFiltering
+from .functions import _parse_number, getDatabaseNameFromAbsPath, getCurveColorIndex
 from .pyqtgraph import pg
 
 
@@ -28,12 +27,10 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     signal2MainWindowClosePlot  = QtCore.pyqtSignal(str)
     signalRemovePlotRef  = QtCore.pyqtSignal(str)
 
-    signalClosePlot  = QtCore.pyqtSignal(str)
-    signalUpdateCurve  = QtCore.pyqtSignal (str, str, str, np.ndarray, np.ndarray)
+    signalClose1dPlot  = QtCore.pyqtSignal(str)
+    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray)
 
-    # signal2TableParameterUncheck = QtCore.pyqtSignal(str)
-    signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str)
-    # signalAddCurveToRefs          = QtCore.pyqtSignal(str, pg.PlotDataItem)
+    signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
 
     def __init__(self, x                  : np.ndarray,
@@ -49,14 +46,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        databaseAbsPath    : str,
                        curveId            : str,
                        curveLegend        : str,
-                       dateTimeAxis       : bool,
-                       linkedTo2dPlot     : bool=False,
-                       livePlot           : bool=False) -> None:
+                       dateTimeAxis       : bool) -> None:
         """
         Class handling the plot of 1d data.
         Allow some quick data treatment.
         A plot can be a slice of a 2d plot.
-        A Plot can be a livePlot, i.e. being currently measured.
 
         Parameters
         ----------
@@ -91,8 +85,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         getPlotFromRef : Callable
             Function from the mainApp used to remove 1d plot and keep plot
             reference updated.
-        linkedTo2dPlot : bool, optional
-            If the 1d plot is a slice from a 2d plot, by default False
         curveId : Optional[str], optional
             Id of the curve being plot, see getCurveId in the mainApp., by default None
         curveLegend : Optional[str], optional
@@ -101,8 +93,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         dateTimeAxis : bool, optional
             If yes, the x axis becomes a pyqtgraph DateAxisItem.
             See pyqtgraph doc about DateAxisItem
-        livePlot : bool, optional
-            If the plot is a livePlot one, by default False
         """
 
         # Set parent to None to have "free" qdialog
@@ -127,12 +117,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Structures
         # self.curves = {'curveId' : pg.PlotDataItem}
         self.curves: dict={}
-
-        # Is that 1d plot is linked to a 2d plot (slice of a 2d plot)
-        self.linkedTo2dPlot = linkedTo2dPlot
-
-        # If the plot is displaying a qcodes run that is periodically updated
-        self.livePlot = livePlot
 
         # Keep track of the sub-interaction plots launched fron that plot
         self.dialogInteraction: Dict[str, dict] = {}
@@ -294,7 +278,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 interaction['dialog'].close()
 
         # All the closing procedure of the plot is handle in the MainWindow
-        self.signalClosePlot.emit(self.plotRef)
+        self.signalClose1dPlot.emit(self.plotRef)
 
 
 
@@ -348,6 +332,22 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                units=newXUnits)
 
         self.autoRange()
+
+
+    ####################################
+    #
+    #           Method related to display
+    #
+    ####################################
+
+
+
+    def updatePlotProperty(self, prop: str,
+                                 value: str) -> None:
+
+        if prop=='plotTitle':
+            self.plotItem.setTitle(title=value)
+
 
 
     ####################################
@@ -416,13 +416,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         the colors in config files
         """
 
-        colors = [curve.colorIndex for curve in self.curves.values()]
-        for i in range(50):
-            if i not in colors:
-                colorIndex = i%len(self.config['plot1dColors'])
-                color = self.config['plot1dColors'][i%len(self.config['plot1dColors'])]
-                break
-
+        colorIndex = getCurveColorIndex([curve.colorIndex for curve in self.curves.values()],
+                                        self.config)
+        color = self.config['plot1dColors'][colorIndex]
 
         mkpen = pg.mkPen(color=color, width=self.config['plotDataItemWidth'])
 
@@ -474,8 +470,11 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         if autoRange:
             self.autoRange()
 
-        # If a curve selection has been done, we update it
-        self.selectPlotDataItem()
+        # If a curve selection has been done, we update the selected data
+        self.updateSelectedData()
+
+        # we update interaction
+        self.interactionUpdateAll()
 
 
 
@@ -587,7 +586,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def updateyLabel(self) -> None:
         """
-        Update the ylabel of the plotItem, only if linkedTo2dPlot is False.
+        Update the ylabel of the plotItem
         There are 4 cases depending of the number of dataPlotItem:
             1. If there is 1: the displayed ylabel is the data ylabel.
             2. If there are more than 1 with the same unit: the unit is displayed.
@@ -599,32 +598,30 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Obtain the list of not hidden plotDataItem
         curvesNotHidden = self.getNotHiddenCurves()
 
-        # The label is changed only of we are not display slices of a 2d plot
-        if not self.linkedTo2dPlot:
 
-            # If there are two curves and on is the selection one, we change nothing
-            if len(curvesNotHidden)==2 and any(['selection' in curveId for curveId in curvesNotHidden.keys()]):
-                pass
-            # If there is more than one plotDataItem
-            # We check of the share the same unit
-            elif len(curvesNotHidden)>1 and len(set(curve.curveYUnits for curve in curvesNotHidden.values()))==1:
-                self.plotItem.setLabel(axis ='left',
-                                       text ='',
-                                       units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveYUnits)
-            # We check of the share the same label
-            elif len(set(curve.curveYLabel for curve in curvesNotHidden.values()))>1:
-                self.plotItem.setLabel(axis ='left',
-                                       text ='',
-                                       units='a.u')
-            # If there is only one plotDataItem or if the plotDataItems share the same label
-            elif len(curvesNotHidden)==1:
-                self.plotItem.setLabel(axis ='left',
-                                       text =curvesNotHidden[list(curvesNotHidden.keys())[0]].curveYLabel,
-                                       units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveYUnits)
-            else:
-                self.plotItem.setLabel(axis ='left',
-                                       text ='None',
-                                       units='')
+        # If there are two curves and on is the selection one, we change nothing
+        if len(curvesNotHidden)==2 and any(['selection' in curveId for curveId in curvesNotHidden.keys()]):
+            pass
+        # If there is more than one plotDataItem
+        # We check of the share the same unit
+        elif len(curvesNotHidden)>1 and len(set(curve.curveYUnits for curve in curvesNotHidden.values()))==1:
+            self.plotItem.setLabel(axis ='left',
+                                    text ='',
+                                    units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveYUnits)
+        # We check of the share the same label
+        elif len(set(curve.curveYLabel for curve in curvesNotHidden.values()))>1:
+            self.plotItem.setLabel(axis ='left',
+                                    text ='',
+                                    units='a.u')
+        # If there is only one plotDataItem or if the plotDataItems share the same label
+        elif len(curvesNotHidden)==1:
+            self.plotItem.setLabel(axis ='left',
+                                    text =curvesNotHidden[list(curvesNotHidden.keys())[0]].curveYLabel,
+                                    units=curvesNotHidden[list(curvesNotHidden.keys())[0]].curveYUnits)
+        else:
+            self.plotItem.setLabel(axis ='left',
+                                    text ='None',
+                                    units='')
 
 
 
@@ -642,10 +639,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # We do not add items in the legend when there is only one curve
         # except when the 1d plot is linked to a 2d plot
         if len(self.curves)==1:
-            if self.linkedTo2dPlot:
-                for curve in self.curves.values():
-                    if curve.showInLegend and not curve.hidden:
-                        self.legendItem.addItem(curve, curve.curveLegend)
+            for curve in self.curves.values():
+                if curve.showInLegend and not curve.hidden:
+                    self.legendItem.addItem(curve, curve.curveLegend)
         elif len(self.curves) > 1:
             for curve in self.curves.values():
                 if curve.showInLegend and not curve.hidden:
@@ -1145,7 +1141,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                xLabelText, # xLabelText
                                                xLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               yLabelUnits) # yLabelUnits
+                                               yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
         else:
             self.fftClosePlot()
 
@@ -1153,7 +1151,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def fftClosePlot(self) -> None:
         if hasattr(self, 'fftPlotRef'):
-            self.signalClosePlot.emit(self.fftPlotRef)
+            self.signalClose1dPlot.emit(self.fftPlotRef)
 
 
 
@@ -1200,7 +1198,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                xLabelText, # xLabelText
                                                xLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               yLabelUnits) # yLabelUnits
+                                               yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
         else:
             self.fftNoDcClosePlot()
 
@@ -1208,7 +1208,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def fftNoDcClosePlot(self) -> None:
         if hasattr(self, 'fftNoDcPlotRef'):
-            self.signalClosePlot.emit(self.fftNoDcPlotRef)
+            self.signalClose1dPlot.emit(self.fftNoDcPlotRef)
 
 
 
@@ -1255,7 +1255,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                xLabelText, # xLabelText
                                                xLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               yLabelUnits) # yLabelUnits
+                                               yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
         else:
             self.ifftClosePlot()
 
@@ -1263,7 +1265,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def ifftClosePlot(self) -> None:
         if hasattr(self, 'ifftPlotRef'):
-            self.signalClosePlot.emit(self.ifftPlotRef)
+            self.signalClose1dPlot.emit(self.ifftPlotRef)
 
 
 
@@ -1312,7 +1314,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                self.plotItem.axes['bottom']['item'].labelText, # xLabelText
                                                self.plotItem.axes['bottom']['item'].labelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               self.plotItem.axes['left']['item'].labelUnits) # yLabelUnits
+                                               self.plotItem.axes['left']['item'].labelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
         # Otherwise, we close the existing one
         else:
             self.unwrapClosePlot()
@@ -1321,7 +1325,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def unwrapClosePlot(self) -> None:
         if hasattr(self, 'unwrapPlotRef'):
-            self.signalClosePlot.emit(self.unwrapPlotRef)
+            self.signalClose1dPlot.emit(self.unwrapPlotRef)
 
 
 
@@ -1363,7 +1367,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                self.plotItem.axes['bottom']['item'].labelText, # xLabelText
                                                self.plotItem.axes['bottom']['item'].labelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               self.plotItem.axes['left']['item'].labelUnits) # yLabelUnits
+                                               self.plotItem.axes['left']['item'].labelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
         # Otherwise, we close the existing one
         else:
             self.removeSlopeClosePlot()
@@ -1372,7 +1378,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def removeSlopeClosePlot(self) -> None:
         if hasattr(self, 'removeSlopePlotRef'):
-            self.signalClosePlot.emit(self.removeSlopePlotRef)
+            self.signalClose1dPlot.emit(self.removeSlopePlotRef)
 
 
 
@@ -1429,7 +1435,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                xLabelText, # xLabelText
                                                xLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               yLabelUnits) # yLabelUnits
+                                               yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
 
         # Otherwise, we close the existing one
         else:
@@ -1439,7 +1447,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def differentiateClosePlot(self) -> None:
         if hasattr(self, 'differentiatePlotRef'):
-            self.signalClosePlot.emit(self.differentiatePlotRef)
+            self.signalClose1dPlot.emit(self.differentiatePlotRef)
 
 
 
@@ -1488,7 +1496,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                xLabelText, # xLabelText
                                                xLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               yLabelUnits) # yLabelUnits
+                                               yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
         # Otherwise, we close the existing one
         else:
             self.integrateClosePlot()
@@ -1497,7 +1507,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def integrateClosePlot(self) -> None:
         if hasattr(self, 'integratePlotRef'):
-            self.signalClosePlot.emit(self.integratePlotRef)
+            self.signalClose1dPlot.emit(self.integratePlotRef)
 
 
 
@@ -1585,7 +1595,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                                xLabelText, # xLabelText
                                                xLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               yLabelUnits) # yLabelUnits
+                                               yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
         # Otherwise, we close the existing one
         else:
 
@@ -1595,7 +1607,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
     def statisticsClosePlot(self) -> None:
         if hasattr(self, 'statisticsPlotRef'):
-            self.signalClosePlot.emit(self.statisticsPlotRef)
+            self.signalClose1dPlot.emit(self.statisticsPlotRef)
             self.statisticsLabel.setMaximumHeight(0)
 
 
@@ -1649,9 +1661,9 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def updateSelectedData(self, curveId: str) -> None:
+    def updateSelectedData(self) -> None:
         """
-        Return the x and y data of the curve specified by its curve id troncated
+        Get the x and y data of the curve specified by its curve id troncated
         between the infiniteLines "a" and "b".
         It does not matter if a<b or a>b.
 
@@ -1661,24 +1673,26 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             Id of the curve.
             See getCurveId from MainApp
         """
+        curveId = self.plotDataItemButtonGroup.checkedButton().curveId
 
-        a = self.sliceItems['a'].value()
-        b = self.sliceItems['b'].value()
-        n = np.abs(self.curves[curveId].xData-a).argmin()
-        m = np.abs(self.curves[curveId].xData-b).argmin()
-        if n<m:
-            x: np.ndarray = self.curves[curveId].xData[n:m]
-            y: np.ndarray = self.curves[curveId].yData[n:m]
-        else:
-            x = self.curves[curveId].xData[m:n]
-            y = self.curves[curveId].yData[m:n]
+        if curveId is not None:
+            a = self.sliceItems['a'].value()
+            b = self.sliceItems['b'].value()
+            n = np.abs(self.curves[curveId].xData-a).argmin()
+            m = np.abs(self.curves[curveId].xData-b).argmin()
+            if n<m:
+                x: np.ndarray = self.curves[curveId].xData[n:m]
+                y: np.ndarray = self.curves[curveId].yData[n:m]
+            else:
+                x = self.curves[curveId].xData[m:n]
+                y = self.curves[curveId].yData[m:n]
 
 
-        # If we are dealing with histogram data
-        if len(x)==len(y)+1:
-            x = x[:-2]+(x[1]-x[0])/2
+            # If we are dealing with histogram data
+            if len(x)==len(y)+1:
+                x = x[:-2]+(x[1]-x[0])/2
 
-        self.selectedX, self.selectedY = x, y
+            self.selectedX, self.selectedY = x, y
 
 
 
@@ -1699,24 +1713,13 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
 
         # Update data used for the fit
-        self.updateSelectedData(curveId)
+        self.updateSelectedData()
 
         # Update the style of the display plotDataItem
         self.updatePlotDataItemStyle(curveId)
 
-        # If a fit curve is already displayed, we update it
-        for curveId, interaction in self.dialogInteraction.items():
-            if curveId in list(self.curves.keys()):
-                interaction['dialog'].updateCurve(self.selectedX, self.selectedY)
-
-        self.fftUpdateCurve()
-        self.fftNoDcUpdateCurve()
-        self.ifftUpdateCurve()
-        self.differentiateUpdateCurve()
-        self.integrateUpdateCurve()
-        self.unwrapUpdateCurve()
-        self.removeSlopeUpdateCurve()
-        self.statisticsUpdateCurve()
+        # we update interaction
+        self.interactionUpdateAll()
 
         # We overide a pyqtgraph attribute when user drag an infiniteLine
         lineItem.mouseHovering  = False
@@ -1862,18 +1865,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             for checkBox in checkBoxes:
                 checkBox.setEnabled(True)
 
-            for curveId, interaction in self.dialogInteraction.items():
-                if curveId in list(self.curves.keys()):
-                    interaction['dialog'].close()
-
-            self.fftClosePlot()
-            self.fftNoDcClosePlot()
-            self.ifftClosePlot()
-            self.differentiateClosePlot()
-            self.integrateClosePlot()
-            self.unwrapClosePlot()
-            self.removeSlopeClosePlot()
-            self.statisticsClosePlot()
+            self.interactionCloseAll()
 
             # Remove the selection Infinite Line
             self.updateSelectionInifiteLine(None)
@@ -1895,7 +1887,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.updateSelectionInifiteLine(radioButton.curveId)
 
             # Update data used for the fit
-            self.updateSelectedData(radioButton.curveId)
+            self.updateSelectedData()
 
             # Update the style of the display plotDataItem
             self.updatePlotDataItemStyle(radioButton.curveId)
@@ -1907,7 +1899,6 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.selectedXLabel :str = self.curves[radioButton.curveId].curveXLabel
             self.selectedYUnits :str = self.curves[radioButton.curveId].curveYUnits
             self.selectedXUnits :str = self.curves[radioButton.curveId].curveXUnits
-
 
 
 
@@ -1930,6 +1921,40 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.groupBoxFit.setEnabled(enable)
         self.groupBoxNormalize.setEnabled(enable)
 
+
+
+    def interactionCloseAll(self) -> None:
+
+        for curveId, interaction in self.dialogInteraction.items():
+            if curveId in list(self.curves.keys()):
+                interaction['dialog'].close()
+
+        self.fftClosePlot()
+        self.fftNoDcClosePlot()
+        self.ifftClosePlot()
+        self.differentiateClosePlot()
+        self.integrateClosePlot()
+        self.unwrapClosePlot()
+        self.removeSlopeClosePlot()
+        self.statisticsClosePlot()
+
+
+
+    def interactionUpdateAll(self) -> None:
+
+        # If a fit curve is already displayed, we update it
+        for curveId, interaction in self.dialogInteraction.items():
+            if curveId in list(self.curves.keys()):
+                interaction['dialog'].updateCurve(self.selectedX, self.selectedY)
+
+        self.fftUpdateCurve()
+        self.fftNoDcUpdateCurve()
+        self.ifftUpdateCurve()
+        self.differentiateUpdateCurve()
+        self.integrateUpdateCurve()
+        self.unwrapUpdateCurve()
+        self.removeSlopeUpdateCurve()
+        self.statisticsUpdateCurve()
 
 
     ####################################
@@ -2037,7 +2062,7 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         radioButton.setChecked(True)
 
         # Find which model has been chosed and instance it
-        _class = getattr(filtering, radioButton.filteringModel)
+        _class = getattr(dialogFiltering, radioButton.filteringModel)
         dialog = _class(self,
                         self.selectedX,
                         self.selectedY)
@@ -2071,12 +2096,12 @@ class Plot1dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
 
         # Get list of filtering model
-        listClasses = [m[0] for m in inspect.getmembers(filtering, inspect.isclass) if 'runFiltering' in [*m[1].__dict__.keys()]]
+        listClasses = [m[0] for m in inspect.getmembers(dialogFiltering, inspect.isclass) if 'runFiltering' in [*m[1].__dict__.keys()]]
         # Add a radio button for each model of the list
         self.filteringModelButtonGroup = QtWidgets.QButtonGroup()
         for i, j in enumerate(listClasses):
 
-            _class = getattr(filtering, j)
+            _class = getattr(dialogFiltering, j)
 
             font = QtGui.QFont()
             font.setPointSize(8)

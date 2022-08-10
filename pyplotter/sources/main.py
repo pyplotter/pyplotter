@@ -15,6 +15,7 @@ from ..sources.dialogs.dialogLiveplot import MenuDialogLiveplot
 from ..sources.widgetCSV import WidgetCSV
 from ..sources.widgetBlueFors import WidgetBlueFors
 from .pyqtgraph import pg
+from .functions import getCurveId
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../ui/pictures/')
@@ -26,6 +27,8 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
     signalEnableCheck          = QtCore.pyqtSignal(QtWidgets.QCheckBox)
     signalAddRow               = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, str, int, bool)
+
+    signalRunClickDone = QtCore.pyqtSignal()
 
 
     def __init__(self, QApplication,
@@ -48,6 +51,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.signalEnableCheck.connect(self.tableWidgetParameter.enableCheck)
         self.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
         self.signalAddRow.connect(self.tableWidgetParameter.slotAddRow)
+        self.signalRunClickDone.connect(self.tableWidgetDataBase.slotRunClickDone)
+
+
 
 
         self.lineEditFilterSnapshot.signallineEditFilterSnapshotTextEdited.connect(self.treeViewSnapshot.searchItem)
@@ -55,7 +61,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         # Connect menuBar signal
         self.menuBarMain.signalUpdateStyle.connect(self.updateStyle)
-        self.menuBarMain.signalOpenDialogLivePlot.connect(self.openDialogLiveplot)
+        self.menuBarMain.signal2MainWindowAddPlot.connect(self.slotFromPlotAddPlot)
+        self.menuBarMain.signalUpdateCurve.connect(self.slotUpdateCurve)
+        self.menuBarMain.signalUpdate2d.connect(self.slotUpdate2d)
+        self.menuBarMain.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
+        self.menuBarMain.signalUpdatePlotProperty.connect(self.slotUpdatePlotProperty)
+
+
 
         self.hBoxLayoutPath.signalButtonClick.connect(self.tableWidgetFolder.folderOpened)
 
@@ -107,9 +119,11 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
         self.tableWidgetDataBase.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
         self.tableWidgetDataBase.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
+        self.tableWidgetDataBase.signalAddStatusBarMessage.connect(self.statusBarMain.addStatusBarMessage)
         self.tableWidgetDataBase.signalUpdateProgressBar.connect(self.statusBarMain.updateProgressBar)
         self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.tableWidgetFolder.databaseClickDone)
         self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.checkBoxHidden.databaseClickDone)
+        self.tableWidgetDataBase.signalUpdateCurrentDatabase.connect(self.labelCurrentDataBase.setText)
         self.tableWidgetDataBase.signalRunClick.connect(self.tableWidgetParameter.slotFillTableWidgetParameter)
         self.tableWidgetDataBase.signalDatabaseStars.connect(self.tableWidgetFolder.slotFromTableWidgetDataBaseDatabaseStars)
         self.tableWidgetDataBase.signalDatabaseUnstars.connect(self.tableWidgetFolder.slotFromTableWidgetDataBaseDatabaseUnstars)
@@ -129,6 +143,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.tableWidgetParameter.signalUpdateLabelCurrentRun.connect(self.labelCurrentRun.setText)
         # self.tableWidgetParameter.signalAddPlotToRefs.connect(self.addPlotToRefs)
         self.tableWidgetParameter.signalLoadedDataFull.connect(self.loadedDataFull)
+        self.tableWidgetParameter.signalLoadedDataEmpty.connect(self.loadedDataEmpty)
         self.tableWidgetParameter.signalCSVLoadData.connect(self.widgetCSV.loadData)
         self.tableWidgetParameter.signalBlueForsLoadData.connect(self.widgetBlueFors.loadData)
         self.tableWidgetParameter.signaladdRow.connect(self.addRow)
@@ -152,7 +167,6 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
         # Flag
-        self._dataDowloadingFlag = False
         # self._progressBars = {}
         self._databaseClicking = False  # To avoid the opening of two database as once
 
@@ -188,15 +202,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             newConfig: New configuration dict containing the style to be applied.
         """
 
-        if newConfig['style']!=config['style']:
-            if newConfig['style']=='qdarkstyle':
-                import qdarkstyle
-                self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-            elif newConfig['style']=='qbstyles':
-                import qdarkstyle
-                self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-            elif newConfig['style']=='white':
-                self.qapp.setStyleSheet(self.qapp.setStyle('Oxygen'))
+        if newConfig['style']=='qdarkstyle':
+            import qdarkstyle
+            self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        elif newConfig['style']=='qbstyles':
+            import qdarkstyle
+            self.qapp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+        elif newConfig['style']=='white':
+            self.qapp.setStyleSheet(self.qapp.setStyle('Oxygen'))
 
         if len(self._plotRefs) > 0:
 
@@ -261,29 +274,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
 
-    # @staticmethod
-    # def clearLayout(layout: QtWidgets.QLayout) -> None:
-    #     """
-    #     Clear a pyqt layout, from:
-    #     https://stackoverflow.com/questions/4528347/clear-all-widgets-in-a-layout-in-pyqt
-
-    #     Parameters
-    #     ----------
-    #     layout : QtWidgets.QLayout
-    #         Qt layout to be cleared
-    #     """
-    #     while layout.count():
-    #         child = layout.takeAt(0)
-    #         if child.widget():
-    #             child.widget().deleteLater()
-
-
-
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
         Method called when closing the main app.
         Close every 1d and 2d plot opened.
         """
+
+        if hasattr(self.menuBarMain, 'menuDialogLiveplot'):
+            self.menuBarMain.menuDialogLiveplot.close()
 
         plotRefs = [plot for plot in self._plotRefs.keys()]
         # plot1d window open from a plo1d window are taken care by the plot1d itself
@@ -312,30 +310,30 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
     ###########################################################################
     #
     #
-    #                           Menu Signal
-    #
-    #
-    ###########################################################################
-
-
-    @QtCore.pyqtSlot()
-    def openDialogLiveplot(self):
-
-        self.menuDialogLiveplot = MenuDialogLiveplot(config,
-                                                     self.addPlot,
-                                                     self.cleanCheckBox,
-                                                     self.getLivePlotRef,
-                                                     self._plotRefs)
-
-
-
-    ###########################################################################
-    #
-    #
     #                           Plotting
     #
     #
     ###########################################################################
+
+
+
+    @QtCore.pyqtSlot(QtWidgets.QCheckBox, QtWidgets.QProgressBar)
+    def loadedDataEmpty(self, cb: QtWidgets.QCheckBox,
+                              progressBar    : QtWidgets.QProgressBar) -> None:
+        """
+        Method called by LoadDataFromRunThread when the data download is done but the
+        database is empty.
+        We signal the data downloading being done by setting the flag False.
+        This will allow the next live plot iteration to try downloading the data
+        again.
+        """
+
+        # Since the data download failed, we uncheck the checkbox
+        cb.setChecked(False)
+
+        self.signalEnableCheck.emit(cb)
+        self.signalRemoveProgressBar.emit(progressBar)
+        self.signalRunClickDone.emit()
 
 
 
@@ -378,10 +376,12 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         self.signalRemoveProgressBar.emit(progressBar)
         self.signalEnableCheck.emit(cb)
 
+        self.signalRunClickDone.emit()
 
 
 
-    @QtCore.pyqtSlot(int, str, str, str, str, str, tuple, str, str, str, str)
+
+    @QtCore.pyqtSlot(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
     def slotFromPlotAddPlot(self, runId          : int,
                                   curveId        : str,
                                   plotTitle      : str,
@@ -392,7 +392,9 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                   xLabelText     : str,
                                   xLabelUnits    : str,
                                   yLabelText     : str,
-                                  yLabelUnits    : str) -> None:
+                                  yLabelUnits    : str,
+                                  zLabelText     : str,
+                                  zLabelUnits    : str) -> None:
         """
         Call from plot.
         """
@@ -404,12 +406,13 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                      xLabelUnits    = xLabelUnits,
                      yLabelText     = yLabelText,
                      yLabelUnits    = yLabelUnits,
+                     zLabelText     = zLabelText,
+                     zLabelUnits    = zLabelUnits,
                      runId          = runId,
                      curveId        = curveId,
                      plotTitle      = plotTitle,
                      windowTitle    = windowTitle,
                      dateTimeAxis   = False)
-
 
 
 
@@ -420,19 +423,14 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                       xLabelUnits        : str,
                       yLabelText         : str,
                       yLabelUnits        : str,
+                      zLabelText         : str,
+                      zLabelUnits        : str,
                       runId              : int,
                       curveId            : str,
                       plotTitle          : str,
                       windowTitle        : str,
                       dateTimeAxis       : bool,
-                      linkedTo2dPlot     : bool=False,
-                      curveLegend        : Optional[str]=None,
-                      hidden             : bool=False,
-                      curveLabel         : Optional[str]=None,
-                      curveUnits         : Optional[str]=None,
-                      livePlot           : bool=False,
-                      zLabelText         : Optional[str]=None,
-                      zLabelUnits        : Optional[str]=None) -> None:
+                      curveLegend        : Optional[str]=None) -> None:
         """
         Methods called once the data are downloaded to add a plot of the data.
         Discriminate between 1d and 2d plot through the length of data list.
@@ -507,21 +505,26 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                               databaseAbsPath    = databaseAbsPath,
                               curveId            = curveId,
                               curveLegend        = curveLegend,
-                              linkedTo2dPlot     = linkedTo2dPlot,
-                              livePlot           = livePlot,
                               dateTimeAxis       = dateTimeAxis)
 
                 # Through interaction, we open new plot
                 p.signal2MainWindowAddPlot.connect(self.slotFromPlotAddPlot)
                 # When a plot is closed, all its sub-interaction plot are closed
-                p.signalClosePlot.connect(self.slotClosePlot)
-                p.signalUpdateCurve.connect(self.updateCurve)
+                p.signalClose1dPlot.connect(self.slotClose1dPlot)
+                p.signalUpdateCurve.connect(self.slotUpdateCurve)
+
+
+                # self.signalAddSliceItem.connect(p.addSliceItem)
 
 
                 # When use uncheck a parameter in tableWidgetParameter, we
                 # propagate the event to plot
                 self.tableWidgetParameter.signalRemoveCurve.connect(p.slotRemoveCurve)
 
+                # If the plot comes from 2dplot, we connect signal
+                for plot in self._plotRefs.values():
+                    if plot.plotType=='2d':
+                        plot.signalRemoveCurve.connect(p.slotRemoveCurve)
 
                 self._plotRefs[plotRef] = p
 
@@ -535,8 +538,7 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                                                         curveXUnits        = xLabelUnits,
                                                         curveYLabel        = yLabelText,
                                                         curveYUnits        = yLabelUnits,
-                                                        curveLegend        = yLabelText,
-                                                        hidden             = hidden)
+                                                        curveLegend        = yLabelText)
             self.updateList1dCurvesLabels()
 
         # 2D plot
@@ -556,9 +558,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
                               zLabelUnits     = zLabelUnits,
                               windowTitle     = windowTitle,
                               runId           = runId,
+                              curveId         = curveId,
                               plotRef         = plotRef,
-                              databaseAbsPath = databaseAbsPath,
-                              livePlot        = livePlot)
+                              databaseAbsPath = databaseAbsPath)
+
+                # p.signalGet1dColorIndex.connect(self.slotGet1dColorIndex)
+                p.signal2MainWindowAddPlot.connect(self.slotFromPlotAddPlot)
+                p.signalUpdateCurve.connect(self.slotUpdateCurve)
+                p.signalClose1dPlot.connect(self.slotClose1dPlot)
+                p.signalClose2dPlot.connect(self.slotClose2dPlot)
 
                 self._plotRefs[plotRef] = p
                 self._plotRefs[plotRef].show()
@@ -568,23 +576,41 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
         # self.signalAddCurveToRefs.emit(plotRef, self._plotRefs[plotRef].curves[curveId])
 
 
-        # Flag
-        self._dataDowloadingFlag = False
+
+    QtCore.pyqtSlot(str, str, str)
+    def slotUpdatePlotProperty(self, plotRef: str,
+                                     prop: str,
+                                     value: str) -> None:
+
+        self._plotRefs[plotRef].updatePlotProperty(prop,
+                                                   value)
+
 
 
     QtCore.pyqtSlot(str, str, str, np.ndarray, np.ndarray)
-    def updateCurve(self, plotRef: str,
-                          curveId: str,
-                          curveLegend: str,
-                          x: np.ndarray,
-                          y: np.ndarray) -> None:
+    def slotUpdateCurve(self, plotRef: str,
+                              curveId: str,
+                              curveLegend: str,
+                              x: np.ndarray,
+                              y: np.ndarray) -> None:
 
         self._plotRefs[plotRef].updatePlotDataItem(x,
                                                    y,
                                                    curveId,
-                                                   curveLegend)
+                                                   curveLegend,
+                                                   True)
 
 
+
+    QtCore.pyqtSlot(str, str, str, np.ndarray, np.ndarray)
+    def slotUpdate2d(self, plotRef: str,
+                             x: np.ndarray,
+                             y: np.ndarray,
+                             z: np.ndarray) -> None:
+
+        self._plotRefs[plotRef].livePlotUpdate(x=x,
+                                               y=y,
+                                               z=z)
 
 
     def updateList1dCurvesLabels(self) -> None:
@@ -607,18 +633,15 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
 
 
     @QtCore.pyqtSlot(str)
-    def slotClosePlot(self, plotRef: str) -> None:
+    def slotClose1dPlot(self, plotRef: str) -> None:
 
         # We uncheck all curves from the tableWidgetParameter
         curvesId = list(self._plotRefs[plotRef].curves.keys())
         for curveId in curvesId:
             self.tableWidgetParameter.slotUncheck(curveId)
 
-        # We close the plot
-        self._plotRefs[plotRef]._allowClosing = True
-        self._plotRefs[plotRef].deleteLater()
-        del(self._plotRefs[plotRef])
 
+        # We check for all possible interaction plots from that 1d plot
         for curveType in ('fft',
                           'fftnodc',
                           'ifft',
@@ -636,5 +659,65 @@ class MainApp(QtWidgets.QMainWindow, main.Ui_MainWindow):
             if plotRef+curveType in self._plotRefs.keys():
                 self._plotRefs[plotRef+curveType].deleteLater()
                 del(self._plotRefs[plotRef+curveType])
+
+
+        # We check if that 1d plot was an interaction from a 2d plot
+        for curveType in ('vertical',
+                          'horizontal',
+                          'anyvertical',
+                          'anyhorizontal',
+                          ):
+
+            # We get the curveId of the closed curved and remove their attached
+            # sliceItem
+            if curveType in plotRef:
+                for curveId in self._plotRefs[plotRef].curves.keys():
+                    self._plotRefs[plotRef[:-len(curveType)]].removeSliceItem(curveId)
+
+        # We check for any interaction that should be uncheck
+        for curveType in ('minimum',
+                          'maximum',
+                          ):
+            if curveType in plotRef:
+                for curveId in self._plotRefs[plotRef].curves.keys():
+                    self._plotRefs[plotRef[:-len(curveType)]].interactionCurveClose(curveType)
+
+
+        # We close the plot
+        self._plotRefs[plotRef]._allowClosing = True
+        self._plotRefs[plotRef].deleteLater()
+        del(self._plotRefs[plotRef])
+
+        self.updateList1dCurvesLabels()
+
+
+
+    @QtCore.pyqtSlot(str, str)
+    def slotClose2dPlot(self, plotRef: str,
+                              curveId: str) -> None:
+
+        # We uncheck the tableWidgetParameter
+        self.tableWidgetParameter.slotUncheck(curveId)
+
+        for curveType in ('vertical',
+                          'horizontal',
+                          'anyvertical',
+                          'anyhorizontal',
+                          'minimum',
+                          'maximum',
+                          ):
+
+            if plotRef+curveType in self._plotRefs.keys():
+                self._plotRefs[plotRef+curveType].deleteLater()
+                del(self._plotRefs[plotRef+curveType])
+
+        # special case for the 3d
+        if hasattr(self._plotRefs[plotRef], 'widget3d'):
+            self._plotRefs[plotRef].widget3d.close()
+
+        # We close the plot
+        self._plotRefs[plotRef]._allowClosing = True
+        self._plotRefs[plotRef].deleteLater()
+        del(self._plotRefs[plotRef])
 
         self.updateList1dCurvesLabels()

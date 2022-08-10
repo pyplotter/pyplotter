@@ -7,7 +7,6 @@ from scipy.signal import savgol_filter
 
 
 
-
 class SavitzkyGolay(QtWidgets.QDialog):
 
     # For plot1d GUI

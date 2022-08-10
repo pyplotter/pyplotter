@@ -11,7 +11,7 @@ from .tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
 from ..sources.workers.loadDataBase import LoadDataBaseThread
 from ..sources.workers.loadRunInfo import LoadRunInfoThread
 from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
-from ..sources.functions import clearTableWidget
+from ..sources.functions import clearTableWidget, getDatabaseNameFromAbsPath
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -22,9 +22,11 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     """
 
     signalSendStatusBarMessage     = QtCore.pyqtSignal(str, str)
+    signalAddStatusBarMessage      = QtCore.pyqtSignal(str, str)
     signalUpdateProgressBar        = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
     signalRemoveProgressBar        = QtCore.pyqtSignal(QtWidgets.QProgressBar)
     signalDatabaseClickDone        = QtCore.pyqtSignal()
+    signalUpdateCurrentDatabase    = QtCore.pyqtSignal(str)
     keyPressed                     = QtCore.pyqtSignal(str, int)
     signalRunClick                 = QtCore.pyqtSignal(int, list, dict, str, str, str, str, bool)
     signalDatabaseStars            = QtCore.pyqtSignal()
@@ -58,10 +60,12 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.threadpool = QtCore.QThreadPool()
 
 
+
     def first_call(self):
         ## Only used to propagate information
         # Contain the databaseAbsPath
         self.setColumnHidden(8, True)
+
 
 
     def keyPressEvent(self, event):
@@ -79,12 +83,9 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         Called from the statusBarMain, when user clicks on a database.
         """
 
-        self.currentPath  = os.path.dirname(databaseAbsPath)
-        self.databaseName = os.path.basename(databaseAbsPath)
-
         # Load runs extra properties
-        self.properties.jsonLoad(self.currentPath,
-                                 self.databaseName)
+        self.properties.jsonLoad(os.path.dirname(databaseAbsPath),
+                                 os.path.basename(databaseAbsPath))
 
         # Remove all previous row in the table
         clearTableWidget(self)
@@ -93,8 +94,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         # column width
         self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
         self.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
-
-        # self.qcodesDatabase.databasePath = os.path.join(self.currentPath, self._currentDatabase)
 
         # Create a thread which will read the database
         worker = LoadDataBaseThread(databaseAbsPath,
@@ -204,6 +203,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         # Done
         self._databaseClicking = False
         self.signalDatabaseClickDone.emit()
+        self.signalUpdateCurrentDatabase.emit(getDatabaseNameFromAbsPath(databaseAbsPath))
 
         # We periodically check if there is not a new run to display
         self.databaseAbsPath = databaseAbsPath
@@ -230,7 +230,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # Connect signals
         self.workerCheck.signal.dataBaseUpdate.connect(self.signal2StatusBarDatabaseUpdate)
-        self.workerCheck.signal.sendStatusBarMessage.connect(self.signalSendStatusBarMessage)
+        self.workerCheck.signal.addStatusBarMessage.connect(self.signalAddStatusBarMessage)
         self.workerCheck.signal.dataBaseCheckNbRun.connect(self.slotDataBaseCheckNbRun)
 
         # Execute the thread
@@ -267,16 +267,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         Database is accessed through a thread, see runClickFromThread.
         """
 
-        # We check if use click or doubleClick
-        doubleClick = False
-        if currentRow==self.lastClickRow:
-            if time() - self.lastClickTime<0.5:
-                doubleClick = True
-
-        # Keep track of the last click time
-        self.lastClickTime = time()
-        self.lastClickRow  = currentRow
-
         # When the user click on another database while having already clicked
         # on a run, the runClick event is happenning even if no run have been clicked
         # This is due to the "currentCellChanged" event handler.
@@ -284,11 +274,26 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         if self._databaseClicking:
             return
 
-
         runId           = int(self.item(currentRow, 0).text())
         experimentName  = self.item(currentRow, 2).text()
         runName         = self.item(currentRow, 4).text()
         databaseAbsPath = self.item(currentRow, 8).text()
+
+        # We check if use click or doubleClick
+        doubleClick = False
+        if currentRow==self.lastClickRow:
+            if time() - self.lastClickTime<0.5:
+                doubleClick = True
+
+                # When user doubleclick on a run, we disable the row to avoid
+                # double data downloading of the same dataset
+                self.doubleClickCurrentRow = currentRow
+                self.doubleClickDatabaseAbsPath = databaseAbsPath
+                self.cellClicked.disconnect()
+
+        # Keep track of the last click time
+        self.lastClickTime = time()
+        self.lastClickRow  = currentRow
 
         self.signalSendStatusBarMessage.emit('Loading run parameters', 'orange')
 
@@ -397,6 +402,20 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     #
     #
     ############################################################################
+
+
+    @QtCore.pyqtSlot()
+    def slotRunClickDone(self) -> None:
+        """
+        Called by MainWindow when user has doubleClicked on a row.
+        Enable the row again if the use didn't change the database in the meantime.
+        """
+
+        if hasattr(self, 'doubleClickCurrentRow'):
+            if self.doubleClickDatabaseAbsPath==self.item(self.doubleClickCurrentRow, 8).text():
+                self.cellClicked.connect(self.runClick)
+            del(self.doubleClickCurrentRow)
+            del(self.doubleClickDatabaseAbsPath)
 
 
 

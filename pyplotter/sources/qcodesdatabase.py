@@ -1,9 +1,10 @@
 # This Python file uses the following encoding: utf-8
+import io
 import time
 import sqlite3
 import json
 import numpy as np
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Any, Sequence
 import multiprocess as mp
 
 from .config import loadConfigCurrent
@@ -480,7 +481,6 @@ def getParameterDatamp(databaseAbsPath: str,
     conn, cur = openDatabase(databaseAbsPath)
     # For small run, we download all at once
     if nbPoint<=100:
-
         cur.execute(request)
         d = np.array(cur.fetchall())
 
@@ -504,6 +504,12 @@ def getParameterDatamp(databaseAbsPath: str,
     queueProgressBar.put(100)
 
     closeDatabase(conn, cur)
+
+    # We do not handle bytes data yet
+    if isinstance(d[0][0], np.bytes_):
+        queueData.put(None)
+        queueDone.put(True)
+        return
 
     queueData.put(d)
     queueDone.put(True)

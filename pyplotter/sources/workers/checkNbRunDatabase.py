@@ -17,7 +17,7 @@ class dataBaseCheckNbRunSignal(QtCore.QObject):
     # When the nb of run didn't change
     dataBaseCheckNbRun = QtCore.pyqtSignal(str, int)
 
-    sendStatusBarMessage = QtCore.pyqtSignal(str, str)
+    addStatusBarMessage = QtCore.pyqtSignal(str, str)
 
 
 
@@ -51,14 +51,12 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
     @QtCore.pyqtSlot()
     def run(self):
 
-        self.signal.sendStatusBarMessage.emit('Ready',
-                                              'green')
         for twait in range(config['delayBetweendataBaseNbRunCheck']):
             # We check if the thread ias being stopped
             if self._stop:
                 return
             elapsedTime = config['delayBetweendataBaseNbRunCheck']-twait
-            self.signal.sendStatusBarMessage.emit('Ready (Check for new run in {}s)'.format(elapsedTime),
+            self.signal.addStatusBarMessage.emit(' (Check for new run in {}s)'.format(elapsedTime),
                                                   'green')
             QtTest.QTest.qWait(1000)
 
@@ -84,13 +82,13 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
             return
 
         if self.nbTotalRun<nbTotalRun:
-            self.signal.sendStatusBarMessage.emit('New run detected',
+            self.signal.addStatusBarMessage.emit(' (New run detected)',
                                                   'orange')
             QtTest.QTest.qWait(500)
             self.signal.dataBaseUpdate.emit(self.databaseAbsPath)
         else:
-            self.signal.sendStatusBarMessage.emit('No run detected',
-                                                  'green')
+            self.signal.addStatusBarMessage.emit(' (No run detected)',
+                                                  'black')
             QtTest.QTest.qWait(500)
             # In any case, we rerun the thread
             self.signal.dataBaseCheckNbRun.emit(self.databaseAbsPath,

@@ -922,7 +922,7 @@
   <customwidget>
    <class>HistogramLUTWidget</class>
    <extends>QWidget</extends>
-   <header>.histogram_lut_widget</header>
+   <header>.histogramLUTWidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

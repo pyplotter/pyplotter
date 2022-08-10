@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
 from math import log10
-from typing import Callable, Union, Tuple, Optional
+from typing import Callable, Union, Tuple, Optional, List
 import os
 import numpy as np
 import pandas as pd
@@ -146,6 +146,22 @@ def sizeof_fmt(num: float, suffix: str='B') -> str:
 
 
 
+def getCurveColorIndex(colorIndexes: List[int],
+                       config: dict) -> int:
+    """
+    Return a pyqtgraph mKpen with the color of the next curve following
+    the colors in config files
+    """
+
+    for i in range(50):
+        if i not in colorIndexes:
+            colorIndex = i%len(config['plot1dColors'])
+            break
+
+    return colorIndex
+
+
+
 def getCurveId(databaseAbsPath: str,
                name: str,
                runId: int) -> str:
@@ -232,6 +248,7 @@ def getPlotTitle(databaseAbsPath: str,
         return '{}<br>{} - {}'.format(title, runId, experimentName)
 
 
+
 def getDatabaseNameFromAbsPath(databaseAbsPath: str) -> str:
         return os.path.basename(databaseAbsPath)[:-3]
 
@@ -253,6 +270,28 @@ def getWindowTitle(databaseAbsPath: str,
         windowTitle += ' - '+runName
 
     return windowTitle
+
+
+
+def hex_to_rgba(value: str) -> Tuple[int, int, int, int]:
+    """
+    Convert hex color to rgba color.
+    From: https://stackoverflow.com/questions/29643352/converting-hex-to-rgb-value-in-python/29643643
+
+    Parameters
+    ----------
+    value : str
+        hexagonal color to be converted in rgba.
+
+    Returns
+    -------
+    Tuple[int]
+        rgba calculated from the hex color.
+    """
+    value = value.lstrip('#')
+    lv = len(value)
+    r, g, b = [int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3)]
+    return r, g, b, 255
 
 
 
@@ -283,7 +322,7 @@ def findXYIndex(y: np.ndarray) -> Tuple[int, int]:
 def shapeData2d(x: np.ndarray,
                 y: np.ndarray,
                 z: np.ndarray,
-                sendStatusBarMessage: QtCore.pyqtSignal) -> Tuple[np.ndarray,
+                sendMessage: QtCore.pyqtSignal) -> Tuple[np.ndarray,
                                                                   np.ndarray,
                                                                   np.ndarray]:
     """
@@ -294,7 +333,7 @@ def shapeData2d(x: np.ndarray,
     In case of non regular grid, the y axis is approximated.
     """
 
-    sendStatusBarMessage.emit('Shapping 2d data for display', 'orange')
+    sendMessage.emit('Shapping 2d data for display', 'orange')
 
     # Nb points in the 1st dimension
     xn = len(np.unique(x))
@@ -342,7 +381,7 @@ def shapeData2d(x: np.ndarray,
         zz = z
     else:
 
-        sendStatusBarMessage.emit('Irregular grid detected, shapping 2d data', 'orange')
+        sendMessage.emit('Irregular grid detected, shapping 2d data', 'orange')
 
         xx = x[:,0]
 
@@ -403,7 +442,7 @@ def make_grid(x: np.ndarray,
 def shapeData2dPolygon(x : np.ndarray,
                        y : np.ndarray,
                        z : np.ndarray,
-                       sendStatusBarMessage: QtCore.pyqtSignal) -> Tuple[np.ndarray,
+                       sendMessage: QtCore.pyqtSignal) -> Tuple[np.ndarray,
                                                                          np.ndarray,
                                                                          np.ndarray]:
     """
@@ -419,7 +458,7 @@ def shapeData2dPolygon(x : np.ndarray,
             Value of the polygons
     """
 
-    sendStatusBarMessage.emit('Shapping 2d data for display', 'orange')
+    sendMessage.emit('Shapping 2d data for display', 'orange')
 
     ## Treat the data depending on their shape
     # We get the number of point in the x and y dimension

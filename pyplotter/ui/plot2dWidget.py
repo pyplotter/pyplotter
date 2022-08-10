@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\plot2d_widget.ui'
+# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\plot2dWidget.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #
@@ -467,4 +467,4 @@ class Ui_Dialog(object):
         self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:<br/>z:</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabInteraction), _translate("Dialog", "Interaction"))
 from ..ui.plotWidget import PlotWidget
-from .histogram_lut_widget import HistogramLUTWidget
+from .histogramLUTWidget import HistogramLUTWidget

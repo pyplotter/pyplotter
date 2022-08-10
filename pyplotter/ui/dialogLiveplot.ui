@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>310</width>
-    <height>336</height>
+    <height>378</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Liveplot</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_4">
    <item>
@@ -140,6 +140,82 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_7">
           <item>
+           <layout class="QHBoxLayout" name="horizontalLayoutLivePlotDatabasePath">
+            <item>
+             <widget class="QLabel" name="labelLivePlotDatabasePath">
+              <property name="minimumSize">
+               <size>
+                <width>168</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>8</pointsize>
+                <weight>50</weight>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Current database path:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelLivePlotDatabasePathInfo">
+              <property name="font">
+               <font>
+                <pointsize>8</pointsize>
+                <weight>50</weight>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayoutLivePlotDatabase">
+            <item>
+             <widget class="QLabel" name="labelLivePlotDatabaseName">
+              <property name="minimumSize">
+               <size>
+                <width>168</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>8</pointsize>
+                <weight>50</weight>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Current database Name:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelLivePlotDatabaseNameInfo">
+              <property name="font">
+               <font>
+                <pointsize>8</pointsize>
+                <weight>50</weight>
+                <bold>false</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_8">
             <item>
              <widget class="QLabel" name="labelLivePlotInProgress">
@@ -195,7 +271,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Current run id:</string>
+               <string>Run id:</string>
               </property>
              </widget>
             </item>
@@ -209,7 +285,7 @@
                </font>
               </property>
               <property name="text">
-               <string>None</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -233,7 +309,7 @@
                </font>
               </property>
               <property name="text">
-               <string>Current run name:</string>
+               <string>Run name:</string>
               </property>
              </widget>
             </item>
@@ -247,16 +323,16 @@
                </font>
               </property>
               <property name="text">
-               <string>None</string>
+               <string/>
               </property>
              </widget>
             </item>
            </layout>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayoutLivePlotDatabasePath">
+           <layout class="QHBoxLayout" name="horizontalLayout_15">
             <item>
-             <widget class="QLabel" name="labelLivePlotDatabasePath">
+             <widget class="QLabel" name="labelLivePlotNbPoint">
               <property name="minimumSize">
                <size>
                 <width>168</width>
@@ -271,12 +347,12 @@
                </font>
               </property>
               <property name="text">
-               <string>Current database path:</string>
+               <string>Nb point:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QLabel" name="labelLivePlotDatabasePathInfo">
+             <widget class="QLabel" name="labelLivePlotNbPointInfo">
               <property name="font">
                <font>
                 <pointsize>8</pointsize>
@@ -285,16 +361,16 @@
                </font>
               </property>
               <property name="text">
-               <string>None</string>
+               <string/>
               </property>
              </widget>
             </item>
            </layout>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayoutLivePlotDatabase">
+           <layout class="QHBoxLayout" name="horizontalLayout_16">
             <item>
-             <widget class="QLabel" name="labelLivePlotDatabaseName">
+             <widget class="QLabel" name="labelLivePlotInfo">
               <property name="minimumSize">
                <size>
                 <width>168</width>
@@ -309,12 +385,12 @@
                </font>
               </property>
               <property name="text">
-               <string>Current database Name:</string>
+               <string>Information:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QLabel" name="labelLivePlotDatabaseNameInfo">
+             <widget class="QLabel" name="labelLivePlotInfoInfo">
               <property name="font">
                <font>
                 <pointsize>8</pointsize>
@@ -323,7 +399,7 @@
                </font>
               </property>
               <property name="text">
-               <string>None</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -361,7 +437,7 @@
                </font>
               </property>
               <property name="text">
-               <string>None</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -399,7 +475,7 @@
                </font>
               </property>
               <property name="text">
-               <string>None</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -437,7 +513,7 @@
                </font>
               </property>
               <property name="text">
-               <string>None</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -475,7 +551,7 @@
                </font>
               </property>
               <property name="text">
-               <string>None</string>
+               <string/>
               </property>
              </widget>
             </item>

@@ -1,17 +1,16 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
-from typing import Union, Tuple, Callable, Optional, List
-import inspect
+from typing import Union, Tuple, Optional, List, Dict
 from math import atan2
 import uuid
 
-from ..ui.plot2d_widget import Ui_Dialog
+from ..ui.plot2dWidget import Ui_Dialog
 from . import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
 from .plot_app import PlotApp
 from .plot_1d_app import Plot1dApp
 from .config import loadConfigCurrent
-from . import fit
+from ..sources.functions import getCurveColorIndex, hex_to_rgba
 from .pyqtgraph import pg
 
 
@@ -20,6 +19,21 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     """
     Class to handle ploting in 2d.
     """
+
+    signalRemovePlotFromRef      = QtCore.pyqtSignal(str, str)
+    signal2MainWindowClosePlot   = QtCore.pyqtSignal(str)
+    signalRemovePlotRef          = QtCore.pyqtSignal(str)
+
+    signalClose1dPlot              = QtCore.pyqtSignal(str)
+    signalClose2dPlot            = QtCore.pyqtSignal(str, str)
+
+    signal2MainWindowAddPlot     = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
+
+
+    # signalGet1dColorIndex     = QtCore.pyqtSignal(str, str, str, str, str)
+    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray)
+    signalRemoveCurve  = QtCore.pyqtSignal(str, str)
+
 
     def __init__(self, x              : np.ndarray,
                        y              : np.ndarray,
@@ -33,14 +47,9 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                        zLabelUnits    : str,
                        windowTitle    : str,
                        runId          : int,
-                       cleanCheckBox  : Callable[[str, str, int, Union[str, list]], None],
+                       curveId        : str,
                        plotRef        : str,
-                       databaseAbsPath: str,
-                       addPlot        : Callable,
-                       removePlot     : Callable,
-                       getPlotFromRef : Callable,
-                       livePlot       : bool=False,
-                       parent         = None):
+                       databaseAbsPath: str):
         """
         Class handling the plot of 2d data, i.e. colormap.
         Since pyqtgraph does not handle non regular image, there could be funny
@@ -81,18 +90,20 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             reference updated.
         getPlotFromRef : Callable
             Function from the mainApp used to access the different plots.
-        livePlot : bool, optional
-            Is the current plot a livePlot, by default False
         parent : , optional
         """
-        super(Plot2dApp, self).__init__(parent)
 
+        # Set parent to None to have "free" qdialog
+        QtWidgets.QDialog.__init__(self, parent=None)
         self.setupUi(self)
+
+        self._allowClosing = False
+
         self.config = loadConfigCurrent()
 
         # Must be set on False, see
         # https://github.com/pyqtgraph/pyqtgraph/issues/1371
-        self.widget.useOpenGL(False)
+        self.plotWidget.useOpenGL(False)
 
         # Allow resize of the plot window
         self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
@@ -116,17 +127,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.title         = title
         self.windowTitle   = windowTitle
         self.runId         = runId
-        self.cleanCheckBox = cleanCheckBox
+        self.curveId       = curveId
         self.plotRef       = plotRef
-
-        # Method from the MainApp to add plot window
-        # Used for data slicing
-        self.addPlot         = addPlot
-        self.removePlot      = removePlot
-        self.getPlotFromRef = getPlotFromRef
-
-        # If the plot is displaying a qcodes run that is periodically updated
-        self.livePlot       = livePlot
 
         # Store references to infiniteLines creating by data slicing
         self.sliceItems = {}
@@ -136,22 +138,15 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.isoCurve = None
         self.isoLine  = None
 
-        self.axesIsSwapped = False
-
-        # Store the references to linked 1d plots, object created when user
-        # create a slice of data
-        # self.linked1dPlots = {'vertical'   : None,
-        #                       'horizontal' : None}
-
         # Reference to the extracted window
         self.extractionWindow = None
 
-        # Reference to the fit window
-        self.extractiofitWindow = None
 
+        # Keep track of the sub-interaction plots launched fron that plot
+        self.interactionRefs: Dict[str, dict] = {}
 
         # Get plotItem from the widget
-        self.plotItem = self.widget.getPlotItem()
+        self.plotItem = self.plotWidget.getPlotItem()
         self.resize(*self.config['dialogWindowSize'])
 
 
@@ -211,19 +206,19 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
         # Connect UI
-        self.checkBoxFindSlope.stateChanged.connect(self.cbFindSlope)
-        self.checkBoxDrawIsoCurve.stateChanged.connect(self.cbIsoCurve)
-        self.checkBoxInvert.stateChanged.connect(lambda : self.cbcmInvert(self.checkBoxInvert))
-        self.checkBoxMaximum.stateChanged.connect(self.checkBoxExtractionState)
-        self.checkBoxMinimum.stateChanged.connect(self.checkBoxExtractionState)
-        self.checkBoxSwapxy.stateChanged.connect(self.checkBoxSwapxyState)
-        self.checkBoxAspectEqual.stateChanged.connect(self.checkBoxAspectEqualState)
-        self.checkBoxSubtractAverageX.stateChanged.connect(self.zDataTransformation)
-        self.checkBoxSubtractAverageX.stateChanged.connect(self.zDataTransformation)
+        self.checkBoxFindSlope.clicked.connect(self.cbFindSlope)
+        self.checkBoxDrawIsoCurve.clicked.connect(self.cbIsoCurve)
+        self.checkBoxInvert.clicked.connect(lambda : self.cbcmInvert(self.checkBoxInvert))
+        self.checkBoxMaximum.clicked.connect(self.checkBoxMaximumClicked)
+        self.checkBoxMinimum.clicked.connect(self.checkBoxMinimumClicked)
+        self.checkBoxSwapxy.clicked.connect(self.checkBoxSwapxyState)
+        self.checkBoxAspectEqual.clicked.connect(self.checkBoxAspectEqualState)
+        self.checkBoxSubtractAverageX.clicked.connect(self.zDataTransformation)
+        self.checkBoxSubtractAverageX.clicked.connect(self.zDataTransformation)
         self.spinBoxSubtractPolyX.valueChanged.connect(self.zDataTransformation)
         self.spinBoxSubtractPolyY.valueChanged.connect(self.zDataTransformation)
-        self.checkBoxUnwrapX.stateChanged.connect(self.zDataTransformation)
-        self.checkBoxUnwrapY.stateChanged.connect(self.zDataTransformation)
+        self.checkBoxUnwrapX.clicked.connect(self.zDataTransformation)
+        self.checkBoxUnwrapY.clicked.connect(self.zDataTransformation)
         self.pushButton3d.clicked.connect(self.launched3d)
         self.plotItem.scene().sigMouseClicked.connect(self.plotItemdoubleClick)
         self.radioButtonSliceSingleAny.toggled.connect(self.radioBoxSliceChanged)
@@ -236,12 +231,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         for label in self.config['plot2dDerivative']:
             self.comboBoxDerivative.addItem(label)
         self.comboBoxDerivative.activated.connect(self.zDataTransformation)
-
-
-        # Add fitting function to the GUI
-        self.initFitGUI()
-        # Reference to QDialog which will contains fit info
-        self.fitWindow = None
 
 
         ## Colormap initialization
@@ -264,6 +253,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         # Should be initialize last
         PlotApp.__init__(self, databaseAbsPath)
 
+        self.show()
+
 
 
     ####################################
@@ -274,34 +265,20 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def closeEvent(self, evnt):
-        """
-        Method called when use closed the plotWindow.
-        We propagate that event to the mainWindow
-        """
+    def closeEvent(self, evnt: QtGui.QCloseEvent) -> None:
 
-        self.cleanCheckBox(plotRef     = self.plotRef,
-                           windowTitle = self.windowTitle,
-                           runId       = self.runId,
-                           label      = self.zLabelText)
+        # # We catch the close event and ignore it
+        if not self._allowClosing:
+            evnt.ignore()
 
-        # If user created data slice, we close the linked 1d plot
-        if self.getPlotRefFromSliceOrientation('vertical') is not None:
-            self.getPlotRefFromSliceOrientation('vertical').close()
-        if self.getPlotRefFromSliceOrientation('horizontal') is not None:
-            self.getPlotRefFromSliceOrientation('horizontal').close()
+        # for sliceOrientation, interaction in self.interactionRefs.items():
+        #         interaction['plotRef']
+            # if curveId in list(self.curves.keys()):
+            #     interaction['dialog'].close()
 
-        # If user extracted the maximum
-        if self.extractionWindow is not None:
-            self.extractionWindow.close()
-
-        # If user fit the maximum
-        if self.fitWindow is not None:
-            self.fitWindow.close()
-
-
-    def o(self):
-        self.close()
+        # All the closing procedure of the plot is handle in the MainWindow
+        self.signalClose2dPlot.emit(self.plotRef,
+                                    self.curveId)
 
 
 
@@ -323,20 +300,25 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         ## Create a GL View widget to display data
         import pyqtgraph.opengl as gl
-
-        w = gl.GLViewWidget()
-        w.show()
-        w.setWindowTitle(self.windowTitle)
-        w.setCameraPosition(distance=3)
+        pg.setConfigOption('background', (0, 0, 0))
+        self.widget3d = gl.GLViewWidget()
+        self.widget3d.show()
+        self.widget3d.setWindowTitle(self.windowTitle)
+        self.widget3d.setCameraPosition(distance=3)
 
         # Linearly scale all data from 0 to 1
         x = (self.xData - np.nanmin(self.xData))/(np.nanmax(self.xData) - np.nanmin(self.xData))
         y = (self.yData - np.nanmin(self.yData))/(np.nanmax(self.yData) - np.nanmin(self.yData))
         z = (self.zData - np.nanmin(self.zData))/(np.nanmax(self.zData) - np.nanmin(self.zData))
 
-        p = gl.GLSurfacePlotItem(x=x, y=y, z=z, shader='shaded', smooth=False)
-        w.addItem(p)
+        p = gl.GLSurfacePlotItem(x=x,
+                                 y=y,
+                                 z=z,
+                                 shader='shaded',
+                                 smooth=False)
+        self.widget3d.addItem(p)
 
+        pg.setConfigOption('background', None)
 
 
     ####################################
@@ -441,6 +423,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                        max=z[~np.isnan(z)].max())
         self.setImageView()
 
+        self.interactionUpdateAll()
+
 
 
     ####################################
@@ -448,6 +432,15 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     #           Method to related to display
     #
     ####################################
+
+
+
+    def updatePlotProperty(self, prop: str,
+                                 value: str) -> None:
+
+        if prop=='plotTitle':
+            self.plotItem.setTitle(title=value)
+
 
 
     def checkBoxAspectEqualState(self, b: int) -> None:
@@ -488,7 +481,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                     units=self.xLabelUnits)
 
                 self.updateImageItem(self.yDataRef, self.xDataRef, self.imageView.image.T)
-                self.swapSlices()
         # If user wants to unswap axes
         else:
             # If axes are not already unswap
@@ -502,7 +494,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                                     units=self.yLabelUnits)
 
                 self.updateImageItem(self.xDataRef, self.yDataRef, self.imageView.image.T)
-                self.swapSlices()
 
 
 
@@ -530,28 +521,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def getPlotRefFromSliceOrientation(self, sliceOrientation: str) -> Plot1dApp:
-        """
-        Return the 1d plot containing the slice data of this 2d plot.
-        Is based on the getPlotFromRef from MainApp but swap orientation when
-        checkBoxSwapxy is checked.
-
-        Parameters
-        ----------
-        sliceOrientation : str
-            Orientation of the slice we are interested in.
-        """
-
-        if self.checkBoxSwapxy.isChecked():
-            if sliceOrientation=='vertical':
-                return self.getPlotFromRef(self.plotRef, 'horizontal')
-            elif sliceOrientation=='horizontal':
-                return self.getPlotFromRef(self.plotRef, 'vertical')
-        else:
-            return self.getPlotFromRef(self.plotRef, sliceOrientation)
-
-
-
     def getSliceItemOrientation(self, sliceItem: Union[pg.InfiniteLine, pg.LineSegmentROI, pg.LinearRegionItem]) -> str:
         """
         Return the orientation of the sliceItem.
@@ -563,7 +532,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Return
         ------
         orientation : str
-            Either "horizontal" or "vertical".
+            Either "horizontal",  "vertical" or "any"
         """
 
         if isinstance(sliceItem, pg.InfiniteLine):
@@ -591,6 +560,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             self.sliceOrientation = 'vertical'
         else:
             self.sliceOrientation = 'any'
+
 
 
     @staticmethod
@@ -621,22 +591,22 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # We update the curve associated to the sliceLine
         if isinstance(sliceItem, pg.LineSegmentROI):
-            self.getPlotFromRef(self.plotRef, sliceOrientation+'horizontal')\
-            .updatePlotDataItem(x           = sliceX[0],
-                                y           = sliceY,
-                                curveId     = sliceItem.curveId,
-                                curveLegend = sliceLegend)
-            self.getPlotFromRef(self.plotRef, sliceOrientation+'vertical')\
-            .updatePlotDataItem(x           = sliceX[1],
-                                y           = sliceY,
-                                curveId     = sliceItem.curveId,
-                                curveLegend = sliceLegend)
+            self.signalUpdateCurve.emit(self.plotRef+sliceOrientation+'horizontal', # plotRef
+                                        sliceItem.curveId, # curveId
+                                        sliceLegend, # curveLegend
+                                        sliceX[0], # x
+                                        sliceY) # y
+            self.signalUpdateCurve.emit(self.plotRef+sliceOrientation+'vertical', # plotRef
+                                        sliceItem.curveId, # curveId
+                                        sliceLegend, # curveLegend
+                                        sliceX[1], # x
+                                        sliceY) # y
         else:
-            self.getPlotFromRef(self.plotRef, sliceOrientation)\
-            .updatePlotDataItem(x           = sliceX,
-                                y           = sliceY,
-                                curveId     = sliceItem.curveId,
-                                curveLegend = sliceLegend)
+            self.signalUpdateCurve.emit(self.plotRef+sliceOrientation, # plotRef
+                                        sliceItem.curveId, # curveId
+                                        sliceLegend, # curveLegend
+                                        sliceX, # x
+                                        sliceY) # y
 
         # We update the label of the infinity line with the value corresponding
         # to the cut
@@ -648,14 +618,12 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         else:
             pass
 
-        # sliceItem.setMouseHover(True)
-
 
 
     def addSliceItem(self, curveId: str,
                            sliceOrientation: str,
                            sliceItem: str,
-                           position: Optional[Union[float, Tuple[float, float]]]=None) -> None:
+                           position: Union[float, Tuple[float, float]]) -> None:
         """
         Method call when user create a slice of the data.
         Create an InfiniteLine or a LinearRegionItem on the 2d plot and connect
@@ -669,10 +637,18 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         # We get the current color index so that the sliceItem color match
         # with the sliceData one
-        if sliceItem=='LineSegmentROI':
-            colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation+'horizontal').curves[curveId].colorIndex
-        else:
-            colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation).curves[curveId].colorIndex
+        # if sliceItem=='LineSegmentROI':
+        #     colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation+'horizontal').curves[curveId].colorIndex
+        #     colorIndex = self.interactionRefs['any']['nbCurve']-1
+        # else:
+        #     colorIndex = self.getPlotFromRef(self.plotRef, sliceOrientation).curves[curveId].colorIndex
+        # colorIndex = self.interactionRefs[sliceOrientation]['nbCurve']-1
+
+        colorIndex = getCurveColorIndex(self.interactionRefs[sliceOrientation]['colorIndexes'],
+                                        self.config)
+
+        self.interactionRefs[sliceOrientation]['colorIndexes'].append(colorIndex)
+
 
         pen = pg.mkPen(color=self.config['plot1dColors'][colorIndex],
                        width=self.config['crossHairLineWidth'],
@@ -763,7 +739,8 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         self.plotItem.addItem(t)
 
         # Attached the curveId to its associated sliceItem
-        t.curveId = curveId
+        t.curveId    = curveId
+        t.colorIndex = colorIndex
 
         # We save a reference to the slicing item
         self.sliceItems[curveId] = t
@@ -784,59 +761,19 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         curveId : str
             [description]
         """
-        self.plotItem.removeItem(self.sliceItems[curveId])
-        del(self.sliceItems[curveId])
+        if curveId in self.sliceItems.keys():
+            sliceOrientation = self.getSliceItemOrientation(self.sliceItems[curveId])
+
+            self.interactionRefs[sliceOrientation]['nbCurve'] -= 1
+            self.interactionRefs[sliceOrientation]['colorIndexes'].remove(self.sliceItems[curveId].colorIndex)
+
+            self.plotItem.removeItem(self.sliceItems[curveId])
+            del(self.sliceItems[curveId])
 
 
-
-    def cleanSliceItem(self, plotRef     : str,
-                             windowTitle : str,
-                             runId       : int,
-                             label       : Union[str, list]) -> None:
-        """
-        Called when a linked 1dPlot is closed.
-        Has to have the same signature as cleanCheckBox, see MainApp.
-
-        Parameters
-        ----------
-        plotRef : str
-            Reference of the plot, see getplotRef.
-        windowTitle : str
-            Window title, see getWindowTitle.
-        runId : int
-            Data run id of the database.
-        label : Union[str, list]
-            Label of the dependent parameter.
-            Will be empty for signal from Plot1dApp since this parameter is only
-            usefull for Plot2dApp.
-        """
-
-
-        # We clean the reference of the linked 1d plot
-        if 'vertical' in plotRef:
-            searchedAngle = 90
-            searchedOrientation = 'vertical'
-        elif 'horizontal' in plotRef:
-            searchedAngle =  0
-            searchedOrientation = 'horizontal'
-        else:
-            pass
-
-        # Get all the curve Id to be removed
-        curvesId = []
-        for key, val in self.sliceItems.items():
-            if isinstance(val, pg.InfiniteLine):
-                if val.angle==searchedAngle:
-                    curvesId.append(key)
-            elif isinstance(val, pg.LinearRegionItem):
-                if val.orientation==searchedOrientation:
-                    curvesId.append(key)
-            elif isinstance(val, pg.LineSegmentROI):
-                    curvesId.append(key)
-
-        # Effectively remove the infinity line and the curve linked to it
-        [self.removeSliceItem(curveId) for curveId in curvesId]
-        [self.removePlot(plotRef, curveId) for curveId in curvesId]
+        if len(self.sliceItems)==0:
+            # when we do not interact with the map, we allow swapping
+            self.checkBoxSwapxy.setEnabled(True)
 
 
 
@@ -1027,18 +964,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         Return True if there is a 1d plot displaying a slice of sliceOrientation,
         False otherwise.
         """
-
-        if self.sliceOrientation=='vertical' or self.sliceOrientation=='horizontal':
-            if self.getPlotRefFromSliceOrientation(self.sliceOrientation) is None:
-                return False
-            else:
-                return True
+        if self.sliceOrientation not in self.interactionRefs.keys():
+            return False
         else:
-            if (   self.getPlotRefFromSliceOrientation('anyvertical') is None
-                or self.getPlotRefFromSliceOrientation('anyhorizontal') is None):
-                return False
-            else:
-                return True
+            return True
 
 
 
@@ -1046,6 +975,10 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
         """
         When a use double click on the 2D plot, we create a slice of the colormap
         """
+
+        # We check that the user mouse has already moved above the plotItem
+        if not hasattr(self, 'mousePos'):
+            return
 
         # If double click is detected and mouse is over the viewbox, we launch
         # a 1d plot corresponding to a data slice
@@ -1057,7 +990,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             # If there is no 1d plot already showing the slice
             if not self.isThereSlicePlot():
 
-                self.addSliceItemAndPlot(data          = [sliceX, sliceY],
+                self.addSliceItemAndPlot(data          = (sliceX, sliceY),
                                          curveLegend   = sliceLegend,
                                          sliceItem     = self.getCurrentSliceItem())
             # If there is already
@@ -1069,7 +1002,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
                 # If the user add a new sliceItem and its associated plot
                 if clickedCurveId is None:
-                    self.addSliceItemAndPlot(data         = [sliceX, sliceY],
+                    self.addSliceItemAndPlot(data         = (sliceX, sliceY),
                                              curveLegend  = sliceLegend,
                                              sliceItem    = self.getCurrentSliceItem())
 
@@ -1090,26 +1023,27 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             curveId: id of the slice.
         """
 
-        if self.sliceOrientation in ('vertical', 'horizontal'):
+        sliceOrientation = self.getSliceItemOrientation(self.sliceItems[curveId])
+
+        if sliceOrientation in ('vertical', 'horizontal'):
             # If there is more than one slice, we remove it and the associated curve
-            if len(self.getPlotRefFromSliceOrientation(self.sliceOrientation).curves)>1:
-                self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(curveId)
-                self.removeSliceItem(curveId)
+            if self.interactionRefs[sliceOrientation]['nbCurve']>1:
+                self.signalRemoveCurve.emit(self.plotRef+sliceOrientation, curveId)
             # If there is only one slice, we close the linked 1d plot
             # which will remove the associated sliceItem
             else:
-                self.getPlotRefFromSliceOrientation(self.sliceOrientation).removePlotDataItem(curveId)
+                self.signalClose1dPlot.emit(self.plotRef+sliceOrientation)
         else:
-            for sliceOrientation in  ('anyvertical', 'anyhorizontal'):
+            for sliceOrientationTemp in  ('vertical', 'horizontal'):
                 # If there is more than one slice, we remove it and the associated curve
-                if len(self.getPlotRefFromSliceOrientation(sliceOrientation).curves)>1:
-                    self.getPlotRefFromSliceOrientation(sliceOrientation).removePlotDataItem(curveId)
+                if self.interactionRefs['any']['nbCurve']>1:
+                    self.signalRemoveCurve.emit(self.plotRef+'any'+sliceOrientationTemp, curveId)
                 # If there is only one slice, we close the linked 1d plot
                 # which will remove the associated sliceItem
                 else:
-                    self.getPlotRefFromSliceOrientation(sliceOrientation).removePlotDataItem(curveId)
-                if curveId in self.sliceItems:
-                    self.removeSliceItem(curveId)
+                    self.signalClose1dPlot.emit(self.plotRef+'any'+sliceOrientationTemp)
+
+        self.removeSliceItem(curveId)
 
 
 
@@ -1135,13 +1069,18 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
 
 
-    def addSliceItemAndPlot(self, data: list,
+    def addSliceItemAndPlot(self, data: tuple,
                                   curveLegend: str,
                                   sliceItem: str,
                                   sliceOrientation: Optional[str]=None,
                                   plotRef: Optional[str]=None,
                                   position: Optional[float]=None) -> None:
 
+        # when we interact with the map, we do not allow swapping
+        self.checkBoxSwapxy.setEnabled(False)
+
+        # If sliceOrientation is None, users just doubleClick on the plotItem
+        # The sliceOrientation is the one given by the GUI
         if sliceOrientation is None:
             sliceOrientation = self.sliceOrientation
 
@@ -1150,7 +1089,6 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
 
         title = self.title+" <span style='color: red; font-weight: bold;'>Extrapolated data</span>"
         windowTitle = self.windowTitle+' - '+sliceOrientation+' slice'
-        cleanCheckBox  = self.cleanSliceItem
         runId          = self.runId
 
         # Should be called once for both addplot and addSliceItem
@@ -1161,143 +1099,82 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
             if plotRef is None:
                 plotRef = self.plotRef+sliceOrientation
 
-
             if sliceOrientation=='vertical':
                 xLabelText  = self.yLabelText
                 xLabelUnits = self.yLabelUnits
+
             elif sliceOrientation=='horizontal':
                 xLabelText  = self.xLabelText
                 xLabelUnits = self.xLabelUnits
 
-            self.addPlot(data            = data,
-                         plotTitle       = title,
-                         xLabelText      = xLabelText,
-                         xLabelUnits     = xLabelUnits,
-                         yLabelText      = yLabelText,
-                         yLabelUnits     = yLabelUnits,
-                         windowTitle     = windowTitle,
-                         runId           = runId,
-                         cleanCheckBox   = cleanCheckBox,
-                         plotRef         = plotRef,
-                         databaseAbsPath = self.databaseAbsPath,
-                         curveId         = curveId,
-                         linkedTo2dPlot  = True,
-                         curveLegend     = curveLegend)
+            if sliceOrientation in self.interactionRefs.keys():
+                self.interactionRefs[sliceOrientation]['nbCurve'] += 1
+            else:
+                self.interactionRefs[sliceOrientation] = {'plotRef' : plotRef,
+                                                          'nbCurve' : 1,
+                                                          'colorIndexes' : []}
+
+            self.signal2MainWindowAddPlot.emit(runId, # runId
+                                               curveId, # curveId
+                                               title, # plotTitle
+                                               windowTitle, # windowTitle
+                                               plotRef, # plotRef
+                                               self.databaseAbsPath, # databaseAbsPath
+                                               data, # data
+                                               xLabelText, # xLabelText
+                                               xLabelUnits, # xLabelUnits
+                                               yLabelText, # yLabelText
+                                               yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
         else:
 
             if plotRef is None:
                 plotRefHorizontal = self.plotRef+sliceOrientation+'horizontal'
                 plotRefVertical   = self.plotRef+sliceOrientation+'vertical'
 
-            self.addPlot(data            = (data[0][0], data[1]),
-                         plotTitle       = title,
-                         xLabelText      = self.xLabelText,
-                         xLabelUnits     = self.xLabelUnits,
-                         yLabelText      = yLabelText,
-                         yLabelUnits     = yLabelUnits,
-                         windowTitle     = windowTitle,
-                         runId           = runId,
-                         cleanCheckBox   = cleanCheckBox,
-                         plotRef         = plotRefHorizontal,
-                         databaseAbsPath = self.databaseAbsPath,
-                         curveId         = curveId,
-                         linkedTo2dPlot  = True,
-                         curveLegend     = curveLegend)
 
-            self.addPlot(data            = (data[0][1], data[1]),
-                         plotTitle       = title,
-                         xLabelText      = self.yLabelText,
-                         xLabelUnits     = self.yLabelUnits,
-                         yLabelText      = yLabelText,
-                         yLabelUnits     = yLabelUnits,
-                         windowTitle     = windowTitle,
-                         runId           = runId,
-                         cleanCheckBox   = cleanCheckBox,
-                         plotRef         = plotRefVertical,
-                         databaseAbsPath = self.databaseAbsPath,
-                         curveId         = curveId,
-                         linkedTo2dPlot  = True,
-                         curveLegend     = curveLegend)
+                if 'any' in self.interactionRefs.keys():
+                    self.interactionRefs['any']['nbCurve'] += 1
+                else:
+                    self.interactionRefs['any'] = {'plotRefHorizontal' : plotRefHorizontal,
+                                                   'plotRefVertical' : plotRefVertical,
+                                                   'nbCurve' : 1,
+                                                   'colorIndexes' : []}
 
+            self.signal2MainWindowAddPlot.emit(runId, # runId
+                                               curveId, # curveId
+                                               title, # plotTitle
+                                               windowTitle, # windowTitle
+                                               plotRefHorizontal, # plotRef
+                                               self.databaseAbsPath, # databaseAbsPath
+                                               (data[0][0], data[1]), # data
+                                               self.xLabelText, # xLabelText
+                                               self.xLabelUnits, # xLabelUnits
+                                               yLabelText, # yLabelText
+                                               yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
+
+            self.signal2MainWindowAddPlot.emit(runId, # runId
+                                               curveId, # curveId
+                                               title, # plotTitle
+                                               windowTitle, # windowTitle
+                                               plotRefVertical, # plotRef
+                                               self.databaseAbsPath, # databaseAbsPath
+                                               (data[0][1], data[1]), # data
+                                               self.yLabelText, # xLabelText
+                                               self.yLabelUnits, # xLabelUnits
+                                               yLabelText, # yLabelText
+                                               yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
+
+        # To add a slice item, we need to keep track of
         self.addSliceItem(curveId          = curveId,
-                            sliceOrientation = sliceOrientation,
-                            sliceItem        = sliceItem,
-                            position         = position)
-
-
-
-
-    def swapSlices(self) -> None:
-        """
-        1. Backup all slices information.
-            a. infinite line
-            b. plot1d attached to the slices
-        2. Add all vertical slices to the horizontale one and vice-versa
-        3. Remove all horizontale slices to vertical one and vice-versa
-        """
-
-        # Store sliceItems
-        slices = {}
-        for curveId, sliceItem in self.sliceItems.items():
-            if self.getSliceItemOrientation(sliceItem)=='horizontal':
-                if isinstance(sliceItem, pg.InfiniteLine):
-                    slices[curveId] = {'sliceItem'   : 'InfiniteLine',
-                                       'orientation' : 'horizontal',
-                                       'position'    : sliceItem.getPos()[1]}
-                else:
-                    slices[curveId] = {'sliceItem'   : 'LinearRegionItem',
-                                       'orientation' : 'horizontal',
-                                       'position'    : (sliceItem.getRegion()[0], sliceItem.getRegion()[1])}
-            elif self.getSliceItemOrientation(sliceItem)=='vertical':
-                if isinstance(sliceItem, pg.InfiniteLine):
-                    slices[curveId] = {'sliceItem'   : 'InfiniteLine',
-                                       'orientation' : 'vertical',
-                                       'position'    : sliceItem.getPos()[0]}
-                else:
-                    slices[curveId] = {'sliceItem'   : 'LinearRegionItem',
-                                       'orientation' : 'vertical',
-                                       'position'    : (sliceItem.getRegion()[0], sliceItem.getRegion()[1])}
-            else:
-                pos0, pos1 = [self.plotItem.vb.mapSceneToView(i[1]) for i in sliceItem.getSceneHandlePositions()]
-                slices[curveId] = {'sliceItem'   : 'LineSegmentROI',
-                                   'orientation' : 'any',
-                                   'position'    : ((pos0.y(), pos0.x()), (pos1.y(), pos1.x()))}
-
-        # Store associated 1d plot
-        curves = {}
-        orientations = ('horizontal', 'vertical', 'any')
-        orientationsSwapped = ('vertical', 'horizontal', 'any')
-        plots = []
-        for orientation, orientationSwapped in zip(orientations, orientationsSwapped):
-            plotRef = self.getPlotFromRef(self.plotRef, orientation)
-            if plotRef is not None:
-                plots.append((orientation, orientationSwapped, plotRef))
-        if len(plots)>0:
-            for orientation, orientationSwapped, plot in plots:
-                for curveId, plotDataItem in plot.curves.items():
-                    curves[curveId] = {'x' : plotDataItem.xData,
-                                       'y' : plotDataItem.yData,
-                                       'curveLegend' : plotDataItem.curveLegend,
-                                       'orientation' : orientation,
-                                       'orientationSwapped' : orientationSwapped}
-
-        if curves:
-            # Plot all horizontal slice into the vertical plot and vice-versa
-            for curveId, curveData in curves.items():
-                self.addSliceItemAndPlot(data=[curveData['x'], curveData['y']],
-                                         curveLegend=curveData['curveLegend'],
-                                         sliceOrientation=curveData['orientationSwapped'],
-                                         sliceItem=slices[curveId]['sliceItem'],
-                                         plotRef=self.plotRef+curveData['orientationSwapped'],
-                                         position=slices[curveId]['position'])
-
-            # Remove old infinite lines and curves, must be done after the 1st loop
-            for curveId, curveData in curves.items():
-                self.removeSliceItem(curveId)
-                # self.getPlotFromRef(self.plotRef, curveData['orientation']).removePlotDataItem(curveId)
-
-                self.removePlot(plotRef=self.plotRef+curveData['orientation'],
-                                curveId=curveId)
+                          sliceOrientation = sliceOrientation,
+                          sliceItem        = sliceItem,
+                          position         = position)
 
 
 
@@ -1490,6 +1367,7 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
                 self.findSlopeLineRemove(self.findSlopeLines[-1])
 
 
+
     def findSlopeLineAdd(self):
         """
         Add a findSlope widget.
@@ -1644,205 +1522,151 @@ class Plot2dApp(QtWidgets.QDialog, Ui_Dialog, PlotApp):
     ####################################
 
 
+    def maximumGetData(self) -> Tuple[np.ndarray, np.ndarray]:
 
-    def cleanCheckBoxExtraction(self, plotRef     : str=None,
-                                      windowTitle : str=None,
-                                      runId       : int=None,
-                                      label       : str=None) -> None:
-        """
-        Method called by the plot1d created with the extraction interaction.
-        Uncheck the extraction checboxes.
-        This method must follow the cleanCheckBox signature, see MainApp.
-
-        Parameters
-        ----------
-        plotRef : str
-            Reference of the plot, see getplotRef.
-        windowTitle : str
-            Window title, see getWindowTitle.
-        runId : int
-            Data run id of the database.
-        label : str
-            Label of the dependent parameter.
-        """
-
-        self.checkBoxMaximum.setChecked(False)
-        self.checkBoxMinimum.setChecked(False)
+        return self.xData, self.yData[np.nanargmax(self.zData, axis=1)]
 
 
 
-    def checkBoxExtractionState(self) -> None:
+    def checkBoxMaximumClicked(self) -> None:
         """
         Called when user click on one of the extraction button.
         Extract data and launch them in a dedicated 1d plot.
         """
 
-        ## Depending of the wanted extraction we get the data and labels
-        # If no extraction is wanter the extraction plot window is closed and the
-        # function stop there.
-        ys     = []
-        labels = []
-        if self.checkBoxMaximum.isChecked() and self.checkBoxMinimum.isChecked():
-            ys.append(self.yData[np.nanargmin(self.zData, axis=1)])
-            ys.append(self.yData[np.nanargmax(self.zData, axis=1)])
-            labels.append('minimum')
-            labels.append('maximum')
-        elif self.checkBoxMaximum.isChecked():
-            ys.append(self.yData[np.nanargmax(self.zData, axis=1)])
-            labels.append('maximum')
-        elif self.checkBoxMinimum.isChecked():
-            ys.append(self.yData[np.nanargmin(self.zData, axis=1)])
-            labels.append('minimum')
+        if self.checkBoxMaximum.isChecked():
+            self.maximumPlotRef = self.plotRef+'maximum'
+            self.maximumCurveId = self.getCurveId()
+
+            self.interactionRefs['maximum'] = {'plotRef' : self.maximumPlotRef,
+                                               'nbCurve' : 1,
+                                               'colorIndexes' : []}
+
+            self.signal2MainWindowAddPlot.emit(self.runId, # runId
+                                               self.maximumCurveId, # curveId
+                                               self.windowTitle+' - maximum', # plotTitle
+                                               self.windowTitle+' - maximum', # windowTitle
+                                               self.maximumPlotRef, # plotRef
+                                               self.databaseAbsPath, # databaseAbsPath
+                                               self.maximumGetData(), # data
+                                               self.xLabelText, # xLabelText
+                                               self.xLabelUnits, # xLabelUnits
+                                               self.yLabelText, # yLabelText
+                                               self.yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
         else:
-            self.removePlot(plotRef=self.plotRef+'extraction',
-                            curveId='')
-            return
-
-
-        ## First click, we launch a new window
-        plot = self.getPlotFromRef(self.plotRef, 'extraction')
-
-        # If no existing extraction plot window, we launch one.
-        if plot is None:
-
-            self.addPlot(data           = [self.xData, ys[0]],
-                         plotTitle      = self.title,
-                         xLabelText     = self.xLabelText,
-                         xLabelUnits    = self.xLabelUnits,
-                         yLabelText     = self.yLabelText,
-                         yLabelUnits    = self.yLabelUnits,
-                         windowTitle    = self.windowTitle+' - Extraction',
-                         runId          = self.runId,
-                         cleanCheckBox  = self.cleanCheckBoxExtraction,
-                         plotRef        = self.plotRef+'extraction',
-                         databaseAbsPath = self.databaseAbsPath,
-                         curveId        = labels[0],
-                         linkedTo2dPlot = False,
-                         curveLegend    = labels[0])
-        elif len(plot.curves)==1:
-
-            if labels[0] != list(plot.curves.keys())[0]:
-
-                plot.addPlotDataItem(x           = self.xData,
-                                     y           = ys[0],
-                                     curveId     = labels[0],
-                                     curveLabel  = self.yLabelText,
-                                     curveLegend = labels[0])
-            else:
-
-                plot.addPlotDataItem(x           = self.xData,
-                                     y           = ys[1],
-                                     curveId     = labels[1],
-                                     curveLabel  = self.yLabelText,
-                                     curveLegend = labels[1])
-
-        elif len(plot.curves)==2:
-
-            if labels[0]=='maximum':
-                plot.removePlotDataItem('minimum')
-            else:
-                plot.removePlotDataItem('maximum')
+            self.signalClose1dPlot.emit(self.plotRef+'maximum')
 
 
 
-    ####################################
-    #
-    #           Method to related to fit
-    #           TODO: . There is no fit model currently so the code
-    #                   is most certainly not working..
-    #
-    ####################################
+    def maximumUpdateCurve(self) -> None:
+        if hasattr(self, 'maximumPlotRef'):
+            x, y = self.maximumGetData()
+            self.signalUpdateCurve.emit(self.maximumPlotRef,
+                                        self.maximumCurveId,
+                                        '',
+                                        x,
+                                        y)
 
 
 
-    def cleanCheckBoxFit(self, windowTitle, runId):
+    def maximumClosePlot(self) -> None:
+        if hasattr(self, 'maximumPlotRef'):
+            self.signalClose1dPlot.emit(self.maximumPlotRef)
 
-        pass
+
+
+    def minimumGetData(self) -> Tuple[np.ndarray, np.ndarray]:
+
+        return self.xData, self.yData[np.nanargmax(self.zData, axis=1)]
 
 
 
-    def initFitGUI(self):
+    def checkBoxMinimumClicked(self) -> None:
         """
-        Method called at the initialization of the GUI.
-        Make a list of radioButton reflected the available list of fitmodel.
-        By default all radioButton are disabled and user should chose a plotDataItem
-        to make them available.
+        Called when user click on one of the extraction button.
+        Extract data and launch them in a dedicated 1d plot.
         """
 
-        # Get list of fit model
-        listClasses = [m[0] for m in inspect.getmembers(fit, inspect.isclass) if 'get_initial_params' in [*m[1].__dict__.keys()]]
+        if self.checkBoxMinimum.isChecked():
+            self.minimumPlotRef = self.plotRef+'minimum'
+            self.minimumCurveId = self.getCurveId()
+            y = self.yData[np.nanargmax(self.zData, axis=1)]
 
-        # Add a radio button for each model of the list
-        self.fitModelButtonGroup = QtWidgets.QButtonGroup()
-        for i, j in enumerate(listClasses):
+            self.interactionRefs['minimum'] = {'plotRef' : self.minimumPlotRef,
+                                               'nbCurve' : 1,
+                                               'colorIndexes' : []}
 
-            _class = getattr(fit, j)
+            self.signal2MainWindowAddPlot.emit(self.runId, # runId
+                                               self.minimumCurveId, # curveId
+                                               self.windowTitle+' - minimum', # plotTitle
+                                               self.windowTitle+' - minimum', # windowTitle
+                                               self.minimumPlotRef, # plotRef
+                                               self.databaseAbsPath, # databaseAbsPath
+                                               self.minimumGetData(), # data
+                                               self.xLabelText, # xLabelText
+                                               self.xLabelUnits, # xLabelUnits
+                                               self.yLabelText, # yLabelText
+                                               self.yLabelUnits, # yLabelUnits
+                                               '', # zLabelText
+                                               '') # zLabelUnits
+        else:
+            self.minimumClosePlot()
 
-            if '2d' in j:
 
-                obj = _class(self, [], [], [])
-                rb = QtWidgets.QRadioButton(obj.checkBoxLabel())
-                rb.fitModel = j
-                rb.clicked.connect(self.radioButtonFitState)
-                self.fitModelButtonGroup.addButton(rb, i)
-                self.verticalLayoutFitModel.addWidget(rb)
 
-                del(obj)
+    def minimumClosePlot(self) -> None:
+        if hasattr(self, 'minimumPlotRef'):
+            self.signalClose1dPlot.emit(self.minimumPlotRef)
 
 
 
-    def radioButtonFitState(self):
+    def minimumUpdateCurve(self) -> None:
+        if hasattr(self, 'minimumPlotRef'):
+            x, y = self.minimumGetData()
+            self.signalUpdateCurve.emit(self.minimumPlotRef,
+                                        self.minimumCurveId,
+                                        '',
+                                        x,
+                                        y)
+
+
+
+    def interactionCurveClose(self, curveId: str) -> None:
         """
-        Method called when user click on a radioButton of a fitModel.
-        Launch a fit of the data using the chosen model and display the results.
+        Called from MainWindow when sub-interaction plot is closed.
+        Uncheck their associated checkBox
         """
-
-        # If a fit curve is already plotted, we remove it before plotting a new
-        # one
-
-        radioButton = self.fitModelButtonGroup.checkedButton()
-
-        # Find which model has been chosed and instance it
-        _class = getattr(fit, radioButton.fitModel)
-        obj = _class(self, self.xData, self.yData, self.zData)
-
-        # Do the fit
-        x, y =  obj.ffit()
-
-        # Plot fit curve
-        self.fitWindow  = Plot1dApp(x              = x,
-                                    y              = y,
-                                    title          = self.title+' - '+obj.checkBoxLabel(),
-                                    xLabel         = self.xLabel,
-                                    yLabel         = obj.yLabel()+' ['+self.zLabel.split('[')[-1].split(']')[0]+']',
-                                    windowTitle    = self.windowTitle+' - Fit',
-                                    cleanCheckBox  = self.cleanCheckBoxFit,
-                                    curveId        = 'extracted',
-                                    linkedTo2dPlot = False,
-                                    curveLegend    = 'extracted')
-
-        self.fitWindow.show()
+        if 'minimum' in curveId:
+            self.checkBoxMinimum.setChecked(False)
+            del(self.minimumPlotRef)
+            del(self.minimumCurveId)
+        elif 'maximumPlotRef' in curveId:
+            self.checkBoxMaximum.setChecked(False)
+            del(self.maximumPlotRef)
+            del(self.maximumCurveId)
 
 
 
+    def interactionCloseAll(self) -> None:
+
+        self.maximumClosePlot()
+        self.minimumClosePlot()
+
+        self.widget3d.close()
 
 
-def hex_to_rgba(value: str) -> Tuple[int]:
-    """
-    Convert hex color to rgba color.
-    From: https://stackoverflow.com/questions/29643352/converting-hex-to-rgb-value-in-python/29643643
 
-    Parameters
-    ----------
-    value : str
-        hexagonal color to be converted in rgba.
+    def interactionUpdateAll(self) -> None:
 
-    Returns
-    -------
-    Tuple[int]
-        rgba calculated from the hex color.
-    """
-    value = value.lstrip('#')
-    lv = len(value)
-    r, g, b = [int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3)]
-    return r, g, b, 255
+        self.maximumUpdateCurve()
+        self.minimumUpdateCurve()
+
+
+        # If there are slices, we update them as well
+        for sliceItem in self.sliceItems.values():
+            sliceOrientation = self.getSliceItemOrientation(sliceItem)
+
+            self.dragSliceItem(sliceItem,
+                               sliceOrientation)

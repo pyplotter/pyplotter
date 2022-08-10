@@ -61,7 +61,7 @@ configPackage = {
 # Added to the plot title while a live plot is still measured.
 # Removed once the measurement is done.
 'livePlotMessageStart' : '<div style="color: green; font-weight: bold; text-align: center;">LivePlot</div><br>',
-# 'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
+'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
 
 # Interactivity
 'keyPressedStared' : 's', # To star a run

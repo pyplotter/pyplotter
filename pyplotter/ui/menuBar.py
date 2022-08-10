@@ -2,18 +2,28 @@
 from PyQt5 import QtCore, QtWidgets
 from typing import Optional, Any
 import os
+import numpy as np
 
 from ..sources.config import loadConfigCurrent, updateUserConfig
 config = loadConfigCurrent()
 
 from ..sources.dialogs.dialogFontsize import MenuDialogFontSize
 from ..sources.dialogs.dialogColormap import DialogMenuColormap
+from ..sources.dialogs.dialogLiveplot import MenuDialogLiveplot
 
 
 class MenuBar(QtWidgets.QMenuBar):
 
     signalUpdateStyle        = QtCore.pyqtSignal(dict)
     signalOpenDialogLivePlot = QtCore.pyqtSignal()
+
+    signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
+
+    signalUpdateCurve          = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray)
+    signalUpdate2d             = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
+    signalUpdatePlotProperty   = QtCore.pyqtSignal(str, str, str)
+
+    signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
 
     def __init__(self, parent: Optional[Any]=None) -> None:
         super(MenuBar, self).__init__(parent)
@@ -76,7 +86,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
         config['style'] = 'qbstyles'
 
-        self.updateStyle(config)
+        self.signalUpdateStyle.emit(config)
         updateUserConfig('style', 'qbstyles')
 
 
@@ -93,7 +103,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
         config['style'] = 'qdarkstyle'
 
-        self.updateStyle(config)
+        self.signalUpdateStyle.emit(config)
         updateUserConfig('style', 'qdarkstyle')
 
 
@@ -110,7 +120,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
         config['style'] = 'white'
 
-        self.updateStyle(config)
+        self.signalUpdateStyle.emit(config)
         updateUserConfig('style', 'white')
 
 
@@ -141,7 +151,7 @@ class MenuBar(QtWidgets.QMenuBar):
                 config['styles'][config['style']][label] = color.name()
                 updateUserConfig(['styles', config['style'], label], color.name())
 
-            self.updateStyle(config)
+            self.signalUpdateStyle.emit(config)
 
 
 
@@ -157,7 +167,7 @@ class MenuBar(QtWidgets.QMenuBar):
                 config['styles'][config['style']][axis] = color.name()
                 updateUserConfig(['styles', config['style'], axis], color.name())
 
-            self.updateStyle(config)
+            self.signalUpdateStyle.emit(config)
 
 
     def menuAxisTickLabelsColor(self):
@@ -172,7 +182,7 @@ class MenuBar(QtWidgets.QMenuBar):
                 config['styles'][config['style']][axis] = color.name()
                 updateUserConfig(['styles', config['style'], axis], color.name())
 
-            self.updateStyle(config)
+            self.signalUpdateStyle.emit(config)
 
 
 
@@ -185,27 +195,34 @@ class MenuBar(QtWidgets.QMenuBar):
             config['styles'][config['style']]['pyqtgraphTitleTextColor'] = color.name()
             updateUserConfig(['styles', config['style'], 'pyqtgraphTitleTextColor'], color.name())
 
-            self.updateStyle(config)
+            self.signalUpdateStyle.emit(config)
 
 
 
     def menuFontsize(self):
 
-        self.menuDialogFontSize = MenuDialogFontSize(config)
-        self.menuDialogFontSize.signalUpdateStyle.connect(self.updateStyle)
+        self.menuDialogFontSize = MenuDialogFontSize(self.parent(), config)
+        self.menuDialogFontSize.signalUpdateStyle.connect(self.signalUpdateStyle.emit)
 
 
 
     def menuColormap(self):
 
-        self.DialogMenuColormap = DialogMenuColormap(config)
-        self.DialogMenuColormap.signalUpdateStyle.connect(self.updateStyle)
+        self.DialogMenuColormap = DialogMenuColormap(self.parent(), config)
+        self.DialogMenuColormap.signalUpdateStyle.connect(self.signalUpdateStyle.emit)
 
 
 
     def menuOpenLiveplot(self):
 
-        self.signalOpenDialogLivePlot.emit()
+        self.menuDialogLiveplot = MenuDialogLiveplot(config)
+
+        self.menuDialogLiveplot.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot.emit)
+        self.menuDialogLiveplot.signalUpdateCurve.connect(self.signalUpdateCurve.emit)
+        self.menuDialogLiveplot.signalUpdate2d.connect(self.signalUpdate2d.emit)
+        self.menuDialogLiveplot.signalSendStatusBarMessage.connect(self.signalSendStatusBarMessage.emit)
+        self.menuDialogLiveplot.signalUpdatePlotProperty.connect(self.signalUpdatePlotProperty.emit)
+
 
 
     QtCore.pyqtSlot(dict)

@@ -1,10 +1,9 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 from typing import Optional, Any
-import os
 import uuid
 
-from ..sources.config import loadConfigCurrent, updateUserConfig
+from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
 
 
@@ -20,6 +19,37 @@ class StatusBar(QtWidgets.QStatusBar):
     def __init__(self, parent: Optional[Any]=None) -> None:
         super(StatusBar, self).__init__(parent)
 
+        self.labelMessage = QtWidgets.QLabel()
+        self.addPermanentWidget(self.labelMessage)
+
+        self.labelMessage2 = QtWidgets.QLabel()
+        self.addPermanentWidget(self.labelMessage2)
+
+        # Add spacer
+        w = QtWidgets.QWidget()
+        hbox = QtWidgets.QHBoxLayout()
+        hbox.addSpacerItem(QtWidgets.QSpacerItem(40, 1))
+        w.setLayout(hbox)
+        self.addPermanentWidget(w, 1)
+
+
+    @QtCore.pyqtSlot(str, str)
+    def addStatusBarMessage(self, text: str,
+                                  color: Optional[str]='') -> None:
+        """
+        Display message in the status bar.
+
+        Parameters
+        ----------
+        text : Text to be displayed.
+        color : Text color.
+            Default is ""
+        """
+
+        self.labelMessage2.setText('<span style="color: {};">{}</span>'.format(color, text))
+        self.labelMessage2.adjustSize()
+
+
 
     @QtCore.pyqtSlot(str, str)
     def setStatusBarMessage(self, text: str,
@@ -34,12 +64,8 @@ class StatusBar(QtWidgets.QStatusBar):
             Default is ""
         """
 
-        if color=='':
-            self.setStyleSheet('color: {};'.format(config['styles'][config['style']]['dialogTextColor']))
-        else:
-            self.setStyleSheet('color: {};'.format(color))
-
-        self.showMessage(text)
+        self.labelMessage.setText('<span style="color: {};">{}</span>'.format(color, text))
+        self.labelMessage.adjustSize()
 
 
 
@@ -52,6 +78,8 @@ class StatusBar(QtWidgets.QStatusBar):
                                 doubleClick,
                                 progressBar)
 
+
+
     @QtCore.pyqtSlot(str, bool)
     def blueForsLoad(self, databaseAbsPath: str,
                            doubleClick: bool) -> None:
@@ -61,12 +89,15 @@ class StatusBar(QtWidgets.QStatusBar):
                                      doubleClick,
                                      progressBar)
 
+
+
     @QtCore.pyqtSlot(str)
     def databaseLoad(self, databaseAbsPath: str) -> None:
 
         progressBar = self.addProgressBar()
         self.signalDatabaseLoad.emit(databaseAbsPath,
                                       progressBar)
+
 
 
     @QtCore.pyqtSlot(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox)
@@ -92,6 +123,8 @@ class StatusBar(QtWidgets.QStatusBar):
                                  cb,
                                  progressBar)
 
+
+
     ###########################################################################
     #
     #
@@ -116,7 +149,8 @@ class StatusBar(QtWidgets.QStatusBar):
         # Add a progress bar in the statusbar
         progressBarKey = str(uuid.uuid4())
         progressBar = QtWidgets.QProgressBar()
-        progressBar.key = progressBarKey
+        progressBar.setMinimumWidth(400)
+        progressBar.decimal = 100
         progressBar.decimal = 100
         progressBar.setAlignment(QtCore.Qt.AlignCenter)
         progressBar.setValue(0)
@@ -125,6 +159,9 @@ class StatusBar(QtWidgets.QStatusBar):
         progressBar.setTextVisible(True)
         self.setSizeGripEnabled(False)
         self.addPermanentWidget(progressBar)
+        self.progressBarLabel = QtWidgets.QLabel('   ')
+        self.addPermanentWidget(progressBar)
+        self.addPermanentWidget(self.progressBarLabel)
 
         return progressBar
 
@@ -138,12 +175,15 @@ class StatusBar(QtWidgets.QStatusBar):
         """
         self.removeWidget(progressBar)
         del(progressBar)
+        self.removeWidget(self.progressBarLabel)
+        del(self.progressBarLabel)
 
 
 
+    @QtCore.pyqtSlot(QtWidgets.QProgressBar, int, str)
     def updateProgressBar(self, progressBar: QtWidgets.QProgressBar,
                                 val: int,
-                                text: Optional[str]=None) -> None:
+                                text: str) -> None:
         """
         Update the progress bar in the status bar
 
@@ -157,7 +197,11 @@ class StatusBar(QtWidgets.QStatusBar):
         text : str
             Text to be shown on the progress bar.
         """
-        if text is not None:
-            progressBar.setFormat(text)
+        palette = QtGui.QPalette()
+        palette.setColor(QtGui.QPalette.Text, QtGui.QColor(255, 165, 0)) # text, not highlight
+        palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(255, 165, 0)) # text, not highlight
+
+        progressBar.setPalette(palette)
+        progressBar.setFormat(text)
         progressBar.setValue(int(val*progressBar.decimal))
 
