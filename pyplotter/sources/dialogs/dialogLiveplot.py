@@ -138,25 +138,26 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         # Last time since we interogated the dataCache
         self.labelLivePlotLastRefreshInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-        nbPoint = len(data[0])
 
-        if self._livePlotPreviousDataLength!=nbPoint:
+        # New data since last time we interogate the dataCache?
+        if self._livePlotPreviousDataLength!=len(data[0]):
 
             self.labelLivePlotLastUpdateInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
             # 1d plot
             if len(data)==2:
-                # New data since last time we interogate the dataCache?
+
                 curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
                                     name=yParamName,
                                     runId=self._livePlotRunId)
                 self.signalUpdateCurve.emit(plotRef,
                                             curveId,
-                                            '',
+                                            yParamName,
                                             data[0],
                                             data[1])
             # 2d plot
             elif len(data)==3:
+
                 self.signalUpdate2d.emit(plotRef,
                                          data[0],
                                          data[1],
@@ -170,11 +171,17 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         # We save the current data length for the next iteration
         if all(self._updatingFlag):
-            if self._livePlotPreviousDataLength==nbPoint:
+            if self._livePlotPreviousDataLength==len(data[0]):
                 self.labelLivePlotInfoInfo.setText('<span style="color: red;">No new data in cache</span>')
             else:
                 self.labelLivePlotInfoInfo.setText('<span style="color: green;">New data in cache plotted</span>')
-            self._livePlotPreviousDataLength = nbPoint
+            self._livePlotPreviousDataLength = len(data[0])
+
+            # Display the current nb of data point
+            if len(data)==2:
+                nbPoint = len(data[0])
+            elif len(data)==3:
+                nbPoint = int(len(data[0])*len(data[1]))
             self.labelLivePlotNbPointInfo.setText(str(nbPoint))
 
         # We show to user the time of the last update

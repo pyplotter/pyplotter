@@ -556,11 +556,15 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
                               x: np.ndarray,
                               y: np.ndarray) -> None:
 
-        self._plotRefs[plotRef].updatePlotDataItem(x,
-                                                   y,
-                                                   curveId,
-                                                   curveLegend,
-                                                   True)
+        if len(x)!=len(y):
+            self.signalSendStatusBarMessage('Curve update failed: x and y do not have the same length',
+                                            'red')
+        else:
+            self._plotRefs[plotRef].updatePlotDataItem(x,
+                                                       y,
+                                                       curveId,
+                                                       curveLegend,
+                                                       True)
 
 
 

@@ -321,8 +321,9 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         # We update the curve
         for curve in self.curves.values():
-            curve.setData(x=newXData,
-                          y=curve.y)
+            # During liveplot, [:len(newXData)] handles update of the y axis
+            curve.setData(x=newXData[:len(curve.y)],
+                          y=curve.y[:len(newXData)])
 
         # We update the x label
         self.plotItem.setLabel(axis ='bottom',
@@ -428,7 +429,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     def updatePlotDataItem(self, x                  : np.ndarray,
                                  y                  : np.ndarray,
                                  curveId            : str,
-                                 curveLegend        : Optional[str]=None,
+                                 curveLegend        : str,
                                  autoRange          : bool=False) -> None:
         """
         Method called by a plot2d when use drag a sliceLine.
@@ -461,10 +462,9 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         self.curves[curveId].x = x
         self.curves[curveId].y = y
+        self.curves[curveId].curveLegend = curveLegend
 
-        if curveLegend is not None:
-            self.curves[curveId].curveLegend = curveLegend
-            self.updateLegend()
+        self.updateLegend()
 
         if autoRange:
             self.autoRange()
