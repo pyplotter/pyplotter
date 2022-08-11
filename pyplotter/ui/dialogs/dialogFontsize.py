@@ -1,10 +1,10 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
-from ...ui.dialogFontsize import Ui_DialogFontsize
-from ..config import updateUserConfig
+from .dialogFontsizeUi import Ui_DialogFontsize
+from ...sources.config import updateUserConfig
 
 
-class MenuDialogFontSize(QtWidgets.QDialog, Ui_DialogFontsize):
+class DialogFontSize(QtWidgets.QDialog, Ui_DialogFontsize):
 
 
     signalUpdateStyle = QtCore.pyqtSignal(dict)

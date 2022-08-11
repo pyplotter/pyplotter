@@ -6,9 +6,9 @@ import os
 from datetime import datetime
 from typing import Tuple
 
-from ..workers.loadDataFromCache import LoadDataFromCacheThread
-from ...ui.dialogLiveplot import Ui_LivePlot
-from ..qcodesDatabase import getNbTotalRunAndLastRunName, isRunCompleted
+from ...sources.workers.loadDataFromCache import LoadDataFromCacheThread
+from .dialogLiveplotUi import Ui_LivePlot
+from ...sources.qcodesDatabase import getNbTotalRunAndLastRunName, isRunCompleted
 from ...sources.functions import (getDatabaseNameFromAbsPath,
                                   getCurveId,
                                   getWindowTitle,
@@ -16,11 +16,11 @@ from ...sources.functions import (getDatabaseNameFromAbsPath,
                                   getPlotRef)
 
 
-class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
+class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
     signal2MainWindowAddPlot = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
-    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
+    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
     signalUpdate2d = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
     signalUpdatePlotProperty = QtCore.pyqtSignal(str, str, str)
 
@@ -146,12 +146,13 @@ class MenuDialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                     name=yParamName,
                                     runId=self._livePlotRunId)
 
-                self.signalUpdateCurve.emit(plotRef,
-                                            curveId,
-                                            yParamName,
-                                            data[0],
-                                            data[1],
-                                            self.checkBoxLiveplotAutorange.isChecked())
+                self.signalUpdateCurve.emit(plotRef, # plotRef
+                                            curveId, # curveId
+                                            yParamName, # curveLegend
+                                            data[0], # x
+                                            data[1], # y
+                                            self.checkBoxLiveplotAutorange.isChecked(), # autoRange
+                                            True)  # interactionUpdateAll
             # 2d plot
             elif len(data)==3:
 

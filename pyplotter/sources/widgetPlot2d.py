@@ -123,7 +123,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.zLabelText    = zLabelText
         self.zLabelUnits   = zLabelUnits
         self.title         = title
-        self.windowTitle   = windowTitle
+        self._windowTitle   = windowTitle
         self.runId         = runId
         self.curveId       = curveId
         self.plotRef       = plotRef
@@ -293,7 +293,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         pg.setConfigOption('background', (0, 0, 0))
         self.widget3d = gl.GLViewWidget()
         self.widget3d.show()
-        self.widget3d.setWindowTitle(self.windowTitle)
+        self.widget3d.setWindowTitle(self._windowTitle)
         self.widget3d.setCameraPosition(distance=3)
 
         # Linearly scale all data from 0 to 1
@@ -1082,7 +1082,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         yLabelUnits = self.zLabelUnits
 
         title = self.title+" <span style='color: red; font-weight: bold;'>Extrapolated data</span>"
-        windowTitle = self.windowTitle+' - '+sliceOrientation+' slice'
+        windowTitle = self._windowTitle+' - '+sliceOrientation+' slice'
         runId          = self.runId
 
         # Should be called once for both addplot and addSliceItem
@@ -1538,8 +1538,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
             self.signal2MainWindowAddPlot.emit(self.runId, # runId
                                                self.maximumCurveId, # curveId
-                                               self.windowTitle+' - maximum', # plotTitle
-                                               self.windowTitle+' - maximum', # windowTitle
+                                               self._windowTitle+' - maximum', # plotTitle
+                                               self._windowTitle+' - maximum', # windowTitle
                                                self.maximumPlotRef, # plotRef
                                                self.databaseAbsPath, # databaseAbsPath
                                                self.maximumGetData(), # data
@@ -1595,8 +1595,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
             self.signal2MainWindowAddPlot.emit(self.runId, # runId
                                                self.minimumCurveId, # curveId
-                                               self.windowTitle+' - minimum', # plotTitle
-                                               self.windowTitle+' - minimum', # windowTitle
+                                               self._windowTitle+' - minimum', # plotTitle
+                                               self._windowTitle+' - minimum', # windowTitle
                                                self.minimumPlotRef, # plotRef
                                                self.databaseAbsPath, # databaseAbsPath
                                                self.minimumGetData(), # data

@@ -2,14 +2,20 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 import numpy as np
+# We remove warning from lmfit
+import warnings
+warnings.filterwarnings(
+    action='ignore',
+    module=r'lmfit',
+)
 import lmfit
 import os
 from scipy.signal import hilbert
-from typing import Tuple, Optional
+from typing import Tuple
 
-from ..config import loadConfigCurrent
+from ...sources.config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..functions import parse_number
+from ...sources.functions import parse_number
 
 LOC = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 JSPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', 'mathjax', 'tex-chtml.js')
@@ -19,8 +25,7 @@ JSPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '
 class Fit1d(QtWidgets.QDialog):
 
 
-    signalUpdate      = QtCore.pyqtSignal(np.ndarray, np.ndarray, str, str)
-    signalCloseDialog = QtCore.pyqtSignal(str)
+    signalCloseDialog = QtCore.pyqtSignal()
 
 
     def __init__(self, parent: QtWidgets.QDialog,
@@ -56,6 +61,16 @@ class Fit1d(QtWidgets.QDialog):
         self.label.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
         self.show()
+
+
+
+    def fitError(self) -> None:
+        """
+        Called when the fitting procedure failed
+        """
+
+        self.layout.removeWidget(self.webView)
+        self.label.setText('<span style="color: red;">Fitting procedure failed</span>')
 
 
 
@@ -133,26 +148,9 @@ class Fit1d(QtWidgets.QDialog):
 
 
 
-    def updateCurve(self, x: Optional[np.ndarray]=None,
-                          y: Optional[np.ndarray]=None) -> None:
-
-        if x is not None:
-            self.xData = x
-        if y is not None:
-            self.yData = y
-
-        x, y, p = self.ffit()
-
-        self.signalUpdate.emit(x,
-                               y,
-                              'fit',
-                               self.displayedLegend(p))
-
-
-
     def closeEvent(self, evnt: QtGui.QCloseEvent) -> None:
 
-        self.signalCloseDialog.emit('fit')
+        self.signalCloseDialog.emit()
 
 
 

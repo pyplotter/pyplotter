@@ -1,8 +1,8 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
-from ...ui.dialogColormap import Ui_DialogColormap
-from ..config import updateUserConfig
-from .. import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
+from .dialogColormapUi import Ui_DialogColormap
+from ...sources.config import updateUserConfig
+from ...sources import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
 
 
 class DialogMenuColormap(QtWidgets.QDialog, Ui_DialogColormap):

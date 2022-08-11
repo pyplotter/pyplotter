@@ -243,8 +243,8 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         Close every 1d and 2d plot opened.
         """
 
-        if hasattr(self.menuBarMain, 'menuDialogLiveplot'):
-            self.menuBarMain.menuDialogLiveplot.close()
+        if hasattr(self.menuBarMain, 'DialogLiveplot'):
+            self.menuBarMain.DialogLiveplot.close()
 
         plotRefs = [plot for plot in self._plotRefs.keys()]
         # plot1d window open from a plo1d window are taken care by the plot1d itself
@@ -549,13 +549,14 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
 
 
-    QtCore.pyqtSlot(str, str, str, np.ndarray, np.ndarray, bool)
+    QtCore.pyqtSlot(str, str, str, np.ndarray, np.ndarray, bool, bool)
     def slotUpdateCurve(self, plotRef: str,
                               curveId: str,
                               curveLegend: str,
                               x: np.ndarray,
                               y: np.ndarray,
-                              autoRange: bool) -> None:
+                              autoRange: bool,
+                              interactionUpdateAll: bool) -> None:
 
         if len(x)!=len(y):
             self.signalSendStatusBarMessage('Curve update failed: x and y do not have the same length',
@@ -565,7 +566,8 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
                                                        y,
                                                        curveId,
                                                        curveLegend,
-                                                       autoRange)
+                                                       autoRange,
+                                                       interactionUpdateAll)
 
 
 

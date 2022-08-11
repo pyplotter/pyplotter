@@ -10,10 +10,10 @@ from scipy.signal import savgol_filter
 class SavitzkyGolay(QtWidgets.QDialog):
 
     # For plot1d GUI
-    checkBoxLabel = 'Savitzky-Golay'
+    comboBoxLabel = 'Savitzky-Golay'
 
-    signalUpdate       = QtCore.pyqtSignal(np.ndarray, np.ndarray, str, str)
     signalCloseDialog  = QtCore.pyqtSignal(str)
+    signalUpdateDialog = QtCore.pyqtSignal()
 
 
     def __init__(self, parent: QtWidgets.QDialog,
@@ -103,7 +103,7 @@ class SavitzkyGolay(QtWidgets.QDialog):
         self.windowLength = value
         spinBoxPolyorder.setMaximum(value-1)
 
-        self.updateCurve()
+        self.signalUpdateDialog.emit()
 
 
 
@@ -121,24 +121,24 @@ class SavitzkyGolay(QtWidgets.QDialog):
 
         self.polyorder = value
 
-        self.updateCurve()
+        self.signalUpdateDialog.emit()
 
 
 
-    def updateCurve(self, x: Optional[np.ndarray]=None,
-                          y: Optional[np.ndarray]=None) -> None:
+    # def updateCurve(self, x: Optional[np.ndarray]=None,
+    #                       y: Optional[np.ndarray]=None) -> None:
 
-        if x is not None:
-            self.xData = x
-        if y is not None:
-            self.yData = y
+    #     if x is not None:
+    #         self.xData = x
+    #     if y is not None:
+    #         self.yData = y
 
-        self.signalUpdate.emit(self.xData,
-                               savgol_filter(self.yData,
-                                             self.windowLength,
-                                             self.polyorder),
-                                'filtering',
-                                self.legend2display())
+    #     self.signalUpdateDialog.emit(self.xData,
+    #                            savgol_filter(self.yData,
+    #                                          self.windowLength,
+    #                                          self.polyorder),
+    #                             'filtering',
+    #                             self.legend2display())
 
 
 

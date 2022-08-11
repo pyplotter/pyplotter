@@ -4,16 +4,19 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 from typing import List, Union, Optional, Tuple, Dict
 import inspect
-from scipy.integrate import cumtrapz
 
 
 from ..ui.widgetPlot1d import Ui_Dialog
 from .config import loadConfigCurrent
 from .widgetPlot import WidgetPlot
-from .dialogs import dialogFit
-from .dialogs import dialogFiltering
-from .functions import parse_number, getDatabaseNameFromAbsPath, getCurveColorIndex
+from .functions import getDatabaseNameFromAbsPath, getCurveColorIndex
 from .pyqtgraph import pg
+from ..ui.plot1d.groupBoxStatistics import GroupBoxStatistics
+from ..ui.plot1d.groupBoxCalculus import GroupBoxCalculus
+from ..ui.plot1d.groupBoxFFT import GroupBoxFFT
+from ..ui.plot1d.groupBoxNormalize import GroupBoxNormalize
+from ..ui.plot1d.groupBoxFit import GroupBoxFit
+from ..ui.plot1d.groupBoxFiltering import GroupBoxFiltering
 
 
 class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
@@ -30,6 +33,56 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
 
     signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
+
+    # To send selected data to interaction group boxes
+    signalSendSelectedData = QtCore.pyqtSignal(np.ndarray, str, str, np.ndarray, str, str)
+
+    # Fit interaction
+    signalFitUpdate = QtCore.pyqtSignal()
+    signalFitClose  = QtCore.pyqtSignal()
+
+    # Filtering interaction
+    signalFilteringUpdate  = QtCore.pyqtSignal()
+    signalFilteringClose = QtCore.pyqtSignal()
+
+    # Statistics interaction
+    signalCheckBoxStatisticsSetChecked = QtCore.pyqtSignal(bool)
+    signalStatisticsClosePlot = QtCore.pyqtSignal()
+    signalStatisticsUpdate = QtCore.pyqtSignal()
+
+
+    # FFT interaction
+    signalCheckBoxFFTSetChecked = QtCore.pyqtSignal(bool)
+    signalFFTUpdate = QtCore.pyqtSignal()
+    signalFFTClosePlot = QtCore.pyqtSignal()
+
+    signalCheckBoxFFTnoDCSetChecked = QtCore.pyqtSignal(bool)
+    signalFFTNoDcUpdate = QtCore.pyqtSignal()
+    signalFFTNoDcClosePlot = QtCore.pyqtSignal()
+
+    signalCheckBoxIFFTSetChecked = QtCore.pyqtSignal(bool)
+    signalIFFTUpdate = QtCore.pyqtSignal()
+    signalIFFTClosePlot = QtCore.pyqtSignal()
+
+
+    # Calculus interaction
+    signalCheckBoxDifferentiateSetChecked = QtCore.pyqtSignal(bool)
+    signalDifferentiateUpdate = QtCore.pyqtSignal()
+    signalDifferentiateClosePlot = QtCore.pyqtSignal()
+
+    signalCheckBoxIntegrateSetChecked = QtCore.pyqtSignal(bool)
+    signalIntegrateUpdate = QtCore.pyqtSignal()
+    signalIntegrateClosePlot = QtCore.pyqtSignal()
+
+
+    # Normalization interaction
+    signalCheckBoxUnwrapSetChecked = QtCore.pyqtSignal(bool)
+    signalUnwrapUpdate = QtCore.pyqtSignal()
+    signalUnwrapClosePlot = QtCore.pyqtSignal()
+
+    signalCheckBoxRemoveSlopeSetChecked = QtCore.pyqtSignal(bool)
+    signalRemoveSlopeUpdate = QtCore.pyqtSignal()
+    signalRemoveSlopeClosePlot = QtCore.pyqtSignal()
 
 
     def __init__(self, x                  : np.ndarray,
@@ -108,9 +161,10 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                             QtCore.Qt.WindowCloseButtonHint)
 
         self.plotType       = '1d'
-        self.windowTitle    = windowTitle
+        self._windowTitle    = windowTitle
         self.runId          = runId
         self.plotRef        = plotRef
+        self.databaseAbsPath = databaseAbsPath
 
         # References of PlotDataItem
         # Structures
@@ -138,12 +192,6 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         # Create legendItem
         self.legendItem = self.plotItem.addLegend()
 
-        # Add fitting function to the GUI
-        self.initFitGUI()
-        # Add filtering function to the GUI
-        self.initFilteringGUI()
-
-
         # Connect UI
         self.checkBoxLogX.stateChanged.connect(self.checkBoxLogState)
         self.checkBoxLogY.stateChanged.connect(self.checkBoxLogState)
@@ -152,26 +200,35 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         self.comboBoxXAxis.activated.connect(self.comboBoxXAxisActivated)
 
-        self.checkBoxDifferentiate.clicked.connect(self.clickDifferentiate)
-        self.checkBoxIntegrate.clicked.connect(self.clickIntegrate)
-
-        self.checkBoxStatistics.clicked.connect(self.clickStatistics)
-        self.spinBoxStatistics.valueChanged.connect(self.statisticsUpdateCurve)
-
-        self.checkBoxUnwrap.clicked.connect(self.clickUnwrap)
-        self.checkBoxRemoveSlope.clicked.connect(self.clickRemoveSlope)
-
-        self.checkBoxFFT.clicked.connect(self.clickFFT)
-        self.checkBoxFFTnoDC.clicked.connect(self.clickFFTnoDC)
-        self.checkBoxIFFT.clicked.connect(self.clickIFFT)
 
 
         # Add a radio button for each model of the list
         self.plotDataItemButtonGroup = QtWidgets.QButtonGroup()
-        self.radioButtonFitNone.curveId = None
-        self.plotDataItemButtonGroup.addButton(self.radioButtonFitNone, 0)
-        self.radioButtonFitNone.clicked.connect(self.selectPlotDataItem)
+        self.radioButtonFitNone = QtWidgets.QRadioButton(self.groupBoxPlotDataItem)
+        self.radioButtonFitNone.setEnabled(True)
         self.radioButtonFitNone.setChecked(True)
+        font = QtGui.QFont()
+        font.setPointSize(8)
+        font.setBold(False)
+        self.radioButtonFitNone.setFont(font)
+        self.radioButtonFitNone.setText('None')
+        self.radioButtonFitNone.curveId = None
+        self.radioButtonFitNone.clicked.connect(self.selectPlotDataItem)
+
+        self.verticalLayoutPlotDataItem.addWidget(self.radioButtonFitNone)
+        self.plotDataItemButtonGroup.addButton(self.radioButtonFitNone, 0)
+
+        self.initGroupBoxFFT()
+        self.initGroupBoxStatistics()
+        self.initGroupBoxCalculus()
+        self.initGroupBoxNormalize()
+
+        # Add fitting function to the GUI
+        self.initGroupBoxFit()
+        # Add filtering function to the GUI
+        self.initGroupBoxFiltering()
+
+
 
 
         self.setWindowTitle(windowTitle)
@@ -229,6 +286,170 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         self.show()
 
+
+
+    ####################################
+    #
+    #           init GUI
+    #
+    ####################################
+
+
+
+    def initGroupBoxFFT(self) -> None:
+
+        self.groupBoxFFT = GroupBoxFFT(self.groupBoxCurveInteraction,
+                                       self.config,
+                                       self.databaseAbsPath,
+                                       self.plotItem,
+                                       self.plotRef,
+                                       self._windowTitle)
+
+        self.signalSendSelectedData.connect(self.groupBoxFFT.slotGetSelectedData)
+
+        self.signalCheckBoxFFTSetChecked.connect(self.groupBoxFFT.slotCheckBoxFFTSetChecked)
+        self.signalCheckBoxFFTnoDCSetChecked.connect(self.groupBoxFFT.slotCheckBoxFFTnoDCSetChecked)
+        self.signalCheckBoxIFFTSetChecked.connect(self.groupBoxFFT.slotCheckBoxIFFTSetChecked)
+
+        self.signalFFTUpdate.connect(self.groupBoxFFT.slotFFTUpdate)
+        self.signalFFTNoDcUpdate.connect(self.groupBoxFFT.slotFFTNoDcUpdate)
+        self.signalIFFTUpdate.connect(self.groupBoxFFT.slotIFFTUpdate)
+
+        self.signalFFTClosePlot.connect(self.groupBoxFFT.slotFFTClosePlot)
+        self.signalFFTNoDcClosePlot.connect(self.groupBoxFFT.slotFFTNoDcClosePlot)
+        self.signalIFFTClosePlot.connect(self.groupBoxFFT.slotIFFTClosePlot)
+
+        self.groupBoxFFT.signalUpdateCurve.connect(self.signalUpdateCurve)
+        self.groupBoxFFT.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot)
+        self.groupBoxFFT.signalClose1dPlot.connect(self.signalClose1dPlot)
+        self.verticalLayout_2.addWidget(self.groupBoxFFT)
+
+
+
+    def initGroupBoxStatistics(self) -> None:
+
+        self.groupBoxStatistics = GroupBoxStatistics(self.groupBoxCurveInteraction,
+                                                     self.config,
+                                                     self.databaseAbsPath,
+                                                     self.plotItem,
+                                                     self.plotRef,
+                                                     self._windowTitle)
+        self.signalSendSelectedData.connect(self.groupBoxStatistics.slotGetSelectedData)
+        self.signalCheckBoxStatisticsSetChecked.connect(self.groupBoxStatistics.slotCheckBoxStatisticsSetChecked)
+        self.signalStatisticsUpdate.connect(self.groupBoxStatistics.slotUpdate)
+        self.signalStatisticsClosePlot.connect(self.groupBoxStatistics.slotClosePlot)
+
+        self.groupBoxStatistics.signalUpdateCurve.connect(self.signalUpdateCurve)
+        self.groupBoxStatistics.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot)
+        self.groupBoxStatistics.signalClose1dPlot.connect(self.signalClose1dPlot)
+        self.verticalLayout_2.addWidget(self.groupBoxStatistics)
+
+
+
+    def initGroupBoxCalculus(self) -> None:
+
+
+
+        self.groupBoxCalculus = GroupBoxCalculus(self.groupBoxCurveInteraction,
+                                                 self.config,
+                                                 self.databaseAbsPath,
+                                                 self.plotItem,
+                                                 self.plotRef,
+                                                 self._windowTitle)
+        self.signalSendSelectedData.connect(self.groupBoxCalculus.slotGetSelectedData)
+
+        self.signalCheckBoxDifferentiateSetChecked.connect(self.groupBoxCalculus.slotCheckBoxDifferentiateSetChecked)
+        self.signalCheckBoxIntegrateSetChecked.connect(self.groupBoxCalculus.slotCheckBoxIntegrateSetChecked)
+        self.signalDifferentiateUpdate.connect(self.groupBoxCalculus.slotDifferentiateUpdate)
+        self.signalDifferentiateClosePlot.connect(self.groupBoxCalculus.slotDifferentiateClosePlot)
+        self.signalIntegrateUpdate.connect(self.groupBoxCalculus.slotIntegrateUpdate)
+        self.signalIntegrateClosePlot.connect(self.groupBoxCalculus.slotIntegrateClosePlot)
+
+        self.groupBoxCalculus.signalUpdateCurve.connect(self.signalUpdateCurve)
+        self.groupBoxCalculus.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot)
+        self.groupBoxCalculus.signalClose1dPlot.connect(self.signalClose1dPlot)
+        self.verticalLayout_2.addWidget(self.groupBoxCalculus)
+
+
+
+    def initGroupBoxNormalize(self) -> None:
+
+
+
+        self.groupBoxNormalize = GroupBoxNormalize(self.groupBoxCurveInteraction,
+                                                  self.config,
+                                                  self.databaseAbsPath,
+                                                  self.plotItem,
+                                                  self.plotRef,
+                                                  self._windowTitle)
+        self.signalSendSelectedData.connect(self.groupBoxNormalize.slotGetSelectedData)
+
+        self.signalCheckBoxUnwrapSetChecked.connect(self.groupBoxNormalize.slotCheckBoxUnwrapSetChecked)
+        self.signalUnwrapUpdate.connect(self.groupBoxNormalize.slotUnwrapUpdate)
+        self.signalUnwrapClosePlot.connect(self.groupBoxNormalize.slotUnwrapClosePlot)
+
+        self.signalCheckBoxRemoveSlopeSetChecked.connect(self.groupBoxNormalize.slotCheckBoxRemoveSlopeSetChecked)
+        self.signalRemoveSlopeUpdate.connect(self.groupBoxNormalize.slotRemoveSlopeUpdate)
+        self.signalRemoveSlopeClosePlot.connect(self.groupBoxNormalize.slotRemoveSlopeClosePlot)
+
+        self.groupBoxNormalize.signalUpdateCurve.connect(self.signalUpdateCurve)
+        self.groupBoxNormalize.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot)
+        self.groupBoxNormalize.signalClose1dPlot.connect(self.signalClose1dPlot)
+        self.verticalLayout_2.addWidget(self.groupBoxNormalize)
+
+
+
+    def initGroupBoxFit(self) -> None:
+        """
+        Method called at the initialization of the GUI.
+        Make a list of radioButton reflected the available list of fitmodel.
+        By default all radioButton are disabled and user should chose a plotDataItem
+        to make them available.
+        """
+
+        self.groupBoxFit  = GroupBoxFit(self.groupBoxCurveInteraction,
+                                        self.plotRef,
+                                        self.plotItem)
+
+        # Events from the groupBox to the plot1d
+        self.groupBoxFit.signalAddPlotDataItem.connect(self.slotAddPlotDataItem)
+        self.groupBoxFit.signalUpdatePlotDataItem.connect(self.slotUpdatePlotDataItem)
+        self.groupBoxFit.signalRemovePlotDataItem.connect(self.slotRemoveCurve)
+
+        # Events from the plot1d to the groupBox
+        self.signalSendSelectedData.connect(self.groupBoxFit.slotGetSelectedData)
+        self.signalFitUpdate.connect(self.groupBoxFit.slotFitUpdate)
+        self.signalFitClose.connect(self.groupBoxFit.slotFitClose)
+
+        # Add GUI
+        self.verticalLayout_2.addWidget(self.groupBoxFit)
+
+
+
+    def initGroupBoxFiltering(self) -> None:
+        """
+        Method called at the initialization of the GUI.
+        Make a list of radioButton reflected the available list of fitmodel.
+        By default all radioButton are disabled and user should chose a plotDataItem
+        to make them available.
+        """
+
+        self.groupBoxFiltering  = GroupBoxFiltering(self.groupBoxCurveInteraction,
+                                                    self.plotRef,
+                                                    self.plotItem)
+
+        # Events from the groupBox to the plot1d
+        self.groupBoxFiltering.signalAddPlotDataItem.connect(self.slotAddPlotDataItem)
+        self.groupBoxFiltering.signalUpdatePlotDataItem.connect(self.slotUpdatePlotDataItem)
+        self.groupBoxFiltering.signalRemovePlotDataItem.connect(self.slotRemoveCurve)
+
+        # Events from the plot1d to the groupBox
+        self.signalSendSelectedData.connect(self.groupBoxFiltering.slotGetSelectedData)
+        self.signalFilteringUpdate.connect(self.groupBoxFiltering.slotFilteringUpdate)
+        self.signalFilteringClose.connect(self.groupBoxFiltering.slotFilteringClose)
+
+        # Add GUI
+        self.verticalLayout_2.addWidget(self.groupBoxFiltering)
 
 
     ####################################
@@ -358,6 +579,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     ####################################
 
 
+
     def getNotHiddenCurves(self) -> dict:
         """
         Obtain the dict of not hidden curves
@@ -431,7 +653,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                  y                  : np.ndarray,
                                  curveId            : str,
                                  curveLegend        : str,
-                                 autoRange          : bool) -> None:
+                                 autoRange          : bool,
+                                 interactionUpdateAll: bool) -> None:
         """
         Method called by a plot2d when use drag a sliceLine.
         Updating an existing plotDataItem and the plot legendItem
@@ -467,16 +690,15 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         self.updateLegend()
 
-        if autoRange:
-            self.autoRange()
-
         # If a curve selection has been done, we update the selected data
         self.updateSelectedData()
 
         # we update interaction
-        self.interactionUpdateAll()
+        if interactionUpdateAll:
+            self.interactionUpdateAll()
 
         # we update the axis
+        # The autorange is done there
         self.comboBoxXAxisActivated(autoRange)
 
 
@@ -484,10 +706,10 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     def addPlotDataItem(self, x                 : np.ndarray,
                               y                 : np.ndarray,
                               curveId           : str,
-                              curveXLabel        : str,
-                              curveXUnits        : str,
-                              curveYLabel        : str,
-                              curveYUnits        : str,
+                              curveXLabel       : str,
+                              curveXUnits       : str,
+                              curveYLabel       : str,
+                              curveYUnits       : str,
                               curveLegend       : str,
                               showInLegend      : bool=True,
                               hidden            : bool=False) -> None:
@@ -547,22 +769,6 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-    @QtCore.pyqtSlot(str, str)
-    def slotRemoveCurve(self, plotRef: str,
-                              curveId: str) -> None:
-        """
-        If user remove a curve from tableWidgetParameter
-        The signal is propagated to all plot.
-        We check if that concerns that instance and if yes effectivelty remove
-        a curve.
-        """
-
-        if plotRef==self.plotRef:
-            if curveId in self.curves.keys():
-                self.removePlotDataItem(curveId)
-
-
-
     def removePlotDataItem(self, curveId: str) -> None:
         """
         Remove a PlotDataItem identified via its "curveId".
@@ -602,8 +808,13 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         curvesNotHidden = self.getNotHiddenCurves()
 
 
-        # If there are two curves and on is the selection one, we change nothing
+        # If there are two curves and one is the selection one, we change nothing
         if len(curvesNotHidden)==2 and any(['selection' in curveId for curveId in curvesNotHidden.keys()]):
+            pass
+        # If there are three curves and one is the selection one and the other a fit, we change nothing
+        elif (len(curvesNotHidden)==3
+              and any(['selection' in curveId for curveId in curvesNotHidden.keys()])
+              and any(['fit' in curveId for curveId in curvesNotHidden.keys()])):
             pass
         # If there is more than one plotDataItem
         # We check of the share the same unit
@@ -671,64 +882,47 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
             self.checkBoxSplitYAxis.setEnabled(False)
 
         # Update list of plotDataItem only if the plotDataItem is not a fit
-        if curveId not in ['fit', 'filtering']:
+        if ('fit' not in curveId and
+            'filtering' not in curveId and
+            'selection' not in curveId):
+            # Add a radioButton to allow the user to select the plotDataItem.
+            # If there is already a button with curveId, we remove it
+            createButton = True
+            for radioButton in self.plotDataItemButtonGroup.buttons():
+                if radioButton.curveId==curveId:
+                    self.plotDataItemButtonGroup.removeButton(radioButton)
+                    radioButton.setParent(None)
+                    createButton = False
+            # Otherwise, we create it
+            if createButton:
+                radioButton = QtWidgets.QRadioButton(self.curves[curveId].curveYLabel)
+                radioButton.curveId = curveId
+                self.plotDataItemButtonGroup.addButton(radioButton, len(self.plotDataItemButtonGroup.buttons()))
+                radioButton.clicked.connect(self.selectPlotDataItem)
+                self.verticalLayoutPlotDataItem.addWidget(radioButton)
 
-            if 'selection' not in curveId:
-                # Add a radioButton to allow the user to select the plotDataItem.
-                # If there is already a button with curveId, we remove it
-                createButton = True
-                for radioButton in self.plotDataItemButtonGroup.buttons():
-                    if radioButton.curveId==curveId:
-                        self.plotDataItemButtonGroup.removeButton(radioButton)
-                        radioButton.setParent(None)
+            # Add a checkBox to allow the user to hide the plotDataItem.
+            # If there is already a button with curveId, we remove it
+            createButton = True
+            for i in range(self.verticalLayoutHide.count()):
+                if self.verticalLayoutHide.itemAt(i) is not None:
+                    checkBox = self.verticalLayoutHide.itemAt(i).widget()
+                    if checkBox.curveId==curveId:
+                        self.verticalLayoutHide.removeWidget(checkBox)
+                        checkBox.setParent(None)
                         createButton = False
-                # Otherwise, we create it
-                if createButton:
-                    radioButton = QtWidgets.QRadioButton(self.curves[curveId].curveYLabel)
-                    radioButton.curveId = curveId
-                    self.plotDataItemButtonGroup.addButton(radioButton, len(self.plotDataItemButtonGroup.buttons()))
-                    radioButton.clicked.connect(self.selectPlotDataItem)
-                    self.verticalLayoutPlotDataItem.addWidget(radioButton)
+            # Otherwise, we create it
+            if createButton:
+                checkBox = QtWidgets.QCheckBox(self.curves[curveId].curveYLabel)
+                checkBox.curveId = curveId
+                checkBox.stateChanged.connect(lambda : self.hidePlotDataItem(checkBox))
 
-                # Add a checkBox to allow the user to hide the plotDataItem.
-                # If there is already a button with curveId, we remove it
-                createButton = True
-                for i in range(self.verticalLayoutHide.count()):
-                    if self.verticalLayoutHide.itemAt(i) is not None:
-                        checkBox = self.verticalLayoutHide.itemAt(i).widget()
-                        if checkBox.curveId==curveId:
-                            self.verticalLayoutHide.removeWidget(checkBox)
-                            checkBox.setParent(None)
-                            createButton = False
-                # Otherwise, we create it
-                if createButton:
-                    checkBox = QtWidgets.QCheckBox(self.curves[curveId].curveYLabel)
-                    checkBox.curveId = curveId
-                    checkBox.stateChanged.connect(lambda : self.hidePlotDataItem(checkBox))
-
-                    checkBox.setChecked(self.curves[curveId].hidden)
-                    self.verticalLayoutHide.addWidget(checkBox)
+                checkBox.setChecked(self.curves[curveId].hidden)
+                self.verticalLayoutHide.addWidget(checkBox)
 
         # We update displayed information
         self.updateLegend()
         self.updateyLabel()
-
-
-
-    def nbPlotDataItemFromData(self) -> int:
-        """
-        Return the number of plotDataItem coming from real user data.
-        That count does not take into account "selection", "fit" and
-        "filtering" curves.
-        """
-
-        nb = 0
-        for curveId in self.curves.keys():
-            if curveId not in ['filtering', 'fit']:
-                if 'selection' not in curveId:
-                    nb += 1
-
-        return nb
 
 
 
@@ -759,7 +953,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
                 # We do not add a checkbox button for the original curves of
                 # the plot window
-                if (self.windowTitle != plot.windowTitle or
+                if (self._windowTitle != plot.windowTitle or
                     plot.runId != self.runId or
                     curveId not in self.curves):
 
@@ -1093,186 +1287,6 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-    ####################################
-    #
-    #           Method to related to FFT
-    #
-    ####################################
-
-
-
-    def fftGetData(self) -> Tuple[np.ndarray, np.ndarray]:
-
-        x = np.fft.fftfreq(len(self.selectedX), d=self.selectedX[1] - self.selectedX[0])
-        y = np.abs(np.fft.fft(self.selectedY))[x>=0]
-        x = x[x>=0]
-
-        return x, y
-
-
-
-    def fftUpdateCurve(self) -> None:
-        if hasattr(self, 'fftPlotRef'):
-            x, y = self.fftGetData()
-            self.signalUpdateCurve.emit(self.fftPlotRef,
-                                        self.fftCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
-
-
-
-    def clickFFT(self) -> None:
-
-        if self.checkBoxFFT.isChecked():
-
-            self.fftCurveId = self.selectedYLabel+'fft'
-            self.fftPlotRef = self.plotRef+'fft'
-            xLabelText  = '1/'+self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = '1/'+self.plotItem.axes['bottom']['item'].labelUnits
-            yLabelText  = 'FFT'+'( '+self.selectedYLabel+' )'
-            yLabelUnits = self.selectedYUnits+'/'+self.plotItem.axes['bottom']['item'].labelUnits
-            title       = self.windowTitle+' - '+'FFT'
-
-            self.signal2MainWindowAddPlot.emit(1, # runId
-                                               self.fftCurveId, # curveId
-                                               title, # plotTitle
-                                               title, # windowTitle
-                                               self.fftPlotRef, # plotRef
-                                               self.databaseAbsPath, # databaseAbsPath
-                                               self.fftGetData(), # data
-                                               xLabelText, # xLabelText
-                                               xLabelUnits, # xLabelUnits
-                                               yLabelText, # yLabelText
-                                               yLabelUnits, # yLabelUnits
-                                               '', # zLabelText
-                                               '') # zLabelUnits
-        else:
-            self.fftClosePlot()
-
-
-
-    def fftClosePlot(self) -> None:
-        if hasattr(self, 'fftPlotRef'):
-            self.signalClose1dPlot.emit(self.fftPlotRef)
-
-
-
-    def fftNoDcGetData(self) -> Tuple[np.ndarray, np.ndarray]:
-
-        x = np.fft.fftfreq(len(self.selectedX), d=self.selectedX[1] - self.selectedX[0])
-        y = np.abs(np.fft.fft(self.selectedY))[x>=0][1:]
-        x = x[x>=0][1:]
-
-        return x, y
-
-
-
-    def fftNoDcUpdateCurve(self) -> None:
-        if hasattr(self, 'fftNoDcPlotRef'):
-            x, y = self.fftNoDcGetData()
-            self.signalUpdateCurve.emit(self.fftNoDcPlotRef,
-                                        self.fftNoDcCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
-
-
-
-    def clickFFTnoDC(self) -> None:
-
-        if self.checkBoxFFTnoDC.isChecked():
-
-            self.fftNoDcCurveId = self.selectedYLabel+'fftnodc'
-            self.fftNoDcPlotRef = self.plotRef+'fftnodc'
-            xLabelText  = '1/'+self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = '1/'+self.plotItem.axes['bottom']['item'].labelUnits
-            yLabelText  = 'FFT NO DC'+'( '+self.selectedYLabel+' )'
-            yLabelUnits = self.selectedYUnits+'/'+self.plotItem.axes['bottom']['item'].labelUnits
-            title       = self.windowTitle+' - '+'FFT NO DC'
-
-            self.signal2MainWindowAddPlot.emit(1, # runId
-                                               self.fftNoDcCurveId, # curveId
-                                               title, # plotTitle
-                                               title, # windowTitle
-                                               self.fftNoDcPlotRef, # plotRef
-                                               self.databaseAbsPath, # databaseAbsPath
-                                               self.fftNoDcGetData(), # data
-                                               xLabelText, # xLabelText
-                                               xLabelUnits, # xLabelUnits
-                                               yLabelText, # yLabelText
-                                               yLabelUnits, # yLabelUnits
-                                               '', # zLabelText
-                                               '') # zLabelUnits
-        else:
-            self.fftNoDcClosePlot()
-
-
-
-    def fftNoDcClosePlot(self) -> None:
-        if hasattr(self, 'fftNoDcPlotRef'):
-            self.signalClose1dPlot.emit(self.fftNoDcPlotRef)
-
-
-
-    def ifftGetData(self) -> Tuple[np.ndarray, np.ndarray]:
-
-        x = np.fft.fftfreq(len(self.selectedX), d=self.selectedX[1] - self.selectedX[0])
-        y = np.abs(np.fft.ifft(self.selectedY))[x>=0]
-        x = x[x>=0]
-
-        return x, y
-
-
-
-    def ifftUpdateCurve(self) -> None:
-        if hasattr(self, 'ifftPlotRef'):
-            x, y = self.ifftGetData()
-            self.signalUpdateCurve.emit(self.ifftPlotRef,
-                                        self.ifftCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
-
-
-    def clickIFFT(self) -> None:
-
-        if self.checkBoxIFFT.isChecked():
-
-            self.ifftCurveId = self.selectedYLabel+'ifft'
-            self.ifftPlotRef = self.plotRef+'ifft'
-            xLabelText  = '1/'+self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = '1/'+self.plotItem.axes['bottom']['item'].labelUnits
-            yLabelText  = 'IFFT'+'( '+self.selectedYLabel+' )'
-            yLabelUnits = self.selectedYUnits+'/'+self.plotItem.axes['bottom']['item'].labelUnits
-            title       = self.windowTitle+' - '+'IFFT'
-
-            self.signal2MainWindowAddPlot.emit(1, # runId
-                                               self.ifftCurveId, # curveId
-                                               title, # plotTitle
-                                               title, # windowTitle
-                                               self.ifftPlotRef, # plotRef
-                                               self.databaseAbsPath, # databaseAbsPath
-                                               self.ifftGetData(), # data
-                                               xLabelText, # xLabelText
-                                               xLabelUnits, # xLabelUnits
-                                               yLabelText, # yLabelText
-                                               yLabelUnits, # yLabelUnits
-                                               '', # zLabelText
-                                               '') # zLabelUnits
-        else:
-            self.ifftClosePlot()
-
-
-
-    def ifftClosePlot(self) -> None:
-        if hasattr(self, 'ifftPlotRef'):
-            self.signalClose1dPlot.emit(self.ifftPlotRef)
-
-
 
     ####################################
     #
@@ -1282,384 +1296,28 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-    def unwrapGetData(self) -> Tuple[np.ndarray, np.ndarray]:
-
-        return self.selectedX, np.unwrap(self.selectedY)
-
-
-
-    def unwrapUpdateCurve(self) -> None:
-        if hasattr(self, 'unwrapPlotRef'):
-            x, y = self.unwrapGetData()
-            self.signalUpdateCurve.emit(self.unwrapPlotRef,
-                                        self.unwrapCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
-
-
-
-    def clickUnwrap(self) -> None:
-
-        # If user wants to plot the unwrap, we add a new plotWindow
-        if self.checkBoxUnwrap.isChecked():
-
-            yLabelText         = 'Unwrap({})'.format(self.plotItem.axes['left']['item'].labelText)
-            title              = self.windowTitle+' - unwrap'
-            self.unwrapCurveId = self.selectedYLabel+'unwrap'
-            self.unwrapPlotRef = self.plotRef+'unwrap'
-
-            self.signal2MainWindowAddPlot.emit(1, # runId
-                                               self.unwrapCurveId, # curveId
-                                               title, # plotTitle
-                                               title, # windowTitle
-                                               self.unwrapPlotRef, # plotRef
-                                               self.databaseAbsPath, # databaseAbsPath
-                                               self.unwrapGetData(), # data
-                                               self.plotItem.axes['bottom']['item'].labelText, # xLabelText
-                                               self.plotItem.axes['bottom']['item'].labelUnits, # xLabelUnits
-                                               yLabelText, # yLabelText
-                                               self.plotItem.axes['left']['item'].labelUnits, # yLabelUnits
-                                               '', # zLabelText
-                                               '') # zLabelUnits
-        # Otherwise, we close the existing one
-        else:
-            self.unwrapClosePlot()
-
-
-
-    def unwrapClosePlot(self) -> None:
-        if hasattr(self, 'unwrapPlotRef'):
-            self.signalClose1dPlot.emit(self.unwrapPlotRef)
-
-
-
-    def removeSlopeGetData(self) -> Tuple[np.ndarray, np.ndarray]:
-
-        return (self.selectedX,
-                self.selectedY-np.polyfit(self.selectedX, self.selectedY, 1)[0]*self.selectedX)
-
-
-
-    def removeSlopeUpdateCurve(self) -> None:
-        if hasattr(self, 'removeSlopePlotRef'):
-            x, y = self.removeSlopeGetData()
-            self.signalUpdateCurve.emit(self.removeSlopePlotRef,
-                                        self.removeSlopeCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
-
-
-
-    def clickRemoveSlope(self) -> None:
-
-        # If user wants to plot the unslop, we add a new plotWindow
-        if self.checkBoxRemoveSlope.isChecked():
-
-            yLabelText  = 'Unslop({})'.format(self.plotItem.axes['left']['item'].labelText)
-            title       = self.windowTitle+' - unslop'
-            self.removeSlopeCurveId     = self.selectedYLabel+'unslop'
-            self.removeSlopePlotRef     = self.plotRef+'unslop'
-
-            self.signal2MainWindowAddPlot.emit(1, # runId
-                                               self.removeSlopeCurveId, # curveId
-                                               title, # plotTitle
-                                               title, # windowTitle
-                                               self.removeSlopePlotRef, # plotRef
-                                               self.databaseAbsPath, # databaseAbsPath
-                                               self.removeSlopeGetData(), # data
-                                               self.plotItem.axes['bottom']['item'].labelText, # xLabelText
-                                               self.plotItem.axes['bottom']['item'].labelUnits, # xLabelUnits
-                                               yLabelText, # yLabelText
-                                               self.plotItem.axes['left']['item'].labelUnits, # yLabelUnits
-                                               '', # zLabelText
-                                               '') # zLabelUnits
-        # Otherwise, we close the existing one
-        else:
-            self.removeSlopeClosePlot()
-
-
-
-    def removeSlopeClosePlot(self) -> None:
-        if hasattr(self, 'removeSlopePlotRef'):
-            self.signalClose1dPlot.emit(self.removeSlopePlotRef)
-
-
-
-    ####################################
-    #
-    #           Method to related to calculus
-    #
-    ####################################
-
-
-
-    def differentiateGetData(self) -> Tuple[np.ndarray, np.ndarray]:
-
-        return self.selectedX, np.gradient(self.selectedY, self.selectedX)
-
-
-
-    def differentiateUpdateCurve(self) -> None:
-        if hasattr(self, 'differentiatePlotRef'):
-            x, y = self.differentiateGetData()
-            self.signalUpdateCurve.emit(self.differentiatePlotRef,
-                                        self.differentiateCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
-
-
-
-    def clickDifferentiate(self) -> None:
-        """
-        Method called when user click on the derivative checkbox.
-        Add a plot containing the derivative of the chosen data.
-        """
-
-        # If user wants to plot the derivative, we add a new plotWindow
-        if self.checkBoxDifferentiate.isChecked():
-
-            xLabelText  = self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
-            yLabelText  = '∂('+self.selectedYLabel+')/∂('+xLabelText+')'
-            yLabelUnits = self.selectedYUnits+'/'+xLabelUnits
-
-            title       = self.windowTitle+' - derivative'
-            self.differentiateCurveId     = self.selectedYLabel+'derivative'
-            self.differentiatePlotRef     = self.plotRef+'derivative'
-
-            self.signal2MainWindowAddPlot.emit(1, # runId
-                                               self.differentiateCurveId, # curveId
-                                               title, # plotTitle
-                                               title, # windowTitle
-                                               self.differentiatePlotRef, # plotRef
-                                               self.databaseAbsPath, # databaseAbsPath
-                                               self.differentiateGetData(), # data
-                                               xLabelText, # xLabelText
-                                               xLabelUnits, # xLabelUnits
-                                               yLabelText, # yLabelText
-                                               yLabelUnits, # yLabelUnits
-                                               '', # zLabelText
-                                               '') # zLabelUnits
-
-        # Otherwise, we close the existing one
-        else:
-            self.differentiateClosePlot()
-
-
-
-    def differentiateClosePlot(self) -> None:
-        if hasattr(self, 'differentiatePlotRef'):
-            self.signalClose1dPlot.emit(self.differentiatePlotRef)
-
-
-
-    def integrateGetData(self) -> Tuple[np.ndarray, np.ndarray]:
-
-        return self.selectedX, cumtrapz(self.selectedY, self.selectedX, initial=0)
-
-
-
-    def integrateUpdateCurve(self) -> None:
-        if hasattr(self, 'integratePlotRef'):
-            x, y = self.integrateGetData()
-            self.signalUpdateCurve.emit(self.integratePlotRef,
-                                        self.integrateCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
-
-
-
-    def clickIntegrate(self) -> None:
-        """
-        Method called when user click on the integrate checkbox.
-        Add a plot containing the primitive of the chosen data.
-        """
-
-        # If user wants to plot the primitive, we add a new plotWindow
-        if self.checkBoxIntegrate.isChecked():
-
-            xLabelText  = self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
-            yLabelText  = '∫ '+self.selectedYLabel+'  d '+xLabelText
-            yLabelUnits = self.selectedYUnits+' x '+xLabelUnits
-
-            title   = self.windowTitle+' - primitive'
-            self.integrateCurveId = self.selectedYLabel+'primitive'
-            self.integratePlotRef = self.plotRef+'primitive'
-
-            self.signal2MainWindowAddPlot.emit(1, # runId
-                                               self.integrateCurveId, # curveId
-                                               title, # plotTitle
-                                               title, # windowTitle
-                                               self.integratePlotRef, # plotRef
-                                               self.databaseAbsPath, # databaseAbsPath
-                                               self.integrateGetData(), # data
-                                               xLabelText, # xLabelText
-                                               xLabelUnits, # xLabelUnits
-                                               yLabelText, # yLabelText
-                                               yLabelUnits, # yLabelUnits
-                                               '', # zLabelText
-                                               '') # zLabelUnits
-        # Otherwise, we close the existing one
-        else:
-            self.integrateClosePlot()
-
-
-
-    def integrateClosePlot(self) -> None:
-        if hasattr(self, 'integratePlotRef'):
-            self.signalClose1dPlot.emit(self.integratePlotRef)
-
-
-
-    ####################################
-    #
-    #           Method to related to statistics
-    #
-    ####################################
-
-
-
-    def statisticsGetData(self) -> Tuple[np.ndarray, np.ndarray]:
-
-        y, binEdges   = np.histogram(self.selectedY, bins=self.spinBoxStatistics.value())
-        x = np.mean(np.vstack([binEdges[0:-1],binEdges[1:]]), axis=0)
-
-        return x, y
-
-
-
-    def statisticsUpdateCurve(self) -> None:
-        if hasattr(self, 'statisticsPlotRef'):
-            x, y = self.statisticsGetData()
-            self.statisticsUpdateLabel()
-
-            self.signalUpdateCurve.emit(self.statisticsPlotRef,
-                                        self.statisticsCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
-
-
-    def statisticsUpdateLabel(self) -> None:
-        if hasattr(self, 'statisticsPlotRef'):
-
-            mean   = np.nanmean(self.selectedY)
-            std    = np.nanstd(self.selectedY)
-            median = np.nanmedian(self.selectedY)
-            xLabelUnits = self.plotItem.axes['left']['item'].labelUnits
-
-            # We add some statistics info on the GUI
-            txt = 'mean: {}{}<br/>'\
-                  'std: {}{}<br/>'\
-                  'median: {}{}'.format(parse_number(mean, self.config['fitParameterNbNumber'], unified=True),
-                                        xLabelUnits,
-                                        parse_number(std, self.config['fitParameterNbNumber'], unified=True),
-                                        xLabelUnits,
-                                        parse_number(median, self.config['fitParameterNbNumber'], unified=True),
-                                        xLabelUnits)
-
-            self.statisticsLabel.setText(txt)
-            self.statisticsLabel.setMaximumHeight(16777215)
-
-
-
-    def clickStatistics(self) -> None:
-        """
-        Method called when user click on the integrate checkbox.
-        Add a plot containing the histogram of the chosen data.
-        """
-
-
-
-        # If user wants to plot the histogram, we add a new plotWindow
-        if self.checkBoxStatistics.isChecked():
-
-            xLabelText  = self.plotItem.axes['left']['item'].labelText
-            xLabelUnits = self.plotItem.axes['left']['item'].labelUnits
-            yLabelText  = 'Count'
-            yLabelUnits = ''
-
-            title   = self.windowTitle+' - histogram'
-            self.statisticsCurveId = self.selectedYLabel+'histogram'
-            self.statisticsPlotRef = self.plotRef+'histogram'
-
-            self.statisticsUpdateLabel()
-
-            self.signal2MainWindowAddPlot.emit(1, # runId
-                                               self.statisticsCurveId, # curveId
-                                               title, # plotTitle
-                                               title, # windowTitle
-                                               self.statisticsPlotRef, # plotRef
-                                               self.databaseAbsPath, # databaseAbsPath
-                                               self.statisticsGetData(), # data
-                                               xLabelText, # xLabelText
-                                               xLabelUnits, # xLabelUnits
-                                               yLabelText, # yLabelText
-                                               yLabelUnits, # yLabelUnits
-                                               '', # zLabelText
-                                               '') # zLabelUnits
-        # Otherwise, we close the existing one
-        else:
-
-            self.statisticsClosePlot()
-
-
-
-    def statisticsClosePlot(self) -> None:
-        if hasattr(self, 'statisticsPlotRef'):
-            self.signalClose1dPlot.emit(self.statisticsPlotRef)
-            self.statisticsLabel.setMaximumHeight(0)
-
-
-
     def interactionCurveClose(self, curveId: str) -> None:
         """
         Called from MainWindow when sub-interaction plot is closed.
         Uncheck their associated checkBox
         """
 
-        if 'fft' in curveId:
-            self.checkBoxFFT.setChecked(False)
-            del(self.fftPlotRef)
-            del(self.fftCurveId)
-        elif 'fftnodc' in curveId:
-            self.checkBoxFFTnoDC.setChecked(False)
-            del(self.fftNoDcPlotRef)
-            del(self.fftNoDcCurveId)
+        if 'fftnodc' in curveId:
+            self.signalCheckBoxFFTnoDCSetChecked.emit(False)
         elif 'ifft' in curveId:
-            self.checkBoxIFFT.setChecked(False)
-            del(self.ifftPlotRef)
-            del(self.ifftCurveId)
+            self.signalCheckBoxIFFTSetChecked.emit(False)
+        elif 'fft' in curveId:
+            self.signalCheckBoxFFTSetChecked.emit(False)
         elif 'unwrap' in curveId:
-            self.checkBoxUnwrap.setChecked(False)
-            del(self.unwrapPlotRef)
-            del(self.unwrapCurveId)
+            self.signalCheckBoxUnwrapSetChecked.emit(False)
         elif 'unslop' in curveId:
-            self.checkBoxRemoveSlope.setChecked(False)
-            del(self.removeSlopePlotRef)
-            del(self.removeSlopeCurveId)
+            self.signalCheckBoxRemoveSlopeSetChecked.emit(False)
         elif 'derivative' in curveId:
-            self.checkBoxDifferentiate.setChecked(False)
-            del(self.differentiatePlotRef)
-            del(self.differentiateCurveId)
+            self.signalCheckBoxDifferentiateSetChecked.emit(False)
         elif 'primitive' in curveId:
-            self.checkBoxIntegrate.setChecked(False)
-            del(self.integratePlotRef)
-            del(self.integrateCurveId)
+            self.signalCheckBoxIntegrateSetChecked.emit(False)
         elif 'histogram' in curveId:
-            self.checkBoxStatistics.setChecked(False)
-            del(self.statisticsPlotRef)
-            del(self.statisticsCurveId)
+            self.signalCheckBoxStatisticsSetChecked.emit(False)
 
 
 
@@ -1688,14 +1346,17 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         if curveId is not None:
             a = self.sliceItems['a'].value()
             b = self.sliceItems['b'].value()
+
             n = np.abs(self.curves[curveId].xData-a).argmin()
             m = np.abs(self.curves[curveId].xData-b).argmin()
+
+            # +1 to take into account the last selection point
             if n<m:
-                x: np.ndarray = self.curves[curveId].xData[n:m]
-                y: np.ndarray = self.curves[curveId].yData[n:m]
+                x: np.ndarray = self.curves[curveId].xData[n:m+1]
+                y: np.ndarray = self.curves[curveId].yData[n:m+1]
             else:
-                x = self.curves[curveId].xData[m:n]
-                y = self.curves[curveId].yData[m:n]
+                x = self.curves[curveId].xData[m:n+1]
+                y = self.curves[curveId].yData[m:n+1]
 
 
             # If we are dealing with histogram data
@@ -1703,6 +1364,13 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 x = x[:-2]+(x[1]-x[0])/2
 
             self.selectedX, self.selectedY = x, y
+
+            self.signalSendSelectedData.emit(self.selectedX,
+                                             self.selectedXLabel,
+                                             self.selectedXUnits,
+                                             self.selectedY,
+                                             self.selectedYLabel,
+                                             self.selectedYUnits)
 
 
 
@@ -1893,6 +1561,11 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 if checkBox.curveId==radioButton.curveId:
                     checkBox.setEnabled(False)
 
+            self.selectedYLabel :str = self.curves[radioButton.curveId].curveYLabel
+            self.selectedXLabel :str = self.curves[radioButton.curveId].curveXLabel
+            self.selectedYUnits :str = self.curves[radioButton.curveId].curveYUnits
+            self.selectedXUnits :str = self.curves[radioButton.curveId].curveXUnits
+
             # The addSliceItem method has be launched before the update
             self.updateSelectionInifiteLine(radioButton.curveId)
 
@@ -1904,11 +1577,6 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
             # Enable interaction using selected data
             self.enableWhenPlotDataItemSelected(True)
-
-            self.selectedYLabel :str = self.curves[radioButton.curveId].curveYLabel
-            self.selectedXLabel :str = self.curves[radioButton.curveId].curveXLabel
-            self.selectedYUnits :str = self.curves[radioButton.curveId].curveYUnits
-            self.selectedXUnits :str = self.curves[radioButton.curveId].curveXUnits
 
 
 
@@ -1935,209 +1603,125 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
     def interactionCloseAll(self) -> None:
 
-        for curveId, interaction in self.dialogInteraction.items():
-            if curveId in list(self.curves.keys()):
-                interaction['dialog'].close()
-
-        self.fftClosePlot()
-        self.fftNoDcClosePlot()
-        self.ifftClosePlot()
-        self.differentiateClosePlot()
-        self.integrateClosePlot()
-        self.unwrapClosePlot()
-        self.removeSlopeClosePlot()
-        self.statisticsClosePlot()
+        self.signalFilteringClose.emit()
+        self.signalFitClose.emit()
+        self.signalFFTClosePlot.emit()
+        self.signalFFTNoDcClosePlot.emit()
+        self.signalIFFTClosePlot.emit()
+        self.signalDifferentiateClosePlot.emit()
+        self.signalIntegrateClosePlot.emit()
+        self.signalUnwrapClosePlot.emit()
+        self.signalRemoveSlopeClosePlot.emit()
+        self.signalStatisticsClosePlot.emit()
 
 
 
     def interactionUpdateAll(self) -> None:
 
-        # If a fit curve is already displayed, we update it
-        for curveId, interaction in self.dialogInteraction.items():
-            if curveId in list(self.curves.keys()):
-                interaction['dialog'].updateCurve(self.selectedX, self.selectedY)
-
-        self.fftUpdateCurve()
-        self.fftNoDcUpdateCurve()
-        self.ifftUpdateCurve()
-        self.differentiateUpdateCurve()
-        self.integrateUpdateCurve()
-        self.unwrapUpdateCurve()
-        self.removeSlopeUpdateCurve()
-        self.statisticsUpdateCurve()
-
-
-    ####################################
-    #
-    #           Method to related to fit
-    #
-    ####################################
-
-
-
-    def initFitGUI(self) -> None:
-        """
-        Method called at the initialization of the GUI.
-        Make a list of radioButton reflected the available list of fitmodel.
-        By default all radioButton are disabled and user should chose a plotDataItem
-        to make them available.
-        """
-
-        # Get list of fit model
-        listClasses = [m[0] for m in inspect.getmembers(dialogFit, inspect.isclass) if 'getInitialParams' in [*m[1].__dict__.keys()]]
-        # Add a radio button for each model of the list
-        self.fitModelButtonGroup = QtWidgets.QButtonGroup()
-        for i, j in enumerate(listClasses):
-
-            _class = getattr(dialogFit, j)
-
-            font = QtGui.QFont()
-            font.setPointSize(8)
-            font.setBold(False)
-
-            rb = QtWidgets.QRadioButton(_class.displayedLabel)
-            rb.setFont(font)
-            rb.fitModel = j
-            rb.clicked.connect(self.radioButtonFitState)
-            # rb.setEnabled(False)
-            self.fitModelButtonGroup.addButton(rb, i)
-            self.verticalLayoutFitModel.addWidget(rb)
-
-
-
-
-    def radioButtonFitState(self) -> None:
-        """
-        Method called when user click on a radioButton of a fitModel.
-        Launch a fit of the data using the chosen model and display the results.
-        """
-
-        # If a fit curve is already plotted, we remove it before plotting a new
-        # one
-        if 'fit' in list(self.curves.keys()):
-            self.dialogInteraction['fit']['dialog'].close()
-
-        radioButton = self.fitModelButtonGroup.checkedButton()
-        radioButton.setChecked(True)
-
-        # Find which model has been chosed and instance it
-        _class = getattr(dialogFit, radioButton.fitModel)
-        dialog = _class(parent=self,
-                        xData=self.selectedX,
-                        yData=self.selectedY,
-                        xUnits=self.plotItem.axes['bottom']['item'].labelUnits,
-                        yUnits=self.plotItem.axes['left']['item'].labelUnits)
-
-        dialog.signalUpdate.connect(self.updateInteractionCurve)
-        dialog.signalCloseDialog.connect(self.closeInteractionDialog)
-
-        # Do the fit
-        x, y, params =  dialog.ffit()
-        self.dialogInteraction['fit'] = {'dialog' : dialog,
-                                         'button' : radioButton}
-
-        # Plot fit curve
-        self.addPlotDataItem(x           = x,
-                             y           = y,
-                             curveId     = 'fit',
-                             curveXLabel = self.selectedXLabel,
-                             curveXUnits = self.selectedXUnits,
-                             curveYLabel = self.selectedYLabel,
-                             curveYUnits = self.selectedYUnits,
-                             curveLegend = dialog.displayedLegend(params))
+        self.signalFilteringUpdate.emit()
+        self.signalFitUpdate.emit()
+        self.signalFFTUpdate.emit()
+        self.signalFFTNoDcUpdate.emit()
+        self.signalIFFTUpdate.emit()
+        self.signalDifferentiateUpdate.emit()
+        self.signalIntegrateUpdate.emit()
+        self.signalUnwrapUpdate.emit()
+        self.signalRemoveSlopeUpdate.emit()
+        self.signalStatisticsUpdate.emit()
 
 
 
     ####################################
     #
-    #           Method to related to filtering
+    #           Slot from other widgets
     #
     ####################################
 
 
 
-    def radioButtonFilteringtState(self) -> None:
+    @QtCore.pyqtSlot(str, str)
+    def slotRemoveCurve(self, plotRef: str,
+                              curveId: str) -> None:
         """
-        Method called when user click on a radioButton of a filteringModel.
-        Launch a filering of the data using the chosen model and display the
-        results.
+        If user remove a curve.
+        The signal is propagated to all plot.
+        We check if that concerns that instance and if yes effectivelty remove
+        a curve.
         """
-
-        # If a filtering curve is already plotted, we remove it before plotting
-        # a new one
-        if 'filtering' in list(self.curves.keys()):
-            self.dialogInteraction['filtering']['dialog'].close()
-
-        radioButton = self.filteringModelButtonGroup.checkedButton()
-        radioButton.setChecked(True)
-
-        # Find which model has been chosed and instance it
-        _class = getattr(dialogFiltering, radioButton.filteringModel)
-        dialog = _class(self,
-                        self.selectedX,
-                        self.selectedY)
-
-        dialog.signalUpdate.connect(self.updateInteractionCurve)
-        dialog.signalCloseDialog.connect(self.closeInteractionDialog)
-
-        # Do the filtering
-        x, y, legend =  dialog.runFiltering()
-        self.dialogInteraction['filtering'] = {'dialog' : dialog,
-                                               'button' : radioButton}
-
-        # Plot filtered curve
-        self.addPlotDataItem(x           = x,
-                             y           = y,
-                             curveId     = 'filtering',
-                             curveXLabel = self.selectedXLabel,
-                             curveXUnits = self.selectedXUnits,
-                             curveYLabel = self.selectedYLabel,
-                             curveYUnits = self.selectedYUnits,
-                             curveLegend = legend)
+        if plotRef==self.plotRef:
+            if curveId in self.curves.keys():
+                self.removePlotDataItem(curveId)
 
 
 
-    def initFilteringGUI(self) -> None:
-        """
-        Method called at the initialization of the GUI.
-        Make a list of radioButton reflected the available list of filtering model.
-        By default all radioButton are disabled and user should chose a plotDataItem
-        to make them available.
-        """
+    ####################################
+    #
+    #           Slot for fit and filtering interaction
+    #
+    ####################################
 
-        # Get list of filtering model
-        listClasses = [m[0] for m in inspect.getmembers(dialogFiltering, inspect.isclass) if 'runFiltering' in [*m[1].__dict__.keys()]]
-        # Add a radio button for each model of the list
-        self.filteringModelButtonGroup = QtWidgets.QButtonGroup()
-        for i, j in enumerate(listClasses):
 
-            _class = getattr(dialogFiltering, j)
 
-            font = QtGui.QFont()
-            font.setPointSize(8)
-            font.setBold(False)
+    QtCore.pyqtSlot(np.ndarray, np.ndarray, str, str, str, str, str, str, bool, bool)
+    def slotAddPlotDataItem(self, x                 : np.ndarray,
+                                  y                 : np.ndarray,
+                                  curveId           : str,
+                                  curveXLabel       : str,
+                                  curveXUnits       : str,
+                                  curveYLabel       : str,
+                                  curveYUnits       : str,
+                                  curveLegend       : str,
+                                  showInLegend      : bool,
+                                  hidden            : bool) -> None:
 
-            rb = QtWidgets.QRadioButton(_class.checkBoxLabel)
-            rb.setFont(font)
-            rb.filteringModel = j
-            rb.clicked.connect(self.radioButtonFilteringtState)
-            # rb.setEnabled(False)
-            self.filteringModelButtonGroup.addButton(rb, i)
-            self.verticalLayoutFilteringModel.addWidget(rb)
+        self.addPlotDataItem(x=x,
+                             y=y,
+                             curveId=curveId,
+                             curveXLabel=curveXLabel,
+                             curveXUnits=curveXUnits,
+                             curveYLabel=curveYLabel,
+                             curveYUnits=curveYUnits,
+                             curveLegend=curveLegend,
+                             showInLegend=showInLegend,
+                             hidden=hidden)
+
+
+
+    @QtCore.pyqtSlot(np.ndarray, np.ndarray, str, str, bool, bool)
+    def slotUpdatePlotDataItem(self, x           : np.ndarray,
+                                     y           : np.ndarray,
+                                     curveId     : str,
+                                     curveLegend : str,
+                                     autoRange   : bool,
+                                     interactionUpdateAll: bool) -> None:
+
+        self.updatePlotDataItem(x=x,
+                                y=y,
+                                curveId=curveId,
+                                curveLegend=curveLegend,
+                                autoRange=autoRange,
+                                interactionUpdateAll=interactionUpdateAll)
+
 
 
     @QtCore.pyqtSlot(str)
     def closeInteractionDialog(self, interaction: str) -> None:
 
         # We close the plot
-        self.removePlotDataItem(interaction)
+        if 'fit' in self.curves.keys():
+            self.removePlotDataItem(interaction)
+
+        # We reset the comboBox without triggering event
+        self.dialogInteraction[interaction]['comboBox'].blockSignals(True)
+        self.dialogInteraction[interaction]['comboBox'].setCurrentIndex(0)
+        self.dialogInteraction[interaction]['comboBox'].blockSignals(False)
 
         # Allow to uncheck button without triggering event
-        self.dialogInteraction[interaction]['button'].setCheckable(False)
-        self.dialogInteraction[interaction]['button'].setCheckable(True)
+        # self.dialogInteraction[interaction]['button'].setCheckable(False)
+        # self.dialogInteraction[interaction]['button'].setCheckable(True)
 
         # Delete its associated reference
-        del(self.dialogInteraction[interaction]['dialog'])
+        del(self.dialogInteraction[interaction])
 
 
 

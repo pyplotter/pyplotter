@@ -7,9 +7,9 @@ import numpy as np
 from ..sources.config import loadConfigCurrent, updateUserConfig
 config = loadConfigCurrent()
 
-from ..sources.dialogs.dialogFontsize import MenuDialogFontSize
-from ..sources.dialogs.dialogColormap import DialogMenuColormap
-from ..sources.dialogs.dialogLiveplot import MenuDialogLiveplot
+from .dialogs.dialogFontsize import DialogFontSize
+from .dialogs.dialogColormap import DialogMenuColormap
+from .dialogs.dialogLiveplot import DialogLiveplot
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -201,27 +201,27 @@ class MenuBar(QtWidgets.QMenuBar):
 
     def menuFontsize(self):
 
-        self.menuDialogFontSize = MenuDialogFontSize(self.parent(), config)
-        self.menuDialogFontSize.signalUpdateStyle.connect(self.signalUpdateStyle.emit)
+        self.dialogFontSize = DialogFontSize(self.parent(), config)
+        self.dialogFontSize.signalUpdateStyle.connect(self.signalUpdateStyle.emit)
 
 
 
     def menuColormap(self):
 
-        self.DialogMenuColormap = DialogMenuColormap(self.parent(), config)
-        self.DialogMenuColormap.signalUpdateStyle.connect(self.signalUpdateStyle.emit)
+        self.dialogMenuColormap = DialogMenuColormap(self.parent(), config)
+        self.dialogMenuColormap.signalUpdateStyle.connect(self.signalUpdateStyle.emit)
 
 
 
     def menuOpenLiveplot(self):
 
-        self.menuDialogLiveplot = MenuDialogLiveplot(config)
+        self.dialogLiveplot = DialogLiveplot(config)
 
-        self.menuDialogLiveplot.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot.emit)
-        self.menuDialogLiveplot.signalUpdateCurve.connect(self.signalUpdateCurve.emit)
-        self.menuDialogLiveplot.signalUpdate2d.connect(self.signalUpdate2d.emit)
-        self.menuDialogLiveplot.signalSendStatusBarMessage.connect(self.signalSendStatusBarMessage.emit)
-        self.menuDialogLiveplot.signalUpdatePlotProperty.connect(self.signalUpdatePlotProperty.emit)
+        self.dialogLiveplot.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot.emit)
+        self.dialogLiveplot.signalUpdateCurve.connect(self.signalUpdateCurve.emit)
+        self.dialogLiveplot.signalUpdate2d.connect(self.signalUpdate2d.emit)
+        self.dialogLiveplot.signalSendStatusBarMessage.connect(self.signalSendStatusBarMessage.emit)
+        self.dialogLiveplot.signalUpdatePlotProperty.connect(self.signalUpdatePlotProperty.emit)
 
 
 
