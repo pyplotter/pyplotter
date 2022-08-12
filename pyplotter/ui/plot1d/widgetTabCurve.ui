@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>widgetTabCurve</class>
+ <widget class="QWidget" name="widgetTabCurve">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>293</width>
+    <height>311</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>275</width>
+    <height>0</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>293</width>
+    <height>16777215</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Curve</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTableWidget" name="tableWidgetCurves">
+     <property name="minimumSize">
+      <size>
+       <width>270</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>275</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="sizeAdjustPolicy">
+      <enum>QAbstractScrollArea::AdjustToContents</enum>
+     </property>
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="showGrid">
+      <bool>false</bool>
+     </property>
+     <attribute name="horizontalHeaderStretchLastSection">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <column>
+      <property name="text">
+       <string>curveId</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>plot</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>db</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>run id</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>axis</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>swept parameter</string>
+      </property>
+     </column>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

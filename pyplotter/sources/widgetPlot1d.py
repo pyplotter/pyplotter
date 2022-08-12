@@ -2,14 +2,13 @@
 from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
-from typing import List, Union, Optional, Tuple, Dict
-import inspect
+from typing import Union, Optional, Tuple, Dict
 
 
 from ..ui.widgetPlot1d import Ui_Dialog
 from .config import loadConfigCurrent
 from .widgetPlot import WidgetPlot
-from .functions import getDatabaseNameFromAbsPath, getCurveColorIndex
+from .functions import getCurveColorIndex
 from .pyqtgraph import pg
 from ..ui.plot1d.groupBoxStatistics import GroupBoxStatistics
 from ..ui.plot1d.groupBoxCalculus import GroupBoxCalculus
@@ -17,6 +16,7 @@ from ..ui.plot1d.groupBoxFFT import GroupBoxFFT
 from ..ui.plot1d.groupBoxNormalize import GroupBoxNormalize
 from ..ui.plot1d.groupBoxFit import GroupBoxFit
 from ..ui.plot1d.groupBoxFiltering import GroupBoxFiltering
+from ..ui.plot1d.widgetTabCurve import WidgetTabCurve
 
 
 class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
@@ -218,16 +218,14 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.verticalLayoutPlotDataItem.addWidget(self.radioButtonFitNone)
         self.plotDataItemButtonGroup.addButton(self.radioButtonFitNone, 0)
 
+        # Order of initialization determine their GUI order
         self.initGroupBoxFFT()
         self.initGroupBoxStatistics()
         self.initGroupBoxCalculus()
         self.initGroupBoxNormalize()
-
-        # Add fitting function to the GUI
         self.initGroupBoxFit()
-        # Add filtering function to the GUI
         self.initGroupBoxFiltering()
-
+        self.initTabCurve()
 
 
 
@@ -293,6 +291,18 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     #           init GUI
     #
     ####################################
+
+
+
+    def initTabCurve(self) -> None:
+
+        self.widgetTabCurve = WidgetTabCurve(self.tabWidget,
+                                             self.plotRef)
+
+        # Events from the groupBox to the plot1d
+        self.widgetTabCurve.signalAddPlotDataItem.connect(self.slotAddPlotDataItem)
+        self.widgetTabCurve.signalUpdatePlotDataItem.connect(self.slotUpdatePlotDataItem)
+        self.widgetTabCurve.signalRemovePlotDataItem.connect(self.slotRemoveCurve)
 
 
 
@@ -934,159 +944,139 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-    def updatePlottedCurvesList(self, plots: List[WidgetPlot1d]) -> None:
-        """
-        Is called by the Main object when the user plots a new 1d curve.
-        Build a list of checkbox related to every already plotted curve and
-        display it in the curve tab.
+    # def updatePlottedCurvesList(self, plots: List[WidgetPlot1d]) -> None:
+    #     """
+    #     Is called by the Main object when the user plots a new 1d curve.
+    #     Build a list of checkbox related to every already plotted curve and
+    #     display it in the curve tab.
 
-        Parameters
-        ----------
-        plots : List[WidgetPlot1d]
-            List containing all the 1d plot window currently displayed.
-        """
+    #     Parameters
+    #     ----------
+    #     plots : List[WidgetPlot1d]
+    #         List containing all the 1d plot window currently displayed.
+    #     """
 
-        # Is there at least one another curve to be shown in the new tab
-        isThere = False
-        for plot in plots:
-            for curveId in plot.curves.keys():
+    #     # Get all the curveIds to be potentially built
+    #     curveId2Builds = []
+    #     for plot in plots:
+    #         for curveId in plot.curves.keys():
+    #             if (self._windowTitle != plot.windowTitle() or
+    #                 plot.runId != self.runId or
+    #                 curveId not in self.curves.keys()):
+    #                 curveId2Builds.append(curveId)
 
-                # We do not add a checkbox button for the original curves of
-                # the plot window
-                if (self._windowTitle != plot.windowTitle or
-                    plot.runId != self.runId or
-                    curveId not in self.curves):
+    #     # If there is, we build the GUI
+    #     if len(curveId2Builds)>0:
 
-                    isThere = True
-
-        # If there is, we build the GUI
-        if isThere:
-
-            # Initialize GUI
-            if not hasattr(self, 'tabCurves'):
+    #         # Initialize GUI
+    #         if not hasattr(self, 'tabCurves'):
 
 
-                self.tabCurves = QtWidgets.QWidget()
+                # self.tabCurves = QtWidgets.QWidget()
 
-                self.tableWidgetCurves = QtWidgets.QTableWidget(self.tabCurves)
-                self.tableWidgetCurves.setColumnCount(6)
-                item = QtWidgets.QTableWidgetItem()
-                self.tableWidgetCurves.setHorizontalHeaderItem(0, item)
-                item = QtWidgets.QTableWidgetItem('plot')
-                self.tableWidgetCurves.setHorizontalHeaderItem(1, item)
-                item = QtWidgets.QTableWidgetItem('db')
-                self.tableWidgetCurves.setHorizontalHeaderItem(2, item)
-                item = QtWidgets.QTableWidgetItem('run id')
-                self.tableWidgetCurves.setHorizontalHeaderItem(3, item)
-                item = QtWidgets.QTableWidgetItem('axis')
-                self.tableWidgetCurves.setHorizontalHeaderItem(4, item)
-                item = QtWidgets.QTableWidgetItem('swept parameter')
-                self.tableWidgetCurves.setHorizontalHeaderItem(5, item)
+                # self.tableWidgetCurves = QtWidgets.QTableWidget(self.tabCurves)
+                # self.tableWidgetCurves.setColumnCount(6)
+                # item = QtWidgets.QTableWidgetItem()
+                # self.tableWidgetCurves.setHorizontalHeaderItem(0, item)
+                # item = QtWidgets.QTableWidgetItem('plot')
+                # self.tableWidgetCurves.setHorizontalHeaderItem(1, item)
+                # item = QtWidgets.QTableWidgetItem('db')
+                # self.tableWidgetCurves.setHorizontalHeaderItem(2, item)
+                # item = QtWidgets.QTableWidgetItem('run id')
+                # self.tableWidgetCurves.setHorizontalHeaderItem(3, item)
+                # item = QtWidgets.QTableWidgetItem('axis')
+                # self.tableWidgetCurves.setHorizontalHeaderItem(4, item)
+                # item = QtWidgets.QTableWidgetItem('swept parameter')
+                # self.tableWidgetCurves.setHorizontalHeaderItem(5, item)
 
-                ## Only used to propagate information
-                # curveId
-                self.tableWidgetCurves.setColumnHidden(0, True)
+                # ## Only used to propagate information
+                # # curveId
+                # self.tableWidgetCurves.setColumnHidden(0, True)
 
-                self.tableWidgetCurves.horizontalHeader().setStretchLastSection(True)
-                self.tableWidgetCurves.verticalHeader().setVisible(False)
-                self.tableWidgetCurves.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-                self.tableWidgetCurves.setAlternatingRowColors(True)
-                self.tableWidgetCurves.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-                self.tableWidgetCurves.setShowGrid(False)
-                self.tabWidget.addTab(self.tabCurves, 'Add curves')
-
-            # Get all the already built curveId
-            curveIdBuilts = []
-            for row in range(self.tableWidgetCurves.rowCount()):
-                curveIdBuilts.append(self.tableWidgetCurves.item(row, 0).text())
-
-            # Get all the curveIds to be potentially built
-            curveId2Builds = []
-            for plot in plots:
-                for curveId in plot.curves.keys():
-                    curveId2Builds.append(curveId)
-            # Check if we have to add rows
-            for curveId2Build in curveId2Builds:
-                if curveId2Build not in curveIdBuilts and curveId2Build not in self.curves.keys():
-                    cb = QtWidgets.QCheckBox()
-                    for plot in plots:
-                        for curveId in plot.curves.keys():
-                            if curveId==curveId2Build:
-                                currentPlot = plot
-                    cb.toggled.connect(lambda state,
-                                              runId   = str(currentPlot.runId),
-                                              curveId = curveId2Build,
-                                              plot    = currentPlot: self.toggleNewPlot(state, runId, curveId, plot))
-
-                    databaseName = getDatabaseNameFromAbsPath(currentPlot.databaseAbsPath)
-                    rowPosition = self.tableWidgetCurves.rowCount()
-
-                    self.tableWidgetCurves.setRowCount(rowPosition+1)
-
-                    self.tableWidgetCurves.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(curveId2Build))
-                    self.tableWidgetCurves.setCellWidget(rowPosition, 1, cb)
-                    self.tableWidgetCurves.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(databaseName))
-                    self.tableWidgetCurves.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(str(currentPlot.runId)))
-                    self.tableWidgetCurves.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveYLabel))
-                    self.tableWidgetCurves.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveXLabel))
-                    self.tableWidgetCurves.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveYLabel))
-                    self.tableWidgetCurves.setItem(rowPosition, 5, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveXLabel))
-
-            # Check if we have to remove rows
-            for curveIdBuilt in curveIdBuilts:
-                if curveIdBuilt not in curveId2Builds:
-                    row2Remove = None
-                    for row in range(self.tableWidgetCurves.rowCount()):
-                        if curveIdBuilt==self.tableWidgetCurves.item(row, 0).text():
-                            row2Remove = row
-                    if row2Remove is not None:
-                        self.tableWidgetCurves.removeRow(row2Remove)
-
-            self.tableWidgetCurves.setSortingEnabled(True)
-            self.tableWidgetCurves.sortItems(3, QtCore.Qt.DescendingOrder)
-            self.tableWidgetCurves.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-            self.tableWidgetCurves.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+                # self.tableWidgetCurves.horizontalHeader().setStretchLastSection(True)
+                # self.tableWidgetCurves.verticalHeader().setVisible(False)
+                # self.tableWidgetCurves.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+                # self.tableWidgetCurves.setAlternatingRowColors(True)
+                # self.tableWidgetCurves.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+                # self.tableWidgetCurves.setShowGrid(False)
+                # self.tabWidget.addTab(self.tabCurves, 'Add curves')
 
 
-        else:
-            if hasattr(self, 'tabCurves'):
-                self.tabWidget.removeTab(1)
-                del(self.tabCurves)
+            # clearTableWidget(self.tableWidgetCurves)
+            # self.tableWidgetCurves.setRowCount(len(curveId2Builds))
+
+            # for row, curveId2Build in enumerate(curveId2Builds):
+            #     cb = QtWidgets.QCheckBox()
+
+            #     if curveId2Build in self.curves.keys():
+            #         cb.setChecked(True)
+
+            #     for plot in plots:
+            #         for curveId in plot.curves.keys():
+            #             if curveId==curveId2Build:
+            #                 currentPlot = plot
+
+            #     cb.toggled.connect(lambda state,
+            #                               runId   = str(currentPlot.runId),
+            #                               curveId = curveId2Build,
+            #                               plot    = currentPlot: self.toggleNewPlot(state, runId, curveId, plot))
+
+            #     databaseName = getDatabaseNameFromAbsPath(currentPlot.databaseAbsPath)
+
+            #     self.tableWidgetCurves.setItem(row, 0, QtWidgets.QTableWidgetItem(curveId2Build))
+            #     self.tableWidgetCurves.setCellWidget(row, 1, cb)
+            #     self.tableWidgetCurves.setItem(row, 2, QtWidgets.QTableWidgetItem(databaseName))
+            #     self.tableWidgetCurves.setItem(row, 3, QtWidgets.QTableWidgetItem(str(currentPlot.runId)))
+            #     self.tableWidgetCurves.setItem(row, 4, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveYLabel))
+            #     self.tableWidgetCurves.setItem(row, 5, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveXLabel))
+            #     self.tableWidgetCurves.setItem(row, 4, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveYLabel))
+            #     self.tableWidgetCurves.setItem(row, 5, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveXLabel))
+
+            # self.tableWidgetCurves.setSortingEnabled(True)
+            # self.tableWidgetCurves.sortByColumn(3, QtCore.Qt.DescendingOrder)
+            # self.tableWidgetCurves.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            # self.tableWidgetCurves.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+
+
+        # else:
+        #     if hasattr(self, 'tabCurves'):
+        #         self.tabWidget.removeTab(1)
+        #         del(self.tabCurves)
 
 
 
-    def toggleNewPlot(self, state: bool,
-                            runId: str,
-                            curveId: str,
-                            plot: WidgetPlot1d) -> None:
-        """
-        Called when user click on the checkbox of the curves tab.
-        Add or remove curve in the plot window.
+    # def toggleNewPlot(self, state: bool,
+    #                         runId: str,
+    #                         curveId: str,
+    #                         plot: WidgetPlot1d) -> None:
+    #     """
+    #     Called when user click on the checkbox of the curves tab.
+    #     Add or remove curve in the plot window.
 
-        Parameters
-        ----------
-        state : bool
-            State of the checkbox button.
-        runId : str
-            Id of the qcodes run, 0 if the curve is not from qcodes.
-        curveId : str
-            Id of the curve related to the checkbox, see getCurveId in the mainApp.
-        plot : WidgetPlot1d
-            WidgetPlot1d where the curve comes from.
-        """
+    #     Parameters
+    #     ----------
+    #     state : bool
+    #         State of the checkbox button.
+    #     runId : str
+    #         Id of the qcodes run, 0 if the curve is not from qcodes.
+    #     curveId : str
+    #         Id of the curve related to the checkbox, see getCurveId in the mainApp.
+    #     plot : WidgetPlot1d
+    #         WidgetPlot1d where the curve comes from.
+    #     """
 
-        if state:
-            self.addPlotDataItem(x           = plot.curves[curveId].xData,
-                                 y           = plot.curves[curveId].yData,
-                                 curveId     = curveId,
-                                 curveXLabel = plot.curves[curveId].curveXLabel,
-                                 curveXUnits = plot.curves[curveId].curveXUnits,
-                                 curveYLabel = plot.curves[curveId].curveYLabel,
-                                 curveYUnits = plot.curves[curveId].curveYUnits,
-                                 curveLegend = '{} - {}'.format(runId, plot.curves[curveId].curveYLabel))
+    #     if state:
+    #         self.addPlotDataItem(x           = plot.curves[curveId].xData,
+    #                              y           = plot.curves[curveId].yData,
+    #                              curveId     = curveId,
+    #                              curveXLabel = plot.curves[curveId].curveXLabel,
+    #                              curveXUnits = plot.curves[curveId].curveXUnits,
+    #                              curveYLabel = plot.curves[curveId].curveYLabel,
+    #                              curveYUnits = plot.curves[curveId].curveYUnits,
+    #                              curveLegend = '{} - {}'.format(runId, plot.curves[curveId].curveYLabel))
 
-        else:
-            self.removePlotDataItem(curveId)
+    #     else:
+    #         self.removePlotDataItem(curveId)
 
 
 

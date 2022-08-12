@@ -592,12 +592,15 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         """
 
         if len(self._plotRefs) > 0:
-
             # Build the list of 1d plot windows
             plots = [plot for plot in self._plotRefs.values() if plot.plotType=='1d']
 
             # Send the list to every 1d plot windows
-            [plot.updatePlottedCurvesList(plots) for plot in plots]
+            # [plot.widgetTabCurve.updateList1dCurvesLabels(plot, plots) for plot in plots]
+            for plot in plots:
+                plot.widgetTabCurve.updateList1dCurvesLabels(plot.plotRef,
+                                                             list(plot.curves.keys()),
+                                                             plots)
 
 
 
