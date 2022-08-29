@@ -2,15 +2,14 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 import numpy as np
 import datetime
-from typing import Callable, Tuple, Union
-from math import log10
+from typing import Callable
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..ui.plotWidget import PlotWidget
 from ..ui.histogramLUTWidget import HistogramLUTWidget
+from ..ui.menuDb import MenuDb
 from .pyqtgraph import pg
-from .functions import getDatabaseNameFromAbsPath
 
 class WidgetPlot():
     """
@@ -63,56 +62,6 @@ class WidgetPlot():
         self.plotItem.scene().sigMouseMoved.connect(self.mouseMoved)
         self.checkBoxCrossHair.stateChanged.connect(self.checkBoxCrossHairState)
         self.pushButtonCopy.clicked.connect(self.pushButtonCopyClicked)
-
-
-
-    ####################################
-    #
-    #           Click on the plot title
-    #
-    ####################################
-
-
-
-    def clickDb(self, databaseAbsPath: str) -> None:
-
-        self.databaseAbsPath = databaseAbsPath
-        self.menu = QtWidgets.QMenu()
-
-        copyDb = QtWidgets.QAction('Copy dataBase name', self)
-        copyDb.triggered.connect(self.clickTitleCopyDb)
-        self.menu.addAction(copyDb)
-
-        copyDbAbsPath = QtWidgets.QAction('Copy dataBase absolute path', self)
-        copyDbAbsPath.triggered.connect(self.clickTitleCopyDbAbsPath)
-        self.menu.addAction(copyDbAbsPath)
-
-        copyDbRePath = QtWidgets.QAction('Copy dataBase relative path', self)
-        copyDbRePath.triggered.connect(self.clickTitleCopyDbRePath)
-        self.menu.addAction(copyDbRePath)
-
-        self.menu.exec(QtGui.QCursor.pos())
-
-
-
-    def clickTitleCopyDb(self, q:QtWidgets.QAction) -> None:
-
-        cb = QtWidgets.QApplication.clipboard()
-        cb.setText(getDatabaseNameFromAbsPath(self.databaseAbsPath), mode=cb.Clipboard)
-
-
-
-    def clickTitleCopyDbAbsPath(self, q:QtWidgets.QAction) -> None:
-
-        cb = QtWidgets.QApplication.clipboard()
-        cb.setText(self.databaseAbsPath, mode=cb.Clipboard)
-
-
-
-    def clickTitleCopyDbRePath(self, q:QtWidgets.QAction) -> None:
-
-        cb = QtWidgets.QApplication.clipboard()
-        cb.setText('../data/{}'.format(getDatabaseNameFromAbsPath(self.databaseAbsPath)), mode=cb.Clipboard)
 
 
 
@@ -218,8 +167,11 @@ class WidgetPlot():
 
     def clickTitle(self, b: QtWidgets.QGraphicsSceneMouseEvent) -> None:
 
+        # We open a homemade menu
         if b.button()==2:
-            self.clickDb(self.databaseAbsPath)
+            MenuDb(self.databaseAbsPath)
+
+
 
     def eventFilter(self, object : PlotWidget,
                           event  : QtGui.QFocusEvent) -> bool:

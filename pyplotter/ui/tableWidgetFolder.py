@@ -6,6 +6,7 @@ from time import time
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
+from ..ui.menuDb import MenuDb
 from ..sources.runPropertiesExtra import RunPropertiesExtra
 from ..sources.functions import clearTableWidget, isBlueForsFolder, sizeof_fmt
 
@@ -212,7 +213,9 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
                 if isinstance(b, QtCore.QPoint):
                     # Job done, we restor the usual cursor
                     QtWidgets.QApplication.restoreOverrideCursor()
-                    self.clickDb(self.databaseAbsPath)
+
+                    # We open a homemade menu
+                    MenuDb(self.databaseAbsPath)
                 else:
                     self.databaseClick()
 
