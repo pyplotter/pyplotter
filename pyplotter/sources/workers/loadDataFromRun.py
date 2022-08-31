@@ -105,10 +105,15 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         queueData: mp.Queue = mp.Queue()
         # Queue will contain a float from 0 to 100 for the progress bar
         queueProgressBar: mp.Queue = mp.Queue()
-        queueProgressBar.put(0)
+        progressBar = 0
+        queueProgressBar.put(progressBar)
         # Queue will contain 1 when the download is done
         queueDone: mp.Queue = mp.Queue()
         queueDone.put(False)
+        # Queue will contain message to be displayed on the status bar
+        queueMessage: mp.Queue = mp.Queue()
+        message = None
+        queueMessage.put(message)
 
         self.worker = mp.Process(target=getParameterDatamp,
                                  args=(self.databaseAbsPath,
@@ -117,20 +122,30 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                                        paramsDependent['name'],
                                        queueData,
                                        queueProgressBar,
+                                       queueMessage,
                                        queueDone))
         self.worker.start()
 
         # Here, we loop until the data transfer is done.
         # In each loop, we check the transfer progression and update the progress
         # bar
+        # We display information only if different than the previous iteration
+        # to avoid blinking
         done = False
         while not done:
             QtTest.QTest.qWait(config['delayBetweenProgressBarUpdate'])
 
-            progressBar = queueProgressBar.get()
-            queueProgressBar.put(progressBar)
+            progressBarNew = queueProgressBar.get()
+            queueProgressBar.put(progressBarNew)
+            if progressBarNew!=progressBar:
+                progressBar = progressBarNew
+                self.signal.updateProgressBar.emit(self.progressBar, progressBar, 'Downloading data: {:.0f}%'.format(progressBar))
 
-            self.signal.updateProgressBar.emit(self.progressBar, progressBar, 'Downloading data: {:.0f}%'.format(progressBar))
+            messageNew = queueMessage.get()
+            queueMessage.put(messageNew)
+            if messageNew!=message:
+                message = messageNew
+                self.signal.sendStatusBarMessage.emit(message, 'orange')
 
             done = queueDone.get()
             queueDone.put(done)

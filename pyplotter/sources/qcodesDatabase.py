@@ -414,25 +414,28 @@ def getParameterDatamp(databaseAbsPath: str,
                        paramDependentName: str,
                        queueData: mp.Queue,
                        queueProgressBar: mp.Queue,
+                       queueMessage: mp.Queue,
                        queueDone: mp.Queue) -> None:
     """
     Return the data of paramDependent of the runId as a qcodes dict.
 
     Parameters
     ----------
-    databaseAbsPath: str
+    databaseAbsPath
         Absolute path of the current database
-    runId: int
+    runId
         Run from which data are downloaded
-    paramIndependentName : str
+    paramIndependentName
         Independent parameter name
-    paramDependentName : str
+    paramDependentName
         Dependent parameter name
-    queueData : mp.Queue
+    queueData
         Queue containing the numpy array of the run data
-    queueProgressBar : mp.Queue
+    queueProgressBar
         Queue containing a float from 0 to 100 for the progress bar
-    queueDone : mp.Queue
+    queueMessage
+        Queue containing a string to be displayed on the statusbar
+    queueDone
         Queue containing 1 when the download is done
     """
 
@@ -501,15 +504,41 @@ def getParameterDatamp(databaseAbsPath: str,
             d[ids[i]:ids[i+1],] = np.array(cur.fetchall())
 
             queueProgressBar.put(queueProgressBar.get() + iteration)
+
+    queueProgressBar.get()
     queueProgressBar.put(100)
 
     closeDatabase(conn, cur)
 
     # We do not handle bytes data yet
     if isinstance(d[0][0], np.bytes_):
-        queueData.put(None)
-        queueDone.put(True)
-        return
+
+        queueProgressBar.get()
+        queueProgressBar.put(0)
+        queueMessage.get()
+        queueMessage.put('Binary data detected, give me time here...')
+
+        from qcodes import initialise_or_create_database_at, load_by_id
+        initialise_or_create_database_at(databaseAbsPath)
+
+        queueProgressBar.get()
+        queueProgressBar.put(50)
+        queueMessage.get()
+        queueMessage.put('Binary data detected, loading data...')
+        ds = load_by_id(runId).get_parameter_data()[paramDependentName]
+
+        # for 1d
+        if len(paramIndependentName)==1:
+            d = np.vstack((ds[paramIndependentName[0]],
+                           ds[paramDependentName])).T
+        # for 2d
+        elif len(paramIndependentName)==2:
+            d = np.vstack((ds[paramIndependentName[0]],
+                           ds[paramIndependentName[1]],
+                           ds[paramDependentName])).T
+
+        queueProgressBar.get()
+        queueProgressBar.put(100)
 
     queueData.put(d)
     queueDone.put(True)
