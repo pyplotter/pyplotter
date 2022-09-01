@@ -29,7 +29,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     signal2MainWindowAddPlot     = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
 
-    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
+    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
     signalRemoveCurve  = QtCore.pyqtSignal(str, str)
 
 
@@ -586,20 +586,23 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         sliceLegend, # curveLegend
                                         sliceX[0], # x
                                         sliceY, # y
-                                        False) # autorange
+                                        False, # autorange
+                                        True) # interactionUpdateAll
             self.signalUpdateCurve.emit(self.plotRef+sliceOrientation+'vertical', # plotRef
                                         sliceItem.curveId, # curveId
                                         sliceLegend, # curveLegend
                                         sliceX[1], # x
                                         sliceY, # y
-                                        False) # autorange
+                                        False, # autorange
+                                        True) # interactionUpdateAll
         else:
             self.signalUpdateCurve.emit(self.plotRef+sliceOrientation, # plotRef
                                         sliceItem.curveId, # curveId
                                         sliceLegend, # curveLegend
                                         sliceX, # x
                                         sliceY, # y
-                                        False) # autorange
+                                        False, # autorange
+                                        True) # interactionUpdateAll
 
         # We update the label of the infinity line with the value corresponding
         # to the cut
@@ -1557,12 +1560,13 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     def maximumUpdateCurve(self) -> None:
         if hasattr(self, 'maximumPlotRef'):
             x, y = self.maximumGetData()
-            self.signalUpdateCurve.emit(self.maximumPlotRef,
-                                        self.maximumCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
+            self.signalUpdateCurve.emit(self.maximumPlotRef, # plotRef
+                                        self.maximumCurveId, # curveId
+                                        '', # curveLegend
+                                        x, # x
+                                        y, # y
+                                        False, # autorange
+                                        True) # interactionUpdateAll
 
 
 
@@ -1620,12 +1624,13 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     def minimumUpdateCurve(self) -> None:
         if hasattr(self, 'minimumPlotRef'):
             x, y = self.minimumGetData()
-            self.signalUpdateCurve.emit(self.minimumPlotRef,
-                                        self.minimumCurveId,
-                                        '',
-                                        x,
-                                        y,
-                                        False)
+            self.signalUpdateCurve.emit(self.minimumPlotRef, # plotRef
+                                        self.minimumCurveId, # curveId
+                                        '', # curveLegend
+                                        x, # x
+                                        y, # y
+                                        False, # autorange
+                                        True) # interactionUpdateAll
 
 
 
