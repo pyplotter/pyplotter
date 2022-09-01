@@ -30,7 +30,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     signalRemovePlotRef  = QtCore.pyqtSignal(str)
 
     signalClose1dPlot  = QtCore.pyqtSignal(str)
-    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
+    signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
 
     signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
@@ -540,12 +540,12 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         # Either in its x or y axis
         for curve in self.curves.values():
             if curve.curveXLabel==self.comboBoxXAxis.currentText():
-                newXData  = curve.x
+                newXData  = curve._dataset.x
                 newXLabel = curve.curveXLabel
                 newXUnits = curve.curveXUnits
                 break
             if curve.curveYLabel==self.comboBoxXAxis.currentText():
-                newXData  = curve.y
+                newXData  = curve._dataset.y
                 newXLabel = curve.curveYLabel
                 newXUnits = curve.curveYUnits
                 break
@@ -553,8 +553,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         # We update the curve
         for curve in self.curves.values():
             # During liveplot, [:len(newXData)] handles update of the y axis
-            curve.setData(x=newXData[:len(curve.y)],
-                          y=curve.y[:len(newXData)])
+            curve.setData(x=newXData[:len(curve._dataset.y)],
+                          y=curve._dataset.y[:len(newXData)])
 
         # We update the x label
         self.plotItem.setLabel(axis ='bottom',
@@ -701,7 +701,10 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.updateLegend()
 
         # If a curve selection has been done, we update the selected data
-        self.updateSelectedData()
+        curveIdSelection = self.plotDataItemButtonGroup.checkedButton().curveId
+        if curveIdSelection is not None:
+            self.updateSelectedData()
+            self.updatePlotDataItemStyle(curveIdSelection)
 
         # we update interaction
         if interactionUpdateAll:

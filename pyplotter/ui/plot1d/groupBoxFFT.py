@@ -10,7 +10,7 @@ from ...sources.pyqtgraph import pg
 class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
 
 
-    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
+    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
     signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
     signalClose1dPlot  = QtCore.pyqtSignal(str)
 
@@ -149,6 +149,7 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
                                         '',
                                         x,
                                         y,
+                                        False,
                                         False)
 
 
@@ -207,6 +208,7 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
                                         '',
                                         x,
                                         y,
+                                        False,
                                         False)
 
 
@@ -265,6 +267,7 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
                                         '',
                                         x,
                                         y,
+                                        False,
                                         False)
 
 

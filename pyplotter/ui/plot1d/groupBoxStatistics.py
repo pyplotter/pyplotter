@@ -10,7 +10,7 @@ from ...sources.pyqtgraph import pg
 class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
 
 
-    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
+    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
     signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
     signalClose1dPlot  = QtCore.pyqtSignal(str)
 
@@ -106,6 +106,7 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
                                         '',
                                         x,
                                         y,
+                                        False,
                                         False)
 
 

@@ -11,7 +11,7 @@ from ...sources.pyqtgraph import pg
 class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
 
 
-    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
+    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
     signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
     signalClose1dPlot  = QtCore.pyqtSignal(str)
 
@@ -122,6 +122,7 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
                                         '',
                                         x,
                                         y,
+                                        False,
                                         False)
 
 
@@ -184,6 +185,7 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
                                         '',
                                         x,
                                         y,
+                                        False,
                                         False)
 
 

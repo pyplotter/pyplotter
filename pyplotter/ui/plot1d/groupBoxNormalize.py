@@ -10,7 +10,7 @@ from ...sources.pyqtgraph import pg
 class GroupBoxNormalize(QtWidgets.QGroupBox, Ui_GroupBoxNormalize):
 
 
-    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool)
+    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
     signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
     signalClose1dPlot  = QtCore.pyqtSignal(str)
 
@@ -138,6 +138,7 @@ class GroupBoxNormalize(QtWidgets.QGroupBox, Ui_GroupBoxNormalize):
                                         '',
                                         x,
                                         y,
+                                        False,
                                         False)
 
 
@@ -192,6 +193,7 @@ class GroupBoxNormalize(QtWidgets.QGroupBox, Ui_GroupBoxNormalize):
                                         '',
                                         x,
                                         y,
+                                        False,
                                         False)
 
 
