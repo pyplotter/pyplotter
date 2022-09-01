@@ -25,8 +25,22 @@ Currently the following packages are required:
 
 ### Installation
 
-The easiest way is to clone the repository where you want to download the plotter.
+Some users reported various issues with pyqt when using pyplotter in the general conda environment.
+While the reasons for these various issues aare still unknown, an easy way around it is to dedicate a conda environement to pyplotter.
+That way seems to keep pyqt happy.
 
+First you create the conda environement
+```bash
+conda create --name pyplotter python=3.8
+conda activate pyplotter
+```
+
+Second, install packages with conda
+```bash
+conda install pyqtgraph
+```
+
+Third, install pyplotter
 ```bash
 git clone https://github.com/pyplotter/pyplotter
 cd pyplotter
@@ -42,6 +56,7 @@ Another solution is to open a terminal, type "plotter" and press enter.
 ### Tip
 
 * To open folders, databases, ... : use one click, no double click
+* You may create a shortcut which target `%windir%\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy ByPass -NoExit -Command "& 'C:\Users\****\Anaconda3\shell\condabin\conda-hook.ps1' ; conda activate 'C:\Users\****\Anaconda3'; conda activate python38; plotter"`
 
 ### Main window
 
