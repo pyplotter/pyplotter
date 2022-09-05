@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\main.ui'
+# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\mainWindow.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.3
 #
@@ -270,7 +270,7 @@ class Ui_MainWindow(object):
         self.statusBarMain.setObjectName("statusBarMain")
         MainWindow.setStatusBar(self.statusBarMain)
         self.menuBarMain = MenuBar(MainWindow)
-        self.menuBarMain.setGeometry(QtCore.QRect(0, 0, 1024, 21))
+        self.menuBarMain.setGeometry(QtCore.QRect(0, 0, 0, 30))
         self.menuBarMain.setObjectName("menuBarMain")
         MainWindow.setMenuBar(self.menuBarMain)
 
@@ -331,13 +331,13 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "records"))
         item = self.tableWidgetDataBase.horizontalHeaderItem(8)
         item.setText(_translate("MainWindow", "dataBaseAbsPath"))
-from .checkBoxHidden import CheckBoxHidden
-from .labelSnapshot import LabelSnapshot
-from .lineEditSnapshot import LineEditSnapshot
-from .menuBar import MenuBar
-from .pushButtonOpenFolder import pushButtonOpenFolder
-from .statusBar import StatusBar
-from .tableWidgetDatabase import TableWidgetDatabase
-from .tableWidgetFolder import TableWidgetFolder
-from .tableWidgetParameter import TableWidgetParameter
-from .treeViewSnapshot import TreeViewSnapshot
+from ..ui.checkBoxHidden import CheckBoxHidden
+from ..ui.labelSnapshot import LabelSnapshot
+from ..ui.lineEditSnapshot import LineEditSnapshot
+from ..ui.menuBar import MenuBar
+from ..ui.pushButtonOpenFolder import pushButtonOpenFolder
+from ..ui.statusBar import StatusBar
+from ..ui.tableWidgetDatabase import TableWidgetDatabase
+from ..ui.tableWidgetFolder import TableWidgetFolder
+from ..ui.tableWidgetParameter import TableWidgetParameter
+from ..ui.treeViewSnapshot import TreeViewSnapshot

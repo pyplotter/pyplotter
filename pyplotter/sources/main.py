@@ -36,8 +36,8 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         self.setupUi(self)
 
         self.qapp = QApplication
-        self.widgetCSV = WidgetCSV(self)
-        self.widgetBlueFors = WidgetBlueFors(self)
+        self.widgetCSV = WidgetCSV(None)
+        self.widgetBlueFors = WidgetBlueFors(None)
 
 
         # Can't promote layout on qtdesigner...
