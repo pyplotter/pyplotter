@@ -101,7 +101,10 @@ class LoadDataBaseThread(QtCore.QRunnable):
         if runInfos is None:
             self.signal.sendStatusBarMessage.emit('Database empty', 'red')
             QtTest.QTest.qWait(1000) # To let user see the error message
-            self.signal.databaseClickDone.emit(self.progressBar, False, 0)
+            self.signal.databaseClickDone.emit(self.progressBar, # progressBar
+                                               True, #error
+                                               '', # databaseAbsPath
+                                               0) #nbTotalRun
             return
 
         # Going through the database here
@@ -170,7 +173,7 @@ class LoadDataBaseThread(QtCore.QRunnable):
             self.signal.updateProgressBar.emit(self.progressBar, int(runId[0]/nbTotalRun*100), 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
 
         # Signal that the whole database has been looked at
-        self.signal.databaseClickDone.emit(self.progressBar,
-                                           False,
-                                           self.databaseAbsPath,
-                                           nbTotalRun)
+        self.signal.databaseClickDone.emit(self.progressBar, # progressBar
+                                           False, #error
+                                           self.databaseAbsPath, # databaseAbsPath
+                                           nbTotalRun) #nbTotalRun

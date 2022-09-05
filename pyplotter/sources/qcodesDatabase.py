@@ -518,24 +518,15 @@ def getParameterDatamp(databaseAbsPath: str,
         queueMessage.get()
         queueMessage.put('Binary data detected, give me time here...')
 
-        from qcodes import initialise_or_create_database_at, load_by_id
-        initialise_or_create_database_at(databaseAbsPath)
-
-        queueProgressBar.get()
-        queueProgressBar.put(50)
-        queueMessage.get()
-        queueMessage.put('Binary data detected, loading data...')
-        ds = load_by_id(runId).get_parameter_data()[paramDependentName]
-
-        # for 1d
-        if len(paramIndependentName)==1:
-            d = np.vstack((ds[paramIndependentName[0]],
-                           ds[paramDependentName])).T
-        # for 2d
-        elif len(paramIndependentName)==2:
-            d = np.vstack((ds[paramIndependentName[0]],
-                           ds[paramIndependentName[1]],
-                           ds[paramDependentName])).T
+        # We transform the binary data to float
+        for i in range(d.shape[1]):
+            out = io.BytesIO(d[0][i])
+            out.seek(0)
+            if i==0:
+                t = np.load(out)
+            else:
+                t = np.vstack((t, np.load(out))).T
+        d = t
 
         queueProgressBar.get()
         queueProgressBar.put(100)
