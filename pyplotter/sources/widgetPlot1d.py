@@ -539,22 +539,26 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         # Get a curve containing the data to update the plot
         # Either in its x or y axis
         for curve in self.curves.values():
-            if curve.curveXLabel==self.comboBoxXAxis.currentText():
-                newXData  = curve._dataset.x
-                newXLabel = curve.curveXLabel
-                newXUnits = curve.curveXUnits
-                break
-            if curve.curveYLabel==self.comboBoxXAxis.currentText():
-                newXData  = curve._dataset.y
-                newXLabel = curve.curveYLabel
-                newXUnits = curve.curveYUnits
-                break
+            # During liveplot, dataset may be None for the first iteration
+            if curve._dataset is not None:
+                if curve.curveXLabel==self.comboBoxXAxis.currentText():
+                    newXData  = curve._dataset.x
+                    newXLabel = curve.curveXLabel
+                    newXUnits = curve.curveXUnits
+                    break
+                if curve.curveYLabel==self.comboBoxXAxis.currentText():
+                    newXData  = curve._dataset.y
+                    newXLabel = curve.curveYLabel
+                    newXUnits = curve.curveYUnits
+                    break
 
         # We update the curve
         for curve in self.curves.values():
-            # During liveplot, [:len(newXData)] handles update of the y axis
-            curve.setData(x=newXData[:len(curve._dataset.y)],
-                          y=curve._dataset.y[:len(newXData)])
+            # During liveplot, dataset may be None for the first iteration
+            if curve._dataset is not None:
+                # During liveplot, [:len(newXData)] handles update of the y axis
+                curve.setData(x=newXData[:len(curve._dataset.y)],
+                            y=curve._dataset.y[:len(newXData)])
 
         # We update the x label
         self.plotItem.setLabel(axis ='bottom',
