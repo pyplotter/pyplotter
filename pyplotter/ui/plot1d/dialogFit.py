@@ -8,6 +8,10 @@ warnings.filterwarnings(
     action='ignore',
     module=r'lmfit',
 )
+warnings.filterwarnings(
+    action='ignore',
+    module=r'numpy',
+)
 import lmfit
 import os
 from scipy.signal import hilbert
@@ -201,6 +205,7 @@ class Polynomial(Fit1d):
         layout.addSpacerItem(QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
 
         self.layout.insertLayout(len(self.layout)-1, layout)
+        self.layout.addSpacerItem(QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding))
 
 
 
