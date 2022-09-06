@@ -143,6 +143,10 @@ class GroupBoxFiltering(QtWidgets.QGroupBox):
         self.selectedYLabel = selectedYLabel
         self.selectedYUnits = selectedYUnits
 
+        if hasattr(self, 'dialog'):
+            self.dialog.xData = self.selectedX
+            self.dialog.yData = self.selectedY
+
 
 
 

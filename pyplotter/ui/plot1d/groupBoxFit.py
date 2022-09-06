@@ -83,6 +83,7 @@ class GroupBoxFit(QtWidgets.QGroupBox):
                         yUnits=self.plotItem.axes['left']['item'].labelUnits)
 
         self.dialog.signalCloseDialog.connect(self.slotCloseDialog)
+        self.dialog.signalUpdateDialog.connect(self.slotUpdateDialog)
         self.dialogRef = {'dialog' : self.dialog,
                           'comboBox': self.comboBoxFit}
         self.curveIdFit = self.plotRef+'fit'
@@ -100,7 +101,8 @@ class GroupBoxFit(QtWidgets.QGroupBox):
                                             self.dialog.displayedLegend(params), # curveLegend
                                             True, # showInLegend
                                             False) # hidden
-        except:
+        except Exception as e:
+            print(e)
             self.dialog.fitError()
 
 
@@ -144,12 +146,15 @@ class GroupBoxFit(QtWidgets.QGroupBox):
         self.selectedYLabel = selectedYLabel
         self.selectedYUnits = selectedYUnits
 
-
+        if hasattr(self, 'dialog'):
+            self.dialog.xData = self.selectedX
+            self.dialog.yData = self.selectedY
 
 
     @QtCore.pyqtSlot()
     def slotFitUpdate(self):
         self.fitUpdate()
+
 
 
     @QtCore.pyqtSlot()
@@ -161,6 +166,13 @@ class GroupBoxFit(QtWidgets.QGroupBox):
     @QtCore.pyqtSlot()
     def slotCloseDialog(self) -> None:
         self.fitClose()
+
+
+
+    @QtCore.pyqtSlot()
+    def slotUpdateDialog(self) -> None:
+        self.fitUpdate()
+
 
 
     def fitClose(self) -> None:

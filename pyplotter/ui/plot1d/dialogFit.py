@@ -26,6 +26,7 @@ class Fit1d(QtWidgets.QDialog):
 
 
     signalCloseDialog = QtCore.pyqtSignal()
+    signalUpdateDialog = QtCore.pyqtSignal()
 
 
     def __init__(self, parent: QtWidgets.QDialog,
@@ -135,8 +136,8 @@ class Fit1d(QtWidgets.QDialog):
         """
 
         result = lmfit.minimize(self.residual, self.getInitialParams())
-        dx = np.gradient(self.xData)/2.
-        x = np.sort(np.concatenate((self.xData, self.xData+dx)))
+        # dx = np.gradient(self.xData)/2.
+        # x = np.sort(np.concatenate((self.xData, self.xData+dx)))
 
         self.webView.setHtml(self.defaultPageSource(self.getLatexEquation),
                              baseUrl=QtCore.QUrl.fromLocalFile(LOC))
@@ -144,13 +145,152 @@ class Fit1d(QtWidgets.QDialog):
         self.label.adjustSize()
         self.webView.adjustSize()
 
-        return x, self.func(result.params, x), result.params
+        return self.xData, self.func(result.params, self.xData), result.params
 
 
 
     def closeEvent(self, evnt: QtGui.QCloseEvent) -> None:
 
         self.signalCloseDialog.emit()
+
+
+
+class Polynomial(Fit1d):
+
+    displayedLabel = 'Polynomial'
+
+    def __init__(self, parent: QtWidgets.QDialog,
+                       xData: np.ndarray,
+                       yData: np.ndarray,
+                       xUnits: str='',
+                       yUnits: str='') -> None:
+        """
+
+        Parameters
+        ----------
+        xData : np.ndarray
+            Selected data from the x axis.
+        yData : np.ndarray
+            Selected data from the y axis.
+        """
+
+
+        self.fitType = '1d'
+        self.getLatexEquation = 'y = \sum_{k=0}^n a_k x^k'
+
+        Fit1d.__init__(self, parent=parent,
+                             xData=xData,
+                             yData=yData,
+                             xUnits=xUnits,
+                             yUnits=yUnits)
+
+        layout = QtWidgets.QHBoxLayout()
+
+        label = QtWidgets.QLabel('Polynomial coefficients:')
+        layout.addWidget(label)
+
+        self.spinBoxDeg = QtWidgets.QSpinBox()
+        self.spinBoxDeg.setMinimum(0)
+        self.spinBoxDeg.setMaximum(25)
+        self.spinBoxDeg.setValue(1)
+        self.spinBoxDeg.setSingleStep(1)
+        self.spinBoxDeg.setFixedWidth(42)
+        self.spinBoxDeg.valueChanged.connect(self.signalUpdateDialog.emit)
+        layout.addWidget(self.spinBoxDeg)
+
+        layout.addSpacerItem(QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
+
+        self.layout.insertLayout(len(self.layout)-1, layout)
+
+
+
+    def getInitialParams(self) -> None:
+        pass
+
+
+
+    def getPolyOrder(self) -> int:
+
+        return self.spinBoxDeg.value() + 1
+
+
+
+    def ffit(self) -> Tuple[np.ndarray,
+                            np.ndarray,
+                            lmfit.parameter.Parameters]:
+        """
+        Perform the fit through lmfit minimize function.
+
+
+        Returns
+        -------
+        xSelected : np.ndarray
+            Selected data from the x axis.
+        yFit : np.ndarray
+            Array of the y axis from the fit procedure.
+        p : lmfit.parameter.Parameters
+            lmfit parameters.
+        """
+
+        p = lmfit.Parameters()
+
+        self.polyFit = np.polynomial.polynomial.Polynomial.fit(self.xData, self.yData, self.getPolyOrder())
+
+        self.webView.setHtml(self.defaultPageSource(self.getLatexEquation),
+                             baseUrl=QtCore.QUrl.fromLocalFile(LOC))
+        self.label.setText(self.displayedLegend(p))
+        self.label.adjustSize()
+        self.webView.adjustSize()
+
+        return self.xData, self.polyFit(self.xData), p
+
+
+
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
+        return self.polyFit(x)
+
+
+
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
+        legend = ''
+        for i, j in zip(range(self.getPolyOrder()), self.polyFit.coef):
+            legend += 'a{:.0f}={:.{nbDecimal}e}<br/>'.format(i, j, nbDecimal=config['fitParameterNbNumber'])
+        return legend
+
+
+
+
 
 
 
