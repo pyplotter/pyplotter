@@ -191,7 +191,7 @@ class Polynomial(Fit1d):
 
         self.spinBoxDeg = QtWidgets.QSpinBox()
         self.spinBoxDeg.setMinimum(0)
-        self.spinBoxDeg.setMaximum(25)
+        self.spinBoxDeg.setMaximum(100)
         self.spinBoxDeg.setValue(1)
         self.spinBoxDeg.setSingleStep(1)
         self.spinBoxDeg.setFixedWidth(42)
