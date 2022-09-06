@@ -268,6 +268,11 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
             except:
                 pass
 
+        if hasattr(self.tableWidgetDataBase, 'dialogComment'):
+            self.tableWidgetDataBase.dialogComment._allowClosing = True
+            self.tableWidgetDataBase.dialogComment.deleteLater()
+            del(self.tableWidgetDataBase.dialogComment)
+
 
 
     ###########################################################################

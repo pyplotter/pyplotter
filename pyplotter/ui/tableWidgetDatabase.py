@@ -166,6 +166,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             self.setItem(runId-1, COLUMNDATABASEABSPATH, QtWidgets.QTableWidgetItem(databaseAbsPath))
             self.setItem(runId-1, COLUMNITEMRUNID, itemRunId)
+            self.item(runId-1, COLUMNITEMRUNID).setToolTip('Type "s" to star a run and "h" to hide it.')
             self.setItem(runId-1, COLUMNDIM, QtWidgets.QTableWidgetItem(dim))
             self.setItem(runId-1, COLUMNEXPERIMENTNAME, QtWidgets.QTableWidgetItem(experimentName))
             self.setItem(runId-1, COLUMNSAMPLENAME, QtWidgets.QTableWidgetItem(sampleName))
@@ -174,7 +175,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.setItem(runId-1, COLUMNCOMPLETED, QtWidgets.QTableWidgetItem(completed))
             self.setItem(runId-1, COLUMNRUNRECORDS, TableWidgetItemNumOrdered(runRecords))
             self.setItem(runId-1, COLUMNCOMMENT, QtWidgets.QTableWidgetItem(self.properties.getRunComment(runId)))
-
+            self.item(runId-1, COLUMNCOMMENT).setToolTip('Double-click on the "Comments" column to add or modify a comment attached to a run')
             if runId in self.properties.getRunHidden():
                 self.setRowHidden(runId-1, True)
 

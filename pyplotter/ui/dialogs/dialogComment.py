@@ -20,6 +20,10 @@ class DialogComment(QtWidgets.QDialog):
         self._allowClosing = False
 
         self.setWindowModality(QtCore.Qt.NonModal)
+        self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
+                            QtCore.Qt.WindowMaximizeButtonHint|
+                            QtCore.Qt.WindowCloseButtonHint)
+
         self.setMinimumSize(200, 200)
 
         layout = QtWidgets.QVBoxLayout()
