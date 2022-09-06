@@ -12,9 +12,22 @@ from ..sources.workers.loadDataBase import LoadDataBaseThread
 from ..sources.workers.loadRunInfo import LoadRunInfoThread
 from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
 from ..sources.functions import clearTableWidget, getDatabaseNameFromAbsPath
+from ..ui.dialogs.dialogComment import DialogComment
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
+
+# Column index
+COLUMNDATABASEABSPATH = 0
+COLUMNITEMRUNID       = 1
+COLUMNDIM             = 2
+COLUMNEXPERIMENTNAME  = 3
+COLUMNSAMPLENAME      = 4
+COLUMNRUNNAME         = 5
+COLUMNSTARTED         = 6
+COLUMNCOMPLETED       = 7
+COLUMNRUNRECORDS      = 8
+COLUMNCOMMENT         = 9
 
 class TableWidgetDatabase(QtWidgets.QTableWidget):
     """
@@ -64,7 +77,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     def first_call(self):
         ## Only used to propagate information
         # Contain the databaseAbsPath
-        self.setColumnHidden(8, True)
+        self.setColumnHidden(COLUMNDATABASEABSPATH, True)
 
 
 
@@ -151,15 +164,16 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             else:
                 itemRunId.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'empty.png')))
 
-            self.setItem(runId-1, 0, itemRunId)
-            self.setItem(runId-1, 1, QtWidgets.QTableWidgetItem(dim))
-            self.setItem(runId-1, 2, QtWidgets.QTableWidgetItem(experimentName))
-            self.setItem(runId-1, 3, QtWidgets.QTableWidgetItem(sampleName))
-            self.setItem(runId-1, 4, QtWidgets.QTableWidgetItem(runName))
-            self.setItem(runId-1, 5, QtWidgets.QTableWidgetItem(started))
-            self.setItem(runId-1, 6, QtWidgets.QTableWidgetItem(completed))
-            self.setItem(runId-1, 7, TableWidgetItemNumOrdered(runRecords))
-            self.setItem(runId-1, 8, QtWidgets.QTableWidgetItem(databaseAbsPath))
+            self.setItem(runId-1, COLUMNDATABASEABSPATH, QtWidgets.QTableWidgetItem(databaseAbsPath))
+            self.setItem(runId-1, COLUMNITEMRUNID, itemRunId)
+            self.setItem(runId-1, COLUMNDIM, QtWidgets.QTableWidgetItem(dim))
+            self.setItem(runId-1, COLUMNEXPERIMENTNAME, QtWidgets.QTableWidgetItem(experimentName))
+            self.setItem(runId-1, COLUMNSAMPLENAME, QtWidgets.QTableWidgetItem(sampleName))
+            self.setItem(runId-1, COLUMNRUNNAME, QtWidgets.QTableWidgetItem(runName))
+            self.setItem(runId-1, COLUMNSTARTED, QtWidgets.QTableWidgetItem(started))
+            self.setItem(runId-1, COLUMNCOMPLETED, QtWidgets.QTableWidgetItem(completed))
+            self.setItem(runId-1, COLUMNRUNRECORDS, TableWidgetItemNumOrdered(runRecords))
+            self.setItem(runId-1, COLUMNCOMMENT, QtWidgets.QTableWidgetItem(self.properties.getRunComment(runId)))
 
             if runId in self.properties.getRunHidden():
                 self.setRowHidden(runId-1, True)
@@ -189,7 +203,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         if not error:
             self.setSortingEnabled(True)
-            self.sortItems(0, QtCore.Qt.DescendingOrder)
+            self.sortItems(COLUMNITEMRUNID, QtCore.Qt.DescendingOrder)
             self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
             self.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
@@ -226,7 +240,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         # From launch a thread which will periodically check if the database has
         # more run that what is currently displayed
         self.workerCheck = dataBaseCheckNbRunThread(databaseAbsPath,
-                                          nbTotalRun)
+                                                    nbTotalRun)
 
         # Connect signals
         self.workerCheck.signal.dataBaseUpdate.connect(self.signal2StatusBarDatabaseUpdate)
@@ -274,22 +288,30 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         if self._databaseClicking:
             return
 
-        runId           = int(self.item(currentRow, 0).text())
-        experimentName  = self.item(currentRow, 2).text()
-        runName         = self.item(currentRow, 4).text()
-        databaseAbsPath = self.item(currentRow, 8).text()
+        databaseAbsPath = self.item(currentRow, COLUMNDATABASEABSPATH).text()
+        runId           = int(self.item(currentRow, COLUMNITEMRUNID).text())
+        experimentName  = self.item(currentRow, COLUMNEXPERIMENTNAME).text()
+        runName         = self.item(currentRow, COLUMNRUNNAME).text()
 
         # We check if use click or doubleClick
         doubleClick = False
         if currentRow==self.lastClickRow:
             if time() - self.lastClickTime<0.5:
-                doubleClick = True
+                # If we detect a double click on the "Comments" column
+                # We do not launch a plot but open a comment dialog
+                if currentColumn==COLUMNCOMMENT:
+                    self.dialogComment = DialogComment(runId,
+                                                       self.properties.getRunComment(runId))
+                    self.dialogComment.signalCloseDialogComment.connect(self.slotCloseCommentDialog)
+                    self.dialogComment.signalUpdateDialogComment.connect(self.slotUpdateCommentDialog)
+                else:
+                    doubleClick = True
+                    # When user doubleclick on a run, we disable the row to avoid
+                    # double data downloading of the same dataset
+                    self.doubleClickCurrentRow = currentRow
+                    self.doubleClickDatabaseAbsPath = databaseAbsPath
+                    self.cellClicked.disconnect()
 
-                # When user doubleclick on a run, we disable the row to avoid
-                # double data downloading of the same dataset
-                self.doubleClickCurrentRow = currentRow
-                self.doubleClickDatabaseAbsPath = databaseAbsPath
-                self.cellClicked.disconnect()
 
         # Keep track of the last click time
         self.lastClickTime = time()
@@ -309,6 +331,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
 
+
+
     def tableWidgetDataBasekeyPress(self, key: str,
                                           row : int) -> None:
         """
@@ -325,7 +349,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             Row of the database table in which the key happened.
         """
 
-        runId = int(self.item(row, 0).text())
+        runId = int(self.item(row, COLUMNITEMRUNID).text())
 
         # If user wants to star a run
         if key==config['keyPressedStared'].lower():
@@ -338,7 +362,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 # We remove the star from the row
                 item = TableWidgetItemNumOrdered(str(runId))
                 item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'empty.png')))
-                self.setItem(row, 0, item)
+                self.setItem(row, COLUMNITEMRUNID, item)
 
                 # We update the json
                 self.properties.jsonRemoveStaredRun(runId)
@@ -355,7 +379,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 item = TableWidgetItemNumOrdered(str(runId))
                 item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'star.png')))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runStaredColor'])))
-                self.setItem(row, 0, item)
+                self.setItem(row, COLUMNITEMRUNID, item)
 
                 # We update the json
                 self.properties.jsonAddStaredRun(runId)
@@ -375,7 +399,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 item = TableWidgetItemNumOrdered(str(runId))
                 item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'empty.png')))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
-                self.setItem(row, 0, item)
+                self.setItem(row, COLUMNITEMRUNID, item)
 
                 # We update the json
                 self.properties.jsonRemoveHiddenRun(runId)
@@ -385,7 +409,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 item = TableWidgetItemNumOrdered(str(runId))
                 item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'trash.png')))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
-                self.setItem(row, 0, item)
+                self.setItem(row, COLUMNITEMRUNID, item)
 
                 # We hide the row only if the user didn't check the checkboxhidden
                 self.signalCheckBoxHiddenHideRow.emit(row)
@@ -404,6 +428,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     ############################################################################
 
 
+
     @QtCore.pyqtSlot()
     def slotRunClickDone(self) -> None:
         """
@@ -412,7 +437,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         """
 
         if hasattr(self, 'doubleClickCurrentRow'):
-            if self.doubleClickDatabaseAbsPath==self.item(self.doubleClickCurrentRow, 8).text():
+            if self.doubleClickDatabaseAbsPath==self.item(self.doubleClickCurrentRow, COLUMNDATABASEABSPATH).text():
                 self.cellClicked.connect(self.runClick)
             del(self.doubleClickCurrentRow)
             del(self.doubleClickDatabaseAbsPath)
@@ -435,7 +460,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             for row in range(nbTotalRow):
 
-                if int(self.item(row, 0).text()) in runHidden:
+                if int(self.item(row, COLUMNITEMRUNID).text()) in runHidden:
                     self.setRowHidden(row, False)
 
         # Hide hidden run again
@@ -443,13 +468,47 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             for row in range(nbTotalRow):
 
-                if int(self.item(row, 0).text()) in runHidden:
+                if int(self.item(row, COLUMNITEMRUNID).text()) in runHidden:
                     self.setRowHidden(row, True)
                 else:
                     self.setRowHidden(row, False)
+
 
 
     @QtCore.pyqtSlot()
     def slotClearTable(self) -> None:
 
         clearTableWidget(self)
+
+
+
+    @QtCore.pyqtSlot()
+    def slotCloseCommentDialog(self) -> None:
+
+        # We close the plot
+        self.dialogComment._allowClosing = True
+        self.dialogComment.deleteLater()
+        del(self.dialogComment)
+
+
+
+    @QtCore.pyqtSlot(int, str)
+    def slotUpdateCommentDialog(self, runId: int,
+                                      comment: str) -> None:
+        """
+        Called from the dialogComment when user change its text
+
+        Args:
+            runId: Id of the commented run
+            comment: comment to be added to the run
+        """
+
+        # Add the comment on the GUI
+        for row in range(self.rowCount()):
+            if int(self.item(row, COLUMNITEMRUNID).text())==runId:
+                self.setItem(row, COLUMNCOMMENT, QtWidgets.QTableWidgetItem(comment))
+                break
+
+        # Save the comment in the json file
+        self.properties.jsonAddCommentRun(runId,
+                                          comment)

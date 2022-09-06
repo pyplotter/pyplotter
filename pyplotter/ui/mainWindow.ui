@@ -558,7 +558,7 @@
            <bool>true</bool>
           </property>
           <property name="columnCount">
-           <number>9</number>
+           <number>10</number>
           </property>
           <attribute name="horizontalHeaderDefaultSectionSize">
            <number>80</number>
@@ -572,6 +572,11 @@
           <attribute name="verticalHeaderVisible">
            <bool>false</bool>
           </attribute>
+          <column>
+           <property name="text">
+            <string>dataBaseAbsPath</string>
+           </property>
+          </column>
           <column>
            <property name="text">
             <string>run id</string>
@@ -614,7 +619,7 @@
           </column>
           <column>
            <property name="text">
-            <string>dataBaseAbsPath</string>
+            <string>Comments</string>
            </property>
           </column>
          </widget>
@@ -638,8 +643,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>0</width>
-     <height>30</height>
+     <width>1024</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>

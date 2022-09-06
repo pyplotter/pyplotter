@@ -3,17 +3,19 @@ pyplotter-0.3.4
   New Features:
     - Add statistics interaction with 1d plot
     - Add Gaussian peak for 1d fit
+    - Add Polynomial for 1d fit
     - Add poly slice background removal for 2d plot
     - Add possibility to plot 1d curve for different x axis
     - New main window interface
     - New Liveplot interface
+    - Add possibility to comment a run
     - Display information about auto database nd of run checking
 
   Bug Fixes:
     - Fix selected data bug when data are invertly sorted
     - Liveplot is working again
     - Allow new configuration values to be added in package config
-    - Handle BLOB data in a database by catching the error and not plotting them
+    - Handle BLOB data in a database
 
   Others:
     - Database refresh themselves when the nb of run changes

@@ -177,6 +177,40 @@ class RunPropertiesExtra:
 
 
 
+    def jsonAddCommentRun(self, runId : int,
+                                comment: str) -> None:
+        """
+        Add a comment from a database in a json file.
+        Since the json has been modified, save the new json
+        """
+
+        if self.isDatabaseInJson():
+            if self.isCommentedRunInDatabase():
+
+                self.json[self.databaseName]['comments'][runId] = comment
+            else:
+
+                self.json[self.databaseName]['comments'] = {runId: comment}
+        else:
+
+            self.json[self.databaseName] = {'comments' : {runId: comment}}
+
+        self.jsonSave()
+
+
+
+    def jsonRemoveCommentRun(self, runId : int) -> None:
+        """
+        Remove a runId from a database in a json file.
+        Since the json has been modified, save the new json
+        """
+
+        del(self.json[self.databaseName]['comments'][runId])
+
+        self.jsonSave()
+
+
+
     def jsonSave(self, encoding : str='utf-8', ensure_ascii : bool=False, indent : int=4) -> None:
         """
         Save a json file
@@ -276,6 +310,20 @@ class RunPropertiesExtra:
 
 
 
+    def isCommentedRunInDatabase(self) -> bool:
+        """
+        Return True if the current database hase a dict "comments" written in
+        the database in Json file.
+        False otherwise.
+        """
+
+        if 'comments' in self.json[self.databaseName]:
+            return True
+        else:
+            return False
+
+
+
     def getRunStared(self) -> list:
         """
         Return the list of the stared run of the current database.
@@ -307,3 +355,36 @@ class RunPropertiesExtra:
             hiddenRun = []
 
         return hiddenRun
+
+
+
+    def isRunCommented(self, runId: int) -> bool:
+        """
+        Return True if the run has a comment in the json file, False otherwise
+        """
+
+        if self.isDatabaseInJson():
+            if self.isCommentedRunInDatabase():
+                if runId in self.json[self.databaseName]['comments'].keys():
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
+
+
+
+    def getRunComment(self, runId: int) -> str:
+        """
+        Return the comment of the run, '' if no comment
+        """
+
+        comment = ''
+        if self.isDatabaseInJson():
+            if self.isCommentedRunInDatabase():
+                if str(runId) in self.json[self.databaseName]['comments'].keys():
+                    comment = self.json[self.databaseName]['comments'][str(runId)]
+
+        return comment
