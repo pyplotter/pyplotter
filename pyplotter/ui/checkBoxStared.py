@@ -2,14 +2,15 @@
 from PyQt5 import QtCore, QtWidgets
 from typing import Optional, Any
 
-class CheckBoxHidden(QtWidgets.QCheckBox):
 
-    signalcheckBoxHiddenClick = QtCore.pyqtSignal(int)
+class CheckBoxStared(QtWidgets.QCheckBox):
+
+    signalCheckBoxStaredClick = QtCore.pyqtSignal(int)
 
     def __init__(self, parent: Optional[Any]=None) -> None:
-        super(CheckBoxHidden, self).__init__(parent)
+        super(CheckBoxStared, self).__init__(parent)
 
-        self.stateChanged.connect(self.signalcheckBoxHiddenClick)
+        self.stateChanged.connect(self.signalCheckBoxStaredClick)
 
 
 
@@ -24,14 +25,14 @@ class CheckBoxHidden(QtWidgets.QCheckBox):
 
 
     @QtCore.pyqtSlot(bool)
-    def checkBoxStaredChecked(self, checked: bool ) -> None:
+    def checkBoxHiddenChecked(self, checked: bool ) -> None:
         """
         Called from tableWidgetDatabase.
-        When user check the "show only stared run" checkbox, we disable the
-        "Show hidden" checkbox and vice-versa.
+        When user check the "Show hidden" checkbox, we disable the "show only
+        stared run" checkbox and vice-versa.
 
         Args:
-            checked : If the "show only stared run" checkbox is checked.
+            checked : If the "Show hidden" checkbox is checked.
         """
 
         if checked:
@@ -45,17 +46,7 @@ class CheckBoxHidden(QtWidgets.QCheckBox):
 
 
     @QtCore.pyqtSlot()
-    def hideRow(self):
-        """
-        Called by tableWidgetDatabase when user wants to hide a run
-        """
-
-        self.signalcheckBoxHiddenClick.emit(self.checkState())
-
-
-
-    @QtCore.pyqtSlot()
-    def databaseClick(self):
+    def databaseClick(self) -> None:
         # Disable interactivity
         self.setChecked(False)
         self.setEnabled(False)
@@ -63,6 +54,6 @@ class CheckBoxHidden(QtWidgets.QCheckBox):
 
 
     @QtCore.pyqtSlot()
-    def databaseClickDone(self):
+    def databaseClickDone(self) -> None:
         # Enable database interaction
         self.setEnabled(True)

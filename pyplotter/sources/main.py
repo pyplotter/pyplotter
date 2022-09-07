@@ -71,6 +71,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
         self.treeViewSnapshot.signalLineEditSnapshotClean.connect(self.lineEditFilterSnapshot.clean)
         self.checkBoxHidden.signalcheckBoxHiddenClick.connect(self.tableWidgetDataBase.slotFromCheckBoxHiddenCheckBoxHiddenClick)
+        self.checkBoxStared.signalCheckBoxStaredClick.connect(self.tableWidgetDataBase.slotFromCheckBoxStaredCheckBoxStaredClick)
 
         self.pushButtonOpenFolder.signalFolderOpened.connect(self.tableWidgetFolder.folderOpened)
 
@@ -111,23 +112,37 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         self.tableWidgetFolder.signalCSVClick.connect(self.statusBarMain.csvLoad)
         self.tableWidgetFolder.signalDatabaseClick.connect(self.statusBarMain.databaseLoad)
         self.tableWidgetFolder.signalDatabaseClick.connect(self.checkBoxHidden.databaseClick)
+        self.tableWidgetFolder.signalDatabaseClick.connect(self.checkBoxStared.databaseClick)
         self.tableWidgetFolder.signalUpdateLabelPath.connect(self.hBoxLayoutPath.updateLabelPath)
         self.tableWidgetFolder.signalDatabasePathUpdate.connect(self.tableWidgetDataBase.updateDatabasePath)
         self.tableWidgetFolder.first_call()
+
+
 
         self.tableWidgetDataBase.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
         self.tableWidgetDataBase.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
         self.tableWidgetDataBase.signalAddStatusBarMessage.connect(self.statusBarMain.addStatusBarMessage)
         self.tableWidgetDataBase.signalUpdateProgressBar.connect(self.statusBarMain.updateProgressBar)
+        self.tableWidgetDataBase.signal2StatusBarDatabaseUpdate.connect(self.statusBarMain.databaseLoad)
+
         self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.tableWidgetFolder.databaseClickDone)
-        self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.checkBoxHidden.databaseClickDone)
-        self.tableWidgetDataBase.signalUpdateCurrentDatabase.connect(self.labelCurrentDataBase.setText)
-        self.tableWidgetDataBase.signalRunClick.connect(self.tableWidgetParameter.slotFillTableWidgetParameter)
         self.tableWidgetDataBase.signalDatabaseStars.connect(self.tableWidgetFolder.slotFromTableWidgetDataBaseDatabaseStars)
         self.tableWidgetDataBase.signalDatabaseUnstars.connect(self.tableWidgetFolder.slotFromTableWidgetDataBaseDatabaseUnstars)
+
+        self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.checkBoxHidden.databaseClickDone)
         self.tableWidgetDataBase.signalCheckBoxHiddenHideRow.connect(self.checkBoxHidden.hideRow)
-        self.tableWidgetDataBase.signal2StatusBarDatabaseUpdate.connect(self.statusBarMain.databaseLoad)
+        self.tableWidgetDataBase.signalCheckBoxStaredChecked.connect(self.checkBoxHidden.checkBoxStaredChecked)
+
+        self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.checkBoxStared.databaseClickDone)
+        self.tableWidgetDataBase.signalCheckBoxHiddenChecked.connect(self.checkBoxStared.checkBoxHiddenChecked)
+
+        self.tableWidgetDataBase.signalUpdateCurrentDatabase.connect(self.labelCurrentDataBase.setText)
+
+        self.tableWidgetDataBase.signalRunClick.connect(self.tableWidgetParameter.slotFillTableWidgetParameter)
+
         self.tableWidgetDataBase.first_call()
+
+
 
         self.tableWidgetParameter.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
         self.tableWidgetParameter.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)

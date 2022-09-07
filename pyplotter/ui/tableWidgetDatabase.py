@@ -34,20 +34,31 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     Custom class to be able to sort numerical table column
     """
 
-    signalSendStatusBarMessage     = QtCore.pyqtSignal(str, str)
-    signalAddStatusBarMessage      = QtCore.pyqtSignal(str, str)
-    signalUpdateProgressBar        = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
-    signalRemoveProgressBar        = QtCore.pyqtSignal(QtWidgets.QProgressBar)
-    signalDatabaseClickDone        = QtCore.pyqtSignal()
-    signalUpdateCurrentDatabase    = QtCore.pyqtSignal(str)
-    keyPressed                     = QtCore.pyqtSignal(str, int)
-    signalRunClick                 = QtCore.pyqtSignal(int, list, dict, str, str, str, str, bool)
-    signalDatabaseStars            = QtCore.pyqtSignal()
-    signalDatabaseUnstars          = QtCore.pyqtSignal()
-    signalCheckBoxHiddenHideRow    = QtCore.pyqtSignal(int)
+    # Propagated to statusBarMain
+    signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
+    signalAddStatusBarMessage  = QtCore.pyqtSignal(str, str)
+    signalUpdateProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
+    signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
+    # Propagated to tableWidgetFolder, checkBoxHidden, checkBoxStared
+    signalDatabaseClickDone = QtCore.pyqtSignal()
+    # Propagated to labelCurrentDataBase
+    signalUpdateCurrentDatabase = QtCore.pyqtSignal(str)
+    # Propagated to tableWidgetParameter
+    signalRunClick = QtCore.pyqtSignal(int, list, dict, str, str, str, str, bool)
+    # Propagated to tableWidgetFolder
+    signalDatabaseStars   = QtCore.pyqtSignal()
+    signalDatabaseUnstars = QtCore.pyqtSignal()
+    # Propagated to checkBoxStared
+    signalCheckBoxHiddenChecked = QtCore.pyqtSignal(bool)
+    # Propagated to checkBoxHidden
+    signalCheckBoxStaredChecked = QtCore.pyqtSignal(bool)
+    signalCheckBoxHiddenHideRow = QtCore.pyqtSignal(int)
 
+    # Propagated to statusBarMain which come back here to databaseClick
     signal2StatusBarDatabaseUpdate = QtCore.pyqtSignal(str)
 
+    # Internal event, see keyPressEvent
+    keyPressed = QtCore.pyqtSignal(str, int)
 
 
     def __init__(self, parent=None) -> None:
@@ -84,7 +95,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     def keyPressEvent(self, event):
         super(TableWidgetDatabase, self).keyPressEvent(event)
 
-        # Emit the pressed key in hum readable format in lower case
+        # Emit the pressed key in human readable format in lower case
         self.keyPressed.emit(QtGui.QKeySequence(event.key()).toString().lower(), self.currentRow())
 
 
@@ -412,12 +423,12 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
                 self.setItem(row, COLUMNITEMRUNID, item)
 
-                # We hide the row only if the user didn't check the checkboxhidden
-                self.signalCheckBoxHiddenHideRow.emit(row)
-
                 # We update the json
                 self.properties.jsonAddHiddenRun(runId)
 
+
+            # We hide the row only if the user didn't check the checkboxhidden
+            self.signalCheckBoxHiddenHideRow.emit()
 
 
     ############################################################################
@@ -459,6 +470,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         # If user wants to see hidden run
         if state==2:
 
+            self.signalCheckBoxHiddenChecked.emit(True)
+
             for row in range(nbTotalRow):
 
                 if int(self.item(row, COLUMNITEMRUNID).text()) in runHidden:
@@ -467,8 +480,46 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         # Hide hidden run again
         elif state==0:
 
+            self.signalCheckBoxHiddenChecked.emit(False)
+
             for row in range(nbTotalRow):
 
+                if int(self.item(row, COLUMNITEMRUNID).text()) in runHidden:
+                    self.setRowHidden(row, True)
+                else:
+                    self.setRowHidden(row, False)
+
+
+
+    @QtCore.pyqtSlot(int)
+    def slotFromCheckBoxStaredCheckBoxStaredClick(self, state: int) -> None:
+        """
+        Call when user clicks on the "Show only stared run" checkbox.
+        When check, show only stared run.
+        When unchecked, we show all run
+        """
+
+        runHidden   = self.properties.getRunHidden()
+        runStared   = self.properties.getRunStared()
+        nbTotalRow  = self.rowCount()
+
+        # If user wants to see only stared run
+        if state==2:
+
+            self.signalCheckBoxStaredChecked.emit(True)
+
+            for row in range(nbTotalRow):
+                if int(self.item(row, COLUMNITEMRUNID).text()) not in runStared:
+                    self.setRowHidden(row, True)
+                else:
+                    self.setRowHidden(row, False)
+
+        # Show all
+        elif state==0:
+
+            self.signalCheckBoxStaredChecked.emit(False)
+
+            for row in range(nbTotalRow):
                 if int(self.item(row, COLUMNITEMRUNID).text()) in runHidden:
                     self.setRowHidden(row, True)
                 else:

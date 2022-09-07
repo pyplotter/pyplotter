@@ -226,6 +226,11 @@ class Ui_MainWindow(object):
         self.checkBoxHidden.setMaximumSize(QtCore.QSize(90, 16777215))
         self.checkBoxHidden.setObjectName("checkBoxHidden")
         self.horizontalLayout.addWidget(self.checkBoxHidden)
+        self.checkBoxStared = CheckBoxStared(self.layoutWidget_3)
+        self.checkBoxStared.setEnabled(False)
+        self.checkBoxStared.setMaximumSize(QtCore.QSize(130, 16777215))
+        self.checkBoxStared.setObjectName("checkBoxStared")
+        self.horizontalLayout.addWidget(self.checkBoxStared)
         self.verticalLayout_11.addLayout(self.horizontalLayout)
         self.tableWidgetDataBase = TableWidgetDatabase(self.layoutWidget_3)
         font = QtGui.QFont()
@@ -314,6 +319,7 @@ class Ui_MainWindow(object):
         self.labelSnapshot.setText(_translate("MainWindow", "Filter:"))
         self.labelDataBase.setText(_translate("MainWindow", "Browse database:"))
         self.checkBoxHidden.setText(_translate("MainWindow", "Show hidden"))
+        self.checkBoxStared.setText(_translate("MainWindow", "Show only stared run"))
         self.tableWidgetDataBase.setSortingEnabled(True)
         item = self.tableWidgetDataBase.horizontalHeaderItem(0)
         item.setText(_translate("MainWindow", "dataBaseAbsPath"))
@@ -336,6 +342,7 @@ class Ui_MainWindow(object):
         item = self.tableWidgetDataBase.horizontalHeaderItem(9)
         item.setText(_translate("MainWindow", "Comments"))
 from ..ui.checkBoxHidden import CheckBoxHidden
+from ..ui.checkBoxStared import CheckBoxStared
 from ..ui.labelSnapshot import LabelSnapshot
 from ..ui.lineEditSnapshot import LineEditSnapshot
 from ..ui.menuBar import MenuBar

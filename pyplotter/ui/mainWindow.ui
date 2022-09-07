@@ -527,6 +527,22 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="CheckBoxStared" name="checkBoxStared">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>130</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Show only stared run</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>
@@ -699,6 +715,11 @@
    <class>LabelSnapshot</class>
    <extends>QLabel</extends>
    <header location="global">..ui.labelSnapshot</header>
+  </customwidget>
+  <customwidget>
+   <class>CheckBoxStared</class>
+   <extends>QCheckBox</extends>
+   <header location="global">..ui.checkBoxStared</header>
   </customwidget>
  </customwidgets>
  <resources/>

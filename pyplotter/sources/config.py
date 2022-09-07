@@ -67,7 +67,7 @@ configPackage = {
 'keyPressedStared' : 's', # To star a run
 'keyPressedHide' : 'h', # To hide a run
 'fileNameRunInfo' : 'runinfo', # Will be saved as a hidden json file
-'runStaredColor' : (255, 255, 0),
+'runStaredColor' : (255, 0, 0),
 'runHiddenColor' : (255, 0, 0),
 
 ## BlueFors
