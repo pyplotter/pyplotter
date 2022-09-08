@@ -481,55 +481,83 @@ def getParameterDatamp(databaseAbsPath: str,
                                                                                paramDependentName,
                                                                                table_name)
 
-    conn, cur = openDatabase(databaseAbsPath)
-    # For small run, we download all at once
-    if nbPoint<=100:
-        cur.execute(request)
-        d = np.array(cur.fetchall())
+    # First, we try to download the datra ourself
+    try:
+        conn, cur = openDatabase(databaseAbsPath)
+        # For small run, we download all at once
+        if nbPoint<=100:
+            cur.execute(request)
+            d = np.array(cur.fetchall())
 
-        queueProgressBar.put(queueProgressBar.get() + 100)
-    else:
-        # We download the data while updating the progress bar
-        # First, we compute the id limits to download the data in
-        # 100/config['displayedDownloadQcodesPercentage'] request
-        d = np.empty((nbPoint, len(paramIndependentName)+1))
-        ids = np.arange(0, nbPoint, callEvery)
-        if ids[-1]!=nbPoint:
-            ids = np.append(ids, nbPoint)
-        iteration = 100/len(ids)
-        for i in range(len(ids)-1):
-            cur.execute('{0} LIMIT {1} OFFSET {2}'.format(request,
-                                                        callEvery,
-                                                        ids[i]))
-            d[ids[i]:ids[i+1],] = np.array(cur.fetchall())
+            queueProgressBar.put(queueProgressBar.get() + 100)
+        else:
+            # We download the data while updating the progress bar
+            # First, we compute the id limits to download the data in
+            # 100/config['displayedDownloadQcodesPercentage'] request
+            d = np.empty((nbPoint, len(paramIndependentName)+1))
+            ids = np.arange(0, nbPoint, callEvery)
+            if ids[-1]!=nbPoint:
+                ids = np.append(ids, nbPoint)
+            iteration = 100/len(ids)
+            for i in range(len(ids)-1):
+                cur.execute('{0} LIMIT {1} OFFSET {2}'.format(request,
+                                                            callEvery,
+                                                            ids[i]))
+                d[ids[i]:ids[i+1],] = np.array(cur.fetchall())
 
-            queueProgressBar.put(queueProgressBar.get() + iteration)
+                queueProgressBar.put(queueProgressBar.get() + iteration)
 
-    queueProgressBar.get()
-    queueProgressBar.put(100)
+        queueProgressBar.get()
+        queueProgressBar.put(100)
 
-    closeDatabase(conn, cur)
+        closeDatabase(conn, cur)
 
-    # We do not handle bytes data yet
-    if isinstance(d[0][0], np.bytes_):
+        # We do not handle bytes data yet
+        if isinstance(d[0][0], np.bytes_):
+
+            queueProgressBar.get()
+            queueProgressBar.put(0)
+            queueMessage.get()
+            queueMessage.put('Binary data detected, give me time here...')
+
+            # We transform the binary data to float
+            for i in range(d.shape[1]):
+                out = io.BytesIO(d[0][i])
+                out.seek(0)
+                if i==0:
+                    t = np.load(out)
+                else:
+                    t = np.vstack((t, np.load(out))).T
+            d = t
+            queueProgressBar.get()
+            queueProgressBar.put(100)
+    # If error, we load qcodes (slow)
+    except:
 
         queueProgressBar.get()
         queueProgressBar.put(0)
         queueMessage.get()
-        queueMessage.put('Binary data detected, give me time here...')
+        queueMessage.put('Format not handled, have to load QCoDeS...')
 
-        # We transform the binary data to float
-        for i in range(d.shape[1]):
-            out = io.BytesIO(d[0][i])
-            out.seek(0)
-            if i==0:
-                t = np.load(out)
-            else:
-                t = np.vstack((t, np.load(out))).T
-        d = t
+        from qcodes import initialise_or_create_database_at, load_by_id
+        initialise_or_create_database_at(databaseAbsPath)
 
         queueProgressBar.get()
+        queueProgressBar.put(50)
+        ds = load_by_id(runId).get_parameter_data()[paramDependentName]
+
+        # for 1d
+        if len(paramIndependentName)==1:
+            d = np.vstack((np.ravel(ds[paramIndependentName[0]]),
+                           np.ravel(ds[paramDependentName]))).T
+        # for 2d
+        elif len(paramIndependentName)==2:
+            d = np.vstack((np.ravel(ds[paramIndependentName[0]]),
+                           np.ravel(ds[paramIndependentName[1]]),
+                           np.ravel(ds[paramDependentName]))).T
+        queueProgressBar.get()
         queueProgressBar.put(100)
+
 
     queueData.put(d)
     queueDone.put(True)
