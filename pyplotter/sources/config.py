@@ -3,7 +3,11 @@ import json
 import os
 from platformdirs import user_config_dir
 from typing import List, Union, Any
-import collections
+# For python < 3.10
+try:
+    from collections import Mapping
+except:
+    from collections.abcd import Mapping # type: ignore
 
 # This file create a python dict containing all personalized parameters
 configPackage = {
@@ -254,7 +258,7 @@ def deep_update(source: dict,
     """
 
     for key, value in overrides.items():
-        if isinstance(value, collections.Mapping) and value:
+        if isinstance(value, Mapping) and value:
             returned = deep_update(source.get(key, {}), value)
             source[key] = returned
         else:
