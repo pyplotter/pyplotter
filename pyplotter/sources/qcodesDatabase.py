@@ -546,8 +546,11 @@ def getParameterDatamp(databaseAbsPath: str,
         queueProgressBar.put(50)
         ds = load_by_id(runId).get_parameter_data()[paramDependentName]
 
+        # for empty dataset
+        if len(ds)==0:
+            d = np.array([])
         # for 1d
-        if len(paramIndependentName)==1:
+        elif len(paramIndependentName)==1:
             d = np.vstack((np.ravel(ds[paramIndependentName[0]]),
                            np.ravel(ds[paramDependentName]))).T
         # for 2d

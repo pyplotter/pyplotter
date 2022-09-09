@@ -657,9 +657,9 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.config)
         color = self.config['plot1dColors'][colorIndex]
 
-        mkpen = pg.mkPen(color=color, width=self.config['plotDataItemWidth'])
+        pen = pg.mkPen(color=color, width=self.config['plotDataItemWidth'])
 
-        return colorIndex, mkpen
+        return colorIndex, pen
 
 
 
@@ -757,14 +757,18 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         """
 
         # Get the dataPlotItem color
-        colorIndex, mkpen = self.getLineColor()
+        colorIndex, pen = self.getLineColor()
+
+        # If there is only one point, the Pen is incorrect
+        if len(x)==1:
+            pen = None
 
         # Create plotDataItem and save its reference
         self.curves[curveId] = self.plotItem.plot(x,
                                                   y,
-                                                  pen=mkpen,
-                                                  useCache=True, # Improve performance
-                                                  autoDownsample=True, # Improve performance
+                                                  pen=pen,
+                                                  useCache=False, # Improve performance
+                                                  autoDownsample=False, # Improve performance
                                                 #   clipToView = True, # Improve performance
                                                   )
 
@@ -779,11 +783,15 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.curves[curveId].curveLegend        = curveLegend
         self.curves[curveId].showInLegend       = showInLegend
         self.curves[curveId].hidden             = hidden
-        self.curves[curveId].mkpen              = mkpen
+        self.curves[curveId].pen                = pen
 
         self.updateListDataPlotItem(curveId)
         self.updateListXAxis()
 
+        # If there is only one point, we show symbols
+        if len(x)==1:
+            self.checkBoxSymbol.setChecked(False)
+            self.checkBoxSymbol.setChecked(True)
 
 
     def removePlotDataItem(self, curveId: str) -> None:
@@ -1185,7 +1193,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 self.groupBoxCurveInteraction.setEnabled(False)
 
                 # Create an empty plotDataItem which will contain the right curve
-                self.curveRight = pg.PlotDataItem(pen=self.curves[rightCurveId].mkpen)
+                self.curveRight = pg.PlotDataItem(pen=self.curves[rightCurveId].pen)
 
                 # Create and set links for a second viewbox which will contains the right curve
                 self.vbRight = pg.ViewBox()
@@ -1486,9 +1494,9 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         if curveId is not None:
             if curveId+'-selection' not in self.curves.keys():
                 # Create new style
-                mkPen = pg.mkPen(color=self.config['plot1dColorsComplementary'][self.curves[curveId].colorIndex],
-                                style=QtCore.Qt.SolidLine ,
-                                width=self.config['plotDataItemWidth'])
+                Pen = pg.mkPen(color=self.config['plot1dColorsComplementary'][self.curves[curveId].colorIndex],
+                               style=QtCore.Qt.SolidLine ,
+                               width=self.config['plotDataItemWidth'])
 
                 self.addPlotDataItem(x            = self.selectedX,
                                      y            = self.selectedY,
@@ -1501,7 +1509,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                      showInLegend = True)
 
                 # Apply new style
-                self.curves[curveId+'-selection'].setPen(mkPen)
+                self.curves[curveId+'-selection'].setPen(Pen)
             else:
                 # Update the curve
                 self.curves[curveId+'-selection'].setData(x=self.selectedX,

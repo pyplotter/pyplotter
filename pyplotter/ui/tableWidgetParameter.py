@@ -134,6 +134,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
             if len(paramDependent['depends_on'])>2:
 
                 self.signalSendStatusBarMessage.emit('Plotter does not handle data whose dim>2', 'red')
+                cb.toggle()
                 return
             else:
                 self.signalAddCurve.emit(curveId,
