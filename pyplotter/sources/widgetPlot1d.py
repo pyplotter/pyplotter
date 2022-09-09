@@ -767,8 +767,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.curves[curveId] = self.plotItem.plot(x,
                                                   y,
                                                   pen=pen,
-                                                  useCache=False, # Improve performance
-                                                  autoDownsample=False, # Improve performance
+                                                  useCache=True, # Improve performance
+                                                  autoDownsample=True, # Improve performance
                                                 #   clipToView = True, # Improve performance
                                                   )
 
