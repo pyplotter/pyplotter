@@ -536,34 +536,37 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
     def comboBoxXAxisActivated(self, autoRange: bool=False) -> None:
 
-        # Get a curve containing the data to update the plot
-        # Either in its x or y axis
-        for curve in self.curves.values():
-            # During liveplot, dataset may be None for the first iteration
-            if curve._dataset is not None:
-                if curve.curveXLabel==self.comboBoxXAxis.currentText():
-                    newXData  = curve._dataset.x
-                    newXLabel = curve.curveXLabel
-                    newXUnits = curve.curveXUnits
-                    break
-                if curve.curveYLabel==self.comboBoxXAxis.currentText():
-                    newXData  = curve._dataset.y
-                    newXLabel = curve.curveYLabel
-                    newXUnits = curve.curveYUnits
-                    break
+        # The change of x axis is enable only if there is no fit or filtering
+        # being done
+        if self.comboBoxXAxis.isEnabled():
+            # Get a curve containing the data to update the plot
+            # Either in its x or y axis
+            for curve in self.curves.values():
+                # During liveplot, dataset may be None for the first iteration
+                if curve._dataset is not None:
+                    if curve.curveXLabel==self.comboBoxXAxis.currentText():
+                        newXData  = curve.x
+                        newXLabel = curve.curveXLabel
+                        newXUnits = curve.curveXUnits
+                        break
+                    if curve.curveYLabel==self.comboBoxXAxis.currentText():
+                        newXData  = curve.y
+                        newXLabel = curve.curveYLabel
+                        newXUnits = curve.curveYUnits
+                        break
 
-        # We update the curve
-        for curve in self.curves.values():
-            # During liveplot, dataset may be None for the first iteration
-            if curve._dataset is not None:
-                # During liveplot, [:len(newXData)] handles update of the y axis
-                curve.setData(x=newXData[:len(curve._dataset.y)],
-                            y=curve._dataset.y[:len(newXData)])
+            # We update the curve
+            for curve in self.curves.values():
+                # During liveplot, dataset may be None for the first iteration
+                if curve._dataset is not None:
+                    # During liveplot, [:len(newXData)] handles update of the y axis
+                    curve.setData(x=newXData[:len(curve.y)],
+                                  y=curve.y[:len(newXData)])
 
-        # We update the x label
-        self.plotItem.setLabel(axis ='bottom',
-                               text =newXLabel,
-                               units=newXUnits)
+            # We update the x label
+            self.plotItem.setLabel(axis ='bottom',
+                                text =newXLabel,
+                                units=newXUnits)
 
         if autoRange:
             self.autoRange()
@@ -792,6 +795,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         if len(x)==1:
             self.checkBoxSymbol.setChecked(False)
             self.checkBoxSymbol.setChecked(True)
+
 
 
     def removePlotDataItem(self, curveId: str) -> None:
@@ -1603,6 +1607,9 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.groupBoxFiltering.setEnabled(enable)
         self.groupBoxFit.setEnabled(enable)
         self.groupBoxNormalize.setEnabled(enable)
+
+        # The change of x-axis is enable only when no interaction is done
+        self.comboBoxXAxis.setEnabled(not enable)
 
 
 
