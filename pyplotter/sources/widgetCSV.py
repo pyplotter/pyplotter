@@ -162,6 +162,8 @@ class WidgetCSV(QtWidgets.QWidget):
                 delimiter = None
                 if ',' in d:
                     delimiter = ','
+                elif ';' in d:
+                    delimiter = ';'
                 else:
                     delimiter = ' '
 
