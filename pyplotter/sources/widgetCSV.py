@@ -149,15 +149,16 @@ class WidgetCSV(QtWidgets.QWidget):
                     f = open(fileAbsPath, 'r')
                     header = 0
                     d = f.readline()
-                    while d[0]==c:
+                    while d[0]==comment:
                         d = f.readline()
                         header += 1
                 f.close()
 
                 ## Guess delimiter character
                 f = open(fileAbsPath, 'r')
-                for i in range(10):
-                    d = f.readline()
+                d = f.readline()
+                for i in range(9):
+                    d += f.readline()
                 f.close()
                 delimiter = None
                 if ',' in d:
