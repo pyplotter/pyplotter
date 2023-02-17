@@ -50,7 +50,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
     def first_call(self):
 
-        self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
 
         # If we are unable to detect the config folder, we switch in local mode
@@ -168,8 +168,8 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
                         row += 1
 
         self.setSortingEnabled(True)
-        self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        self.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         # Allow item event again
         self._folderUpdating = False

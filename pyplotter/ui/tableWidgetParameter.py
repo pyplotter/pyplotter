@@ -44,7 +44,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     def __init__(self, parent=None) -> None:
         super(TableWidgetParameter, self).__init__(parent)
 
-        self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         self.cellClicked.connect(self.parameterCellClicked)
 
@@ -278,8 +278,8 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
         ## Fill the tableWidgetParameters with the run parameters
         clearTableWidget(self)
-        self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
-        self.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
 
         plotTitle       = getPlotTitle(databaseAbsPath=databaseAbsPath,
@@ -313,8 +313,8 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
 
         self.setSortingEnabled(True)
-        self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        self.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         ## Fill the listWidgetMetada with the station snapshot
         self.signalLineEditSnapshotEnabled.emit(True)
