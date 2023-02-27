@@ -44,7 +44,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     def __init__(self, parent=None) -> None:
         super(TableWidgetParameter, self).__init__(parent)
 
-        self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        # self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         self.cellClicked.connect(self.parameterCellClicked)
 
