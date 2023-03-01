@@ -6,8 +6,10 @@ import json
 import numpy as np
 from typing import Tuple, List, Union, Any, Sequence
 import multiprocess as mp
-from importlib.metadata import version
-
+try:
+    from importlib.metadata import version
+except ImportError: # for Python<3.8
+    from importlib_metadata import version
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
