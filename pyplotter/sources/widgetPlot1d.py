@@ -1053,8 +1053,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
             # self.tableWidgetCurves.setSortingEnabled(True)
             # self.tableWidgetCurves.sortByColumn(3, QtCore.Qt.DescendingOrder)
-            # self.tableWidgetCurves.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-            # self.tableWidgetCurves.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            # self.tableWidgetCurves.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            # self.tableWidgetCurves.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
 
         # else:

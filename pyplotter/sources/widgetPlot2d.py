@@ -204,7 +204,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.checkBoxSwapxy.clicked.connect(self.checkBoxSwapxyState)
         self.checkBoxAspectEqual.clicked.connect(self.checkBoxAspectEqualState)
         self.checkBoxSubtractAverageX.clicked.connect(self.zDataTransformation)
-        self.checkBoxSubtractAverageX.clicked.connect(self.zDataTransformation)
+        self.checkBoxSubtractAverageY.clicked.connect(self.zDataTransformation)
         self.spinBoxSubtractPolyX.valueChanged.connect(self.zDataTransformation)
         self.spinBoxSubtractPolyY.valueChanged.connect(self.zDataTransformation)
         self.checkBoxUnwrapX.clicked.connect(self.zDataTransformation)

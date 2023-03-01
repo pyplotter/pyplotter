@@ -6,6 +6,8 @@ import json
 import numpy as np
 from typing import Tuple, List, Union, Any, Sequence
 import multiprocess as mp
+from importlib.metadata import version
+
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
@@ -286,6 +288,113 @@ def isRunCompleted(databaseAbsPath: str,
 
 
 
+def getParameterDbRow(databaseAbsPath: str,
+                      table_name: str,
+                      param_name: str) -> int:
+    """
+    Get the total number of not-null values of a parameter
+
+    Args:
+        conn: Connection to the database
+        table_name: Name of the table that holds the data
+        param_name: Name of the parameter to get the setpoints of
+
+    Returns:
+        The total number of not-null values
+    """
+    conn, cur = openDatabase(databaseAbsPath,
+                             returnDict=True)
+    sql = f"""
+           SELECT COUNT({param_name}) FROM "{table_name}"
+           WHERE {param_name} IS NOT NULL
+           """
+    cur.execute(sql)
+    rows = cur.fetchall()
+    closeDatabase(conn, cur)
+
+    return rows[0][f'COUT({param_name})']
+
+
+
+def getTableMaxId(databaseAbsPath: str,
+                     table_name: str) -> int:
+    """
+    Get the max id of a table
+
+    Args:
+        databaseAbsPath: database absolute path
+        table_name: Name of the table that holds the data
+
+    Returns:
+        The max id of a table
+    """
+    conn, cur = openDatabase(databaseAbsPath,
+                             returnDict=True)
+    sql = f"""
+           SELECT MAX(run_id)
+           FROM "{table_name}"
+           """
+    cur.execute(sql)
+    rows = cur.fetchall()
+
+    return rows[0]['max(run_id)']
+
+
+
+def getOffsetLimitForCallback(databaseAbsPath: str,
+                              table_name: str,
+                              param_name: str) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Since sqlite3 does not allow to keep track of the data loading progress,
+    we compute how many sqlite request correspond to a progress of
+    config['displayedDownloadQcodesPercentage'].
+    This function return a list of offset and a integer value of limit to
+    be used to run such SQL requests.
+
+    Args:
+        conn: Connection to the database
+        table_name: Name of the table that holds the data
+        param_name: Name of the parameter to get the setpoints of
+
+    Returns:
+        offset: list of SQL offset corresponding to a progress of
+            config['displayedDownloadQcodesPercentage']
+        limit: SQL limit corresponding to a progress of
+            config['displayedDownloadQcodesPercentage']
+    """
+
+    # First, we get the number of row to be downloaded for the wanted
+    # dependent parameter
+    nb_row = getParameterDbRow(databaseAbsPath,
+                               table_name,
+                               param_name)
+
+    # Second, we get the max id of the table
+    max_id = getTableMaxId(databaseAbsPath,
+                           table_name)
+
+    # Third, we create a list of offset corresponding to a progress of
+    # config['displayedDownloadQcodesPercentage']
+    if nb_row >= 100:
+
+        # Using linspace with dtype=int ensure of having an array finishing
+        # by max_id
+        offset = np.linspace(0, max_id, int(100 / config['displayedDownloadQcodesPercentage']) + 1, dtype=int)
+
+    else:
+        # If there is less than 100 row to be downloaded, we overwrite the
+        # config['displayedDownloadQcodesPercentage'] to avoid many calls for small download
+        offset = np.array([0, nb_row // 2, nb_row])
+
+    # The number of row downloaded between two iterations may vary
+    # We compute the limit corresponding to each offset
+    limit = offset[1:] - offset[:-1]
+
+    return offset, limit
+
+
+
+
 def getRunInfosmp(databaseAbsPath: str,
                   queueData: mp.Queue,
                   queueProgressBar: mp.Queue,
@@ -481,7 +590,7 @@ def getParameterDatamp(databaseAbsPath: str,
                                                                                paramDependentName,
                                                                                table_name)
 
-    # First, we try to download the datra ourself
+    # First, we try to download the data ourself
     try:
         conn, cur = openDatabase(databaseAbsPath)
         # For small run, we download all at once
@@ -533,33 +642,57 @@ def getParameterDatamp(databaseAbsPath: str,
             queueProgressBar.put(100)
     # If error, we load qcodes (slow)
     except:
+        # If the callack argument is available on qcodes
+        if int(version('qcodes').split('.')[1])>=36:
+            def callback(progress):
+                queueProgressBar.get()
+                queueProgressBar.put(progress)
+                return callback
 
-        queueProgressBar.get()
-        queueProgressBar.put(0)
-        queueMessage.get()
-        queueMessage.put('Format not handled, have to load QCoDeS...')
+            from qcodes import initialise_or_create_database_at, load_by_id
+            initialise_or_create_database_at(databaseAbsPath)
+            ds = load_by_id(runId).get_parameter_data(paramDependentName,
+                                                      callback=callback)[paramDependentName]
 
-        from qcodes import initialise_or_create_database_at, load_by_id
-        initialise_or_create_database_at(databaseAbsPath)
+            # for empty dataset
+            if len(ds)==0:
+                d = np.array([])
+            # for 1d
+            elif len(paramIndependentName)==1:
+                d = np.vstack((np.ravel(ds[paramIndependentName[0]]),
+                               np.ravel(ds[paramDependentName]))).T
+            # for 2d
+            elif len(paramIndependentName)==2:
+                d = np.vstack((np.ravel(ds[paramIndependentName[0]]),
+                               np.ravel(ds[paramIndependentName[1]]),
+                               np.ravel(ds[paramDependentName]))).T
+        else:
+            queueProgressBar.get()
+            queueProgressBar.put(0)
+            queueMessage.get()
+            queueMessage.put('Format not handled, have to load QCoDeS...')
 
-        queueProgressBar.get()
-        queueProgressBar.put(50)
-        ds = load_by_id(runId).get_parameter_data()[paramDependentName]
+            from qcodes import initialise_or_create_database_at, load_by_id
+            initialise_or_create_database_at(databaseAbsPath)
 
-        # for empty dataset
-        if len(ds)==0:
-            d = np.array([])
-        # for 1d
-        elif len(paramIndependentName)==1:
-            d = np.vstack((np.ravel(ds[paramIndependentName[0]]),
-                           np.ravel(ds[paramDependentName]))).T
-        # for 2d
-        elif len(paramIndependentName)==2:
-            d = np.vstack((np.ravel(ds[paramIndependentName[0]]),
-                           np.ravel(ds[paramIndependentName[1]]),
-                           np.ravel(ds[paramDependentName]))).T
-        queueProgressBar.get()
-        queueProgressBar.put(100)
+            queueProgressBar.get()
+            queueProgressBar.put(50)
+            ds = load_by_id(runId).get_parameter_data()[paramDependentName]
+
+            # for empty dataset
+            if len(ds)==0:
+                d = np.array([])
+            # for 1d
+            elif len(paramIndependentName)==1:
+                d = np.vstack((np.ravel(ds[paramIndependentName[0]]),
+                               np.ravel(ds[paramDependentName]))).T
+            # for 2d
+            elif len(paramIndependentName)==2:
+                d = np.vstack((np.ravel(ds[paramIndependentName[0]]),
+                               np.ravel(ds[paramIndependentName[1]]),
+                               np.ravel(ds[paramDependentName]))).T
+            queueProgressBar.get()
+            queueProgressBar.put(100)
 
 
     queueData.put(d)

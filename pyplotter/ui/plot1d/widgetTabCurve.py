@@ -29,8 +29,8 @@ class WidgetTabCurve(QtWidgets.QWidget, Ui_widgetTabCurve):
         # curveId
         self.tableWidgetCurves.setColumnHidden(0, True)
 
-        self.tableWidgetCurves.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        self.tableWidgetCurves.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.tableWidgetCurves.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.tableWidgetCurves.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
 
 
@@ -125,8 +125,8 @@ class WidgetTabCurve(QtWidgets.QWidget, Ui_widgetTabCurve):
 
             self.tableWidgetCurves.setSortingEnabled(True)
             self.tableWidgetCurves.sortByColumn(3, QtCore.Qt.DescendingOrder)
-            self.tableWidgetCurves.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-            self.tableWidgetCurves.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            self.tableWidgetCurves.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            self.tableWidgetCurves.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
             # Remove the curve
             for curveId2Remove in curveId2Removes:

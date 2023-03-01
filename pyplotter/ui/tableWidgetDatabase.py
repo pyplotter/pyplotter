@@ -116,8 +116,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # Modify the resize mode so that the initial view has an optimized
         # column width
-        self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
-        self.verticalHeader().setResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
         # Create a thread which will read the database
         worker = LoadDataBaseThread(databaseAbsPath,
@@ -216,8 +216,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         if not error:
             self.setSortingEnabled(True)
             self.sortItems(COLUMNITEMRUNID, QtCore.Qt.DescendingOrder)
-            self.horizontalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-            self.verticalHeader().setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+            self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
 
             self.signalSendStatusBarMessage.emit('Ready', 'green')

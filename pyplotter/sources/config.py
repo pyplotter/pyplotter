@@ -7,7 +7,7 @@ from typing import List, Union, Any
 try:
     from collections import Mapping
 except:
-    from collections.abcd import Mapping # type: ignore
+    from collections.abc import Mapping # type: ignore
 
 # This file create a python dict containing all personalized parameters
 configPackage = {
