@@ -4,6 +4,7 @@ pyplotter-0.3.5
     - CSV files with ; delimiter are now working as well.
     - CSV files with no header and no comment does not skip lines.
     - Replace setResizeMode by setSectionResizeMode
+    - Fix 2D average along y axis
 
   Others:
     - Use callback when loading data through qcodes if qcodes>0.36 is detected
