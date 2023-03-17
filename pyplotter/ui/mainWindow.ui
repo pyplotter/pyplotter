@@ -555,12 +555,6 @@
           <property name="lineWidth">
            <number>0</number>
           </property>
-          <property name="sizeAdjustPolicy">
-           <enum>QAbstractScrollArea::AdjustIgnored</enum>
-          </property>
-          <property name="editTriggers">
-           <set>QAbstractItemView::NoEditTriggers</set>
-          </property>
           <property name="alternatingRowColors">
            <bool>true</bool>
           </property>
@@ -572,9 +566,6 @@
           </property>
           <property name="sortingEnabled">
            <bool>true</bool>
-          </property>
-          <property name="columnCount">
-           <number>11</number>
           </property>
           <attribute name="horizontalHeaderDefaultSectionSize">
            <number>80</number>
@@ -588,61 +579,6 @@
           <attribute name="verticalHeaderVisible">
            <bool>false</bool>
           </attribute>
-          <column>
-           <property name="text">
-            <string>dataBaseAbsPath</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>run id</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>dim</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>experiment</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>sample</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>run name</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>started</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>completed</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>duration</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>records</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Comments</string>
-           </property>
-          </column>
          </widget>
         </item>
        </layout>

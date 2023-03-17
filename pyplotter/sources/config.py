@@ -170,6 +170,65 @@ configPackage = {
                        'pyqtgraphxAxisTickLabelsColor': '#000000',
                        'pyqtgraphyAxisTickLabelsColor': '#000000',
                        'pyqtgraphzAxisTickLabelsColor': '#000000'}},
+
+'DatabaseDisplayColumn' : {
+    'databaseAbsPath' : {
+        'index' : 0,
+        'name' : '',
+        'visible' : False
+    },
+    'itemRunId' : {
+        'index' : 1,
+        'name' : 'run id',
+        'visible' : True
+    },
+    'dimension' : {
+        'index' : 2,
+        'name' : 'dim',
+        'visible' : True
+    },
+    'experimentName' : {
+        'index' : 3,
+        'name' : 'experiment',
+        'visible' : True
+    },
+    'sampleName' : {
+        'index' : 4,
+        'name' : 'sample',
+        'visible' : True
+    },
+    'runName' : {
+        'index' : 5,
+        'name' : 'name',
+        'visible' : True
+    },
+    'started' : {
+        'index' : 6,
+        'name' : 'started',
+        'visible' : True
+    },
+    'completed' : {
+        'index' : 7,
+        'name' : 'completed',
+        'visible' : True
+    },
+    'duration' : {
+        'index' : 8,
+        'name' : 'duration',
+        'visible' : True
+    },
+    'runRecords' : {
+        'index' : 9,
+        'name' : 'records',
+        'visible' : True
+    },
+    'comment' : {
+        'index' : 10,
+        'name' : 'comment',
+        'visible' : True
+    },
+},
+
 # Font size of the axis and tick labels
 # Handy if user wants to have larger font
 'axisLabelFontSize' : 12,

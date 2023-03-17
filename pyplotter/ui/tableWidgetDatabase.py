@@ -17,18 +17,6 @@ from ..ui.dialogs.dialogComment import DialogComment
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
 
-# Column index
-COLUMNDATABASEABSPATH = 0
-COLUMNITEMRUNID       = 1
-COLUMNDIM             = 2
-COLUMNEXPERIMENTNAME  = 3
-COLUMNSAMPLENAME      = 4
-COLUMNRUNNAME         = 5
-COLUMNSTARTED         = 6
-COLUMNCOMPLETED       = 7
-COLUMNDURATION        = 8
-COLUMNRUNRECORDS      = 9
-COLUMNCOMMENT         = 10
 
 class TableWidgetDatabase(QtWidgets.QTableWidget):
     """
@@ -87,9 +75,23 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
     def first_call(self):
-        ## Only used to propagate information
-        # Contain the databaseAbsPath
-        self.setColumnHidden(COLUMNDATABASEABSPATH, True)
+        """
+        Call when the widget is initially display
+        Build the columns foolowing the config file
+        """
+        self.setColumnCount(len(config['DatabaseDisplayColumn']))
+
+        for val in config['DatabaseDisplayColumn'].values():
+
+            # Add a column
+            item = QtWidgets.QTableWidgetItem()
+
+            # Set its header
+            self.setHorizontalHeaderItem(val['index'], item)
+            item.setText(val['name'])
+
+            # Hide some column
+            self.setColumnHidden(val['index'], False==val['visible'])
 
 
 
@@ -177,25 +179,30 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             else:
                 itemRunId.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'empty.png')))
 
-            self.setItem(runId-1, COLUMNDATABASEABSPATH, QtWidgets.QTableWidgetItem(databaseAbsPath))
-            self.setItem(runId-1, COLUMNITEMRUNID, itemRunId)
-            self.item(runId-1, COLUMNITEMRUNID).setToolTip('Type "s" to star a run and "h" to hide it.')
-            self.setItem(runId-1, COLUMNDIM, QtWidgets.QTableWidgetItem(dim))
-            self.setItem(runId-1, COLUMNEXPERIMENTNAME, QtWidgets.QTableWidgetItem(experimentName))
-            self.setItem(runId-1, COLUMNSAMPLENAME, QtWidgets.QTableWidgetItem(sampleName))
-            self.setItem(runId-1, COLUMNRUNNAME, QtWidgets.QTableWidgetItem(runName))
-            self.setItem(runId-1, COLUMNSTARTED, QtWidgets.QTableWidgetItem(started))
-            self.setItem(runId-1, COLUMNCOMPLETED, QtWidgets.QTableWidgetItem(completed))
-            self.setItem(runId-1, COLUMNDURATION, QtWidgets.QTableWidgetItem(duration))
-            self.setItem(runId-1, COLUMNRUNRECORDS, TableWidgetItemNumOrdered(runRecords))
-            self.setItem(runId-1, COLUMNCOMMENT, QtWidgets.QTableWidgetItem(self.properties.getRunComment(runId)))
-            self.item(runId-1, COLUMNCOMMENT).setToolTip('Double-click on the "Comments" column to add or modify a comment attached to a run')
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['databaseAbsPath']['index'], QtWidgets.QTableWidgetItem(databaseAbsPath))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['itemRunId']['index'],       itemRunId)
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['dimension']['index'],             QtWidgets.QTableWidgetItem(dim))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['experimentName']['index'],  QtWidgets.QTableWidgetItem(experimentName))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['sampleName']['index'],      QtWidgets.QTableWidgetItem(sampleName))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['runName']['index'],         QtWidgets.QTableWidgetItem(runName))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['started']['index'],         QtWidgets.QTableWidgetItem(started))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['completed']['index'],       QtWidgets.QTableWidgetItem(completed))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['duration']['index'],        QtWidgets.QTableWidgetItem(duration))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['runRecords']['index'],      TableWidgetItemNumOrdered(runRecords))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['comment']['index'],         QtWidgets.QTableWidgetItem(self.properties.getRunComment(runId)))
+
+            # Hide some run
             if runId in self.properties.getRunHidden():
                 self.setRowHidden(runId-1, True)
 
-            for i in range(COLUMNCOMMENT):
+            # Set vertical and horizontal alignment
+            for i in range(config['DatabaseDisplayColumn']['comment']['index']):
                 self.item(runId-1, i).setTextAlignment(QtCore.Qt.AlignVCenter)
-            self.item(runId-1, COLUMNDURATION).setTextAlignment(QtCore.Qt.AlignVCenter|QtCore.Qt.AlignRight)
+            self.item(runId-1, config['DatabaseDisplayColumn']['duration']['index']).setTextAlignment(QtCore.Qt.AlignVCenter|QtCore.Qt.AlignRight)
+
+            # Set some tooltip
+            self.item(runId-1,    config['DatabaseDisplayColumn']['itemRunId']['index']).setToolTip('Type "s" to star a run and "h" to hide it.')
+            self.item(runId-1, config['DatabaseDisplayColumn']['comment']['index']).setToolTip('Double-click on the "Comments" column to add or modify a comment attached to a run')
 
 
     @QtCore.pyqtSlot(QtWidgets.QProgressBar, bool, str, int)
@@ -221,7 +228,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         if not error:
             self.setSortingEnabled(True)
-            self.sortItems(COLUMNITEMRUNID, QtCore.Qt.DescendingOrder)
+            self.sortItems(config['DatabaseDisplayColumn']['itemRunId']['index'], QtCore.Qt.DescendingOrder)
             self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
             self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
@@ -306,10 +313,10 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         if self._databaseClicking:
             return
 
-        databaseAbsPath = self.item(currentRow, COLUMNDATABASEABSPATH).text()
-        runId           = int(self.item(currentRow, COLUMNITEMRUNID).text())
-        experimentName  = self.item(currentRow, COLUMNEXPERIMENTNAME).text()
-        runName         = self.item(currentRow, COLUMNRUNNAME).text()
+        databaseAbsPath = self.item(currentRow, config['DatabaseDisplayColumn']['databaseAbsPath']['index']).text()
+        runId           = int(self.item(currentRow, config['DatabaseDisplayColumn']['itemRunId']['index']).text())
+        experimentName  = self.item(currentRow, config['DatabaseDisplayColumn']['experimentName']['index']).text()
+        runName         = self.item(currentRow, config['DatabaseDisplayColumn']['runName']['index']).text()
 
         # We check if use click or doubleClick
         doubleClick = False
@@ -317,7 +324,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             if time() - self.lastClickTime<0.5:
                 # If we detect a double click on the "Comments" column
                 # We do not launch a plot but open a comment dialog
-                if currentColumn==COLUMNCOMMENT:
+                if currentColumn==config['DatabaseDisplayColumn']['comment']['index']:
                     self.dialogComment = DialogComment(runId,
                                                        self.properties.getRunComment(runId))
                     self.dialogComment.signalCloseDialogComment.connect(self.slotCloseCommentDialog)
@@ -367,7 +374,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             Row of the database table in which the key happened.
         """
 
-        runId = int(self.item(row, COLUMNITEMRUNID).text())
+        runId = int(self.item(row, config['DatabaseDisplayColumn']['itemRunId']['index']).text())
 
         # If user wants to star a run
         if key==config['keyPressedStared'].lower():
@@ -380,7 +387,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 # We remove the star from the row
                 item = TableWidgetItemNumOrdered(str(runId))
                 item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'empty.png')))
-                self.setItem(row, COLUMNITEMRUNID, item)
+                self.setItem(row, config['DatabaseDisplayColumn']['itemRunId']['index'], item)
 
                 # We update the json
                 self.properties.jsonRemoveStaredRun(runId)
@@ -397,7 +404,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 item = TableWidgetItemNumOrdered(str(runId))
                 item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'star.png')))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runStaredColor'])))
-                self.setItem(row, COLUMNITEMRUNID, item)
+                self.setItem(row, config['DatabaseDisplayColumn']['itemRunId']['index'], item)
 
                 # We update the json
                 self.properties.jsonAddStaredRun(runId)
@@ -417,7 +424,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 item = TableWidgetItemNumOrdered(str(runId))
                 item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'empty.png')))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
-                self.setItem(row, COLUMNITEMRUNID, item)
+                self.setItem(row, config['DatabaseDisplayColumn']['itemRunId']['index'], item)
 
                 # We update the json
                 self.properties.jsonRemoveHiddenRun(runId)
@@ -427,7 +434,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 item = TableWidgetItemNumOrdered(str(runId))
                 item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'trash.png')))
                 item.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
-                self.setItem(row, COLUMNITEMRUNID, item)
+                self.setItem(row, config['DatabaseDisplayColumn']['itemRunId']['index'], item)
 
                 # We update the json
                 self.properties.jsonAddHiddenRun(runId)
@@ -455,7 +462,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         """
 
         if hasattr(self, 'doubleClickCurrentRow'):
-            if self.doubleClickDatabaseAbsPath==self.item(self.doubleClickCurrentRow, COLUMNDATABASEABSPATH).text():
+            if self.doubleClickDatabaseAbsPath==self.item(self.doubleClickCurrentRow, config['DatabaseDisplayColumn']['databaseAbsPath']['index']).text():
                 self.cellClicked.connect(self.runClick)
             del(self.doubleClickCurrentRow)
             del(self.doubleClickDatabaseAbsPath)
@@ -480,7 +487,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             for row in range(nbTotalRow):
 
-                if int(self.item(row, COLUMNITEMRUNID).text()) in runHidden:
+                if int(self.item(row, config['DatabaseDisplayColumn']['itemRunId']['index']).text()) in runHidden:
                     self.setRowHidden(row, False)
 
         # Hide hidden run again
@@ -490,7 +497,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             for row in range(nbTotalRow):
 
-                if int(self.item(row, COLUMNITEMRUNID).text()) in runHidden:
+                if int(self.item(row, config['DatabaseDisplayColumn']['itemRunId']['index']).text()) in runHidden:
                     self.setRowHidden(row, True)
                 else:
                     self.setRowHidden(row, False)
@@ -515,7 +522,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.signalCheckBoxStaredChecked.emit(True)
 
             for row in range(nbTotalRow):
-                if int(self.item(row, COLUMNITEMRUNID).text()) not in runStared:
+                if int(self.item(row, config['DatabaseDisplayColumn']['itemRunId']['index']).text()) not in runStared:
                     self.setRowHidden(row, True)
                 else:
                     self.setRowHidden(row, False)
@@ -526,7 +533,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.signalCheckBoxStaredChecked.emit(False)
 
             for row in range(nbTotalRow):
-                if int(self.item(row, COLUMNITEMRUNID).text()) in runHidden:
+                if int(self.item(row, config['DatabaseDisplayColumn']['itemRunId']['index']).text()) in runHidden:
                     self.setRowHidden(row, True)
                 else:
                     self.setRowHidden(row, False)
@@ -563,8 +570,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # Add the comment on the GUI
         for row in range(self.rowCount()):
-            if int(self.item(row, COLUMNITEMRUNID).text())==runId:
-                self.setItem(row, COLUMNCOMMENT, QtWidgets.QTableWidgetItem(comment))
+            if int(self.item(row, config['DatabaseDisplayColumn']['itemRunId']['index']).text())==runId:
+                self.setItem(row, config['DatabaseDisplayColumn']['comment']['index'], QtWidgets.QTableWidgetItem(comment))
                 break
 
         # Save the comment in the json file
