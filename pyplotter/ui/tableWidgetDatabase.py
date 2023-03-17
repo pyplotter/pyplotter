@@ -26,8 +26,9 @@ COLUMNSAMPLENAME      = 4
 COLUMNRUNNAME         = 5
 COLUMNSTARTED         = 6
 COLUMNCOMPLETED       = 7
-COLUMNRUNRECORDS      = 8
-COLUMNCOMMENT         = 9
+COLUMNDURATION        = 8
+COLUMNRUNRECORDS      = 9
+COLUMNCOMMENT         = 10
 
 class TableWidgetDatabase(QtWidgets.QTableWidget):
     """
@@ -134,7 +135,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
 
-    QtCore.pyqtSlot(list, list, list, list, list, list, list, list, int, str)
+    QtCore.pyqtSlot(list, list, list, list, list, list, list, list, list, int, str)
     def databaseClickAddRows(self, lrunId          : List[int],
                                    ldim            : List[str],
                                    lexperimentName : List[str],
@@ -142,6 +143,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                                    lrunName        : List[str],
                                    lstarted        : List[str],
                                    lcompleted      : List[str],
+                                   lduration       : List[str],
                                    lrunRecords     : List[str],
                                    nbTotalRun      : int,
                                    databaseAbsPath : str) -> None:
@@ -158,9 +160,9 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         # We go through all lists of parameters and for each list element, we add
         # a row in the table
         for (runId, dim, experimentName, sampleName, runName, started, completed,
-             runRecords) in zip(lrunId,
+             duration, runRecords) in zip(lrunId,
              ldim, lexperimentName, lsampleName, lrunName, lstarted, lcompleted,
-             lrunRecords):
+             lduration, lrunRecords):
 
             itemRunId = TableWidgetItemNumOrdered(str(runId))
 
@@ -184,12 +186,16 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.setItem(runId-1, COLUMNRUNNAME, QtWidgets.QTableWidgetItem(runName))
             self.setItem(runId-1, COLUMNSTARTED, QtWidgets.QTableWidgetItem(started))
             self.setItem(runId-1, COLUMNCOMPLETED, QtWidgets.QTableWidgetItem(completed))
+            self.setItem(runId-1, COLUMNDURATION, QtWidgets.QTableWidgetItem(duration))
             self.setItem(runId-1, COLUMNRUNRECORDS, TableWidgetItemNumOrdered(runRecords))
             self.setItem(runId-1, COLUMNCOMMENT, QtWidgets.QTableWidgetItem(self.properties.getRunComment(runId)))
             self.item(runId-1, COLUMNCOMMENT).setToolTip('Double-click on the "Comments" column to add or modify a comment attached to a run')
             if runId in self.properties.getRunHidden():
                 self.setRowHidden(runId-1, True)
 
+            for i in range(COLUMNCOMMENT):
+                self.item(runId-1, i).setTextAlignment(QtCore.Qt.AlignVCenter)
+            self.item(runId-1, COLUMNDURATION).setTextAlignment(QtCore.Qt.AlignVCenter|QtCore.Qt.AlignRight)
 
 
     @QtCore.pyqtSlot(QtWidgets.QProgressBar, bool, str, int)

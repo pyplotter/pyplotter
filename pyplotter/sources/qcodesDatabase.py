@@ -4,7 +4,7 @@ import time
 import sqlite3
 import json
 import numpy as np
-from typing import Tuple, List, Union, Any, Sequence
+from typing import Tuple, List, Union, Optional
 import multiprocess as mp
 from importlib.metadata import version
 
@@ -20,6 +20,30 @@ def timestamp2string(timestamp :int,
     """
 
     return time.strftime(fmt, time.localtime(timestamp))
+
+
+
+def timestamps2duration(timestamp_after: Optional[int],
+                        timestamp_before: Optional[int]) -> str:
+    """
+    Returns duration between two timestamps in a human-readable format.
+    """
+
+    if timestamp_before is None or timestamp_after is None:
+        return ''
+
+    s = timestamp_after - timestamp_before
+    hours, remainder = divmod(s, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    if hours!=0:
+        return '{:02.0f}h{:02.0f}m{:02.0f}s{:02.0f}ms'.format(hours, minutes, seconds, (seconds-int(seconds))*1000)
+    elif minutes!=0:
+        return '{:02.0f}m{:02.0f}s{:02.0f}ms'.format(minutes, seconds, (seconds-int(seconds))*1000)
+    elif seconds!=0:
+        return '{:02.0f}s{:02.0f}ms'.format(seconds, (seconds-int(seconds))*1000)
+    else:
+        return '{:02.0f}ms'.format((seconds-int(seconds))*1000)
 
 
 
@@ -506,6 +530,7 @@ def getRunInfosmp(databaseAbsPath: str,
                                         'run_name' : runInfo['name'],
                                         'started' : timestamp2string(runInfo['run_timestamp']),
                                         'completed' : timestamp2string(runInfo['completed_timestamp']),
+                                        'duration'  : timestamps2duration(runInfo['completed_timestamp'], runInfo['run_timestamp']),
                                         'records' : runRecords}
 
 
