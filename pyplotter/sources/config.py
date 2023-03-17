@@ -230,6 +230,14 @@ configPackage = {
     },
 },
 
+# Font color for the duration column of the tableWidgetDatabase
+'tableWidgetDatabaseDuration' : {
+    'hour' : '#0000ff',
+    'minute' : '#008080',
+    'second' : '#a221de',
+    'millisecond' : '#e01f1f'
+},
+
 # Font size of the axis and tick labels
 # Handy if user wants to have larger font
 'axisLabelFontSize' : 12,

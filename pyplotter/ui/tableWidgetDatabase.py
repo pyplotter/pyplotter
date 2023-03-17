@@ -187,7 +187,13 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.setItem(runId-1, config['DatabaseDisplayColumn']['runName']['index'],         QtWidgets.QTableWidgetItem(runName))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['started']['index'],         QtWidgets.QTableWidgetItem(started))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['completed']['index'],       QtWidgets.QTableWidgetItem(completed))
-            self.setItem(runId-1, config['DatabaseDisplayColumn']['duration']['index'],        QtWidgets.QTableWidgetItem(duration))
+
+            # All of that to get colored duration
+            widgetText =  QtWidgets.QLabel()
+            widgetText.setTextFormat(QtCore.Qt.RichText)
+            widgetText.setText(duration)
+            self.setCellWidget(runId-1, config['DatabaseDisplayColumn']['duration']['index'], widgetText)
+
             self.setItem(runId-1, config['DatabaseDisplayColumn']['runRecords']['index'],      TableWidgetItemNumOrdered(runRecords))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['comment']['index'],         QtWidgets.QTableWidgetItem(self.properties.getRunComment(runId)))
 
@@ -197,8 +203,10 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             # Set vertical and horizontal alignment
             for i in range(config['DatabaseDisplayColumn']['comment']['index']):
-                self.item(runId-1, i).setTextAlignment(QtCore.Qt.AlignVCenter)
-            self.item(runId-1, config['DatabaseDisplayColumn']['duration']['index']).setTextAlignment(QtCore.Qt.AlignVCenter|QtCore.Qt.AlignRight)
+                if i!=config['DatabaseDisplayColumn']['duration']['index']:
+                    self.item(runId-1, i).setTextAlignment(QtCore.Qt.AlignVCenter)
+                else:
+                    self.cellWidget(runId-1, i).setAlignment(QtCore.Qt.AlignVCenter|QtCore.Qt.AlignRight)
 
             # Set some tooltip
             self.item(runId-1,    config['DatabaseDisplayColumn']['itemRunId']['index']).setToolTip('Type "s" to star a run and "h" to hide it.')
