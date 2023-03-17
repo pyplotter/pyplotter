@@ -171,6 +171,7 @@ configPackage = {
                        'pyqtgraphyAxisTickLabelsColor': '#000000',
                        'pyqtgraphzAxisTickLabelsColor': '#000000'}},
 
+# Columns of tableWidgetDatabase
 'DatabaseDisplayColumn' : {
     'databaseAbsPath' : {
         'index' : 0,

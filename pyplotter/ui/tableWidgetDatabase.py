@@ -90,7 +90,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.setHorizontalHeaderItem(val['index'], item)
             item.setText(val['name'])
 
-            # Hide some column
+            # Hide or display some column
             self.setColumnHidden(val['index'], False==val['visible'])
 
 
@@ -181,7 +181,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             self.setItem(runId-1, config['DatabaseDisplayColumn']['databaseAbsPath']['index'], QtWidgets.QTableWidgetItem(databaseAbsPath))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['itemRunId']['index'],       itemRunId)
-            self.setItem(runId-1, config['DatabaseDisplayColumn']['dimension']['index'],             QtWidgets.QTableWidgetItem(dim))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['dimension']['index'],       QtWidgets.QTableWidgetItem(dim))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['experimentName']['index'],  QtWidgets.QTableWidgetItem(experimentName))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['sampleName']['index'],      QtWidgets.QTableWidgetItem(sampleName))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['runName']['index'],         QtWidgets.QTableWidgetItem(runName))
@@ -353,8 +353,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # Execute the thread
         self.threadpool.start(worker)
-
-
 
 
 
@@ -554,6 +552,23 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.dialogComment._allowClosing = True
         self.dialogComment.deleteLater()
         del(self.dialogComment)
+
+
+
+    @QtCore.pyqtSlot(dict)
+    def slotUpdate(self, config: dict) -> None:
+        """
+        Called from DialogMenuDatabaseDisplay when user clicks on a checkbox
+        Show or hide column dependending on the config dictionnary.
+
+        Args:
+            config: dict of the current config file
+        """
+
+        for val in config['DatabaseDisplayColumn'].values():
+
+            # Hide or display some column
+            self.setColumnHidden(val['index'], False==val['visible'])
 
 
 

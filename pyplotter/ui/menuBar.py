@@ -10,12 +10,14 @@ config = loadConfigCurrent()
 from .dialogs.dialogFontsize import DialogFontSize
 from .dialogs.dialogColormap import DialogMenuColormap
 from .dialogs.dialogLiveplot import DialogLiveplot
+from .dialogs.dialogMenuDatabaseDisplay import DialogMenuDatabaseDisplay
 
 
 class MenuBar(QtWidgets.QMenuBar):
 
-    signalUpdateStyle        = QtCore.pyqtSignal(dict)
-    signalOpenDialogLivePlot = QtCore.pyqtSignal()
+    signalUpdateStyle               = QtCore.pyqtSignal(dict)
+    signalUpdateTableWidgetDatabase = QtCore.pyqtSignal(dict)
+    signalOpenDialogLivePlot        = QtCore.pyqtSignal()
 
     signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
@@ -50,10 +52,13 @@ class MenuBar(QtWidgets.QMenuBar):
         self.menuLiveplot    = self.addMenu('Liveplot')
         self.actionOpenliveplot = self.menuLiveplot.addAction('Open liveplot')
 
+        self.actionDatabase = self.menuPreferences.addAction('Database display')
+
         self.actionqb.triggered.connect(self.menuBackgroundQb)
         self.actionqdark.triggered.connect(self.menuBackgroundQdark)
         self.actionwhite.triggered.connect(self.menuBackgroundWhite)
         self.actionDefaultPath.triggered.connect(self.menuDefaultPath)
+        self.actionDatabase.triggered.connect(self.menuDatabase)
         self.actionAxisLabelColor.triggered.connect(self.menuAxisLabelColor)
         self.actionAxisTickLabelsColor.triggered.connect(self.menuAxisTickLabelsColor)
         self.actionAxisTicksColor.triggered.connect(self.menuAxisTicksColor)
@@ -61,6 +66,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.actionFontsize.triggered.connect(self.menuFontsize)
         self.actionColormap.triggered.connect(self.menuColormap)
         self.actionOpenliveplot.triggered.connect(self.menuOpenLiveplot)
+
 
         if config['style']=='qbstyles':
             self.actionqb.setChecked(True)
@@ -136,6 +142,13 @@ class MenuBar(QtWidgets.QMenuBar):
 
             updateUserConfig('path', os.path.abspath(path))
             updateUserConfig('root', os.path.splitdrive(path)[0])
+
+
+
+    def menuDatabase(self):
+
+        self.dialogMenuDatabaseDisplay = DialogMenuDatabaseDisplay(self.parent(), config)
+        self.dialogMenuDatabaseDisplay.signalUpdateTableWidgetDatabase.connect(self.signalUpdateTableWidgetDatabase.emit)
 
 
 

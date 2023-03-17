@@ -59,6 +59,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
         # Connect menuBar signal
         self.menuBarMain.signalUpdateStyle.connect(self.updateStyle)
+        self.menuBarMain.signalUpdateTableWidgetDatabase.connect(self.tableWidgetDataBase.slotUpdate)
         self.menuBarMain.signal2MainWindowAddPlot.connect(self.slotFromPlotAddPlot)
         self.menuBarMain.signalUpdateCurve.connect(self.slotUpdateCurve)
         self.menuBarMain.signalUpdate2d.connect(self.slotUpdate2d)
