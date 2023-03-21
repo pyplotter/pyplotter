@@ -43,30 +43,31 @@ def timestamps2duration(timestamp_after: Optional[int],
                '<span style="color:{};">{:02.0f}m</span>'\
                '<span style="color:{};">{:02.0f}s</span>'\
                '<span style="color:{};">{:03.0f}ms</span>'.format(config['tableWidgetDatabaseDuration']['hour'],
-                                                                 hours,
-                                                                 config['tableWidgetDatabaseDuration']['minute'],
-                                                                 minutes,
-                                                                 config['tableWidgetDatabaseDuration']['second'],
-                                                                 seconds,
-                                                                 config['tableWidgetDatabaseDuration']['millisecond'],
-                                                                 (seconds-int(seconds))*1000)
+                                                                  hours,
+                                                                  config['tableWidgetDatabaseDuration']['minute'],
+                                                                  minutes,
+                                                                  config['tableWidgetDatabaseDuration']['second'],
+                                                                  seconds,
+                                                                  config['tableWidgetDatabaseDuration']['millisecond'],
+                                                                  (seconds-int(seconds))*1000)
     elif minutes!=0:
         return '<span style="color:{};">{:02.0f}m</span>'\
                '<span style="color:{};">{:02.0f}s</span>'\
                '<span style="color:{};">{:03.0f}ms</span>'.format(config['tableWidgetDatabaseDuration']['minute'],
-                                                                 minutes,
-                                                                 config['tableWidgetDatabaseDuration']['second'],
-                                                                 seconds,
-                                                                 config['tableWidgetDatabaseDuration']['millisecond'],
-                                                                 (seconds-int(seconds))*1000)
+                                                                  minutes,
+                                                                  config['tableWidgetDatabaseDuration']['second'],
+                                                                  seconds,
+                                                                  config['tableWidgetDatabaseDuration']['millisecond'],
+                                                                  (seconds-int(seconds))*1000)
     elif seconds!=0:
         return '<span style="color:{};">{:02.0f}s</span>'\
-               '<span style="color:{};">{:03.0f}ms</span>'.format(seconds,
-                                                                 config['tableWidgetDatabaseDuration']['millisecond'],
-                                                                 (seconds-int(seconds))*1000)
+               '<span style="color:{};">{:03.0f}ms</span>'.format(config['tableWidgetDatabaseDuration']['second'],
+                                                                  seconds,
+                                                                  config['tableWidgetDatabaseDuration']['millisecond'],
+                                                                  (seconds-int(seconds))*1000)
     else:
         return '<span style="color:{};">{:03.0f}ms</span>'.format(config['tableWidgetDatabaseDuration']['millisecond'],
-                                                                 (seconds-int(seconds))*1000)
+                                                                  (seconds-int(seconds))*1000)
 
 
 
