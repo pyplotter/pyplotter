@@ -231,28 +231,38 @@ configPackage = {
         'name' : 'name',
         'visible' : True
     },
-    'started' : {
+    'captured_run_id' : {
         'index' : 6,
+        'name' : 'captured_run_id',
+        'visible' : True
+    },
+    'guid' : {
+        'index' : 7,
+        'name' : 'guid',
+        'visible' : True
+    },
+    'started' : {
+        'index' : 8,
         'name' : 'started',
         'visible' : True
     },
     'completed' : {
-        'index' : 7,
+        'index' : 9,
         'name' : 'completed',
         'visible' : True
     },
     'duration' : {
-        'index' : 8,
+        'index' : 10,
         'name' : 'duration',
         'visible' : True
     },
     'runRecords' : {
-        'index' : 9,
+        'index' : 11,
         'name' : 'records',
         'visible' : True
     },
     'comment' : {
-        'index' : 10,
+        'index' : 12,
         'name' : 'comment',
         'visible' : True
     },

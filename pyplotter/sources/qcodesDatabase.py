@@ -442,7 +442,6 @@ def getOffsetLimitForCallback(databaseAbsPath: str,
 
 
 
-
 def getRunInfosmp(databaseAbsPath: str,
                   queueData: mp.Queue,
                   queueProgressBar: mp.Queue,
@@ -490,7 +489,7 @@ def getRunInfosmp(databaseAbsPath: str,
         callEvery = total
 
     ## Get runs infos
-    request = "SELECT run_id, exp_id, name, completed_timestamp, run_timestamp, result_table_name, run_description FROM 'runs'"
+    request = "SELECT run_id, exp_id, name, completed_timestamp, run_timestamp, result_table_name, run_description, captured_run_id, guid FROM 'runs'"
     runInfos: List[dict] = [{}]*total
     ids = np.arange(0, total, callEvery)
     if ids[-1]!=total:
@@ -552,6 +551,8 @@ def getRunInfosmp(databaseAbsPath: str,
                                         'experiment_name' : experimentInfos[runInfo['exp_id']-1]['name'],
                                         'sample_name' : experimentInfos[runInfo['exp_id']-1]['sample_name'],
                                         'run_name' : runInfo['name'],
+                                        'captured_run_id' : str(runInfo['captured_run_id']),
+                                        'guid' : runInfo['guid'],
                                         'started' : timestamp2string(runInfo['run_timestamp']),
                                         'completed' : timestamp2string(runInfo['completed_timestamp']),
                                         'duration'  : timestamps2duration(runInfo['completed_timestamp'], runInfo['run_timestamp']),

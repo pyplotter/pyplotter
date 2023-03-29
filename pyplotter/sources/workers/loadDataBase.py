@@ -14,7 +14,7 @@ class LoadDataBaseSignal(QtCore.QObject):
     # Signal used to update the status bar
     sendStatusBarMessage = QtCore.pyqtSignal(str, str)
     # Signal used to add n rows in the database table
-    addRows = QtCore.pyqtSignal(list, list, list, list, list, list, list, list, list, int, str)
+    addRows = QtCore.pyqtSignal(list, list, list, list, list, list, list, list, list, list, list, int, str)
     # Signal used to update the progress bar
     updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
     # When the run method is done
@@ -120,6 +120,8 @@ class LoadDataBaseThread(QtCore.QRunnable):
         experimentName  = []
         sampleName      = []
         runName         = []
+        captured_run_id = []
+        guid            = []
         started         = []
         completed       = []
         duration        = []
@@ -131,6 +133,8 @@ class LoadDataBaseThread(QtCore.QRunnable):
             experimentName.append(val['experiment_name'])
             sampleName.append(val['sample_name'])
             runName.append(val['run_name'])
+            captured_run_id.append(val['captured_run_id'])
+            guid.append(val['guid'])
             started.append(val['started'])
             completed.append(val['completed'])
             duration.append(val['duration'])
@@ -143,6 +147,8 @@ class LoadDataBaseThread(QtCore.QRunnable):
                                           experimentName,
                                           sampleName,
                                           runName,
+                                          captured_run_id,
+                                          guid,
                                           started,
                                           completed,
                                           duration,
@@ -157,6 +163,8 @@ class LoadDataBaseThread(QtCore.QRunnable):
                 experimentName  = []
                 sampleName      = []
                 runName         = []
+                captured_run_id = []
+                guid            = []
                 started         = []
                 completed       = []
                 duration        = []
@@ -169,6 +177,8 @@ class LoadDataBaseThread(QtCore.QRunnable):
                                       experimentName,
                                       sampleName,
                                       runName,
+                                      captured_run_id,
+                                      guid,
                                       started,
                                       completed,
                                       duration,

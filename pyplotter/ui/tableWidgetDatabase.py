@@ -137,18 +137,20 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
 
-    QtCore.pyqtSlot(list, list, list, list, list, list, list, list, list, int, str)
-    def databaseClickAddRows(self, lrunId          : List[int],
-                                   ldim            : List[str],
-                                   lexperimentName : List[str],
-                                   lsampleName     : List[str],
-                                   lrunName        : List[str],
-                                   lstarted        : List[str],
-                                   lcompleted      : List[str],
-                                   lduration       : List[str],
-                                   lrunRecords     : List[str],
-                                   nbTotalRun      : int,
-                                   databaseAbsPath : str) -> None:
+    QtCore.pyqtSlot(list, list, list, list, list, list, list, list, list, list, list, int, str)
+    def databaseClickAddRows(self, lrunId           : List[int],
+                                   ldim             : List[str],
+                                   lexperimentName  : List[str],
+                                   lsampleName      : List[str],
+                                   lrunName         : List[str],
+                                   lcaptured_run_id : List[str],
+                                   lguid            : List[str],
+                                   lstarted         : List[str],
+                                   lcompleted       : List[str],
+                                   lduration        : List[str],
+                                   lrunRecords      : List[str],
+                                   nbTotalRun       : int,
+                                   databaseAbsPath  : str) -> None:
         """
         Called by another thread to fill the database table.
         Each call add n rows into the table.
@@ -161,10 +163,10 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # We go through all lists of parameters and for each list element, we add
         # a row in the table
-        for (runId, dim, experimentName, sampleName, runName, started, completed,
-             duration, runRecords) in zip(lrunId,
-             ldim, lexperimentName, lsampleName, lrunName, lstarted, lcompleted,
-             lduration, lrunRecords):
+        for (runId, dim, experimentName, sampleName, runName, captured_run_id,
+             guid, started, completed, duration, runRecords) in zip(lrunId,
+             ldim, lexperimentName, lsampleName, lrunName, lcaptured_run_id,
+             lguid, lstarted, lcompleted, lduration, lrunRecords):
 
             itemRunId = TableWidgetItemNumOrdered(str(runId))
 
@@ -178,13 +180,15 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
             else:
                 itemRunId.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'empty.png')))
-
+            print('aa', captured_run_id)
             self.setItem(runId-1, config['DatabaseDisplayColumn']['databaseAbsPath']['index'], QtWidgets.QTableWidgetItem(databaseAbsPath))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['itemRunId']['index'],       itemRunId)
             self.setItem(runId-1, config['DatabaseDisplayColumn']['dimension']['index'],       QtWidgets.QTableWidgetItem(dim))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['experimentName']['index'],  QtWidgets.QTableWidgetItem(experimentName))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['sampleName']['index'],      QtWidgets.QTableWidgetItem(sampleName))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['runName']['index'],         QtWidgets.QTableWidgetItem(runName))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['captured_run_id']['index'], QtWidgets.QTableWidgetItem(captured_run_id))
+            self.setItem(runId-1, config['DatabaseDisplayColumn']['guid']['index'],            QtWidgets.QTableWidgetItem(guid))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['started']['index'],         QtWidgets.QTableWidgetItem(started))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['completed']['index'],       QtWidgets.QTableWidgetItem(completed))
 
