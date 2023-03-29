@@ -149,6 +149,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
         self.dialogMenuDatabaseDisplay = DialogMenuDatabaseDisplay(self.parent(), config)
         self.dialogMenuDatabaseDisplay.signalUpdateTableWidgetDatabase.connect(self.signalUpdateTableWidgetDatabase.emit)
+        self.dialogMenuDatabaseDisplay.signalUpdateStyle.connect(self.signalUpdateStyle.emit)
 
 
 

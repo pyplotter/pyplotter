@@ -32,6 +32,18 @@ class Ui_MenuDataBaseDisplay(object):
         self.verticalLayout_4.addLayout(self.verticalLayoutColumnDisplay)
         self.verticalLayout.addWidget(self.groupBoxColumnDisplay)
         self.verticalLayout_2.addLayout(self.verticalLayout)
+        self.groupBoxDuration = QtWidgets.QGroupBox(MenuDataBaseDisplay)
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.groupBoxDuration.setFont(font)
+        self.groupBoxDuration.setObjectName("groupBoxDuration")
+        self.verticalLayout_6 = QtWidgets.QVBoxLayout(self.groupBoxDuration)
+        self.verticalLayout_6.setObjectName("verticalLayout_6")
+        self.verticalLayoutDuration = QtWidgets.QVBoxLayout()
+        self.verticalLayoutDuration.setObjectName("verticalLayoutDuration")
+        self.verticalLayout_6.addLayout(self.verticalLayoutDuration)
+        self.verticalLayout_2.addWidget(self.groupBoxDuration)
 
         self.retranslateUi(MenuDataBaseDisplay)
         QtCore.QMetaObject.connectSlotsByName(MenuDataBaseDisplay)
@@ -40,3 +52,4 @@ class Ui_MenuDataBaseDisplay(object):
         _translate = QtCore.QCoreApplication.translate
         MenuDataBaseDisplay.setWindowTitle(_translate("MenuDataBaseDisplay", "Database display"))
         self.groupBoxColumnDisplay.setTitle(_translate("MenuDataBaseDisplay", "Column to display"))
+        self.groupBoxDuration.setTitle(_translate("MenuDataBaseDisplay", "Duration"))

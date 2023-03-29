@@ -141,21 +141,39 @@ configPackage = {
                             'pyqtgraphzAxisTicksColor' : '#ffffff',
                             'pyqtgraphxAxisTickLabelsColor': '#ffffff',
                             'pyqtgraphyAxisTickLabelsColor': '#ffffff',
-                            'pyqtgraphzAxisTickLabelsColor': '#ffffff'},
+                            'pyqtgraphzAxisTickLabelsColor': '#ffffff',
+
+                            # Font color for the duration column of the tableWidgetDatabase
+                            'tableWidgetDatabaseDuration' : {
+                                'hour'        : '#9292ff',
+                                'minute'      : '#008080',
+                                'second'      : '#a221de',
+                                'millisecond' : '#e01f1f'
+                                },
+                           },
             'qbstyles' : {'dialogBackgroundColor'    : '#0c1c23',
-                            'pyqtgraphBackgroundColor' : '#0c1c23',
-                            'dialogTextColor'          : '#dadcdd',
-                            'plot1dSelectionLineColor' : '#dadcdd',
-                            'pyqtgraphTitleTextColor'  : '#dadcdd',
-                            'pyqtgraphxLabelTextColor' : '#dadcdd',
-                            'pyqtgraphyLabelTextColor' : '#dadcdd',
-                            'pyqtgraphzLabelTextColor' : '#dadcdd',
-                            'pyqtgraphxAxisTicksColor' : '#dadcdd',
-                            'pyqtgraphyAxisTicksColor' : '#dadcdd',
-                            'pyqtgraphzAxisTicksColor' : '#dadcdd',
-                            'pyqtgraphxAxisTickLabelsColor': '#dadcdd',
-                            'pyqtgraphyAxisTickLabelsColor': '#dadcdd',
-                            'pyqtgraphzAxisTickLabelsColor': '#dadcdd'},
+                          'pyqtgraphBackgroundColor' : '#0c1c23',
+                          'dialogTextColor'          : '#dadcdd',
+                          'plot1dSelectionLineColor' : '#dadcdd',
+                          'pyqtgraphTitleTextColor'  : '#dadcdd',
+                          'pyqtgraphxLabelTextColor' : '#dadcdd',
+                          'pyqtgraphyLabelTextColor' : '#dadcdd',
+                          'pyqtgraphzLabelTextColor' : '#dadcdd',
+                          'pyqtgraphxAxisTicksColor' : '#dadcdd',
+                          'pyqtgraphyAxisTicksColor' : '#dadcdd',
+                          'pyqtgraphzAxisTicksColor' : '#dadcdd',
+                          'pyqtgraphxAxisTickLabelsColor': '#dadcdd',
+                          'pyqtgraphyAxisTickLabelsColor': '#dadcdd',
+                          'pyqtgraphzAxisTickLabelsColor': '#dadcdd',
+
+                          # Font color for the duration column of the tableWidgetDatabase
+                          'tableWidgetDatabaseDuration' : {
+                              'hour'        : '#9292ff',
+                              'minute'      : '#008080',
+                              'second'      : '#a221de',
+                              'millisecond' : '#e01f1f'
+                              },
+                         },
             'white' : {'dialogBackgroundColor'    : '#ffffff',
                        'pyqtgraphBackgroundColor' : '#ffffff',
                        'dialogTextColor'          : '#000000',
@@ -169,7 +187,17 @@ configPackage = {
                        'pyqtgraphzAxisTicksColor' : '#000000',
                        'pyqtgraphxAxisTickLabelsColor': '#000000',
                        'pyqtgraphyAxisTickLabelsColor': '#000000',
-                       'pyqtgraphzAxisTickLabelsColor': '#000000'}},
+                       'pyqtgraphzAxisTickLabelsColor': '#000000',
+
+                        # Font color for the duration column of the tableWidgetDatabase
+                        'tableWidgetDatabaseDuration' : {
+                            'hour'        : '#1111dd',
+                            'minute'      : '#008080',
+                            'second'      : '#a221de',
+                            'millisecond' : '#e01f1f'
+                            },
+                      },
+           },
 
 # Columns of tableWidgetDatabase
 'DatabaseDisplayColumn' : {
@@ -228,14 +256,6 @@ configPackage = {
         'name' : 'comment',
         'visible' : True
     },
-},
-
-# Font color for the duration column of the tableWidgetDatabase
-'tableWidgetDatabaseDuration' : {
-    'hour' : '#0000ff',
-    'minute' : '#008080',
-    'second' : '#a221de',
-    'millisecond' : '#e01f1f'
 },
 
 # Font size of the axis and tick labels

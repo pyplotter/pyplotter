@@ -9,6 +9,7 @@ class DialogMenuDatabaseDisplay(QtWidgets.QDialog, Ui_MenuDataBaseDisplay):
 
 
     signalUpdateTableWidgetDatabase = QtCore.pyqtSignal(dict)
+    signalUpdateStyle               = QtCore.pyqtSignal(dict)
 
 
     def __init__(self, parent: QtWidgets.QMainWindow,
@@ -20,13 +21,43 @@ class DialogMenuDatabaseDisplay(QtWidgets.QDialog, Ui_MenuDataBaseDisplay):
         self.config = config
 
         # Add one checkbox per column
-        for val in config['DatabaseDisplayColumn'].values():
+        for val in self.config['DatabaseDisplayColumn'].values():
 
             if val['name']!='':
                 cb = QtWidgets.QCheckBox(val['name'])
                 cb.setChecked(val['visible'])
                 cb.toggled.connect(lambda : self.checkBoxClicked())
                 self.verticalLayoutColumnDisplay.addWidget(cb)
+
+        # Add color choice for hour, minutes, ...
+        self.durationColorButtons = {}
+        for key, val in config['styles'][config['style']]['tableWidgetDatabaseDuration'].items():
+
+            h = QtWidgets.QHBoxLayout()
+
+            b = QtWidgets.QPushButton()
+            css = "QPushButton {"
+            css +=     "background-color: {};".format(val)
+            css +=     "border: 1px black solid;"
+            css += "}"
+            b.setStyleSheet(css)
+            b.setMinimumSize(30, 20)
+            b.setMaximumSize(30, 20)
+
+            b.clicked.connect(lambda b, key=key: self.buttonCClicked(b, key))
+
+            l = QtWidgets.QLabel(key)
+            css = "QLabel {"
+            css +=     "font-weight: normal;"
+            css += "}"
+            l.setStyleSheet(css)
+
+            h.addWidget(b)
+            h.addWidget(l)
+
+            self.verticalLayoutDuration.addLayout(h)
+
+            self.durationColorButtons[key] = b
 
         self.show()
 
@@ -58,3 +89,25 @@ class DialogMenuDatabaseDisplay(QtWidgets.QDialog, Ui_MenuDataBaseDisplay):
 
 
 
+    def buttonCClicked(self,
+                       _: bool,
+                       key: str) -> None:
+
+        # Find the clicked button
+        b = self.durationColorButtons[key]
+
+        # Find the chosen color
+        color = QtWidgets.QColorDialog.getColor()
+
+        if color.isValid():
+
+            self.config['styles'][self.config['style']]['tableWidgetDatabaseDuration'][key] = color.name()
+            updateUserConfig(['styles', self.config['style'], 'tableWidgetDatabaseDuration', key], color.name())
+
+            css = "QPushButton {"
+            css +=     "background-color: {};".format( color.name())
+            css +=     "border: 1px black solid;"
+            css += "}"
+            b.setStyleSheet(css)
+
+            self.signalUpdateStyle.emit(self.config)
