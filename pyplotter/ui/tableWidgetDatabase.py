@@ -180,7 +180,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 itemRunId.setForeground(QtGui.QBrush(QtGui.QColor(*config['runHiddenColor'])))
             else:
                 itemRunId.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'empty.png')))
-            print('aa', captured_run_id)
+
             self.setItem(runId-1, config['DatabaseDisplayColumn']['databaseAbsPath']['index'], QtWidgets.QTableWidgetItem(databaseAbsPath))
             self.setItem(runId-1, config['DatabaseDisplayColumn']['itemRunId']['index'],       itemRunId)
             self.setItem(runId-1, config['DatabaseDisplayColumn']['dimension']['index'],       QtWidgets.QTableWidgetItem(dim))
