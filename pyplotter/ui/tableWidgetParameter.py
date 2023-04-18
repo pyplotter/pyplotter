@@ -55,20 +55,67 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
 
     def first_call(self):
+
+        columnIndex = 0
         ## Only used to propagate information
         # runId
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('run id')
+        self.setHorizontalHeaderItem(columnIndex, item)
         self.setColumnHidden(0, True)
         # experimentName
+        columnIndex += 1
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('experiment name')
+        self.setHorizontalHeaderItem(columnIndex, item)
         self.setColumnHidden(1, True)
         # parameterName
+        columnIndex += 1
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('parameter name')
+        self.setHorizontalHeaderItem(columnIndex, item)
         self.setColumnHidden(2, True)
         # databaseAbsPath
+        columnIndex += 1
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('databaseAbsPath')
+        self.setHorizontalHeaderItem(columnIndex, item)
         self.setColumnHidden(3, True)
         # dataType
+        columnIndex += 1
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('dataType')
+        self.setHorizontalHeaderItem(columnIndex, item)
         self.setColumnHidden(4, True)
 
-        # Should be last column above + 1
-        self.cbColumn = 5
+        ## Column display
+        # plotted
+        columnIndex += 1
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('plotted')
+        self.setHorizontalHeaderItem(columnIndex, item)
+        # We need that index for detected a particular click event
+        self.columnIndexPlotted = columnIndex
+        # axis
+        columnIndex += 1
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('axis')
+        self.setHorizontalHeaderItem(columnIndex, item)
+        # unit
+        columnIndex += 1
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('unit')
+        self.setHorizontalHeaderItem(columnIndex, item)
+        # shaoe
+        columnIndex += 1
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('unit')
+        self.setHorizontalHeaderItem(columnIndex, item)
+        # swept parameters
+        columnIndex += 1
+        item = QtWidgets.QTableWidgetItem()
+        item.setText('swept parameters')
+        self.setHorizontalHeaderItem(columnIndex, item)
 
 
 
@@ -86,8 +133,8 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         """
 
         # If user clicks on the cell containing the checkbox
-        if column==self.cbColumn:
-            cb = self.cellWidget(row, self.cbColumn)
+        if column==self.columnIndexPlotted:
+            cb = self.cellWidget(row, self.columnIndexPlotted)
             cb.toggle()
 
 
@@ -127,6 +174,8 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
             This should be a qcodes dependent parameter dict.
         plotRef : str
             Reference to a plot window, see getPlotRef.
+        dataType : str
+            either "qcodes", "csv", "bluefors"
         """
 
         if state:
@@ -184,6 +233,8 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
             Reference of the plot window.
         dependentParamName : str
             Name of the dependent parameter from which data will be downloaded.
+        dataType : str
+            either "qcodes", "csv", "bluefors"
         """
 
         # Flag
@@ -332,7 +383,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
         # If a double click is detected, we launch a plot of the first parameter
         if doubleClick:
-            self.parameterCellClicked(0, self.cbColumn)
+            self.parameterCellClicked(0, self.columnIndexPlotted)
 
 
 
@@ -349,6 +400,8 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                          rowPosition: int,
                          isParameterPlotted: bool) -> None:
         """
+        dataType : str
+            either "qcodes", "csv", "bluefors"
         """
 
         runIdStr = str(runId)
@@ -416,9 +469,9 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
             if rowCurveId==curveId:
                 # Uncheck the checkBox without triggering an event
-                self.cellWidget(row, self.cbColumn).setCheckable(False)
-                self.cellWidget(row, self.cbColumn).setChecked(False)
-                self.cellWidget(row, self.cbColumn).setCheckable(True)
+                self.cellWidget(row, self.columnIndexPlotted).setCheckable(False)
+                self.cellWidget(row, self.columnIndexPlotted).setChecked(False)
+                self.cellWidget(row, self.columnIndexPlotted).setCheckable(True)
 
 
 
