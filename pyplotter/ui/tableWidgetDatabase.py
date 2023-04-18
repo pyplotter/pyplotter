@@ -33,7 +33,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     # Propagated to labelCurrentDataBase
     signalUpdateCurrentDatabase = QtCore.pyqtSignal(str)
     # Propagated to tableWidgetParameter
-    signalRunClick = QtCore.pyqtSignal(int, list, dict, str, str, str, str, bool)
+    signalRunClick = QtCore.pyqtSignal(int, list, dict, dict, str, str, str, str, bool)
     # Propagated to tableWidgetFolder
     signalDatabaseStars   = QtCore.pyqtSignal()
     signalDatabaseUnstars = QtCore.pyqtSignal()

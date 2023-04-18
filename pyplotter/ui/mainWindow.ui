@@ -307,51 +307,6 @@
            <attribute name="verticalHeaderVisible">
             <bool>false</bool>
            </attribute>
-           <column>
-            <property name="text">
-             <string>run id</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>experiment name</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>parameter name</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>databaseAbsPath</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>dataType</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>plotted</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>axis</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>unit</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>swept parameters</string>
-            </property>
-           </column>
           </widget>
          </item>
         </layout>

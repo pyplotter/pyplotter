@@ -91,7 +91,7 @@ class WidgetCSV(QtWidgets.QWidget):
 
     signalUpdateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
     signalRemoveProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar)
-    signalFillTableWidgetParameter = QtCore.pyqtSignal(int, list, dict, str, str, str, str, bool)
+    signalFillTableWidgetParameter = QtCore.pyqtSignal(int, list, dict, dict, str, str, str, str, bool)
     signalLoadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
 
     def __init__(self, parent):
@@ -208,6 +208,7 @@ class WidgetCSV(QtWidgets.QWidget):
         self.signalFillTableWidgetParameter.emit(0, # runId
                                                  self.paramDependentList, # dependentList,
                                                  {}, # snapshotDict,
+                                                 {i['name'] : None for i in self.paramDependentList}, # shapes
                                                  '', # experimentName
                                                  '', # runName
                                                  fileAbsPath, # fileAbsPath

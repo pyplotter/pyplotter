@@ -24,7 +24,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
     signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
     signalEnableCheck          = QtCore.pyqtSignal(QtWidgets.QCheckBox)
-    signalAddRow               = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, str, int, bool)
+    signalAddRow               = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, str, str, int, bool)
 
     signalRunClickDone = QtCore.pyqtSignal()
 
@@ -183,10 +183,11 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
 
 
-    @QtCore.pyqtSlot(int, dict, str, str, str, str, str, str, str, int)
+    @QtCore.pyqtSlot(int, dict, str, str, str, str, str, str, str, str, int)
     def addRow(self, runId: int,
                      paramDependent: dict,
                      experimentName: str,
+                     shape: str,
                      curveId: str,
                      plotRef: str,
                      plotTitle: str,
@@ -216,6 +217,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         self.signalAddRow.emit(runId,
                                paramDependent,
                                experimentName,
+                               shape,
                                curveId,
                                plotRef,
                                plotTitle,

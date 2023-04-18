@@ -3,7 +3,7 @@ from PyQt5 import QtCore
 
 from ..config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..qcodesDatabase import getDependentSnapshotFromRunId
+from ..qcodesDatabase import getDependentSnapshotShapeFromRunId
 
 
 class LoadRunInfoSignal(QtCore.QObject):
@@ -12,7 +12,7 @@ class LoadRunInfoSignal(QtCore.QObject):
     """
 
     # When the run method is done
-    updateRunInfo = QtCore.pyqtSignal(int, list,dict, str, str, str, str, bool)
+    updateRunInfo = QtCore.pyqtSignal(int, list, dict, dict, str, str, str, str, bool)
 
 class LoadRunInfoThread(QtCore.QRunnable):
 
@@ -56,12 +56,15 @@ class LoadRunInfoThread(QtCore.QRunnable):
         Method launched by the worker.
         """
 
-        dependentList, snapshotDict = getDependentSnapshotFromRunId(self.databaseAbsPath,
-                                                                    self.runId)
+        (dependentList,
+         snapshotDict,
+         shapesDict) = getDependentSnapshotShapeFromRunId(self.databaseAbsPath,
+                                                          self.runId)
 
         self.signal.updateRunInfo.emit(self.runId,
                                        dependentList,
                                        snapshotDict,
+                                       shapesDict,
                                        self.experimentName,
                                        self.runName,
                                        self.databaseAbsPath,

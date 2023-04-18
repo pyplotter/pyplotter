@@ -4,7 +4,7 @@ import time
 import sqlite3
 import json
 import numpy as np
-from typing import Tuple, List, Union, Optional
+from typing import Dict, Tuple, List, Union, Optional
 import multiprocess as mp
 try:
     from importlib.metadata import version
@@ -198,6 +198,24 @@ def getNbDependentFromRow(row : Union[dict, sqlite3.Row]) -> int:
 
 
 
+def getShapeFromRunDescription(runDescription : dict) -> Dict[str, Optional[Tuple[int]]]:
+    """
+        dict of the dependent parameter shape.
+        {dependent parameter name : shape}
+    """
+
+    dependentNames = [i['name'] for i in runDescription['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
+    # No shapes stored
+    if runDescription['version']<3:
+        return {name : None for name in dependentNames}
+    else:
+        if runDescription['shapes'] is None:
+            return {name : None for name in dependentNames}
+        else:
+            return runDescription['shapes']
+
+
+
 def getDependentSnapshotFromRunId(databaseAbsPath: str,
                                   runId: int) -> Tuple[list, dict]:
     """
@@ -240,6 +258,54 @@ def getDependentSnapshotFromRunId(databaseAbsPath: str,
     dependents = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
 
     return dependents, snapshotDict
+
+
+
+def getDependentSnapshotShapeFromRunId(databaseAbsPath: str,
+                                       runId: int) -> Tuple[list, dict, dict]:
+    """
+    Get the list of dependent parameters from a runId.
+    Return a tuple of dependent parameters, each parameter
+    being a dict.
+
+    Parameters
+    ----------
+    runId: int
+        id of the run.
+
+    Return
+    ------
+    (dependent, snapshotDict) : tuple
+        dependents : list
+            list of dict of all dependents parameters.
+        snapshotDict : dict
+            Snapshot of the run.
+        shape : Dict[str, Optional[Tuple[int]]]
+            list of the dependent parameter shape.
+    """
+
+    conn, cur = openDatabase(databaseAbsPath,
+                             returnDict=True)
+
+    # Get runs infos
+    cur.execute("SELECT run_description, snapshot FROM 'runs' WHERE run_id="+str(runId))
+    row = cur.fetchall()[0]
+
+    # Create nice dict object from a string
+    d = json.loads(row['run_description'])
+
+    # If there is no station, the snapshot is None
+    if row['snapshot'] is None:
+        snapshotDict = {'': config['defaultSnapshot']}
+    else:
+        snapshotDict = json.loads(row['snapshot'])
+
+    closeDatabase(conn, cur)
+
+    dependents = [i for i in d['interdependencies']['paramspecs'] if len(i['depends_on'])!=0]
+    shapes = getShapeFromRunDescription(d)
+
+    return dependents, snapshotDict, shapes
 
 
 

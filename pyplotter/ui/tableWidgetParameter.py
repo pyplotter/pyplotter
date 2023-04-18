@@ -32,7 +32,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     signalLabelSnapshotEnabled       = QtCore.pyqtSignal(bool)
     signalUpdateLabelCurrentSnapshot = QtCore.pyqtSignal(str)
     signalUpdateLabelCurrentRun      = QtCore.pyqtSignal(str)
-    signaladdRow                     = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, str, int)
+    signaladdRow                     = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, str, str, int)
 
     signalLoadedDataEmpty  = QtCore.pyqtSignal(QtWidgets.QCheckBox, QtWidgets.QProgressBar)
     signalLoadedDataFull   = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
@@ -56,66 +56,67 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
     def first_call(self):
 
-        columnIndex = 0
+        self._columnIndexes = {'runId' : 0,
+                               'experimentName' : 1,
+                               'parameterName' : 2,
+                               'databaseAbsPath' : 3,
+                               'dataType' : 4,
+                               'plotted' : 5,
+                               'axis' : 6,
+                               'unit' : 7,
+                               'shape' : 8,
+                               'sweptParameters' : 9,
+                               }
+        self.setColumnCount(len(self._columnIndexes))
+
         ## Only used to propagate information
         # runId
         item = QtWidgets.QTableWidgetItem()
-        item.setText('run id')
-        self.setHorizontalHeaderItem(columnIndex, item)
-        self.setColumnHidden(0, True)
+        item.setText('runId')
+        self.setHorizontalHeaderItem(self._columnIndexes['runId'], item)
+        self.setColumnHidden(self._columnIndexes['runId'], True)
         # experimentName
-        columnIndex += 1
         item = QtWidgets.QTableWidgetItem()
-        item.setText('experiment name')
-        self.setHorizontalHeaderItem(columnIndex, item)
-        self.setColumnHidden(1, True)
+        item.setText('experimentName')
+        self.setHorizontalHeaderItem(self._columnIndexes['experimentName'], item)
+        self.setColumnHidden(self._columnIndexes['experimentName'], True)
         # parameterName
-        columnIndex += 1
         item = QtWidgets.QTableWidgetItem()
-        item.setText('parameter name')
-        self.setHorizontalHeaderItem(columnIndex, item)
-        self.setColumnHidden(2, True)
+        item.setText('parameterName')
+        self.setHorizontalHeaderItem(self._columnIndexes['parameterName'], item)
+        self.setColumnHidden(self._columnIndexes['parameterName'], True)
         # databaseAbsPath
-        columnIndex += 1
         item = QtWidgets.QTableWidgetItem()
         item.setText('databaseAbsPath')
-        self.setHorizontalHeaderItem(columnIndex, item)
-        self.setColumnHidden(3, True)
+        self.setHorizontalHeaderItem(self._columnIndexes['databaseAbsPath'], item)
+        self.setColumnHidden(self._columnIndexes['databaseAbsPath'], True)
         # dataType
-        columnIndex += 1
         item = QtWidgets.QTableWidgetItem()
         item.setText('dataType')
-        self.setHorizontalHeaderItem(columnIndex, item)
-        self.setColumnHidden(4, True)
+        self.setHorizontalHeaderItem(self._columnIndexes['dataType'], item)
+        self.setColumnHidden(self._columnIndexes['dataType'], True)
 
         ## Column display
         # plotted
-        columnIndex += 1
         item = QtWidgets.QTableWidgetItem()
         item.setText('plotted')
-        self.setHorizontalHeaderItem(columnIndex, item)
-        # We need that index for detected a particular click event
-        self.columnIndexPlotted = columnIndex
+        self.setHorizontalHeaderItem(self._columnIndexes['plotted'], item)
         # axis
-        columnIndex += 1
         item = QtWidgets.QTableWidgetItem()
         item.setText('axis')
-        self.setHorizontalHeaderItem(columnIndex, item)
+        self.setHorizontalHeaderItem(self._columnIndexes['axis'], item)
         # unit
-        columnIndex += 1
         item = QtWidgets.QTableWidgetItem()
         item.setText('unit')
-        self.setHorizontalHeaderItem(columnIndex, item)
+        self.setHorizontalHeaderItem(self._columnIndexes['unit'], item)
         # shaoe
-        columnIndex += 1
         item = QtWidgets.QTableWidgetItem()
-        item.setText('unit')
-        self.setHorizontalHeaderItem(columnIndex, item)
+        item.setText('shape')
+        self.setHorizontalHeaderItem(self._columnIndexes['shape'], item)
         # swept parameters
-        columnIndex += 1
         item = QtWidgets.QTableWidgetItem()
         item.setText('swept parameters')
-        self.setHorizontalHeaderItem(columnIndex, item)
+        self.setHorizontalHeaderItem(self._columnIndexes['sweptParameters'], item)
 
 
 
@@ -133,8 +134,8 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         """
 
         # If user clicks on the cell containing the checkbox
-        if column==self.columnIndexPlotted:
-            cb = self.cellWidget(row, self.columnIndexPlotted)
+        if column==self._columnIndexes['plotted']:
+            cb = self.cellWidget(row, self._columnIndexes['plotted'])
             cb.toggle()
 
 
@@ -317,10 +318,11 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
 
 
-    @QtCore.pyqtSlot(int, list, dict, str, str, str, str, bool)
+    @QtCore.pyqtSlot(int, list, dict, dict, str, str, str, str, bool)
     def slotFillTableWidgetParameter(self, runId: int,
                                            paramDependentList: list,
                                            snapshotDict: dict,
+                                           shapesDict: dict,
                                            experimentName: str,
                                            runName: str,
                                            databaseAbsPath: str,
@@ -353,6 +355,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
             self.insertRow(rowPosition)
             self.signaladdRow.emit(runId,
                                    paramDependent,
+                                   str(shapesDict[paramDependent['name']]).replace('[', '').replace(']', ''),
                                    experimentName,
                                    curveId,
                                    plotRef,
@@ -383,13 +386,14 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
         # If a double click is detected, we launch a plot of the first parameter
         if doubleClick:
-            self.parameterCellClicked(0, self.columnIndexPlotted)
+            self.parameterCellClicked(0, self._columnIndexes['plotted'])
 
 
 
-    @QtCore.pyqtSlot(int, dict, str, str, str, str, str, str, str, int, bool)
+    @QtCore.pyqtSlot(int, dict, str, str, str, str, str, str, str, str, int, bool)
     def slotAddRow(self, runId: int,
                          paramDependent: dict,
+                         shape: str,
                          experimentName: str,
                          curveId: str,
                          plotRef: str,
@@ -411,18 +415,18 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         if isParameterPlotted:
             cb.setChecked(True)
 
-        self.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(runIdStr))
-        self.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(experimentName))
-        self.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(paramDependent['name']))
-        self.setItem(rowPosition, 3, QtWidgets.QTableWidgetItem(databaseAbsPath))
-        self.setItem(rowPosition, 4, QtWidgets.QTableWidgetItem(dataType))
-        self.setCellWidget(rowPosition, 5, cb)
-        self.setItem(rowPosition, 6, QtWidgets.QTableWidgetItem(paramDependent['label']))
-        self.setItem(rowPosition, 7, QtWidgets.QTableWidgetItem(paramDependent['unit']))
-
+        self.setItem(rowPosition, self._columnIndexes['runId'], QtWidgets.QTableWidgetItem(runIdStr))
+        self.setItem(rowPosition, self._columnIndexes['experimentName'], QtWidgets.QTableWidgetItem(experimentName))
+        self.setItem(rowPosition, self._columnIndexes['parameterName'], QtWidgets.QTableWidgetItem(paramDependent['name']))
+        self.setItem(rowPosition, self._columnIndexes['databaseAbsPath'], QtWidgets.QTableWidgetItem(databaseAbsPath))
+        self.setItem(rowPosition, self._columnIndexes['dataType'], QtWidgets.QTableWidgetItem(dataType))
+        self.setCellWidget(rowPosition, self._columnIndexes['plotted'], cb)
+        self.setItem(rowPosition, self._columnIndexes['axis'], QtWidgets.QTableWidgetItem(paramDependent['label']))
+        self.setItem(rowPosition, self._columnIndexes['unit'], QtWidgets.QTableWidgetItem(paramDependent['unit']))
+        self.setItem(rowPosition, self._columnIndexes['shape'], QtWidgets.QTableWidgetItem(shape))
 
         independentString = config['sweptParameterSeparator'].join(paramDependent['depends_on'])
-        self.setCellWidget(rowPosition, 8, QtWidgets.QLabel(independentString))
+        self.setCellWidget(rowPosition, self._columnIndexes['sweptParameters'], QtWidgets.QLabel(independentString))
 
         # Each checkbox at its own event attached to it
         cb.toggled.connect(lambda state,
@@ -469,9 +473,9 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
             if rowCurveId==curveId:
                 # Uncheck the checkBox without triggering an event
-                self.cellWidget(row, self.columnIndexPlotted).setCheckable(False)
-                self.cellWidget(row, self.columnIndexPlotted).setChecked(False)
-                self.cellWidget(row, self.columnIndexPlotted).setCheckable(True)
+                self.cellWidget(row, self._columnIndexes['plotted']).setCheckable(False)
+                self.cellWidget(row, self._columnIndexes['plotted']).setChecked(False)
+                self.cellWidget(row, self._columnIndexes['plotted']).setCheckable(True)
 
 
 
