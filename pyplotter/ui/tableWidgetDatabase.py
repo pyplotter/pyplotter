@@ -53,6 +53,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     def __init__(self, parent=None) -> None:
         super(TableWidgetDatabase, self).__init__(parent)
 
+        # Forbid editing of the cells
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
 
         # When user wants to look at a run
         self.cellClicked.connect(self.runClick)
