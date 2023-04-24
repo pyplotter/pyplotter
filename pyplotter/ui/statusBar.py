@@ -175,8 +175,10 @@ class StatusBar(QtWidgets.QStatusBar):
         """
         self.removeWidget(progressBar)
         del(progressBar)
-        self.removeWidget(self.progressBarLabel)
-        del(self.progressBarLabel)
+
+        if hasattr(self, 'progressBarLabel'):
+            self.removeWidget(self.progressBarLabel)
+            del(self.progressBarLabel)
 
 
 
