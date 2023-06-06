@@ -82,7 +82,7 @@ class LoadDataBaseThread(QtCore.QRunnable):
             progressBar = queueProgressBar.get()
             queueProgressBar.put(progressBar)
 
-            self.signal.updateProgressBar.emit(self.progressBar, progressBar, '')
+            self.signal.updateProgressBar.emit(self.progressBar, progressBar, 'Loading database: {:.0f}%'.format(progressBar))
 
             done = queueDone.get()
             queueDone.put(done)
