@@ -482,7 +482,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         self.pushButtonLivePlot.setText('Loading QCoDeS...')
         # self.setStatusBarMessage()
-        QtTest.QTest.qWait(100)
+        QtCore.QThread.msleep(100)
         from qcodes import initialise_or_create_database_at, load_by_run_spec
         self.pushButtonLivePlot.setText('Select database...')
         self.loadDataset = load_by_run_spec

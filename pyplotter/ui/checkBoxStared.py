@@ -53,7 +53,7 @@ class CheckBoxStared(QtWidgets.QCheckBox):
 
 
 
-    @QtCore.pyqtSlot()
-    def databaseClickDone(self) -> None:
+    @QtCore.pyqtSlot(str)
+    def databaseClickDone(self, databaseAbsPath: str) -> None:
         # Enable database interaction
         self.setEnabled(True)

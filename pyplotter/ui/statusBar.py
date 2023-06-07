@@ -9,12 +9,13 @@ config = loadConfigCurrent()
 
 class StatusBar(QtWidgets.QStatusBar):
 
-    signalUpdateStyle        = QtCore.pyqtSignal(dict)
-    signalOpenDialogLivePlot = QtCore.pyqtSignal()
-    signalDatabaseLoad      = QtCore.pyqtSignal(str, QtWidgets.QProgressBar)
-    signalCsvLoad      = QtCore.pyqtSignal(str, bool, QtWidgets.QProgressBar)
-    signalBlueForsLoad      = QtCore.pyqtSignal(str, bool, QtWidgets.QProgressBar)
-    signalAddCurve     = QtCore.pyqtSignal(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
+    signalUpdateStyle         = QtCore.pyqtSignal(dict)
+    signalOpenDialogLivePlot  = QtCore.pyqtSignal()
+    signalDatabaseLoadingStop = QtCore.pyqtSignal()
+    signalDatabaseLoad        = QtCore.pyqtSignal(str, QtWidgets.QProgressBar)
+    signalCsvLoad             = QtCore.pyqtSignal(str, bool, QtWidgets.QProgressBar)
+    signalBlueForsLoad        = QtCore.pyqtSignal(str, bool, QtWidgets.QProgressBar)
+    signalAddCurve            = QtCore.pyqtSignal(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
 
     def __init__(self, parent: Optional[Any]=None) -> None:
         super(StatusBar, self).__init__(parent)
@@ -73,10 +74,10 @@ class StatusBar(QtWidgets.QStatusBar):
     def csvLoad(self, databaseAbsPath: str,
                       doubleClick: bool) -> None:
 
-        progressBar = self.addProgressBar()
+        self.progressBarDatabaseLoad = self.addProgressBar()
         self.signalCsvLoad.emit(databaseAbsPath,
                                 doubleClick,
-                                progressBar)
+                                self.progressBarDatabaseLoad)
 
 
 
@@ -84,20 +85,32 @@ class StatusBar(QtWidgets.QStatusBar):
     def blueForsLoad(self, databaseAbsPath: str,
                            doubleClick: bool) -> None:
 
-        progressBar = self.addProgressBar()
+        self.progressBarDatabaseLoad = self.addProgressBar()
         self.signalBlueForsLoad.emit(databaseAbsPath,
                                      doubleClick,
-                                     progressBar)
+                                     self.progressBarDatabaseLoad)
+
+
+
+    @QtCore.pyqtSlot()
+    def databaseLoadingStop(self) -> None:
+        """
+        Called from tableWidgetFolder to interupt the loading of a database.
+        Remove the progress bar of the database loading and propagate the
+        event to tableWidgetDatabase.
+        """
+
+        self.removeProgressBar(self.progressBarDatabaseLoad)
+        self.signalDatabaseLoadingStop.emit()
 
 
 
     @QtCore.pyqtSlot(str)
     def databaseLoad(self, databaseAbsPath: str) -> None:
 
-        progressBar = self.addProgressBar()
+        self.progressBarDatabaseLoad = self.addProgressBar()
         self.signalDatabaseLoad.emit(databaseAbsPath,
-                                      progressBar)
-
+                                     self.progressBarDatabaseLoad)
 
 
     @QtCore.pyqtSlot(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox)

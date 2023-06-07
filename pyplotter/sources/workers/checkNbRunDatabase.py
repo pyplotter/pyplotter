@@ -58,7 +58,7 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
             elapsedTime = config['delayBetweendataBaseNbRunCheck']-twait
             self.signal.addStatusBarMessage.emit(' (Check for new run in {}s)'.format(elapsedTime),
                                                   'green')
-            QtTest.QTest.qWait(1000)
+            QtCore.QThread.msleep(1000)
 
         # We check if the thread ias being stopped
         if self._stop:
@@ -77,6 +77,8 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
         queueNbRun.close()
         queueNbRun.join_thread()
 
+        self.worker.join()
+
         # We check if the thread ias being stopped
         if self._stop:
             return
@@ -84,12 +86,12 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
         if self.nbTotalRun<nbTotalRun:
             self.signal.addStatusBarMessage.emit(' (New run detected)',
                                                   'orange')
-            QtTest.QTest.qWait(500)
+            QtCore.QThread.msleep(500)
             self.signal.dataBaseUpdate.emit(self.databaseAbsPath)
         else:
             self.signal.addStatusBarMessage.emit(' (No run detected)',
                                                   'black')
-            QtTest.QTest.qWait(500)
+            QtCore.QThread.msleep(500)
             # In any case, we rerun the thread
             self.signal.dataBaseCheckNbRun.emit(self.databaseAbsPath,
                                                 nbTotalRun)

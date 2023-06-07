@@ -106,11 +106,13 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         self.statusBarMain.signalCsvLoad.connect(self.widgetCSV.csvLoad)
         self.statusBarMain.signalBlueForsLoad.connect(self.widgetBlueFors.blueForsLoad)
         self.statusBarMain.signalDatabaseLoad.connect(self.tableWidgetDataBase.databaseClick)
+        self.statusBarMain.signalDatabaseLoadingStop.connect(self.tableWidgetDataBase.databaseLoadingStop)
         self.statusBarMain.signalAddCurve.connect(self.tableWidgetParameter.getData)
 
         self.tableWidgetFolder.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
         self.tableWidgetFolder.signalBlueForsClick.connect(self.statusBarMain.blueForsLoad)
         self.tableWidgetFolder.signalCSVClick.connect(self.statusBarMain.csvLoad)
+        self.tableWidgetFolder.signalDatabaseLoadingStop.connect(self.statusBarMain.databaseLoadingStop)
         self.tableWidgetFolder.signalDatabaseClick.connect(self.statusBarMain.databaseLoad)
         self.tableWidgetFolder.signalDatabaseClick.connect(self.checkBoxHidden.databaseClick)
         self.tableWidgetFolder.signalDatabaseClick.connect(self.checkBoxStared.databaseClick)
@@ -140,6 +142,8 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         self.tableWidgetDataBase.signalUpdateCurrentDatabase.connect(self.labelCurrentDataBase.setText)
 
         self.tableWidgetDataBase.signalRunClick.connect(self.tableWidgetParameter.slotFillTableWidgetParameter)
+
+        self.tableWidgetDataBase.signalDatabaseLoadingStop.connect(self.tableWidgetFolder.databaseLoadingStop)
 
         self.tableWidgetDataBase.first_call()
 

@@ -133,7 +133,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         # to avoid blinking
         done = False
         while not done:
-            QtTest.QTest.qWait(config['delayBetweenProgressBarUpdate'])
+            QtCore.QThread.msleep(config['delayBetweenProgressBarUpdate'])
 
             progressBarNew = queueProgressBar.get()
             queueProgressBar.put(progressBarNew)
@@ -157,6 +157,9 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         queueProgressBar.join_thread()
         queueDone.close()
         queueDone.join_thread()
+
+
+        self.worker.join()
 
         # If getParameterDatamp failed, or the database is empty we emit a specific
         # signal which will flag the data download as done without launching a

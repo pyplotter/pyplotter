@@ -248,16 +248,16 @@ class RunPropertiesExtra:
 
 
 
-    def isDatabaseStared(self) -> bool:
+    def isDatabaseStared(self, databaseName: str) -> bool:
         """
         Return True if the databaseName has at least one run stared in
         the json file.
         False otherwise.
         """
 
-        if self.databaseName in self.json:
-            if 'stared' in self.json[self.databaseName]:
-                if len(self.json[self.databaseName]['stared'])>0:
+        if databaseName in self.json:
+            if 'stared' in self.json[databaseName]:
+                if len(self.json[databaseName]['stared'])>0:
 
                     return True
                 else:

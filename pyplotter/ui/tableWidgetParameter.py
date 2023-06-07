@@ -242,7 +242,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         self._dataDowloadingFlag = True
 
         cb.setEnabled(False)
-        QtTest.QTest.qWait(100)
+        QtCore.QThread.msleep(100)
 
         if dataType=='qcodes':
             worker = LoadDataFromRunThread(curveId,

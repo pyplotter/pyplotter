@@ -29,7 +29,9 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     signalUpdateProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
     signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
     # Propagated to tableWidgetFolder, checkBoxHidden, checkBoxStared
-    signalDatabaseClickDone = QtCore.pyqtSignal()
+    signalDatabaseClickDone = QtCore.pyqtSignal(str)
+    # Propagated to tableWidgetFolder
+    signalDatabaseLoadingStop = QtCore.pyqtSignal(str)
     # Propagated to labelCurrentDataBase
     signalUpdateCurrentDatabase = QtCore.pyqtSignal(str)
     # Propagated to tableWidgetParameter
@@ -105,6 +107,19 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
 
+    @QtCore.pyqtSlot()
+    def databaseLoadingStop(self) -> None:
+        """
+        Called from tableWidgetFolder to interupt the loading of a database.
+        """
+        if hasattr(self, 'workerLoadDatabase'):
+            # This will stop the thread
+            self.workerLoadDatabase._stop = True
+            # Propage the database absolute path to the table widget folder
+            self.signalDatabaseLoadingStop.emit(self.workerLoadDatabase.databaseAbsPath)
+
+
+
     @QtCore.pyqtSlot(str, QtWidgets.QProgressBar)
     def databaseClick(self, databaseAbsPath: str,
                             progressBar: QtWidgets.QProgressBar) -> None:
@@ -125,17 +140,17 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
         # Create a thread which will read the database
-        worker = LoadDataBaseThread(databaseAbsPath,
-                                    progressBar)
+        self.workerLoadDatabase = LoadDataBaseThread(databaseAbsPath,
+                                                     progressBar)
 
         # Connect signals
-        worker.signal.sendStatusBarMessage.connect(self.signalSendStatusBarMessage)
-        worker.signal.addRows.connect(self.databaseClickAddRows)
-        worker.signal.updateProgressBar.connect(self.signalUpdateProgressBar)
-        worker.signal.databaseClickDone.connect(self.databaseClickDone)
+        self.workerLoadDatabase.signal.sendStatusBarMessage.connect(self.signalSendStatusBarMessage)
+        self.workerLoadDatabase.signal.addRows.connect(self.databaseClickAddRows)
+        self.workerLoadDatabase.signal.updateProgressBar.connect(self.signalUpdateProgressBar)
+        self.workerLoadDatabase.signal.databaseClickDone.connect(self.databaseClickDone)
 
         # Execute the thread
-        self.threadpool.start(worker)
+        self.threadpool.start(self.workerLoadDatabase)
 
 
 
@@ -255,7 +270,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # Done
         self._databaseClicking = False
-        self.signalDatabaseClickDone.emit()
+        self.signalDatabaseClickDone.emit(databaseAbsPath)
         self.signalUpdateCurrentDatabase.emit(getDatabaseNameFromAbsPath(databaseAbsPath))
 
         # We periodically check if there is not a new run to display

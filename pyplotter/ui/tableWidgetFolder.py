@@ -8,7 +8,12 @@ from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..ui.menuDb import MenuDb
 from ..sources.runPropertiesExtra import RunPropertiesExtra
-from ..sources.functions import clearTableWidget, isBlueForsFolder, sizeof_fmt
+from ..sources.functions import (
+    clearTableWidget,
+    isBlueForsFolder,
+    sizeof_fmt,
+    getDatabaseNameFromAbsPath
+)
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -20,6 +25,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
     signalDatabaseClick    = QtCore.pyqtSignal(str)
+    signalDatabaseLoadingStop    = QtCore.pyqtSignal()
     signalCSVClick         = QtCore.pyqtSignal(str, bool)
     signalBlueForsClick         = QtCore.pyqtSignal(str, bool)
     signalDatabasePathUpdate         = QtCore.pyqtSignal(str)
@@ -279,44 +285,93 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
         # To avoid the opening of two databases as once
         if self._flagDatabaseClicking:
-            return
+            # Emit signal to stop loading the previous database
+            self.signalDatabaseLoadingStop.emit()
+
         self._flagDatabaseClicking = True
 
+
+        row = self.rowNumberFromText(getDatabaseNameFromAbsPath(self.databaseAbsPath))
+
         # We show the database is now opened
-        if self.properties.isDatabaseStared():
-            self.databaseUpdateIcon('databaseOpenedStared.png')
+        if self.properties.isDatabaseStared(self.databaseName):
+            self.databaseUpdateIcon(row, 'databaseOpenedStared.png')
         else:
-            self.databaseUpdateIcon('databaseOpened.png')
+            self.databaseUpdateIcon(row, 'databaseOpened.png')
 
 
         self.signalDatabaseClick.emit(self.databaseAbsPath)
 
 
 
-    @QtCore.pyqtSlot()
-    def databaseClickDone(self) -> None:
+    @QtCore.pyqtSlot(str)
+    def databaseClickDone(self, databaseAbsPath: str) -> None:
         """
         Display the content of the clicked dataBase into the database table
         which will then contain all runs.
         """
 
+        databaseName = getDatabaseNameFromAbsPath(databaseAbsPath)
+        row = self.rowNumberFromText(databaseName)
+
         # We show the database is now closed
-        if self.properties.isDatabaseStared():
-            self.databaseUpdateIcon('databaseStared.png')
+        if self.properties.isDatabaseStared(databaseName):
+            self.databaseUpdateIcon(row, 'databaseStared.png')
         else:
-            self.databaseUpdateIcon('database.png')
+            self.databaseUpdateIcon(row, 'database.png')
 
         # To avoid the opening of two databases as once
         self._flagDatabaseClicking = False
 
 
 
-    def databaseUpdateIcon(self, iconName: str) -> None:
+    @QtCore.pyqtSlot(str)
+    def databaseLoadingStop(self, databaseAbsPath: str) -> None:
+        """
+        Called by tableWidgetDatabase when a database is stopped being loaded.
+        Basically, put back standard database icon
+        """
 
-        item = self.item(self.currentIndex().row(), 0)
-        item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, iconName)))
+        databaseName = getDatabaseNameFromAbsPath(databaseAbsPath)
+        row = self.rowNumberFromText(databaseName)
+
+        # We show the database is now closed
+        if self.properties.isDatabaseStared(databaseName):
+            self.databaseUpdateIcon(row, 'databaseStared.png')
+        else:
+            self.databaseUpdateIcon(row, 'database.png')
 
 
+
+    def databaseUpdateIcon(self, row: int,
+                                 iconName: str) -> None:
+        """
+        Change the icon of a database of row to the new iconName.
+
+        Args:
+            row: Row of the database to the change the icon
+            iconName: New icon name
+        """
+
+        self.item(row, 0).setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, iconName)))
+
+
+
+    def rowNumberFromText(self, text: str) -> int:
+        """
+        Return the row number where the displayed text corresponds to the input
+        text.
+        If no correspondance is found, return 0.
+
+        Args:
+            text: text you want the row
+        """
+
+        for row in range(self.rowCount()):
+            if text==getDatabaseNameFromAbsPath(self.item(row, 0).text()):
+                return row
+
+        return 0
 
 
     ############################################################################

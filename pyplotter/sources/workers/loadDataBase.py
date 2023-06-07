@@ -43,6 +43,9 @@ class LoadDataBaseThread(QtCore.QRunnable):
         self.databaseAbsPath = databaseAbsPath
         self.progressBar     = progressBar
 
+        # If set to True, stop the run
+        self._stop = False
+
 
 
     @QtCore.pyqtSlot()
@@ -77,7 +80,11 @@ class LoadDataBaseThread(QtCore.QRunnable):
         # bar
         done = False
         while not done:
-            QtTest.QTest.qWait(config['delayBetweenProgressBarUpdate'])
+            QtCore.QThread.msleep(config['delayBetweenProgressBarUpdate'])
+
+            # We check if the thread ias being stopped
+            if self._stop:
+                return
 
             progressBar = queueProgressBar.get()
             queueProgressBar.put(progressBar)
@@ -95,12 +102,17 @@ class LoadDataBaseThread(QtCore.QRunnable):
         queueDone.close()
         queueDone.join_thread()
 
+        self.worker.join()
+
+        # We check if the thread ias being stopped
+        if self._stop:
+            return
 
 
         # If database is empty
         if runInfos is None:
             self.signal.sendStatusBarMessage.emit('Database empty', 'red')
-            QtTest.QTest.qWait(1000) # To let user see the error message
+            QtCore.QThread.msleep(1000) # To let user see the error message
             self.signal.databaseClickDone.emit(self.progressBar, # progressBar
                                                True, #error
                                                '', # databaseAbsPath
