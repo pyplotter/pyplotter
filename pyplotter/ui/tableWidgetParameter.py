@@ -22,7 +22,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     """
 
     signalSendStatusBarMessage       = QtCore.pyqtSignal(str, str)
-    signalUpdateProgressBar          = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
+    signalUpdateProgressBar          = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
     signalRemoveProgressBar          = QtCore.pyqtSignal(QtWidgets.QProgressBar)
     signalAddCurve                   = QtCore.pyqtSignal(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox)
     signalRemoveCurve                = QtCore.pyqtSignal(str, str)

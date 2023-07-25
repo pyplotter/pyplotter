@@ -23,7 +23,7 @@ class WidgetBlueFors(QtWidgets.QWidget):
     signalLineEditSnapshotEnabled    = QtCore.pyqtSignal(bool)
     signalLabelSnapshotEnabled       = QtCore.pyqtSignal(bool)
 
-    signalUpdateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
+    signalUpdateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
     signalRemoveProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar)
     signalFillTableWidgetParameter = QtCore.pyqtSignal(int, list, dict, dict, str, str, str, str, bool)
     signalLoadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
@@ -145,7 +145,7 @@ class WidgetBlueFors(QtWidgets.QWidget):
                        cb: QtWidgets.QCheckBox,
                        progressBar: QtWidgets.QProgressBar) -> None:
 
-        self.signalUpdateProgressBar.emit(progressBar, 100, 'Downloading data: 100%')
+        self.signalUpdateProgressBar.emit(progressBar, 100., 'Downloading data: 100%')
 
         xLabelText  = 'Time'
         xLabelUnits = ''

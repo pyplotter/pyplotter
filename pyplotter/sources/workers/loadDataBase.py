@@ -16,7 +16,7 @@ class LoadDataBaseSignal(QtCore.QObject):
     # Signal used to add n rows in the database table
     addRows = QtCore.pyqtSignal(list, list, list, list, list, list, list, list, list, list, list, int, str)
     # Signal used to update the progress bar
-    updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
+    updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
     # When the run method is done
     databaseClickDone = QtCore.pyqtSignal(QtWidgets.QProgressBar, bool, str, int)
 
@@ -167,7 +167,7 @@ class LoadDataBaseThread(QtCore.QRunnable):
                                           runRecords,
                                           nbTotalRun,
                                           self.databaseAbsPath)
-                self.signal.updateProgressBar.emit(self.progressBar, int(runId[0]/nbTotalRun*100), 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
+                self.signal.updateProgressBar.emit(self.progressBar, runId[0]/nbTotalRun*100, 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
 
 
                 runId           = []
@@ -197,7 +197,7 @@ class LoadDataBaseThread(QtCore.QRunnable):
                                       runRecords,
                                       nbTotalRun,
                                       self.databaseAbsPath)
-            self.signal.updateProgressBar.emit(self.progressBar, int(runId[0]/nbTotalRun*100), 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
+            self.signal.updateProgressBar.emit(self.progressBar, runId[0]/nbTotalRun*100, 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
 
         # Signal that the whole database has been looked at
         self.signal.databaseClickDone.emit(self.progressBar, # progressBar

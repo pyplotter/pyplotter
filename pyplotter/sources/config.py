@@ -46,6 +46,8 @@ configPackage = {
 'maximumRunPerRequest' : 2000, # int
 # Gives the downloading file percentage must progressed to be displayed
 'displayedDownloadQcodesPercentage' : 5, # int
+# Number of decimal for the progress bar
+'progressBarDecimal' : 100, # int
 # The delay in ms between to check of a run download
 'delayBetweenProgressBarUpdate' : 100, # int
 # Number of runs to be transferred at the same time when displaying a database
@@ -124,7 +126,7 @@ configPackage = {
 
 
 # Layout parameters
-'dialogWindowSize' : (1.618*750, 500),
+'dialogWindowSize' : (1314, 500),
 'sweptParameterSeparator' : " <span style='font-weight: bold; color: #eb272e;'>vs</span> ",
 
 'style' : 'qbstyles', # Must match an available style below

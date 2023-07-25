@@ -26,7 +26,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     # Propagated to statusBarMain
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
     signalAddStatusBarMessage  = QtCore.pyqtSignal(str, str)
-    signalUpdateProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
+    signalUpdateProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
     signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
     # Propagated to tableWidgetFolder, checkBoxHidden, checkBoxStared
     signalDatabaseClickDone = QtCore.pyqtSignal(str)

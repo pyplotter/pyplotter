@@ -151,25 +151,22 @@ class StatusBar(QtWidgets.QStatusBar):
     @QtCore.pyqtSlot()
     def addProgressBar(self) -> QtWidgets.QProgressBar:
         """
-        Add a progress bar in the status bar.
-
-        Return
-        ------
-        progressBarKey : str
-            An unique key coming from uuid.uuid4().
+        Add a progress bar in the status bar and return it
         """
 
         # Add a progress bar in the statusbar
-        progressBarKey = str(uuid.uuid4())
         progressBar = QtWidgets.QProgressBar()
         progressBar.setMinimumWidth(400)
-        progressBar.decimal = 100
-        progressBar.decimal = 100
         progressBar.setAlignment(QtCore.Qt.AlignCenter)
         progressBar.setValue(0)
-        # setting maximum value for 2 decimal points
-        progressBar.setMaximum(100*progressBar.decimal)
+        progressBar.setMaximum(100*config['progressBarDecimal'])
         progressBar.setTextVisible(True)
+
+        palette = QtGui.QPalette()
+        palette.setColor(QtGui.QPalette.Text, QtGui.QColor(255, 165, 0)) # text, not highlight
+        palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(255, 165, 0)) # text, not highlight
+        progressBar.setPalette(palette)
+
         self.setSizeGripEnabled(False)
         self.addPermanentWidget(progressBar)
         self.progressBarLabel = QtWidgets.QLabel('   ')
@@ -195,9 +192,9 @@ class StatusBar(QtWidgets.QStatusBar):
 
 
 
-    @QtCore.pyqtSlot(QtWidgets.QProgressBar, int, str)
+    @QtCore.pyqtSlot(QtWidgets.QProgressBar, float, str)
     def updateProgressBar(self, progressBar: QtWidgets.QProgressBar,
-                                val: int,
+                                val: float,
                                 text: str) -> None:
         """
         Update the progress bar in the status bar
@@ -206,17 +203,12 @@ class StatusBar(QtWidgets.QStatusBar):
         ----------
         progressBar : str
             progressBar from addProgressBar.
-        val : int
+        val : float
             Value of the progress.
-            Must be an int between 0 and 100.
+            Must be an float between 0 and 100.
         text : str
             Text to be shown on the progress bar.
         """
-        palette = QtGui.QPalette()
-        palette.setColor(QtGui.QPalette.Text, QtGui.QColor(255, 165, 0)) # text, not highlight
-        palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(255, 165, 0)) # text, not highlight
-
-        progressBar.setPalette(palette)
+        progressBar.setValue(int(val*config['progressBarDecimal']))
         progressBar.setFormat(text)
-        progressBar.setValue(int(val*progressBar.decimal))
 

@@ -29,7 +29,7 @@ class LoadDataFromRunSignal(QtCore.QObject):
     # Signal used to update the status bar
     sendStatusBarMessage = QtCore.pyqtSignal(str, str)
     # Signal to update the progress bar
-    updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, int, str)
+    updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
     # Signal when the data download is done but the database is empty
     # Useful for the starting of the liveplot
     loadedDataEmpty = QtCore.pyqtSignal(QtWidgets.QCheckBox, QtWidgets.QProgressBar)
