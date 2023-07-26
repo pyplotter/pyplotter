@@ -109,8 +109,15 @@ class WidgetBlueFors(QtWidgets.QWidget):
                     self.signalUpdateProgressBar.emit(progressBar, progress, 'Downloading data: {:.0f}%'.format(progress*100))
                     progress += progressIteration
 
-                    # There is a space before the day
-                    x = pandasTimestamp2Int(pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S'))
+                    try:
+                        # Old BlueFors log files
+                        # There is a space before the day
+                        x = pandasTimestamp2Int(pd.to_datetime(df['date']+'-'+df['time'], format=' %d-%m-%y-%H:%M:%S'))
+                    except:
+                        # Recent BlueFors log files
+                        # There is no space before the day
+                        x = pandasTimestamp2Int(pd.to_datetime(df['date']+'-'+df['time'], format='%d-%m-%y-%H:%M:%S'))
+
                     y = df['y'].to_numpy()*1e-3
 
                     self.paramDependentList.append({'depends_on' : ['time'],
