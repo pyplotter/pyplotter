@@ -37,7 +37,7 @@ class MenuExportRun(QtWidgets.QMenu):
         Open a QFileDialog asking where to export the run
         """
 
-        self.filePath = QtWidgets.QFileDialog.getOpenFileName(self,
+        self.filePath = QtWidgets.QFileDialog.getSaveFileName(self,
                                                      caption='Select database',
                                                      filter="qCoDeS database (*.db)",
                                                      directory=os.getcwd())[0]
