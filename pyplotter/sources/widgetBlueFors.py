@@ -1,10 +1,8 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtWidgets, QtTest, QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtWidgets, QtCore
 import os
-import numpy as np
 import pandas as pd
-from typing import Optional
-from.functions import pandasTimestamp2Int, isBlueForsFolder, clearTableWidget
+from.functions import pandasTimestamp2Int
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
@@ -23,10 +21,10 @@ class WidgetBlueFors(QtWidgets.QWidget):
     signalLineEditSnapshotEnabled    = QtCore.pyqtSignal(bool)
     signalLabelSnapshotEnabled       = QtCore.pyqtSignal(bool)
 
-    signalUpdateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
-    signalRemoveProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar)
+    signalUpdateProgressBar = QtCore.pyqtSignal(int, float, str)
+    signalRemoveProgressBar = QtCore.pyqtSignal(int)
     signalFillTableWidgetParameter = QtCore.pyqtSignal(int, list, dict, dict, str, str, str, str, bool)
-    signalLoadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
+    signalLoadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, int, tuple, str, str, str, str, str, str, bool)
 
     def __init__(self, parent):
         """
@@ -37,10 +35,10 @@ class WidgetBlueFors(QtWidgets.QWidget):
 
 
 
-    @QtCore.pyqtSlot(str, bool, QtWidgets.QProgressBar)
+    @QtCore.pyqtSlot(str, bool, int)
     def blueForsLoad(self, absPath: str,
                            doubleClick: bool,
-                           progressBar: QtWidgets.QProgressBar) -> None:
+                           progressBarId: int) -> None:
 
         folderName = os.path.basename(absPath)
 
@@ -87,7 +85,7 @@ class WidgetBlueFors(QtWidgets.QWidget):
 
                     for i in range(1, 7):
 
-                        self.signalUpdateProgressBar.emit(progressBar, progress, 'Downloading data: {:.0f}%'.format(progress*100))
+                        self.signalUpdateProgressBar.emit(progressBarId, progress, 'Downloading data: {:.0f}%'.format(progress*100))
                         progress += progressIteration
 
                         name = 'ch'+str(i)+'_pressure'
@@ -106,7 +104,7 @@ class WidgetBlueFors(QtWidgets.QWidget):
                                      names     = ['date', 'time', 'y'],
                                      header    = None)
 
-                    self.signalUpdateProgressBar.emit(progressBar, progress, 'Downloading data: {:.0f}%'.format(progress*100))
+                    self.signalUpdateProgressBar.emit(progressBarId, progress, 'Downloading data: {:.0f}%'.format(progress*100))
                     progress += progressIteration
 
                     try:
@@ -138,10 +136,10 @@ class WidgetBlueFors(QtWidgets.QWidget):
                                                  'bluefors', # dataType
                                                  doubleClick) # doubleClick
 
-        self.signalRemoveProgressBar.emit(progressBar)
+        self.signalRemoveProgressBar.emit(progressBarId)
 
 
-    QtCore.pyqtSlot(str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
+    QtCore.pyqtSlot(str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
     def loadData(self, curveId: str,
                        absPath: str,
                        dependentParamName: str,
@@ -150,9 +148,9 @@ class WidgetBlueFors(QtWidgets.QWidget):
                        runId: int,
                        windowTitle: str,
                        cb: QtWidgets.QCheckBox,
-                       progressBar: QtWidgets.QProgressBar) -> None:
+                       progressBarId: int) -> None:
 
-        self.signalUpdateProgressBar.emit(progressBar, 100., 'Downloading data: 100%')
+        self.signalUpdateProgressBar.emit(progressBarId, 100., 'Downloading data: 100%')
 
         xLabelText  = 'Time'
         xLabelUnits = ''
@@ -172,7 +170,7 @@ class WidgetBlueFors(QtWidgets.QWidget):
                                        plotRef,
                                        absPath,
                                        cb,
-                                       progressBar,
+                                       progressBarId,
                                        data,
                                        xLabelText,
                                        xLabelUnits,

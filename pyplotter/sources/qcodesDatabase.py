@@ -833,3 +833,33 @@ def getNbTotalRunmp(databaseAbsPath: str,
     closeDatabase(conn, cur)
 
     queueNbRun.put(nbTotalRun)
+
+
+def exportRunmp(source_db_path: str,
+                target_db_path: str,
+                runId: int,
+                queueMessage: mp.Queue,
+                queueDone: mp.Queue) -> None:
+    """
+    Extract a runs into another DB file.
+
+    Args:
+        source_db_path: Path to the source DB file
+        target_db_path: Path to the target DB file. The target DB file will be created if it does not exist.
+        runId: The run_id’s of the runs to copy into the target DB file
+        queueMessage: Queue containing a string to be displayed on the statusbar
+        queueDone: Queue containing 1 when the download is done
+    """
+
+    queueMessage.get()
+    queueMessage.put('Loading QCoDeS...')
+    from qcodes.dataset import extract_runs_into_db
+
+    queueMessage.get()
+    queueMessage.put('QCoDeS loaded')
+
+    extract_runs_into_db(source_db_path,
+                         target_db_path,
+                         runId)
+
+    queueDone.put(True)

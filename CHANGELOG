@@ -1,8 +1,14 @@
 pyplotter-0.3.6
 
+  Bug Fixes:
+    - New BlueFors log files are now readout correctly
+    - python 3.11 is now working
+
   Others:
     - Display database loading progress in percent
 
+  New Features:
+    - User may extract run to another qcodes database
 
 pyplotter-0.3.5
 

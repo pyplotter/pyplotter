@@ -89,10 +89,10 @@ class WidgetCSV(QtWidgets.QWidget):
     signalLabelSnapshotEnabled       = QtCore.pyqtSignal(bool)
     signalAddSnapshot = QtCore.pyqtSignal(dict)
 
-    signalUpdateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
-    signalRemoveProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar)
+    signalUpdateProgressBar = QtCore.pyqtSignal(int, float, str)
+    signalRemoveProgressBar = QtCore.pyqtSignal(int)
     signalFillTableWidgetParameter = QtCore.pyqtSignal(int, list, dict, dict, str, str, str, str, bool)
-    signalLoadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
+    signalLoadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, int, tuple, str, str, str, str, str, str, bool)
 
     def __init__(self, parent):
         """
@@ -102,10 +102,10 @@ class WidgetCSV(QtWidgets.QWidget):
         super(WidgetCSV, self).__init__(parent)
 
 
-    @QtCore.pyqtSlot(str, bool, QtWidgets.QProgressBar)
+    @QtCore.pyqtSlot(str, bool, int)
     def csvLoad(self, fileAbsPath: str,
                       doubleClick: bool,
-                      progressBar: QtWidgets.QProgressBar) -> None:
+                      progressBarId: int) -> None:
 
         fileName = os.path.basename(fileAbsPath)
 
@@ -215,10 +215,10 @@ class WidgetCSV(QtWidgets.QWidget):
                                                  'csv', # dataType
                                                  doubleClick) # doubleClick
 
-        self.signalRemoveProgressBar.emit(progressBar)
+        self.signalRemoveProgressBar.emit(progressBarId)
 
 
-    QtCore.pyqtSlot(str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
+    QtCore.pyqtSlot(str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
     def loadData(self, curveId: str,
                        fileAbsPath: str,
                        dependentParamName: str,
@@ -227,9 +227,9 @@ class WidgetCSV(QtWidgets.QWidget):
                        runId: int,
                        windowTitle: str,
                        cb: QtWidgets.QCheckBox,
-                       progressBar: QtWidgets.QProgressBar) -> None:
+                       progressBarId: int) -> None:
 
-        self.signalUpdateProgressBar.emit(progressBar, 100., 'Downloading data: 100%')
+        self.signalUpdateProgressBar.emit(progressBarId, 100., 'Downloading data: 100%')
 
         for paramDependent in self.paramDependentList:
             if paramDependent['name'] == dependentParamName:
@@ -249,7 +249,7 @@ class WidgetCSV(QtWidgets.QWidget):
                                         plotRef,
                                         fileAbsPath,
                                         cb,
-                                        progressBar,
+                                        progressBarId,
                                         data,
                                         xLabelText,
                                         xLabelUnits,

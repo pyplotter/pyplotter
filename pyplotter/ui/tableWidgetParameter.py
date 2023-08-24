@@ -11,7 +11,6 @@ from ..sources.functions import (clearTableWidget,
                                  getPlotRef,
                                  getPlotTitle,
                                  getWindowTitle)
-from ..sources.widgetPlot import WidgetPlot
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -22,8 +21,8 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     """
 
     signalSendStatusBarMessage       = QtCore.pyqtSignal(str, str)
-    signalUpdateProgressBar          = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
-    signalRemoveProgressBar          = QtCore.pyqtSignal(QtWidgets.QProgressBar)
+    signalUpdateProgressBar          = QtCore.pyqtSignal(int, float, str)
+    signalRemoveProgressBar          = QtCore.pyqtSignal(int)
     signalAddCurve                   = QtCore.pyqtSignal(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox)
     signalRemoveCurve                = QtCore.pyqtSignal(str, str)
     signalCleanSnapshot              = QtCore.pyqtSignal()
@@ -34,10 +33,10 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     signalUpdateLabelCurrentRun      = QtCore.pyqtSignal(str)
     signaladdRow                     = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, str, str, int)
 
-    signalLoadedDataEmpty  = QtCore.pyqtSignal(QtWidgets.QCheckBox, QtWidgets.QProgressBar)
-    signalLoadedDataFull   = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
-    signalCSVLoadData      = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
-    signalBlueForsLoadData = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
+    signalLoadedDataEmpty  = QtCore.pyqtSignal(QtWidgets.QCheckBox, int)
+    signalLoadedDataFull   = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, int, tuple, str, str, str, str, str, str, bool)
+    signalCSVLoadData      = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
+    signalBlueForsLoadData = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
 
 
 
@@ -203,7 +202,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
 
 
-    @QtCore.pyqtSlot(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
+    @QtCore.pyqtSlot(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
     def getData(self, curveId: str,
                       databaseAbsPath: str,
                       dataType: str,
@@ -213,7 +212,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                       runId: int,
                       windowTitle: str,
                       cb: QtWidgets.QCheckBox,
-                      progressBar: QtWidgets.QProgressBar) -> None:
+                      progressBarId: int) -> None:
         """
         Called when user wants to plot qcodes data.
         Create a progress bar in the status bar.
@@ -253,7 +252,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                                            runId,
                                            windowTitle,
                                            cb,
-                                           progressBar)
+                                           progressBarId)
             # Connect signals
             # To update the status bar
             worker.signal.sendStatusBarMessage.connect(self.signalSendStatusBarMessage)
@@ -276,7 +275,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                                         runId,
                                         windowTitle,
                                         cb,
-                                        progressBar)
+                                        progressBarId)
         elif dataType=='bluefors':
 
             self.signalBlueForsLoadData.emit(curveId,
@@ -287,7 +286,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                                              runId,
                                              windowTitle,
                                              cb,
-                                             progressBar)
+                                             progressBarId)
 
 
 

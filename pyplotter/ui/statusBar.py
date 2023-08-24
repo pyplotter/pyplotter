@@ -1,7 +1,6 @@
 # This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets, QtGui
-from typing import Optional, Any
-import uuid
+from typing import Any, Dict, Optional
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
@@ -12,10 +11,11 @@ class StatusBar(QtWidgets.QStatusBar):
     signalUpdateStyle         = QtCore.pyqtSignal(dict)
     signalOpenDialogLivePlot  = QtCore.pyqtSignal()
     signalDatabaseLoadingStop = QtCore.pyqtSignal()
-    signalDatabaseLoad        = QtCore.pyqtSignal(str, QtWidgets.QProgressBar)
-    signalCsvLoad             = QtCore.pyqtSignal(str, bool, QtWidgets.QProgressBar)
-    signalBlueForsLoad        = QtCore.pyqtSignal(str, bool, QtWidgets.QProgressBar)
-    signalAddCurve            = QtCore.pyqtSignal(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar)
+    signalDatabaseLoad        = QtCore.pyqtSignal(str, int)
+    signalCsvLoad             = QtCore.pyqtSignal(str, bool, int)
+    signalExportRunLoad       = QtCore.pyqtSignal(str, str, int, int)
+    signalBlueForsLoad        = QtCore.pyqtSignal(str, bool, int)
+    signalAddCurve            = QtCore.pyqtSignal(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
 
     def __init__(self, parent: Optional[Any]=None) -> None:
         super(StatusBar, self).__init__(parent)
@@ -32,6 +32,10 @@ class StatusBar(QtWidgets.QStatusBar):
         hbox.addSpacerItem(QtWidgets.QSpacerItem(40, 1))
         w.setLayout(hbox)
         self.addPermanentWidget(w, 1)
+
+
+        # Keep track of all progressBars being displayed in the status bar
+        self.progressBars: Dict[int, QtWidgets.QProgressBar] = {}
 
 
     @QtCore.pyqtSlot(str, str)
@@ -74,10 +78,10 @@ class StatusBar(QtWidgets.QStatusBar):
     def csvLoad(self, databaseAbsPath: str,
                       doubleClick: bool) -> None:
 
-        self.progressBarDatabaseLoad = self.addProgressBar()
+        progressBarId = self.addProgressBar()
         self.signalCsvLoad.emit(databaseAbsPath,
                                 doubleClick,
-                                self.progressBarDatabaseLoad)
+                                progressBarId)
 
 
 
@@ -85,32 +89,41 @@ class StatusBar(QtWidgets.QStatusBar):
     def blueForsLoad(self, databaseAbsPath: str,
                            doubleClick: bool) -> None:
 
-        self.progressBarDatabaseLoad = self.addProgressBar()
+        progressBarId = self.addProgressBar()
         self.signalBlueForsLoad.emit(databaseAbsPath,
                                      doubleClick,
-                                     self.progressBarDatabaseLoad)
+                                     progressBarId)
 
 
 
-    @QtCore.pyqtSlot()
-    def databaseLoadingStop(self) -> None:
+    @QtCore.pyqtSlot(str, str, int)
+    def exportRunAddProgressBar(self, source_db_path: str,
+                                      target_db_path: str,
+                                      runId: int) -> None:
         """
-        Called from tableWidgetFolder to interupt the loading of a database.
-        Remove the progress bar of the database loading and propagate the
-        event to tableWidgetDatabase.
+        Called from menuExportRun
+
+        Args:
+            source_db_path:  Path to the source DB file
+            target_db_path: Path to the target DB file.
+                The target DB file will be created if it does not exist.
+            runId: The run_id of the runs to copy into the target DB file
         """
 
-        self.removeProgressBar(self.progressBarDatabaseLoad)
-        self.signalDatabaseLoadingStop.emit()
+        progressBarId = self.addProgressBar()
+        self.signalExportRunLoad.emit(source_db_path,
+                                      target_db_path,
+                                      runId,
+                                      progressBarId)
 
 
 
     @QtCore.pyqtSlot(str)
     def databaseLoad(self, databaseAbsPath: str) -> None:
 
-        self.progressBarDatabaseLoad = self.addProgressBar()
+        progressBarId = self.addProgressBar()
         self.signalDatabaseLoad.emit(databaseAbsPath,
-                                     self.progressBarDatabaseLoad)
+                                     progressBarId)
 
 
     @QtCore.pyqtSlot(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox)
@@ -124,7 +137,7 @@ class StatusBar(QtWidgets.QStatusBar):
                        windowTitle: str,
                        cb: QtWidgets.QCheckBox) -> None:
 
-        progressBar = self.addProgressBar()
+        progressBarId = self.addProgressBar()
         self.signalAddCurve.emit(curveId,
                                  databaseAbsPath,
                                  dataType,
@@ -134,7 +147,7 @@ class StatusBar(QtWidgets.QStatusBar):
                                  runId,
                                  windowTitle,
                                  cb,
-                                 progressBar)
+                                 progressBarId)
 
 
 
@@ -149,7 +162,7 @@ class StatusBar(QtWidgets.QStatusBar):
 
 
     @QtCore.pyqtSlot()
-    def addProgressBar(self) -> QtWidgets.QProgressBar:
+    def addProgressBar(self) -> int:
         """
         Add a progress bar in the status bar and return it
         """
@@ -169,31 +182,33 @@ class StatusBar(QtWidgets.QStatusBar):
 
         self.setSizeGripEnabled(False)
         self.addPermanentWidget(progressBar)
-        self.progressBarLabel = QtWidgets.QLabel('   ')
-        self.addPermanentWidget(progressBar)
-        self.addPermanentWidget(self.progressBarLabel)
 
-        return progressBar
+        # Determine the progress bar id
+        if len(self.progressBars.keys())>0:
+            id = max(self.progressBars.keys())+1
+        else:
+            id = 0
+
+        # Store it
+        self.progressBars[id] = progressBar
+
+        return id
 
 
 
-    @QtCore.pyqtSlot(QtWidgets.QProgressBar)
-    def removeProgressBar(self, progressBar: QtWidgets.QProgressBar) -> None:
+    @QtCore.pyqtSlot(int)
+    def removeProgressBar(self, progressBarId: int) -> None:
         """
         Remove the progress bar in the status bar.
         Usually called after a thread has loaded something.
         """
-        self.removeWidget(progressBar)
-        del(progressBar)
-
-        if hasattr(self, 'progressBarLabel'):
-            self.removeWidget(self.progressBarLabel)
-            del(self.progressBarLabel)
+        self.removeWidget(self.progressBars[progressBarId])
+        self.progressBars.pop(progressBarId)
 
 
 
-    @QtCore.pyqtSlot(QtWidgets.QProgressBar, float, str)
-    def updateProgressBar(self, progressBar: QtWidgets.QProgressBar,
+    @QtCore.pyqtSlot(int, float, str)
+    def updateProgressBar(self, progressBarId: int,
                                 val: float,
                                 text: str) -> None:
         """
@@ -201,14 +216,15 @@ class StatusBar(QtWidgets.QStatusBar):
 
         Parameters
         ----------
-        progressBar : str
-            progressBar from addProgressBar.
+        progressBarId : int
+            Id of the progress bar.
         val : float
             Value of the progress.
             Must be an float between 0 and 100.
         text : str
             Text to be shown on the progress bar.
         """
-        progressBar.setValue(int(val*config['progressBarDecimal']))
-        progressBar.setFormat(text)
+
+        self.progressBars[progressBarId].setValue(int(val*config['progressBarDecimal']))
+        self.progressBars[progressBarId].setFormat(text)
 

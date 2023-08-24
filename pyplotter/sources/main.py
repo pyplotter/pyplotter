@@ -22,7 +22,7 @@ PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../ui/
 class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
-    signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
+    signalRemoveProgressBar    = QtCore.pyqtSignal(int)
     signalEnableCheck          = QtCore.pyqtSignal(QtWidgets.QCheckBox)
     signalAddRow               = QtCore.pyqtSignal(int, dict, str, str, str, str, str, str, str, str, int, bool)
 
@@ -103,16 +103,17 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         self.widgetBlueFors.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
         self.widgetBlueFors.signalLoadedDataFull.connect(self.loadedDataFull)
 
+        self.statusBarMain.signalExportRunLoad.connect(self.tableWidgetDataBase.exportRunLoad)
         self.statusBarMain.signalCsvLoad.connect(self.widgetCSV.csvLoad)
         self.statusBarMain.signalBlueForsLoad.connect(self.widgetBlueFors.blueForsLoad)
         self.statusBarMain.signalDatabaseLoad.connect(self.tableWidgetDataBase.databaseClick)
-        self.statusBarMain.signalDatabaseLoadingStop.connect(self.tableWidgetDataBase.databaseLoadingStop)
+        # self.statusBarMain.signalDatabaseLoadingStop.connect(self.tableWidgetDataBase.databaseLoadingStop)
         self.statusBarMain.signalAddCurve.connect(self.tableWidgetParameter.getData)
 
         self.tableWidgetFolder.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
         self.tableWidgetFolder.signalBlueForsClick.connect(self.statusBarMain.blueForsLoad)
         self.tableWidgetFolder.signalCSVClick.connect(self.statusBarMain.csvLoad)
-        self.tableWidgetFolder.signalDatabaseLoadingStop.connect(self.statusBarMain.databaseLoadingStop)
+        # self.tableWidgetFolder.signalDatabaseLoadingStop.connect(self.statusBarMain.databaseLoadingStop)
         self.tableWidgetFolder.signalDatabaseClick.connect(self.statusBarMain.databaseLoad)
         self.tableWidgetFolder.signalDatabaseClick.connect(self.checkBoxHidden.databaseClick)
         self.tableWidgetFolder.signalDatabaseClick.connect(self.checkBoxStared.databaseClick)
@@ -127,6 +128,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         self.tableWidgetDataBase.signalAddStatusBarMessage.connect(self.statusBarMain.addStatusBarMessage)
         self.tableWidgetDataBase.signalUpdateProgressBar.connect(self.statusBarMain.updateProgressBar)
         self.tableWidgetDataBase.signal2StatusBarDatabaseUpdate.connect(self.statusBarMain.databaseLoad)
+        self.tableWidgetDataBase.signalExportRunAddProgressBar.connect(self.statusBarMain.exportRunAddProgressBar)
 
         self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.tableWidgetFolder.databaseClickDone)
         self.tableWidgetDataBase.signalDatabaseStars.connect(self.tableWidgetFolder.slotFromTableWidgetDataBaseDatabaseStars)
@@ -143,7 +145,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
         self.tableWidgetDataBase.signalRunClick.connect(self.tableWidgetParameter.slotFillTableWidgetParameter)
 
-        self.tableWidgetDataBase.signalDatabaseLoadingStop.connect(self.tableWidgetFolder.databaseLoadingStop)
+        # self.tableWidgetDataBase.signalDatabaseLoadingStop.connect(self.tableWidgetFolder.databaseLoadingStop)
 
         self.tableWidgetDataBase.first_call()
 
@@ -307,9 +309,9 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
 
 
-    @QtCore.pyqtSlot(QtWidgets.QCheckBox, QtWidgets.QProgressBar)
+    @QtCore.pyqtSlot(QtWidgets.QCheckBox, int)
     def loadedDataEmpty(self, cb: QtWidgets.QCheckBox,
-                              progressBar    : QtWidgets.QProgressBar) -> None:
+                              progressBarId: int) -> None:
         """
         Method called by LoadDataFromRunThread when the data download is done but the
         database is empty.
@@ -322,12 +324,12 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
         cb.setChecked(False)
 
         self.signalEnableCheck.emit(cb)
-        self.signalRemoveProgressBar.emit(progressBar)
+        self.signalRemoveProgressBar.emit(progressBarId)
         self.signalRunClickDone.emit()
 
 
 
-    @QtCore.pyqtSlot(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
+    @QtCore.pyqtSlot(int, str, str, str, str, str, QtWidgets.QCheckBox, int, tuple, str, str, str, str, str, str, bool)
     def loadedDataFull(self, runId          : int,
                              curveId        : str,
                              plotTitle      : str,
@@ -335,7 +337,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
                              plotRef        : str,
                              databaseAbsPath: str,
                              cb             : QtWidgets.QCheckBox,
-                             progressBar    : QtWidgets.QProgressBar,
+                             progressBarId    : int,
                              data           : Tuple[np.ndarray],
                              xLabelText     : str,
                              xLabelUnits    : str,
@@ -364,7 +366,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
                      dateTimeAxis   = dateTimeAxis,
                      curveLegend    = yLabelText)
 
-        self.signalRemoveProgressBar.emit(progressBar)
+        self.signalRemoveProgressBar.emit(progressBarId)
         self.signalEnableCheck.emit(cb)
 
         self.signalRunClickDone.emit()

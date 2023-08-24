@@ -11,8 +11,10 @@ from .tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
 from ..sources.workers.loadDataBase import LoadDataBaseThread
 from ..sources.workers.loadRunInfo import LoadRunInfoThread
 from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
+from ..sources.workers.exportRun import ExportRunThread
 from ..sources.functions import clearTableWidget, getDatabaseNameFromAbsPath
 from ..ui.dialogs.dialogComment import DialogComment
+from ..ui.menuExportRun import MenuExportRun
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -26,8 +28,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     # Propagated to statusBarMain
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
     signalAddStatusBarMessage  = QtCore.pyqtSignal(str, str)
-    signalUpdateProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
-    signalRemoveProgressBar    = QtCore.pyqtSignal(QtWidgets.QProgressBar)
+    signalUpdateProgressBar    = QtCore.pyqtSignal(int, float, str)
+    signalRemoveProgressBar    = QtCore.pyqtSignal(int)
     # Propagated to tableWidgetFolder, checkBoxHidden, checkBoxStared
     signalDatabaseClickDone = QtCore.pyqtSignal(str)
     # Propagated to tableWidgetFolder
@@ -48,6 +50,10 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     # Propagated to statusBarMain which come back here to databaseClick
     signal2StatusBarDatabaseUpdate = QtCore.pyqtSignal(str)
 
+    # Propagated to the statusBarMain which come back here to menuExportRun
+    signalExportRunAddProgressBar = QtCore.pyqtSignal(str, str, int)
+
+
     # Internal event, see keyPressEvent
     keyPressed = QtCore.pyqtSignal(str, int)
 
@@ -57,24 +63,51 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # Forbid editing of the cells
         self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-
-        # When user wants to look at a run
-        self.cellClicked.connect(self.runClick)
+        # Use filter to detect right, left and double click
+        self.viewport().installEventFilter(self)
 
         # When user wants to hide or stars a run
         self.keyPressed.connect(self.tableWidgetDataBasekeyPress)
 
-        # Flag
-        self._dataDowloadingFlag = False
-        # Use to differentiate click to doubleClick
-        self.lastClickTime = time()
-        self.lastClickRow  = 100
-
-        # To avoid the opening of two databases as once
-        self._databaseClicking = False
-
         self.properties = RunPropertiesExtra()
         self.threadpool = QtCore.QThreadPool()
+
+
+
+    def eventFilter(self, source,
+                          event) -> None:
+        """
+        We use an event filter to detect
+            right click -> display run parameter
+            left click -> display menu to export run
+            double click -> display run parameter and load plot of the 1st parameter
+        """
+
+        # Get the clicked row and column
+        if event.type() == QtCore.QEvent.MouseButtonPress\
+            or event.type() == QtCore.QEvent.MouseButtonDblClick:
+            index = self.indexAt(event.pos())
+            if index.isValid():
+                currentRow = index.row()
+                currentColumn = index.column()
+            else:
+                return
+
+        if event.type() == QtCore.QEvent.MouseButtonPress:
+
+            # right click -> display run parameter
+            if event.button() == QtCore.Qt.LeftButton:
+                self.runClick(currentRow)
+            # left click -> display menu to export run
+            elif event.button() == QtCore.Qt.RightButton:
+                self.runClick(currentRow)
+                self.exportRun(currentRow)
+            # double click -> display run parameter and load plot of the 1st parameter
+        elif event.type() == QtCore.QEvent.MouseButtonDblClick:
+            self.runDoubleClick(currentRow,
+                                currentColumn)
+
+        return super().eventFilter(source, event)
 
 
 
@@ -107,22 +140,9 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
 
-    @QtCore.pyqtSlot()
-    def databaseLoadingStop(self) -> None:
-        """
-        Called from tableWidgetFolder to interupt the loading of a database.
-        """
-        if hasattr(self, 'workerLoadDatabase'):
-            # This will stop the thread
-            self.workerLoadDatabase._stop = True
-            # Propage the database absolute path to the table widget folder
-            self.signalDatabaseLoadingStop.emit(self.workerLoadDatabase.databaseAbsPath)
-
-
-
-    @QtCore.pyqtSlot(str, QtWidgets.QProgressBar)
+    @QtCore.pyqtSlot(str, int)
     def databaseClick(self, databaseAbsPath: str,
-                            progressBar: QtWidgets.QProgressBar) -> None:
+                            progressBar: int) -> None:
         """
         Called from the statusBarMain, when user clicks on a database.
         """
@@ -234,8 +254,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.item(runId-1, config['DatabaseDisplayColumn']['comment']['index']).setToolTip('Double-click on the "Comments" column to add or modify a comment attached to a run')
 
 
-    @QtCore.pyqtSlot(QtWidgets.QProgressBar, bool, str, int)
-    def databaseClickDone(self,progressBar    : QtWidgets.QProgressBar,
+    @QtCore.pyqtSlot(int, bool, str, int)
+    def databaseClickDone(self,progressBarId  : int,
                                error          : bool,
                                databaseAbsPath: str,
                                nbTotalRun     : int) -> None:
@@ -244,7 +264,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         Parameters
         ----------
-        progressBar : str
+        progressBar : int
             Key to the progress bar in the dict progressBars.
         error : bool
 
@@ -253,7 +273,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             Simply stored for other purposes and to avoid other sql queries.
         """
 
-        self.signalRemoveProgressBar.emit(progressBar)
+        self.signalRemoveProgressBar.emit(progressBarId)
 
         if not error:
             self.setSortingEnabled(True)
@@ -269,7 +289,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.nbTotalRun = nbTotalRun
 
         # Done
-        self._databaseClicking = False
         self.signalDatabaseClickDone.emit(databaseAbsPath)
         self.signalUpdateCurrentDatabase.emit(getDatabaseNameFromAbsPath(databaseAbsPath))
 
@@ -325,63 +344,89 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
 
-    def runClick(self, currentRow: int=0,
-                       currentColumn: int=0,
-                       previousRow: int=0,
-                       previousColumn: int=0) -> None:
+    def runClick(self, currentRow: int=0) -> None:
         """
         When clicked display the measured dependent parameters in the
         tableWidgetPtableWidgetParameters.
         Database is accessed through a thread, see runClickFromThread.
         """
 
-        # When the user click on another database while having already clicked
-        # on a run, the runClick event is happenning even if no run have been clicked
-        # This is due to the "currentCellChanged" event handler.
-        # We catch that false event and return nothing
-        if self._databaseClicking:
-            return
+        databaseAbsPath = self.item(currentRow, config['DatabaseDisplayColumn']['databaseAbsPath']['index']).text()
+        runId           = int(self.item(currentRow, config['DatabaseDisplayColumn']['itemRunId']['index']).text())
+        experimentName  = self.item(currentRow, config['DatabaseDisplayColumn']['experimentName']['index']).text()
+        runName         = self.item(currentRow, config['DatabaseDisplayColumn']['runName']['index']).text()
+
+        self.signalSendStatusBarMessage.emit('Loading run parameters', 'orange')
+
+        worker = LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
+                                   runId, # runId
+                                   experimentName, # experimentName
+                                   runName, # runName
+                                   False) # doubleClicked
+        worker.signal.updateRunInfo.connect(self.signalRunClick)
+
+        # Execute the thread
+        self.threadpool.start(worker)
+
+
+
+    def runDoubleClick(self, currentRow: int=0,
+                             currentColumn: int=0) -> None:
 
         databaseAbsPath = self.item(currentRow, config['DatabaseDisplayColumn']['databaseAbsPath']['index']).text()
         runId           = int(self.item(currentRow, config['DatabaseDisplayColumn']['itemRunId']['index']).text())
         experimentName  = self.item(currentRow, config['DatabaseDisplayColumn']['experimentName']['index']).text()
         runName         = self.item(currentRow, config['DatabaseDisplayColumn']['runName']['index']).text()
 
-        # We check if use click or doubleClick
-        doubleClick = False
-        if currentRow==self.lastClickRow:
-            if time() - self.lastClickTime<0.5:
-                # If we detect a double click on the "Comments" column
-                # We do not launch a plot but open a comment dialog
-                if currentColumn==config['DatabaseDisplayColumn']['comment']['index']:
-                    self.dialogComment = DialogComment(runId,
-                                                       self.properties.getRunComment(runId))
-                    self.dialogComment.signalCloseDialogComment.connect(self.slotCloseCommentDialog)
-                    self.dialogComment.signalUpdateDialogComment.connect(self.slotUpdateCommentDialog)
-                else:
-                    doubleClick = True
-                    # When user doubleclick on a run, we disable the row to avoid
-                    # double data downloading of the same dataset
-                    self.doubleClickCurrentRow = currentRow
-                    self.doubleClickDatabaseAbsPath = databaseAbsPath
-                    self.cellClicked.disconnect()
-
-
-        # Keep track of the last click time
-        self.lastClickTime = time()
-        self.lastClickRow  = currentRow
+        # If we detect a double click on the "Comments" column
+        # We do not launch a plot but open a comment dialog
+        if currentColumn==config['DatabaseDisplayColumn']['comment']['index']:
+            self.dialogComment = DialogComment(runId,
+                                                self.properties.getRunComment(runId))
+            self.dialogComment.signalCloseDialogComment.connect(self.slotCloseCommentDialog)
+            self.dialogComment.signalUpdateDialogComment.connect(self.slotUpdateCommentDialog)
+        else:
+            # When user doubleclick on a run, we disable the row to avoid
+            # double data downloading of the same dataset
+            self.disableRow(currentRow)
+            self.doubleClickCurrentRow = currentRow
+            self.doubleClickDatabaseAbsPath = databaseAbsPath
+            # self._dataDowloadingFlag = True
 
         self.signalSendStatusBarMessage.emit('Loading run parameters', 'orange')
 
-        worker = LoadRunInfoThread(databaseAbsPath,
-                                   runId,
-                                   experimentName,
-                                   runName,
-                                   doubleClick)
+        worker = LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
+                                   runId, # runId
+                                   experimentName, # experimentName
+                                   runName, # runName
+                                   True) # doubleClicked
         worker.signal.updateRunInfo.connect(self.signalRunClick)
 
         # Execute the thread
         self.threadpool.start(worker)
+
+
+
+    def disableRow(self, row: int) -> None:
+        """
+        Disable the given row.
+        Used to avoid unwated click on a run.
+        """
+
+        for column in range(self.columnCount()):
+            if self.item(row, column) is not None:
+                self.item(row, column).setFlags(QtCore.Qt.ItemFlag(~(QtCore.Qt.ItemIsEnabled|QtCore.Qt.ItemIsSelectable)))
+
+
+
+    def enableRow(self, row: int) -> None:
+        """
+        Enable the given row.
+        Used to avoid unwated click on a run.
+        """
+        for column in range(self.columnCount()):
+            if self.item(row, column) is not None:
+                self.item(row, column).setFlags(QtCore.Qt.ItemFlag(QtCore.Qt.ItemIsEnabled|QtCore.Qt.ItemIsSelectable))
 
 
 
@@ -474,6 +519,72 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     ############################################################################
     #
     #
+    #                           Export run
+    #
+    #
+    ############################################################################
+
+
+
+    def exportRun(self, currentRow: int) -> None:
+        """
+        Call when user right click on a run.
+        Display a menu to export a run towards another database
+
+        Args:
+            currentRow: clicked row
+        """
+
+        databaseAbsPath = self.item(currentRow, config['DatabaseDisplayColumn']['databaseAbsPath']['index']).text()
+        runId           = int(self.item(currentRow, config['DatabaseDisplayColumn']['itemRunId']['index']).text())
+
+        self.menu = MenuExportRun(databaseAbsPath,
+                                  runId)
+
+        if hasattr(self.menu, 'filePath'):
+            if self.menu.filePath!='':
+                # Signal propagated to the main to come back with a progress bar
+                self.signalExportRunAddProgressBar.emit(databaseAbsPath,
+                                                        self.menu.filePath,
+                                                        runId)
+
+
+    @QtCore.pyqtSlot(str, str, int, int)
+    def exportRunLoad(self, source_db_path: str,
+                            target_db_path: str,
+                            runId: int,
+                            progressBarId: int) -> None:
+        """
+        Called from the statusBar.
+        Run a thread which will run a process to load qcodes and extract a run
+        towards another database.
+
+        Args:
+            source_db_path: Path to the source DB file
+            target_db_path: Path to the target DB file.
+                The target DB file will be created if it does not exist.
+            runId: The run_id of the run to copy into the target DB file
+            progressBarId: id of the progress Bar
+        """
+
+        worker = ExportRunThread(source_db_path,
+                                 target_db_path,
+                                 runId,
+                                 progressBarId)
+
+        # Connect signals
+        worker.signal.sendStatusBarMessage.connect(self.signalSendStatusBarMessage)
+        worker.signal.updateProgressBar.connect(self.signalUpdateProgressBar)
+        worker.signal.removeProgressBar.connect(self.signalRemoveProgressBar)
+
+        # Execute the thread
+        self.threadpool.start(worker)
+
+
+
+    ############################################################################
+    #
+    #
     #                           Called from other widgets
     #
     #
@@ -490,7 +601,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         if hasattr(self, 'doubleClickCurrentRow'):
             if self.doubleClickDatabaseAbsPath==self.item(self.doubleClickCurrentRow, config['DatabaseDisplayColumn']['databaseAbsPath']['index']).text():
-                self.cellClicked.connect(self.runClick)
+                self.enableRow(self.doubleClickCurrentRow)
             del(self.doubleClickCurrentRow)
             del(self.doubleClickDatabaseAbsPath)
 

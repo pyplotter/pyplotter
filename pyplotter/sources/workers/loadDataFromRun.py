@@ -1,7 +1,7 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtCore, QtWidgets, QtTest
+from PyQt5 import QtCore, QtWidgets
 import numpy as np
-from typing import Tuple, Optional
+from typing import Tuple
 import multiprocessing as mp
 
 from ..qcodesDatabase import getParameterDatamp, getParameterInfo
@@ -25,14 +25,14 @@ class LoadDataFromRunSignal(QtCore.QObject):
     # xLabelText: str, xLabelUnits: str,
     # yLabelText: str, yLabelUnits: str,
     # zLabelText: str, zLabelUnits: str,
-    loadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, QtWidgets.QProgressBar, tuple, str, str, str, str, str, str, bool)
+    loadedDataFull = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, int, tuple, str, str, str, str, str, str, bool)
     # Signal used to update the status bar
     sendStatusBarMessage = QtCore.pyqtSignal(str, str)
     # Signal to update the progress bar
-    updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
+    updateProgressBar = QtCore.pyqtSignal(int, float, str)
     # Signal when the data download is done but the database is empty
     # Useful for the starting of the liveplot
-    loadedDataEmpty = QtCore.pyqtSignal(QtWidgets.QCheckBox, QtWidgets.QProgressBar)
+    loadedDataEmpty = QtCore.pyqtSignal(QtWidgets.QCheckBox, int)
 
 
 
@@ -48,7 +48,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                        runId: int,
                        windowTitle: str,
                        cb: QtWidgets.QCheckBox,
-                       progressBar: QtWidgets.QProgressBar) -> None:
+                       progressBarId: int) -> None:
         """
         Thread used to get data for a 1d or 2d plot from a runId.
 
@@ -66,7 +66,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
             Name of the dependent parameter from which data will be downloaded.
         plotRef : str
             Reference of the curve.
-        progressBar : str
+        progressBarId : int
             Key to the progress bar in the dict progressBars.
         """
 
@@ -80,7 +80,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         self.runId              = runId
         self.windowTitle        = windowTitle
         self.cb                 = cb
-        self.progressBar        = progressBar
+        self.progressBarId      = progressBarId
 
 
         self.signal = LoadDataFromRunSignal()
@@ -139,7 +139,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
             queueProgressBar.put(progressBarNew)
             if progressBarNew!=progressBar:
                 progressBar = progressBarNew
-                self.signal.updateProgressBar.emit(self.progressBar, progressBar, 'Downloading data: {:.0f}%'.format(progressBar))
+                self.signal.updateProgressBar.emit(self.progressBarId, progressBar, 'Downloading data: {:.0f}%'.format(progressBar))
 
             messageNew = queueMessage.get()
             queueMessage.put(messageNew)
@@ -155,6 +155,8 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         queueData.join_thread()
         queueProgressBar.close()
         queueProgressBar.join_thread()
+        queueMessage.close()
+        queueMessage.join_thread()
         queueDone.close()
         queueDone.join_thread()
 
@@ -167,11 +169,11 @@ class LoadDataFromRunThread(QtCore.QRunnable):
         if d is None:
             self.signal.sendStatusBarMessage.emit('Extracting data failed...', 'red')
             self.signal.loadedDataEmpty.emit(self.cb,
-                                             self.progressBar)
+                                             self.progressBarId)
         elif len(d)==0:
             self.signal.sendStatusBarMessage.emit('Run empty', 'red')
             self.signal.loadedDataEmpty.emit(self.cb,
-                                             self.progressBar)
+                                             self.progressBarId)
         else:
 
             # 1d plot
@@ -219,7 +221,7 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                                             self.plotRef,
                                             self.databaseAbsPath,
                                             self.cb,
-                                            self.progressBar,
+                                            self.progressBarId,
                                             data,
                                             xLabelText,
                                             xLabelUnits,

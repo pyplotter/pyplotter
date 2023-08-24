@@ -325,24 +325,6 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
 
 
-    @QtCore.pyqtSlot(str)
-    def databaseLoadingStop(self, databaseAbsPath: str) -> None:
-        """
-        Called by tableWidgetDatabase when a database is stopped being loaded.
-        Basically, put back standard database icon
-        """
-
-        databaseName = getDatabaseNameFromAbsPath(databaseAbsPath)
-        row = self.rowNumberFromText(databaseName)
-
-        # We show the database is now closed
-        if self.properties.isDatabaseStared(databaseName):
-            self.databaseUpdateIcon(row, 'databaseStared.png')
-        else:
-            self.databaseUpdateIcon(row, 'database.png')
-
-
-
     def databaseUpdateIcon(self, row: int,
                                  iconName: str) -> None:
         """

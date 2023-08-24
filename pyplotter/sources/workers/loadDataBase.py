@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtCore, QtWidgets, QtTest
+from PyQt5 import QtCore
 import multiprocess as mp
 
 from ..config import loadConfigCurrent
@@ -16,22 +16,22 @@ class LoadDataBaseSignal(QtCore.QObject):
     # Signal used to add n rows in the database table
     addRows = QtCore.pyqtSignal(list, list, list, list, list, list, list, list, list, list, list, int, str)
     # Signal used to update the progress bar
-    updateProgressBar = QtCore.pyqtSignal(QtWidgets.QProgressBar, float, str)
+    updateProgressBar = QtCore.pyqtSignal(int, float, str)
     # When the run method is done
-    databaseClickDone = QtCore.pyqtSignal(QtWidgets.QProgressBar, bool, str, int)
+    databaseClickDone = QtCore.pyqtSignal(int, bool, str, int)
 
 class LoadDataBaseThread(QtCore.QRunnable):
 
 
     def __init__(self, databaseAbsPath:str,
-                       progressBar: QtWidgets.QProgressBar):
+                       progressBarId: int):
         """
 
         Parameters
         ----------
         databaseAbsPath : str
             Absolute path of the current database
-        progressBar : str
+        progressBarId : str
             Key to the progress bar in the dict progressBars
         """
 
@@ -41,7 +41,7 @@ class LoadDataBaseThread(QtCore.QRunnable):
 
 
         self.databaseAbsPath = databaseAbsPath
-        self.progressBar     = progressBar
+        self.progressBarId     = progressBarId
 
         # If set to True, stop the run
         self._stop = False
@@ -89,7 +89,7 @@ class LoadDataBaseThread(QtCore.QRunnable):
             progressBar = queueProgressBar.get()
             queueProgressBar.put(progressBar)
 
-            self.signal.updateProgressBar.emit(self.progressBar, progressBar, 'Loading database: {:.0f}%'.format(progressBar))
+            self.signal.updateProgressBar.emit(self.progressBarId, progressBar, 'Loading database: {:.0f}%'.format(progressBar))
 
             done = queueDone.get()
             queueDone.put(done)
@@ -113,7 +113,7 @@ class LoadDataBaseThread(QtCore.QRunnable):
         if runInfos is None:
             self.signal.sendStatusBarMessage.emit('Database empty', 'red')
             QtCore.QThread.msleep(1000) # To let user see the error message
-            self.signal.databaseClickDone.emit(self.progressBar, # progressBar
+            self.signal.databaseClickDone.emit(self.progressBarId, # progressBar
                                                True, #error
                                                '', # databaseAbsPath
                                                0) #nbTotalRun
@@ -167,7 +167,7 @@ class LoadDataBaseThread(QtCore.QRunnable):
                                           runRecords,
                                           nbTotalRun,
                                           self.databaseAbsPath)
-                self.signal.updateProgressBar.emit(self.progressBar, runId[0]/nbTotalRun*100, 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
+                self.signal.updateProgressBar.emit(self.progressBarId, runId[0]/nbTotalRun*100, 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
 
 
                 runId           = []
@@ -197,10 +197,10 @@ class LoadDataBaseThread(QtCore.QRunnable):
                                       runRecords,
                                       nbTotalRun,
                                       self.databaseAbsPath)
-            self.signal.updateProgressBar.emit(self.progressBar, runId[0]/nbTotalRun*100, 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
+            self.signal.updateProgressBar.emit(self.progressBarId, runId[0]/nbTotalRun*100, 'Displaying database: run '+str(runId[0])+'/'+str(nbTotalRun))
 
         # Signal that the whole database has been looked at
-        self.signal.databaseClickDone.emit(self.progressBar, # progressBar
+        self.signal.databaseClickDone.emit(self.progressBarId, # progressBarId
                                            False, #error
                                            self.databaseAbsPath, # databaseAbsPath
                                            nbTotalRun) #nbTotalRun

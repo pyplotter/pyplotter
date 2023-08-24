@@ -31,7 +31,7 @@ That way seems to keep pyqt happy.
 
 First you create the conda environement
 ```bash
-conda create --name pyplotter python=3.8
+conda create --name pyplotter python=3.11
 conda activate pyplotter
 ```
 
@@ -77,6 +77,12 @@ When you select a QCoDeS database, you will display all its information as shown
 You may now click on a run to show its dependent parameters and its station
 
 ![main](doc/main_01.png)
+
+### Extract run
+
+You can directly extract run from the main windows by left clicking on a run
+
+![Extract run](doc/exportRun01.gif)
 
 ### 1d plot
 
