@@ -38,6 +38,7 @@ class MenuExportRun(QtWidgets.QMenu):
         """
 
         self.filePath = QtWidgets.QFileDialog.getSaveFileName(self,
-                                                     caption='Select database',
-                                                     filter="qCoDeS database (*.db)",
-                                                     directory=os.getcwd())[0]
+                                                              'Select database',
+                                                              filter="qCoDeS database (*.db)",
+                                                              directory=os.getcwd(),
+                                                              options=QtWidgets.QFileDialog.DontConfirmOverwrite)[0]
