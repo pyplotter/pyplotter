@@ -147,7 +147,7 @@ class WidgetBlueFors(QtWidgets.QWidget):
 
                     for key in config[fileName]:
 
-                        self.signalUpdateProgressBar.emit(progressBar, progress, 'Downloading data: {:.0f}%'.format(progress*100))
+                        self.signalUpdateProgressBar.emit(progressBarId, progress, 'Downloading data: {:.0f}%'.format(progress*100))
                         progress += progressIteration
 
                         df_column_name = key+'_value'
