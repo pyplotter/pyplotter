@@ -123,6 +123,14 @@ configPackage = {
                         'labelUnits' : 'Bar'},
                'ch6' : {'labelText'  : 'Venting line',
                         'labelUnits' : 'Bar'}},
+'Status' : {'cpatempwi' : {'labelText'  : 'Compressor water temperature in',
+                           'labelUnits' : u'°C'},
+            'cpatempwo' : {'labelText'  : 'Compressor water temperature out',
+                           'labelUnits' : u'°C'},
+            'cpatempo'  : {'labelText'  : 'Compressor oil temperature',
+                           'labelUnits' : u'°C'},
+            'cpatemph'  : {'labelText'  : 'Compressor helium temperature',
+                           'labelUnits' : u'°C'}},
 
 
 # Layout parameters
