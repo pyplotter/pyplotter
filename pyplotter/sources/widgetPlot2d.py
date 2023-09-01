@@ -12,6 +12,7 @@ from .config import loadConfigCurrent
 from .functions import getCurveColorIndex, hex_to_rgba
 from .pyqtgraph import pg
 from .functions import parse_number
+from ..ui.plot2d.groupBoxFit import GroupBoxFit
 
 
 class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
@@ -31,6 +32,11 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
     signalUpdateCurve  = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
     signalRemoveCurve  = QtCore.pyqtSignal(str, str)
+
+    ## Fit
+    # Update the 2d fit selected data
+    signalUpdate2dFitData = QtCore.pyqtSignal(np.ndarray, np.ndarray, np.ndarray)
+    signalUpdate2dFitResult = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
 
 
     def __init__(self, x              : np.ndarray,
@@ -127,6 +133,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.runId         = runId
         self.curveId       = curveId
         self.plotRef       = plotRef
+        self.databaseAbsPath = databaseAbsPath
 
         # Store references to infiniteLines creating by data slicing
         self.sliceItems = {}
@@ -191,6 +198,10 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.plot2dzLabel.setFont(font)
         self.setWindowTitle(windowTitle)
 
+
+        # Initialize internal widget
+        self.initGroupBoxFit()
+
         self.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
         self.setStyleSheet("color: "+str(self.config['styles'][self.config['style']]['dialogTextColor'])+";")
 
@@ -241,7 +252,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.comboBoxcm.currentIndexChanged.connect(self.comboBoxcmChanged)
 
         # Should be initialize last
-        WidgetPlot.__init__(self, databaseAbsPath)
+        WidgetPlot.__init__(self, self.databaseAbsPath)
 
         self.show()
 
@@ -319,7 +330,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-    def livePlotUpdate(self, x: np.ndarray,
+    def updatePlotData(self, x: np.ndarray,
                              y: np.ndarray,
                              z: np.ndarray) -> None:
         """
@@ -334,7 +345,6 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         z : np.ndarray
             Data along the z axis, 2d array.
         """
-
 
         self.xData    = x
         self.yData    = y
@@ -1671,3 +1681,111 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
             self.dragSliceItem(sliceItem,
                                sliceOrientation)
+
+        # Update fit data only if roi is detected
+        if hasattr(self, 'roi'):
+            self.roiChangedFinished()
+
+
+
+    ####################################
+    #
+    #           Fit GroupBox
+    #
+    ####################################
+
+
+
+    def initGroupBoxFit(self) -> None:
+        """
+        Method called at the initialization of the GUI.
+        Make a list of radioButton reflected the available list of fitmodel.
+        By default all radioButton are disabled and user should chose a plotDataItem
+        to make them available.
+        """
+
+        self.groupBoxFit  = GroupBoxFit(self.groupBoxInteraction,
+                                        self.plotRef,
+                                        self.plotItem,
+                                        self.xLabelText,
+                                        self.yLabelText,
+                                        self.zLabelText,
+                                        self.xLabelUnits,
+                                        self.yLabelUnits,
+                                        self.zLabelUnits,
+                                        self._windowTitle,
+                                        self.databaseAbsPath,
+                                        )
+
+        # Event from groupBox to main
+        self.groupBoxFit.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot.emit)
+        self.groupBoxFit.signalClose2dPlot.connect(self.signalClose2dPlot.emit)
+
+        # Event from groupBox to the 2d plot displaying the fit result
+        self.groupBoxFit.signalUpdate2dFitResult.connect(self.signalUpdate2dFitResult.emit)
+
+        # Event from groupBox to this 2d plot
+        self.groupBoxFit.signalAddROI.connect(self.addROI)
+        self.groupBoxFit.signalRemoveROI.connect(self.removeROI)
+
+        # Events from the plot2d to the groupBox
+        self.signalUpdate2dFitData.connect(self.groupBoxFit.updateData)
+
+        # Add to GUI
+        self.verticalLayout_5.addWidget(self.groupBoxFit)
+
+
+
+    QtCore.pyqtSlot()
+    def removeROI(self):
+        """
+        Called by the fit groupBox.
+        Remove the ROI from the plotItem.
+        """
+        self.plotItem.removeItem(self.roi)
+        del(self.roi)
+
+
+
+    QtCore.pyqtSlot()
+    def addROI(self):
+        """
+        Called by fit groupBox.
+        Add a ROI and connect it to roiChangedFinished.
+        """
+
+        pen = pg.mkPen(color=self.config['styles'][self.config['style']]['plot1dSelectionLineColor'],
+                        width=3,
+                        style=QtCore.Qt.SolidLine)
+        hoverPen = pg.mkPen(color=self.config['styles'][self.config['style']]['plot1dSelectionLineColor'],
+                            width=3,
+                            style=QtCore.Qt.DashLine)
+        self.roi = pg.RectROI(pos=(self.xData.min(), self.yData.min()),
+                              size=(self.xData.max()-self.xData.min(), self.yData.max()-self.yData.min()),
+                              pen=pen,
+                              hoverPen=hoverPen)
+
+        self.roi.sigRegionChangeFinished.connect(self.roiChangedFinished)
+
+        self.plotItem.addItem(self.roi)
+        self.roiChangedFinished()
+
+
+
+    def roiChangedFinished(self):
+        """
+        Called when releasing the ROI.
+        Get the selected data and send them to the fit groupBox
+        """
+
+        t = self.roi.getArrayRegion(data=self.zData,
+                                    img=self.imageItem,
+                                    returnMappedCoords=True)
+
+        self.xSelected = t[1][0,:,0]
+        self.ySelected = t[1][1,0,:]
+        self.zSelected = t[0]
+
+        self.signalUpdate2dFitData.emit(self.xSelected,
+                                        self.ySelected,
+                                        self.zSelected)

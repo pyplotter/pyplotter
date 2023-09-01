@@ -9,6 +9,7 @@ pyplotter-0.3.6
 
   New Features:
     - User may extract run to another qcodes database
+    - Add fit to 2d plot
 
 pyplotter-0.3.5
 

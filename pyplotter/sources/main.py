@@ -558,6 +558,7 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
                 # p.signalGet1dColorIndex.connect(self.slotGet1dColorIndex)
                 p.signal2MainWindowAddPlot.connect(self.slotFromPlotAddPlot)
                 p.signalUpdateCurve.connect(self.slotUpdateCurve)
+                p.signalUpdate2dFitResult.connect(self.slotUpdate2d)
                 p.signalClose1dPlot.connect(self.slotClose1dPlot)
                 p.signalClose2dPlot.connect(self.slotClose2dPlot)
 
@@ -602,11 +603,10 @@ class MainApp(QtWidgets.QMainWindow, mainWindow.Ui_MainWindow):
 
     QtCore.pyqtSlot(str, str, str, np.ndarray, np.ndarray)
     def slotUpdate2d(self, plotRef: str,
-                             x: np.ndarray,
-                             y: np.ndarray,
-                             z: np.ndarray) -> None:
-
-        self._plotRefs[plotRef].livePlotUpdate(x=x,
+                           x: np.ndarray,
+                           y: np.ndarray,
+                           z: np.ndarray) -> None:
+        self._plotRefs[plotRef].updatePlotData(x=x,
                                                y=y,
                                                z=z)
 
