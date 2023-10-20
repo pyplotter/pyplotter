@@ -256,4 +256,4 @@ class Ui_Dialog(object):
         self.groupBoxPlotDataItem.setTitle(_translate("Dialog", "Select curve"))
         self.labelCoordinate.setText(_translate("Dialog", "<html><head/><body><p>x:<br/>y:</p></body></html>"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.widgetTabInteraction), _translate("Dialog", "Interaction"))
-from .plotWidget import PlotWidget
+from ..plotWidget import PlotWidget

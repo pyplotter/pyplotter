@@ -7,7 +7,7 @@ from .sources.config import initConfig, loadConfigCurrent
 # Init config file, to be done first
 initConfig()
 config = loadConfigCurrent()
-from .sources.main import MainApp
+from .ui.mainWindow import MainApp
 
 
 

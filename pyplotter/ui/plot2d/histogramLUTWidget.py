@@ -1,5 +1,5 @@
 # This Python file uses the following encoding: utf-8
-from..sources.pyqtgraph import pg
+from...sources.pyqtgraph import pg
 
 class HistogramLUTWidget(pg.HistogramLUTWidget):
     """

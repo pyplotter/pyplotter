@@ -1,4 +1,3 @@
-
 # This Python file uses the following encoding: utf-8
 # Correct bug with pyqtgraph and python3.8 by replacing function name
 import numpy as np

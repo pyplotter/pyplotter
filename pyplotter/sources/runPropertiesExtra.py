@@ -1,12 +1,10 @@
 # This Python file uses the following encoding: utf-8
-from PyQt5 import QtGui, QtWidgets
 import os
 import json
 from typing import Optional
 
 from .config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..ui.tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../ui/pictures/')

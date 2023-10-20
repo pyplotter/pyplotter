@@ -4,12 +4,12 @@ import numpy as np
 import datetime
 from typing import Callable
 
-from .config import loadConfigCurrent
+from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..ui.plotWidget import PlotWidget
-from ..ui.histogramLUTWidget import HistogramLUTWidget
+from ..ui.plot2d.histogramLUTWidget import HistogramLUTWidget
 from ..ui.menuDb import MenuDb
-from .pyqtgraph import pg
+from ..sources.pyqtgraph import pg
 
 class WidgetPlot():
     """

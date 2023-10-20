@@ -5,14 +5,15 @@ from typing import Union, Tuple, Optional, List, Dict
 from math import atan2
 import uuid
 
-from ..ui.widgetPlot2d import Ui_Dialog
-from . import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
-from .widgetPlot import WidgetPlot
-from .config import loadConfigCurrent
-from .functions import getCurveColorIndex, hex_to_rgba
-from .pyqtgraph import pg
-from .functions import parse_number
-from ..ui.plot2d.groupBoxFit import GroupBoxFit
+from .widgetPlot2dui import Ui_Dialog
+from ...sources import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
+from ...sources.config import loadConfigCurrent
+from ...sources.functions import getCurveColorIndex, hex_to_rgba
+from ...sources.pyqtgraph import pg
+from ...sources.functions import parse_number
+from ..widgetPlot import WidgetPlot
+
+from .groupBoxFit import GroupBoxFit
 
 
 class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):

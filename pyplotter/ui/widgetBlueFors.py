@@ -2,9 +2,9 @@
 from PyQt5 import QtWidgets, QtWidgets, QtCore
 import os
 import pandas as pd
-from.functions import pandasTimestamp2Int
+from ..sources.functions import pandasTimestamp2Int
 
-from .config import loadConfigCurrent
+from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
 
 

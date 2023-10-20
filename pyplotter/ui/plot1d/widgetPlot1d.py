@@ -4,19 +4,19 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 from typing import Union, Optional, Tuple, Dict
 
+from .widgetPlot1dui import Ui_Dialog
+from ...sources.config import loadConfigCurrent
+from ...sources.functions import getCurveColorIndex
+from ...sources.pyqtgraph import pg
+from ..widgetPlot import WidgetPlot
 
-from ..ui.widgetPlot1d import Ui_Dialog
-from .config import loadConfigCurrent
-from .widgetPlot import WidgetPlot
-from .functions import getCurveColorIndex
-from .pyqtgraph import pg
-from ..ui.plot1d.groupBoxStatistics import GroupBoxStatistics
-from ..ui.plot1d.groupBoxCalculus import GroupBoxCalculus
-from ..ui.plot1d.groupBoxFFT import GroupBoxFFT
-from ..ui.plot1d.groupBoxNormalize import GroupBoxNormalize
-from ..ui.plot1d.groupBoxFit import GroupBoxFit
-from ..ui.plot1d.groupBoxFiltering import GroupBoxFiltering
-from ..ui.plot1d.widgetTabCurve import WidgetTabCurve
+from .groupBoxStatistics import GroupBoxStatistics
+from .groupBoxCalculus import GroupBoxCalculus
+from .groupBoxFFT import GroupBoxFFT
+from .groupBoxNormalize import GroupBoxNormalize
+from .groupBoxFit import GroupBoxFit
+from .groupBoxFiltering import GroupBoxFiltering
+from .widgetTabCurve import WidgetTabCurve
 
 
 class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
