@@ -136,6 +136,10 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.plotRef       = plotRef
         self.databaseAbsPath = databaseAbsPath
 
+
+        # Will keep track of the axes swapping
+        self._isAxesSwapped = False
+
         # Store references to infiniteLines creating by data slicing
         self.sliceItems = {}
         self.sliceOrientation = 'vertical'
@@ -356,7 +360,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         self.zDataTransformation()
 
-        self.checkBoxSwapxyState(1)
+        if self._isAxesSwapped:
+            self.updateImageItem(self.yDataRef, self.xDataRef, self.imageView.image.T)
 
 
 
@@ -472,29 +477,31 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         # If user wants to swap axes
         if self.checkBoxSwapxy.isChecked():
             # If axes are not already swapped
-            if self.xLabelText==self.plotItem.axes['bottom']['item'].labelText:
+            if not self._isAxesSwapped:
 
                 self.plotItem.setLabel(axis='bottom',
-                                    text=self.yLabelText,
-                                    units=self.yLabelUnits)
+                                       text=self.yLabelText,
+                                       units=self.yLabelUnits)
                 self.plotItem.setLabel(axis='left',
-                                    text=self.xLabelText,
-                                    units=self.xLabelUnits)
+                                       text=self.xLabelText,
+                                       units=self.xLabelUnits)
 
                 self.updateImageItem(self.yDataRef, self.xDataRef, self.imageView.image.T)
+                self._isAxesSwapped = True
         # If user wants to unswap axes
         else:
-            # If axes are not already unswap
-            if self.yLabelText==self.plotItem.axes['bottom']['item'].labelText:
+            # If axes have been already swapped
+            if self._isAxesSwapped:
 
                 self.plotItem.setLabel(axis='bottom',
-                                    text=self.xLabelText,
-                                    units=self.xLabelUnits)
+                                       text=self.xLabelText,
+                                       units=self.xLabelUnits)
                 self.plotItem.setLabel(axis='left',
-                                    text=self.yLabelText,
-                                    units=self.yLabelUnits)
+                                       text=self.yLabelText,
+                                       units=self.yLabelUnits)
 
                 self.updateImageItem(self.xDataRef, self.yDataRef, self.imageView.image.T)
+                self._isAxesSwapped = False
 
 
 
@@ -887,32 +894,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 x_index = np.linspace(x0_index, x1_index, nb_points).astype(int)
                 y_index = np.linspace(y0_index, y1_index, nb_points).astype(int)
 
-                # sliceX = np.sqrt(self.xData[x_index]**2 + self.yData[y_index]**2)
                 sliceX = (self.xData[x_index], self.yData[y_index])
-                # sliceY =
-                sliceY = self.zData[x_index,y_index]
-                # print(sliceY.shape)
-                # print(sliceX)
-
-                # theta = np.angle(xSlice[1]-xSlice[0] + 1j*(ySlice[1]-ySlice[0]))
-                # print(np.rad2deg(theta))
-
-                # a = 1
-                # b = (xSlice[1]-xSlice[0])/(self.xData[1]-self.xData[0])
-                # c = (xSlice[1]-xSlice[0])/(self.xData[1]-self.xData[0])
-                # d = 1
-
-                # aa = d/(a*d-b*c)
-                # bb = b/(b*c-a*d)
-                # cc = c/(b*c-a*d)
-                # dd = d/(a*d-b*c)
-
-                # xx = self.xData[x_index]*aa + self.yData[y_index]*bb
-                # yy = self.xData[x_index]*cc + self.yData[y_index]*dd
-
-                # print(yy)
-                # sliceX = yy
-
                 sliceLegend = 'From ({}{}, {}{}) to ({}{}, {}{})'.format(parse_number(xSlice[0], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,
                                                                          parse_number(ySlice[0], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits,
                                                                          parse_number(xSlice[1], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,

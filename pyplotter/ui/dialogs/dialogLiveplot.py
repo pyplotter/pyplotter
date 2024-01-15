@@ -314,7 +314,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 hidden = True
 
             # Create empty data for the plot window launching
-            if zParamLabel=='':
+            if zParamName=='':
                 data = (np.array([]),
                         np.array([]))
             else:
@@ -481,7 +481,8 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         """
 
         self.pushButtonLivePlot.setText('Loading QCoDeS...')
-        # self.setStatusBarMessage()
+        self.pushButtonLivePlot.repaint()
+
         QtCore.QThread.msleep(100)
         from qcodes import initialise_or_create_database_at, load_by_run_spec
         self.pushButtonLivePlot.setText('Select database...')

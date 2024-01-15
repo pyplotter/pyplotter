@@ -13,10 +13,14 @@ class LoadDataFromCacheSignal(QtCore.QObject):
     Class containing the signal of the LoadDataFromCacheThread, see below
     """
 
-    dataLoaded = QtCore.pyqtSignal(str, tuple, str, bool)
+    dataLoaded = QtCore.pyqtSignal(str, # plotRef
+                                   tuple, # data
+                                   str, # yParamName
+                                   bool) # lastUpdate
 
     # Signal used to update the status bar
-    sendLivePlotInfoMessage = QtCore.pyqtSignal(str, str)
+    sendLivePlotInfoMessage = QtCore.pyqtSignal(str,
+                                                str)
 
 
 
@@ -24,7 +28,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
 
 
     def __init__(self, plotRef    : str,
-                       dataDict   : np.ndarray,
+                       dataDict   : dict,
                        xParamName : str,
                        yParamName : str,
                        zParamName : str,
@@ -33,6 +37,19 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
 
         Parameters
         ----------
+        plotRef : str
+            Reference of the plot, see getDataRef.
+        dataDict : dict
+            qcodes cache data dictionnary
+        xParamName : str
+            Name of the x parameter.
+        yParamName : str
+            Name of the y parameter.
+        zParamName : str
+            Name of the z parameter.
+        lastUpdate : bool
+            True if this is the last update of the livePlot, a.k.a. the run is
+            marked as completed by qcodes.
         """
 
         super(LoadDataFromCacheThread, self).__init__()
@@ -52,7 +69,6 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
     def run(self) -> None:
         """
         """
-
         # It takes some iteration for the cache to start having data
         # We check here if there is data in the cache
         if self.zParamName=='':
@@ -62,6 +78,7 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                 d = self.dataDict[self.yParamName]
                 data = (d[self.xParamName], d[self.yParamName])
         else:
+            # The data in the cache may be empty, we handle that by sending fake data
             if len(self.dataDict[self.zParamName])==0:
                 data = (np.array([0., 1.]),
                         np.array([0., 1.]),
@@ -97,22 +114,34 @@ class LoadDataFromCacheThread(QtCore.QRunnable):
                             zz)
 
                 else:
-                    data = (d[self.xParamName],
-                            d[self.yParamName],
-                            d[self.zParamName])
 
-                    # Find the effective x and y axis, see findXYIndex
-                    xi, yi = findXYIndex(data[1])
-
-                    # Shapped the 2d Data
-                    if config['2dGridInterpolation']=='grid':
-                        data = make_grid(data[xi],
-                                         data[yi],
-                                         data[2])
+                    # If there is less that 2 data points, we can't build a 2d map
+                    # We handle that by returning fake data
+                    if len(d[self.yParamName])<2:
+                        data = (np.array([0., 1.]),
+                                np.array([0., 1.]),
+                                np.array([[0., 1.],
+                                          [0., 1.]]))
                     else:
-                        data = shapeData2d(data[xi],
-                                           data[yi],
-                                           data[2],
-                                           self.signal.sendLivePlotInfoMessage)
+                        data = (d[self.xParamName],
+                                d[self.yParamName],
+                                d[self.zParamName])
 
-        self.signal.dataLoaded.emit(self.plotRef, data, self.yParamName, self.lastUpdate)
+                        # Find the effective x and y axis, see findXYIndex
+                        xi, yi = findXYIndex(data[1])
+
+                        # Shapped the 2d Data
+                        if config['2dGridInterpolation']=='grid':
+                            data = make_grid(data[xi],
+                                             data[yi],
+                                             data[2])
+                        else:
+                            data = shapeData2d(data[xi],
+                                               data[yi],
+                                               data[2],
+                                               self.signal.sendLivePlotInfoMessage)
+
+        self.signal.dataLoaded.emit(self.plotRef, # plotRef
+                                    data, # data
+                                    self.yParamName, # yParamName
+                                    self.lastUpdate) # lastUpdate
