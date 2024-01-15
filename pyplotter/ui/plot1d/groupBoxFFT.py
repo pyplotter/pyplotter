@@ -160,10 +160,10 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
 
             self.fftCurveId = self.selectedYLabel+'fft'
             self.fftPlotRef = self.plotRef+'fft'
-            xLabelText  = '1/'+self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = '1/'+self.plotItem.axes['bottom']['item'].labelUnits
+            xLabelText  = '1/'+self.xLabelText
+            xLabelUnits = '1/'+self.xLabelUnits
             yLabelText  = 'FFT'+'( '+self.selectedYLabel+' )'
-            yLabelUnits = self.selectedYUnits+'/'+self.plotItem.axes['bottom']['item'].labelUnits
+            yLabelUnits = self.selectedYUnits+'/'+self.xLabelUnits
             title       = self._windowTitle+' - '+'FFT'
 
             self.signal2MainWindowAddPlot.emit(1, # runId
@@ -219,10 +219,10 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
 
             self.fftNoDcCurveId = self.selectedYLabel+'fftnodc'
             self.fftNoDcPlotRef = self.plotRef+'fftnodc'
-            xLabelText  = '1/'+self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = '1/'+self.plotItem.axes['bottom']['item'].labelUnits
+            xLabelText  = '1/'+self.xLabelText
+            xLabelUnits = '1/'+self.xLabelUnits
             yLabelText  = 'FFT NO DC'+'( '+self.selectedYLabel+' )'
-            yLabelUnits = self.selectedYUnits+'/'+self.plotItem.axes['bottom']['item'].labelUnits
+            yLabelUnits = self.selectedYUnits+'/'+self.xLabelUnits
             title       = self._windowTitle+' - '+'FFT NO DC'
 
             self.signal2MainWindowAddPlot.emit(1, # runId
@@ -277,10 +277,10 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
 
             self.ifftCurveId = self.selectedYLabel+'ifft'
             self.ifftPlotRef = self.plotRef+'ifft'
-            xLabelText  = '1/'+self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = '1/'+self.plotItem.axes['bottom']['item'].labelUnits
+            xLabelText  = '1/'+self.xLabelText
+            xLabelUnits = '1/'+self.xLabelUnits
             yLabelText  = 'IFFT'+'( '+self.selectedYLabel+' )'
-            yLabelUnits = self.selectedYUnits+'/'+self.plotItem.axes['bottom']['item'].labelUnits
+            yLabelUnits = self.selectedYUnits+'/'+self.xLabelUnits
             title       = self._windowTitle+' - '+'IFFT'
 
             self.signal2MainWindowAddPlot.emit(1, # runId

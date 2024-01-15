@@ -34,6 +34,27 @@ class GroupBoxNormalize(QtWidgets.QGroupBox, Ui_GroupBoxNormalize):
         self.checkBoxUnwrap.clicked.connect(self.clickUnwrap)
         self.checkBoxRemoveSlope.clicked.connect(self.clickRemoveSlope)
 
+    ####################################
+    #
+    #           Easy access to plot labels
+    #
+    ####################################
+
+    @property
+    def xLabelText(self) -> str:
+        return self.plotItem.axes['bottom']['item'].labelText
+
+    @property
+    def xLabelUnits(self) -> str:
+        return self.plotItem.axes['bottom']['item'].labelUnits
+
+    @property
+    def yLabelText(self) -> str:
+        return self.plotItem.axes['left']['item'].labelText
+
+    @property
+    def yLabelUnits(self) -> str:
+        return self.plotItem.axes['left']['item'].labelUnits
 
 
     ####################################
@@ -148,7 +169,7 @@ class GroupBoxNormalize(QtWidgets.QGroupBox, Ui_GroupBoxNormalize):
         # If user wants to plot the unwrap, we add a new plotWindow
         if self.checkBoxUnwrap.isChecked():
 
-            yLabelText         = 'Unwrap({})'.format(self.plotItem.axes['left']['item'].labelText)
+            yLabelText         = 'Unwrap({})'.format(self.yLabelText)
             title              = self._windowTitle+' - unwrap'
             self.unwrapCurveId = self.selectedYLabel+'unwrap'
             self.unwrapPlotRef = self.plotRef+'unwrap'
@@ -160,10 +181,10 @@ class GroupBoxNormalize(QtWidgets.QGroupBox, Ui_GroupBoxNormalize):
                                                self.unwrapPlotRef, # plotRef
                                                self.databaseAbsPath, # databaseAbsPath
                                                self.unwrapGetData(), # data
-                                               self.plotItem.axes['bottom']['item'].labelText, # xLabelText
-                                               self.plotItem.axes['bottom']['item'].labelUnits, # xLabelUnits
+                                               self.xLabelText, # xLabelText
+                                               self.xLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               self.plotItem.axes['left']['item'].labelUnits, # yLabelUnits
+                                               self.yLabelUnits, # yLabelUnits
                                                '', # zLabelText
                                                '') # zLabelUnits
         # Otherwise, we close the existing one
@@ -203,7 +224,7 @@ class GroupBoxNormalize(QtWidgets.QGroupBox, Ui_GroupBoxNormalize):
         # If user wants to plot the unslop, we add a new plotWindow
         if self.checkBoxRemoveSlope.isChecked():
 
-            yLabelText  = 'Unslop({})'.format(self.plotItem.axes['left']['item'].labelText)
+            yLabelText  = 'Unslop({})'.format(self.yLabelText)
             title       = self._windowTitle+' - unslop'
             self.removeSlopeCurveId     = self.selectedYLabel+'unslop'
             self.removeSlopePlotRef     = self.plotRef+'unslop'
@@ -215,10 +236,10 @@ class GroupBoxNormalize(QtWidgets.QGroupBox, Ui_GroupBoxNormalize):
                                                self.removeSlopePlotRef, # plotRef
                                                self.databaseAbsPath, # databaseAbsPath
                                                self.removeSlopeGetData(), # data
-                                               self.plotItem.axes['bottom']['item'].labelText, # xLabelText
-                                               self.plotItem.axes['bottom']['item'].labelUnits, # xLabelUnits
+                                               self.xLabelText, # xLabelText
+                                               self.xLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
-                                               self.plotItem.axes['left']['item'].labelUnits, # yLabelUnits
+                                               self.yLabelUnits, # yLabelUnits
                                                '', # zLabelText
                                                '') # zLabelUnits
         # Otherwise, we close the existing one

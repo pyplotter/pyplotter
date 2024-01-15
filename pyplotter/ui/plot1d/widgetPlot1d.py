@@ -462,31 +462,6 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.verticalLayout_2.addWidget(self.groupBoxFiltering)
 
 
-    ####################################
-    #
-    #           Properties
-    #
-    ####################################
-
-
-    @property
-    def xLabelText(self) -> str:
-
-        if hasattr(self, 'plotItem'):
-            return self.plotItem.axes['bottom']['item'].labelText
-        else:
-            return ''
-
-
-
-    @property
-    def yLabelText(self) -> str:
-
-        if hasattr(self, 'plotItem'):
-            return self.plotItem.axes['left']['item'].labelText
-        else:
-            return ''
-
 
 
     ####################################

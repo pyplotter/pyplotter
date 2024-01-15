@@ -136,8 +136,8 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
         # If user wants to plot the derivative, we add a new plotWindow
         if self.checkBoxDifferentiate.isChecked():
 
-            xLabelText  = self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
+            xLabelText  = self.xLabelText
+            xLabelUnits = self.xLabelUnits
             yLabelText  = '∂('+self.selectedYLabel+')/∂('+xLabelText+')'
             yLabelUnits = self.selectedYUnits+'/'+xLabelUnits
 
@@ -199,8 +199,8 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
         # If user wants to plot the primitive, we add a new plotWindow
         if self.checkBoxIntegrate.isChecked():
 
-            xLabelText  = self.plotItem.axes['bottom']['item'].labelText
-            xLabelUnits = self.plotItem.axes['bottom']['item'].labelUnits
+            xLabelText  = self.xLabelText
+            xLabelUnits = self.xLabelUnits
             yLabelText  = '∫ '+self.selectedYLabel+'  d '+xLabelText
             yLabelUnits = self.selectedYUnits+' x '+xLabelUnits
 

@@ -123,12 +123,12 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.xDataRef      = x # To keep track of all operation done on the z data
         self.yDataRef      = y # To keep track of all operation done on the z data
         self.zDataRef      = z # To keep track of all operation done on the z data
-        self.xLabelText    = xLabelText
-        self.xLabelUnits   = xLabelUnits
-        self.yLabelText    = yLabelText
-        self.yLabelUnits   = yLabelUnits
-        self.zLabelText    = zLabelText
-        self.zLabelUnits   = zLabelUnits
+        self._xLabelText    = xLabelText
+        self._xLabelUnits   = xLabelUnits
+        self._yLabelText    = yLabelText
+        self._yLabelUnits   = yLabelUnits
+        self._zLabelText    = zLabelText
+        self._zLabelUnits   = zLabelUnits
         self.title         = title
         self._windowTitle   = windowTitle
         self.runId         = runId
@@ -187,13 +187,13 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.plotItem.setTitle(title=title, color=self.config['styles'][self.config['style']]['pyqtgraphTitleTextColor'])
         self.plotItem.showGrid(x=True, y=True)
         self.plotItem.setLabel(axis='bottom',
-                               text=self.xLabelText,
-                               units=self.xLabelUnits,
+                               text=self._xLabelText,
+                               units=self._xLabelUnits,
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
-                               text=self.yLabelText,
-                               units=self.yLabelUnits,
+                               text=self._yLabelText,
+                               units=self._yLabelUnits,
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
@@ -480,11 +480,11 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
             if not self._isAxesSwapped:
 
                 self.plotItem.setLabel(axis='bottom',
-                                       text=self.yLabelText,
-                                       units=self.yLabelUnits)
+                                       text=self._yLabelText,
+                                       units=self._yLabelUnits)
                 self.plotItem.setLabel(axis='left',
-                                       text=self.xLabelText,
-                                       units=self.xLabelUnits)
+                                       text=self._xLabelText,
+                                       units=self._xLabelUnits)
 
                 self.updateImageItem(self.yDataRef, self.xDataRef, self.imageView.image.T)
                 self._isAxesSwapped = True
@@ -494,11 +494,11 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
             if self._isAxesSwapped:
 
                 self.plotItem.setLabel(axis='bottom',
-                                       text=self.xLabelText,
-                                       units=self.xLabelUnits)
+                                       text=self._xLabelText,
+                                       units=self._xLabelUnits)
                 self.plotItem.setLabel(axis='left',
-                                       text=self.yLabelText,
-                                       units=self.yLabelUnits)
+                                       text=self._yLabelText,
+                                       units=self._yLabelUnits)
 
                 self.updateImageItem(self.xDataRef, self.yDataRef, self.imageView.image.T)
                 self._isAxesSwapped = False
@@ -866,19 +866,19 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 n = np.abs(self.xData-xSlice).argmin()
                 sliceX        = self.yData
                 sliceY        = self.zData[n]
-                sliceLegend   = '{} = {}{}'.format(self.plotItem.axes['bottom']['item'].labelText,
+                sliceLegend   = '{} = {}{}'.format(self.xLabelText,
                                                    parse_number(self.xData[n], 3, unified=True),
-                                                   self.plotItem.axes['bottom']['item'].labelUnits)
-                sliceLabel = '{}{}'.format(parse_number(self.xData[n], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits)
+                                                   self.xLabelUnits)
+                sliceLabel = '{}{}'.format(parse_number(self.xData[n], 3, unified=True), self.xLabelUnits)
             elif orientation=='horizontal':
 
                 n = np.abs(self.yData-ySlice).argmin()
                 sliceX        = self.xData
                 sliceY        = self.zData[:,n]
-                sliceLegend   = '{} = {}{}'.format(self.plotItem.axes['left']['item'].labelText,
+                sliceLegend   = '{} = {}{}'.format(self.yLabelText,
                                                    parse_number(self.yData[n], 3, unified=True),
-                                                   self.plotItem.axes['left']['item'].labelUnits)
-                sliceLabel = '{}{}'.format(parse_number(self.yData[n], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits)
+                                                   self.yLabelUnits)
+                sliceLabel = '{}{}'.format(parse_number(self.yData[n], 3, unified=True), self.yLabelUnits)
             else:
                 # Greatly inspired from
                 # https://stackoverflow.com/questions/7878398/how-to-extract-an-arbitrary-line-of-values-from-a-numpy-array
@@ -895,10 +895,10 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 y_index = np.linspace(y0_index, y1_index, nb_points).astype(int)
 
                 sliceX = (self.xData[x_index], self.yData[y_index])
-                sliceLegend = 'From ({}{}, {}{}) to ({}{}, {}{})'.format(parse_number(xSlice[0], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,
-                                                                         parse_number(ySlice[0], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits,
-                                                                         parse_number(xSlice[1], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits,
-                                                                         parse_number(ySlice[1], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits,)
+                sliceLegend = 'From ({}{}, {}{}) to ({}{}, {}{})'.format(parse_number(xSlice[0], 3, unified=True), self.xLabelUnits,
+                                                                         parse_number(ySlice[0], 3, unified=True), self.yLabelUnits,
+                                                                         parse_number(xSlice[1], 3, unified=True), self.xLabelUnits,
+                                                                         parse_number(ySlice[1], 3, unified=True), self.yLabelUnits,)
                 sliceLabel = ''
 
         # If averaged  slice
@@ -916,16 +916,16 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                         nmax=nmin+1
                 sliceX        = self.yData
                 sliceY        = np.mean(self.zData[nmin:nmax], axis=0)
-                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.plotItem.axes['bottom']['item'].labelText,
+                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.xLabelText,
                                                                                          parse_number(self.xData[nmin], 3, unified=True),
-                                                                                         self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                                         self.xLabelUnits,
                                                                                          parse_number(self.xData[nmax], 3, unified=True),
-                                                                                         self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                                         self.xLabelUnits,
                                                                                          parse_number((self.xData[nmin]+self.xData[nmax])/2, 3, unified=True),
-                                                                                         self.plotItem.axes['bottom']['item'].labelUnits,
+                                                                                         self.xLabelUnits,
                                                                                          int(nmax-nmin))
-                sliceLabel = ('{}{}'.format(parse_number(self.xData[nmin], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits),
-                              '{}{}'.format(parse_number(self.xData[nmax], 3, unified=True), self.plotItem.axes['bottom']['item'].labelUnits))
+                sliceLabel = ('{}{}'.format(parse_number(self.xData[nmin], 3, unified=True), self.xLabelUnits),
+                              '{}{}'.format(parse_number(self.xData[nmax], 3, unified=True), self.xLabelUnits))
             else:
 
                 nmin = np.abs(self.yData-ySlice[0]).argmin()
@@ -938,16 +938,16 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                         nmax=nmin+1
                 sliceX        = self.xData
                 sliceY        = np.mean(self.zData[:,nmin:nmax], axis=1)
-                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.plotItem.axes['left']['item'].labelText,
+                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.yLabelText,
                                                                                          parse_number(self.yData[nmin], 3, unified=True),
-                                                                                         self.plotItem.axes['left']['item'].labelUnits,
+                                                                                         self.yLabelUnits,
                                                                                          parse_number(self.yData[nmax], 3, unified=True),
-                                                                                         self.plotItem.axes['left']['item'].labelUnits,
+                                                                                         self.yLabelUnits,
                                                                                          parse_number((self.yData[nmin]+self.yData[nmax])/2, 3, unified=True),
-                                                                                         self.plotItem.axes['left']['item'].labelUnits,
+                                                                                         self.yLabelUnits,
                                                                                          int(nmax-nmin))
-                sliceLabel = ('{}{}'.format(parse_number(self.yData[nmin], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits),
-                              '{}{}'.format(parse_number(self.yData[nmax], 3, unified=True), self.plotItem.axes['left']['item'].labelUnits))
+                sliceLabel = ('{}{}'.format(parse_number(self.yData[nmin], 3, unified=True), self.yLabelUnits),
+                              '{}{}'.format(parse_number(self.yData[nmax], 3, unified=True), self.yLabelUnits))
 
         return sliceX, sliceY, sliceLegend, sliceLabel
 
@@ -1074,8 +1074,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         if sliceOrientation is None:
             sliceOrientation = self.sliceOrientation
 
-        yLabelText  = self.zLabelText
-        yLabelUnits = self.zLabelUnits
+        yLabelText  = self._zLabelText
+        yLabelUnits = self._zLabelUnits
 
         title = self.title+" <span style='color: red; font-weight: bold;'>Extrapolated data</span>"
         windowTitle = self._windowTitle+' - '+sliceOrientation+' slice'
@@ -1212,21 +1212,21 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         label = str(self.comboBoxDerivative.currentText())
         if label=='∂z/∂x':
             zData = np.gradient(zData, self.xData, axis=0)
-            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.xLabelUnits+')')
+            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+'/'+self.xLabelUnits+')')
         elif label=='∂z/∂y':
             zData = np.gradient(zData, self.yData, axis=1)
-            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.yLabelUnits+')')
+            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+'/'+self.yLabelUnits+')')
         elif label=='√((∂z/∂x)² + (∂z/∂y)²)':
             zData = np.sqrt(np.gradient(zData, self.xData, axis=0)**2. + np.gradient(zData, self.yData, axis=1)**2.)
-            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+' x √('+self.xLabelUnits+'² + '+self.yLabelUnits+'²)')
+            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+' x √('+self.xLabelUnits+'² + '+self.yLabelUnits+'²)')
         elif label=='∂²z/∂x²':
             zData = np.gradient(np.gradient(zData, self.xData, axis=0), self.xData, axis=0)
-            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.xLabelUnits+'²)')
+            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+'/'+self.xLabelUnits+'²)')
         elif label=='∂²z/∂y²':
             zData = np.gradient(np.gradient(zData, self.yData, axis=1), self.yData, axis=1)
-            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+'/'+self.yLabelUnits+'²)')
+            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+'/'+self.yLabelUnits+'²)')
         else:
-            self.plot2dzLabel.setText(self.zLabelText+' ('+self.zLabelUnits+')')
+            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+')')
 
         self.updateImageItem(self.xData, self.yData, zData)
 
@@ -1692,10 +1692,10 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                         self.plotItem,
                                         self.xLabelText,
                                         self.yLabelText,
-                                        self.zLabelText,
+                                        self._zLabelText,
                                         self.xLabelUnits,
                                         self.yLabelUnits,
-                                        self.zLabelUnits,
+                                        self._zLabelUnits,
                                         self._windowTitle,
                                         self.databaseAbsPath,
                                         )

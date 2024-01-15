@@ -67,6 +67,29 @@ class WidgetPlot():
 
     ####################################
     #
+    #           Easy access to plot labels
+    #
+    ####################################
+
+    @property
+    def xLabelText(self) -> str:
+        return self.plotItem.axes['bottom']['item'].labelText
+
+    @property
+    def xLabelUnits(self) -> str:
+        return self.plotItem.axes['bottom']['item'].labelUnits
+
+    @property
+    def yLabelText(self) -> str:
+        return self.plotItem.axes['left']['item'].labelText
+
+    @property
+    def yLabelUnits(self) -> str:
+        return self.plotItem.axes['left']['item'].labelUnits
+
+
+    ####################################
+    #
     #           Copie plot to clipboard
     #
     ####################################
@@ -142,13 +165,13 @@ class WidgetPlot():
                                color=self.config['styles'][self.config['style']]['pyqtgraphTitleTextColor'])
 
         self.plotItem.setLabel(axis='bottom',
-                               text=self.plotItem.axes['bottom']['item'].labelText,
-                               units=self.plotItem.axes['bottom']['item'].labelUnits,
+                               text=self.xLabelText,
+                               units=self.xLabelUnits,
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphxLabelTextColor'],
                                   'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
-                               text=self.plotItem.axes['left']['item'].labelText,
-                               units=self.plotItem.axes['left']['item'].labelUnits,
+                               text=self.yLabelText,
+                               units=self.yLabelUnits,
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 

@@ -116,7 +116,7 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
             mean   = np.nanmean(self.selectedY)
             std    = np.nanstd(self.selectedY)
             median = np.nanmedian(self.selectedY)
-            xLabelUnits = self.plotItem.axes['left']['item'].labelUnits
+            xLabelUnits = self.yLabelUnits
 
             # We add some statistics info on the GUI
             txt = 'mean: {}{}<br/>'\
@@ -143,8 +143,8 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
         # If user wants to plot the histogram, we add a new plotWindow
         if self.checkBoxStatistics.isChecked():
 
-            xLabelText  = self.plotItem.axes['left']['item'].labelText
-            xLabelUnits = self.plotItem.axes['left']['item'].labelUnits
+            xLabelText  = self.yLabelText
+            xLabelUnits = self.yLabelUnits
             yLabelText  = 'Count'
             yLabelUnits = ''
 

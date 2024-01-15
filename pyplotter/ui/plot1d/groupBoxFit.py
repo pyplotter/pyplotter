@@ -79,8 +79,8 @@ class GroupBoxFit(QtWidgets.QGroupBox):
         self.dialog = _class(parent=self,
                         xData=self.selectedX,
                         yData=self.selectedY,
-                        xUnits=self.plotItem.axes['bottom']['item'].labelUnits,
-                        yUnits=self.plotItem.axes['left']['item'].labelUnits)
+                        xUnits=self.xLabelUnits,
+                        yUnits=self.yLabelUnits)
 
         self.dialog.signalCloseDialog.connect(self.slotCloseDialog)
         self.dialog.signalUpdateDialog.connect(self.slotUpdateDialog)
