@@ -1,3 +1,10 @@
+pyplotter-0.3.7
+
+  Bug Fixes:
+    - Fix 2d liveplot for unlabeled parameters
+    - Solve isoCurve and isoLine not deletion bug
+
+
 pyplotter-0.3.6
 
   Bug Fixes:
