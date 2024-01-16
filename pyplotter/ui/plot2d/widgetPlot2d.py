@@ -1453,7 +1453,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         """
 
         # When user check the box we create the items and the events
-        if b!=0:
+        if self.checkBoxDrawIsoCurve.isChecked():
 
             # If items do not exist, we create them
             if not hasattr(self, 'isoCurve'):
@@ -1489,6 +1489,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         # If the user uncheck the box, we hide the items
         else:
+            self.isoCurve.setParentItem(None)
+            self.histWidget.item.vb.removeItem(self.isoLine)
             del(self.isoCurve)
             del(self.isoLine)
 
