@@ -125,11 +125,7 @@ class WidgetPlot2d(QtWidgets.QDialog):
 
         # Must be set on False, see
         # https://github.com/pyqtgraph/pyqtgraph/issues/1371
-        # self.plotWidget.plotWidget.useOpenGL(False)
-
-        # Shortcut to access the plot widget and item
-        # self.plotWidget = self.plotWidget.plotWidget
-        # self.plotItem = self.plotWidget.plotWidget.getPlotItem()
+        self.plotWidget.useOpenGL(False)
 
         # Allow resize of the plot window
         self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
@@ -223,31 +219,31 @@ class WidgetPlot2d(QtWidgets.QDialog):
 
 
         # # Connect UI
-        # self.ui.checkBoxFindSlope.clicked.connect(self.cbFindSlope)
-        # self.ui.checkBoxDrawIsoCurve.clicked.connect(self.isoCurveClicked)
-        # self.ui.checkBoxMaximum.clicked.connect(self.checkBoxMaximumClicked)
-        # self.ui.checkBoxMinimum.clicked.connect(self.checkBoxMinimumClicked)
-        # self.ui.checkBoxSwapxy.clicked.connect(self.checkBoxSwapxyState)
-        # self.ui.checkBoxAspectEqual.clicked.connect(self.checkBoxAspectEqualState)
-        # self.ui.checkBoxSubtractAverageX.clicked.connect(self.zDataTransformation)
-        # self.ui.checkBoxSubtractAverageY.clicked.connect(self.zDataTransformation)
-        # self.ui.spinBoxSubtractPolyX.valueChanged.connect(self.zDataTransformation)
-        # self.ui.spinBoxSubtractPolyY.valueChanged.connect(self.zDataTransformation)
-        # self.ui.checkBoxUnwrapX.clicked.connect(self.zDataTransformation)
-        # self.ui.checkBoxUnwrapY.clicked.connect(self.zDataTransformation)
-        # self.ui.pushButton3d.clicked.connect(self.launched3d)
-        # self.plotItem.scene().sigMouseClicked.connect(self.plotItemdoubleClick)
-        # self.ui.radioButtonSliceSingleAny.toggled.connect(self.radioBoxSliceChanged)
-        # self.ui.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
-        # self.ui.radioButtonSliceSingleVertical.toggled.connect(self.radioBoxSliceChanged)
-        # self.ui.radioButtonSliceAveragedHorizontal.toggled.connect(self.radioBoxSliceChanged)
-        # self.ui.radioButtonSliceAveragedVertical.toggled.connect(self.radioBoxSliceChanged)
+        self.ui.checkBoxFindSlope.clicked.connect(self.cbFindSlope)
+        self.ui.checkBoxDrawIsoCurve.clicked.connect(self.isoCurveClicked)
+        self.ui.checkBoxMaximum.clicked.connect(self.checkBoxMaximumClicked)
+        self.ui.checkBoxMinimum.clicked.connect(self.checkBoxMinimumClicked)
+        self.ui.checkBoxSwapxy.clicked.connect(self.checkBoxSwapxyState)
+        self.ui.checkBoxAspectEqual.clicked.connect(self.checkBoxAspectEqualState)
+        self.ui.checkBoxSubtractAverageX.clicked.connect(self.zDataTransformation)
+        self.ui.checkBoxSubtractAverageY.clicked.connect(self.zDataTransformation)
+        self.ui.spinBoxSubtractPolyX.valueChanged.connect(self.zDataTransformation)
+        self.ui.spinBoxSubtractPolyY.valueChanged.connect(self.zDataTransformation)
+        self.ui.checkBoxUnwrapX.clicked.connect(self.zDataTransformation)
+        self.ui.checkBoxUnwrapY.clicked.connect(self.zDataTransformation)
+        self.ui.pushButton3d.clicked.connect(self.launched3d)
+        self.plotItem.scene().sigMouseClicked.connect(self.plotItemdoubleClick)
+        self.ui.radioButtonSliceSingleAny.toggled.connect(self.radioBoxSliceChanged)
+        self.ui.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
+        self.ui.radioButtonSliceSingleVertical.toggled.connect(self.radioBoxSliceChanged)
+        self.ui.radioButtonSliceAveragedHorizontal.toggled.connect(self.radioBoxSliceChanged)
+        self.ui.radioButtonSliceAveragedVertical.toggled.connect(self.radioBoxSliceChanged)
 
 
-        # # UI for the derivative combobox
-        # for label in self.config['plot2dDerivative']:
-        #     self.ui.comboBoxDerivative.addItem(label)
-        # self.ui.comboBoxDerivative.activated.connect(self.zDataTransformation)
+        # UI for the derivative combobox
+        for label in self.config['plot2dDerivative']:
+            self.ui.comboBoxDerivative.addItem(label)
+        self.ui.comboBoxDerivative.activated.connect(self.zDataTransformation)
 
 
         self.resize(*self.config['dialogWindowSize'])
@@ -255,13 +251,13 @@ class WidgetPlot2d(QtWidgets.QDialog):
         self.show()
 
 
-        # # Connect the button to get a screenshot of the plot
-        # # Done here since we need a reference of the plotWidget
-        # self.ui.qButtonCopy.clicked.connect(lambda plotWidget=self.plotWidget: self.ui.qButtonCopy.clicked_(self.plotWidget))
-        # # For unknown reason, I have to initialize the text here...
-        # self.ui.qButtonCopy.setText(self.ui.qButtonCopy._text)
+        # Connect the button to get a screenshot of the plot
+        # Done here since we need a reference of the plotWidget
+        self.ui.qButtonCopy.clicked.connect(lambda: self.ui.qButtonCopy.clicked_(self.plotWidget))
+        # For unknown reason, I have to initialize the text here...
+        self.ui.qButtonCopy.setText(self.ui.qButtonCopy._text)
 
-        # self.ui.qCheckBoxCrossHair.signalAddCrossHair.connect(self.plotWidget.slotAddCrossHair)
+        self.ui.qCheckBoxCrossHair.signalAddCrossHair.connect(self.plotWidget.slotAddCrossHair)
 
 
         # if the dialog size was given (usually meaning a live plot is done)

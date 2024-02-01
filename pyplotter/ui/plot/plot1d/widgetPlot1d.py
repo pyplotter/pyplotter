@@ -291,7 +291,6 @@ class WidgetPlot1d(QtWidgets.QDialog):
         # For unknown reason, I have to initialize the text here...
         self.ui.qButtonCopy.setText(self.ui.qButtonCopy._text)
 
-
         self.ui.qCheckBoxCrossHair.signalAddCrossHair.connect(self.plotWidget.slotAddCrossHair)
 
         # AutoRange only after the first data item is added
@@ -300,6 +299,13 @@ class WidgetPlot1d(QtWidgets.QDialog):
         self.autoRange()
         self.autoRange()
 
+        # if the dialog size was given (usually meaning a live plot is done)
+        if dialogWidth is not None and dialogHeight is not None:
+            self.adjustSize()
+            frameHeight = self.frameGeometry().height()-self.height()
+            frameWidth = self.frameGeometry().width()-self.width()
+            self.resize(dialogWidth-frameWidth, dialogHeight-frameHeight)
+            self.move(dialogX, dialogY)
 
     ####################################
     #
