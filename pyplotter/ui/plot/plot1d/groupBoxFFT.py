@@ -1,13 +1,12 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 from typing import Tuple
 
 from .groupBoxFFTUi import Ui_QGroupBoxFFT
-from ...sources.pyqtgraph import pg
+from ....sources.pyqtgraph import pg
 
 
-class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
+class GroupBoxFFT(QtWidgets.QGroupBox):
 
 
     signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
@@ -22,8 +21,11 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
                        plotRef:str,
                        windowTitle: str) -> None:
 
-        QtWidgets.QGroupBox.__init__(self, parent)
-        self.setupUi(self)
+        super(GroupBoxFFT, self).__init__(parent)
+
+        # Build the UI
+        self.ui = Ui_QGroupBoxFFT()
+        self.ui.setupUi(self)
 
         self.config = config
         self.databaseAbsPath = databaseAbsPath
@@ -32,9 +34,9 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
         self._windowTitle = windowTitle
 
 
-        self.checkBoxFFT.clicked.connect(self.clickFFT)
-        self.checkBoxFFTnoDC.clicked.connect(self.clickFFTnoDC)
-        self.checkBoxIFFT.clicked.connect(self.clickIFFT)
+        self.ui.checkBoxFFT.clicked.connect(self.clickFFT)
+        self.ui.checkBoxFFTnoDC.clicked.connect(self.clickFFTnoDC)
+        self.ui.checkBoxIFFT.clicked.connect(self.clickIFFT)
 
 
 
@@ -49,7 +51,7 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
 
     @QtCore.pyqtSlot(bool)
     def slotCheckBoxFFTSetChecked(self, state: bool):
-        self.checkBoxFFT.setChecked(state)
+        self.ui.checkBoxFFT.setChecked(state)
         del(self.fftPlotRef)
         del(self.fftCurveId)
 
@@ -57,13 +59,13 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
 
     @QtCore.pyqtSlot(bool)
     def slotCheckBoxFFTnoDCSetChecked(self, state: bool):
-        self.checkBoxFFTnoDC.setChecked(state)
+        self.ui.checkBoxFFTnoDC.setChecked(state)
         del(self.fftNoDcPlotRef)
         del(self.fftNoDcCurveId)
 
     @QtCore.pyqtSlot(bool)
     def slotCheckBoxIFFTSetChecked(self, state: bool):
-        self.checkBoxIFFT.setChecked(state)
+        self.ui.checkBoxIFFT.setChecked(state)
         del(self.ifftPlotRef)
         del(self.ifftCurveId)
 
@@ -156,14 +158,14 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
 
     def clickFFT(self) -> None:
 
-        if self.checkBoxFFT.isChecked():
+        if self.ui.checkBoxFFT.isChecked():
 
             self.fftCurveId = self.selectedYLabel+'fft'
             self.fftPlotRef = self.plotRef+'fft'
-            xLabelText  = '1/'+self.xLabelText
-            xLabelUnits = '1/'+self.xLabelUnits
+            xLabelText  = '1/'+self.selectedXLabel
+            xLabelUnits = '1/'+self.selectedXUnits
             yLabelText  = 'FFT'+'( '+self.selectedYLabel+' )'
-            yLabelUnits = self.selectedYUnits+'/'+self.xLabelUnits
+            yLabelUnits = self.selectedYUnits+'/'+self.selectedXUnits
             title       = self._windowTitle+' - '+'FFT'
 
             self.signal2MainWindowAddPlot.emit(1, # runId
@@ -215,14 +217,14 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
 
     def clickFFTnoDC(self) -> None:
 
-        if self.checkBoxFFTnoDC.isChecked():
+        if self.ui.checkBoxFFTnoDC.isChecked():
 
             self.fftNoDcCurveId = self.selectedYLabel+'fftnodc'
             self.fftNoDcPlotRef = self.plotRef+'fftnodc'
-            xLabelText  = '1/'+self.xLabelText
-            xLabelUnits = '1/'+self.xLabelUnits
+            xLabelText  = '1/'+self.selectedXLabel
+            xLabelUnits = '1/'+self.selectedXUnits
             yLabelText  = 'FFT NO DC'+'( '+self.selectedYLabel+' )'
-            yLabelUnits = self.selectedYUnits+'/'+self.xLabelUnits
+            yLabelUnits = self.selectedYUnits+'/'+self.selectedXUnits
             title       = self._windowTitle+' - '+'FFT NO DC'
 
             self.signal2MainWindowAddPlot.emit(1, # runId
@@ -273,14 +275,14 @@ class GroupBoxFFT(QtWidgets.QGroupBox, Ui_QGroupBoxFFT):
 
     def clickIFFT(self) -> None:
 
-        if self.checkBoxIFFT.isChecked():
+        if self.ui.checkBoxIFFT.isChecked():
 
             self.ifftCurveId = self.selectedYLabel+'ifft'
             self.ifftPlotRef = self.plotRef+'ifft'
-            xLabelText  = '1/'+self.xLabelText
-            xLabelUnits = '1/'+self.xLabelUnits
+            xLabelText  = '1/'+self.selectedXLabel
+            xLabelUnits = '1/'+self.selectedXUnits
             yLabelText  = 'IFFT'+'( '+self.selectedYLabel+' )'
-            yLabelUnits = self.selectedYUnits+'/'+self.xLabelUnits
+            yLabelUnits = self.selectedYUnits+'/'+self.selectedXUnits
             title       = self._windowTitle+' - '+'IFFT'
 
             self.signal2MainWindowAddPlot.emit(1, # runId

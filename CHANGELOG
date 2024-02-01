@@ -4,6 +4,10 @@ pyplotter-0.3.7
     - Fix 2d liveplot for unlabeled parameters
     - Solve isoCurve and isoLine not deletion bug
 
+  New Features:
+    - Add livePlot Tiling
+    - Add button to hide interaction
+
 
 pyplotter-0.3.6
 

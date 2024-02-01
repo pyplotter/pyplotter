@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 import json
 import os
 from platformdirs import user_config_dir
@@ -324,13 +323,13 @@ configPackage = {
                               ( 53,  77,  41)],
 "plotDataItemWidth" : 2,
 "plotDataItemShadowWidth" : 10,
-"plotCoordinateNbNumber" : '5', # str, how many decimal for coordinates
+"plotCoordinateNbNumber" : '2', # str, how many decimal for coordinates
 
 "fitParameterNbNumber" : 3, # int, how many decimal for the displayed fit parameters
 
 # crosshair
 'crossHairLineWidth' : 3,
-'crossHairLineColor' : 'w',
+'crossHairLineColor' : ( 51, 160,  44),
 'crossHairLineStyle' : 'solid', # solid, dashed, dotted, dashed-dotted
 }
 

@@ -1,67 +1,51 @@
-    # This Python file uses the following encoding: utf-8
 from PyQt5 import QtGui, QtCore, QtWidgets
 import numpy as np
-import datetime
-from typing import Callable
+from typing import Callable, Optional
 
-from ..sources.config import loadConfigCurrent
+from ...sources.config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..ui.plotWidget import PlotWidget
-from ..ui.plot2d.histogramLUTWidget import HistogramLUTWidget
-from ..ui.menuDb import MenuDb
-from ..sources.pyqtgraph import pg
+from ..menuDb import MenuDb
+from ...sources.pyqtgraph import pg
 
-class WidgetPlot():
+
+
+class WidgetPlot(pg.PlotWidget):
     """
-    Class to handle ploting in 1d.
+    Custom class used in QtDesigner.
+    Allow its parent class to use plotWidget
     """
 
-    # For mypy
-    plotWidget: PlotWidget
-    plotItem: pg.PlotItem
-    checkBoxCrossHair: QtWidgets.QCheckBox
-    pushButtonCopy: QtWidgets.QPushButton
-    winId: Callable
-    frameGeometry: QtCore.QRect
-    tabWidget: QtWidgets.QTabWidget
-    findChildren: Callable
-    config: dict
-    plot2dzLabel: QtWidgets.QLabel
-    histWidget: HistogramLUTWidget
-    plotType: str
-    comboBoxcm: QtWidgets.QComboBox
-    checkBoxLogX: QtWidgets.QCheckBox
-    checkBoxLogY: QtWidgets.QCheckBox
-    labelCoordinate: QtWidgets.QLabel
-    xData: np.ndarray
-    yData: np.ndarray
-    zData: np.ndarray
-    sliceItems: dict
+
+    signalUpdateCoordinate = QtCore.pyqtSignal(float, float, bool)
+    signalUpdateCrossHairPosition = QtCore.pyqtSignal(float, float)
 
 
-    def __init__(self, databaseAbsPath    : str) -> None:
 
+    def __init__(self, parent=None):
+        # pg.PlotWidget.__init__(self)
         super(WidgetPlot, self).__init__()
+        self.setParent(parent)
 
-        # Crosshair lines
-        self.vLine = None
-        self.hLine = None
-        # self.crossHairRemove
+        # Shortcut
+        self.plotItem = self.getPlotItem()
 
-        # For the right-click on the plot title
-        self.databaseAbsPath= databaseAbsPath
-
-        # Help deciding when drawing crosshair
-        self.plotWidget.installEventFilter(self)
+        self.installEventFilter(self)
         self.plotWidgetHovered = False
 
+
+        # Help deciding when drawing crosshair
+        # Is switched from a signal emited by qCheckBoxCrossHair
         self.displayCrossHair = False
+
+        ## Crosshair lines
+        self.vLine = None
+        self.hLine = None
+
+        self.plotItem.titleLabel.setToolTip('Right click for options')
 
         # Connect signal
         self.plotItem.titleLabel.mousePressEvent = self.clickTitle
         self.plotItem.scene().sigMouseMoved.connect(self.mouseMoved)
-        self.checkBoxCrossHair.stateChanged.connect(self.checkBoxCrossHairState)
-        self.pushButtonCopy.clicked.connect(self.pushButtonCopyClicked)
 
 
 
@@ -88,51 +72,6 @@ class WidgetPlot():
         return self.plotItem.axes['left']['item'].labelUnits
 
 
-    ####################################
-    #
-    #           Copie plot to clipboard
-    #
-    ####################################
-
-
-
-    def pushButtonCopyClicked(self) -> None:
-        """
-        Called when user wants to place a screenshot of its plot in the
-        clipboard.
-        """
-
-        screen    = QtWidgets.QApplication.primaryScreen()
-        clipboard = QtWidgets.QApplication.clipboard()
-
-        # We remove -25 because otherwise the tabwidget is still visible
-        pixmap = screen.grabWindow(self.winId(),
-                                   x=0,
-                                   y=0,
-                                   width=self.frameGeometry().width()-self.tabWidget.frameGeometry().width()-25)
-        clipboard.setPixmap(pixmap)
-
-        self.pushButtonCopy.setText('Copied to clipboard !')
-
-        self._clipboardTimer = QtCore.QTimer()
-        self._clipboardTimer.timeout.connect(self.pushButtonCopyUpdate)
-        self._clipboardTimer.setInterval(2000)
-        self._clipboardTimer.start()
-
-
-
-    def pushButtonCopyUpdate(self):
-        """
-        Called 2s after the user click on the pushButtonCopy.
-        Update its text and delete the timer
-        """
-
-        self.pushButtonCopy.setText('Click to copy')
-        self._clipboardTimer.stop()
-        self._clipboardTimer.deleteLater()
-        self._clipboardTimer = None
-
-
 
     ####################################
     #
@@ -157,28 +96,28 @@ class WidgetPlot():
         self.plotItem.getAxis('bottom').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTickLabelsColor'])
         self.plotItem.getAxis('left').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTickLabelsColor'])
 
-        if self.plotType=='2d':
-            self.plot2dzLabel.setFont(font)
-            self.histWidget.axis.setTickFont(font)
+        if self.parent().parent().plotType=='2d':
+            self.parent().parent().ui.plot2dzLabel.setFont(font)
+            self.parent().parent().ui.histWidget.axis.setTickFont(font)
 
         self.plotItem.setTitle(title=self.plotItem.titleLabel.text,
                                color=self.config['styles'][self.config['style']]['pyqtgraphTitleTextColor'])
 
         self.plotItem.setLabel(axis='bottom',
-                               text=self.xLabelText,
-                               units=self.xLabelUnits,
+                               text=self.parent().parent().xLabelText,
+                               units=self.parent().parent().xLabelUnits,
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphxLabelTextColor'],
                                   'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
-                               text=self.yLabelText,
-                               units=self.yLabelUnits,
+                               text=self.parent().parent().yLabelText,
+                               units=self.parent().parent().yLabelUnits,
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
         # Update colormap
-        if self.plotType=='2d':
-            index = self.comboBoxcm.findText(self.config['plot2dcm'])
-            self.comboBoxcm.setCurrentIndex(index)
+        if self.parent().parent().plotType=='2d':
+            index = self.parent().parent().ui.comboBoxcm.findText(self.config['plot2dcm'])
+            self.parent().parent().ui.comboBoxcm.setCurrentIndex(index)
 
 
     ####################################
@@ -192,11 +131,11 @@ class WidgetPlot():
 
         # We open a homemade menu
         if b.button()==2:
-            MenuDb(self.databaseAbsPath)
+            MenuDb(self.parent().parent().databaseAbsPath)
 
 
 
-    def eventFilter(self, object : PlotWidget,
+    def eventFilter(self, object,
                           event  : QtGui.QFocusEvent) -> bool:
         """
         Return True/False when the mouse enters/leaves by the PlotWidget.
@@ -211,20 +150,6 @@ class WidgetPlot():
 
 
 
-    def checkBoxCrossHairState(self, b: int) -> None:
-        """
-        Method called when user click on the log checkBoxes.
-        Modify the scale, linear or logarithmic, of the plotItem following
-        which checkbox are checked.
-        """
-
-        if self.checkBoxCrossHair.isChecked():
-            self.displayCrossHair = True
-        else:
-            self.displayCrossHair = False
-
-
-
     def isMouseOverView(self) -> bool:
         """
         Return true if mouse is over the view of the plot.
@@ -232,14 +157,14 @@ class WidgetPlot():
 
         # We implement a workaround for the log mode of 1D plot.
         # See: https://github.com/pyqtgraph/pyqtgraph/issues/1470#issuecomment-864568004
-        if self.plotType=='1d':
-            if self.checkBoxLogX.isChecked():
+        if self.parent().parent().plotType=='1d':
+            if self.parent().parent().ui.checkBoxLogX.isChecked():
                 xmin = 10**self.plotItem.axes['bottom']['item'].range[0]
                 xmax = 10**self.plotItem.axes['bottom']['item'].range[1]
             else:
                 xmin = self.plotItem.axes['bottom']['item'].range[0]
                 xmax = self.plotItem.axes['bottom']['item'].range[1]
-            if self.checkBoxLogY.isChecked():
+            if self.parent().parent().ui.checkBoxLogY.isChecked():
                 ymin = 10**self.plotItem.axes['left']['item'].range[0]
                 ymax = 10**self.plotItem.axes['left']['item'].range[1]
             else:
@@ -283,12 +208,12 @@ class WidgetPlot():
 
         # We implement a workaround for the log mode of 1D plot.
         # See: https://github.com/pyqtgraph/pyqtgraph/issues/1470#issuecomment-864568004
-        if self.plotType=='1d':
-            if self.checkBoxLogX.isChecked():
+        if self.parent().parent().plotType=='1d':
+            if self.parent().parent().ui.checkBoxLogX.isChecked():
                 x = 10**pos.x()
             else:
                 x = pos.x()
-            if self.checkBoxLogY.isChecked():
+            if self.parent().parent().ui.checkBoxLogY.isChecked():
                 y = 10**pos.y()
             else:
                 y = pos.y()
@@ -305,7 +230,7 @@ class WidgetPlot():
         if self.isMouseOverView():
 
             # Update the displayed mouse coordinates
-            self.setMouseCoordinate()
+            self.signalUpdateCoordinate.emit(x, y, False)
 
             # Update cursor when hovering infiniteLine
             self.sliceItemHovering()
@@ -314,60 +239,10 @@ class WidgetPlot():
             if self.displayCrossHair:
                 self.crossHair()
         else:
-            self.setMouseCoordinate(blank=True)
+            self.signalUpdateCoordinate.emit(x, y, True)
 
             if self.displayCrossHair:
                 self.crossHair(remove=True)
-
-
-
-    def setMouseCoordinate(self, blank: bool=False) -> None:
-        """
-        Display the mouse coodinate in respect to the plot view in the GUI.
-        If the x axis is a time axis, we display coordinate in human readable
-        format.
-        For 1d plot we display :x, y.
-        For 2d plot we display :x, y, z.
-
-        Parameters
-        ----------
-        blank : bool
-            If True, display an empty text, effectively erasing the previous
-            entry. Used when the mouse leave the plotItem.
-        """
-
-        if blank:
-            self.labelCoordinate.setText('')
-        else:
-
-            spaceX = ''
-            spaceY = ''
-            if self.mousePos[0]>0:
-                spaceX = '&nbsp;'
-            if self.mousePos[1]>0:
-                spaceY = '&nbsp;'
-
-
-            if self.plotType=='1d':
-
-                if isinstance(self.plotItem.getAxis('bottom'), pg.DateAxisItem):
-                    x = datetime.datetime.utcfromtimestamp(self.mousePos[0]).strftime('%Y-%m-%d %H:%M:%S')
-                    self.labelCoordinate.setText('x: {:}<br/>y: {}{:.{nbDecimal}e}'.format(x, spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
-                else:
-                    self.labelCoordinate.setText('x: {}{:.{nbDecimal}e}<br/>y: {}{:.{nbDecimal}e}'.format(spaceX, self.mousePos[0],spaceY, self.mousePos[1], nbDecimal=config['plotCoordinateNbNumber']))
-            elif self.plotType=='2d':
-
-                n = np.abs(self.xData-self.mousePos[0]).argmin()
-                m = np.abs(self.yData-self.mousePos[1]).argmin()
-                z = self.zData[n,m]
-
-                spaceZ = ''
-                if z>0:
-                    spaceZ = '&nbsp;'
-
-                self.labelCoordinate.setText('x: {}{:.{nbDecimal}e}<br/>y: {}{:.{nbDecimal}e}<br/>z: {}{:.{nbDecimal}e}'.format(spaceX, self.mousePos[0], spaceY, self.mousePos[1], spaceZ, z, nbDecimal=config['plotCoordinateNbNumber']))
-            else:
-                raise ValueError('plotType unknown')
 
 
 
@@ -382,7 +257,7 @@ class WidgetPlot():
         """
 
         # If we are hovering at least one sliceItem, the cursor is modified
-        for line in list(self.sliceItems.values()):
+        for line in list(self.parent().parent().sliceItems.values()):
             if line.mouseHovering:
                 defaultCursor = QtCore.Qt.PointingHandCursor
 
@@ -406,8 +281,8 @@ class WidgetPlot():
 
         # if the plot is a 2dplot, there is a possibility that the user mouse is
         # above an infiniteLine, if so, we remove the crosshair
-        if self.plotType=='2d':
-            for line in list(self.sliceItems.values()):
+        if self.parent().parent().plotType=='2d':
+            for line in list(self.parent().parent().sliceItems.values()):
                 if line.mouseHovering:
                     remove = True
 
@@ -438,8 +313,6 @@ class WidgetPlot():
             self.vLine = vLine
             self.hLine = hLine
 
-            QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.BlankCursor))
-
         # If the crosshair exist, and we want to remove it
         elif remove and self.vLine is not None:
 
@@ -448,11 +321,15 @@ class WidgetPlot():
             self.vLine = None
             self.hLine = None
 
-            QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(defaultCursor))
-
 
         # Otherwise, we update its position
         elif self.vLine is not None:
 
             self.vLine.setPos(self.mousePos[0])
             self.hLine.setPos(self.mousePos[1])
+
+
+    @QtCore.pyqtSlot(bool)
+    def slotAddCrossHair(self, addCrossHair: bool) -> None:
+
+        self.displayCrossHair = addCrossHair

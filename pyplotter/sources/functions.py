@@ -1,5 +1,4 @@
-# This Python file uses the following encoding: utf-8
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtGui, QtCore, QtWidgets
 from math import log10
 from typing import Union, Tuple, List
 import os
@@ -563,3 +562,47 @@ def shapeData2dPolygon(x : np.ndarray,
 
 
     return x2dVertices, y2dVertices, z2d
+
+
+
+def getDialogWidthHeight(nbDialog: int) -> Tuple[List[int]]:
+    """
+    Return the dialog position (x, y) and size (width, height) so that the given
+    number of dialog windows tile the entire screen.
+
+    Args:
+        nbDialog: Number of dialog window we have to cover the screen
+
+    Returns:
+        tuple: dialogXs, dialogYs, dialogWidths, dialogHeights
+    """
+
+    screenSize = QtGui.QGuiApplication.primaryScreen().availableGeometry()
+    screenHeight = screenSize.height()
+    screenWidth  = screenSize.width()
+
+    if nbDialog==1:
+        dialogWidth  = screenWidth
+        dialogHeight = screenHeight
+    # if even number of dialog
+    elif nbDialog%2==0:
+        dialogWidth  = screenWidth/2
+        dialogHeight = screenHeight/(nbDialog//2)
+    # if odd number of dialog
+    else:
+        dialogWidth  = screenWidth/2
+        dialogHeight = screenHeight/(nbDialog//2+1)
+    dialogWidths = [int(dialogWidth)]*nbDialog
+    dialogHeights = [int(dialogHeight)]*nbDialog
+
+    xs = [0]*nbDialog
+    ys = [0]*nbDialog
+    for i in range(nbDialog):
+        if i%2==0:
+            xs[i] = 0
+        else:
+            xs[i] = int(dialogWidth)
+
+        ys[i] = int(i//2*dialogHeight)
+
+    return xs, ys, dialogWidths, dialogHeights

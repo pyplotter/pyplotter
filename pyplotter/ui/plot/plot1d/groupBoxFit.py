@@ -1,13 +1,12 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import inspect
 
-from ...sources.pyqtgraph import pg
-from . import dialogFiltering
+from ....sources.pyqtgraph import pg
+from . import dialogFit
 
 
-class GroupBoxFiltering(QtWidgets.QGroupBox):
+class GroupBoxFit(QtWidgets.QGroupBox):
 
 
     signalAddPlotDataItem    = QtCore.pyqtSignal(np.ndarray, np.ndarray, str, str, str, str, str, str, bool, bool)
@@ -31,93 +30,96 @@ class GroupBoxFiltering(QtWidgets.QGroupBox):
         font.setBold(True)
         font.setWeight(75)
         self.setFont(font)
-        self.setTitle('Filtering')
+        self.setTitle('Fit')
 
-        self.verticalLayoutFilteringModel = QtWidgets.QVBoxLayout(self)
-        self.comboBoxFiltering = QtWidgets.QComboBox(self)
+        self.verticalLayoutFitModel = QtWidgets.QVBoxLayout(self)
+        self.comboBoxFit = QtWidgets.QComboBox(self)
 
         # Get list of fit model
-        listClasses = [m[0] for m in inspect.getmembers(dialogFiltering, inspect.isclass) if 'runFiltering' in [*m[1].__dict__.keys()]]
+        listClasses = [m[0] for m in inspect.getmembers(dialogFit, inspect.isclass) if 'getInitialParams' in [*m[1].__dict__.keys()]]
 
-        self.comboBoxFiltering.addItem('None')
+        self.comboBoxFit.addItem('None')
         for i, j in enumerate(listClasses):
 
-            _class = getattr(dialogFiltering, j)
+            _class = getattr(dialogFit, j)
             font = QtGui.QFont()
             font.setPointSize(8)
             font.setBold(False)
-            self.comboBoxFiltering.setFont(font)
-            self.comboBoxFiltering.addItem(_class.comboBoxLabel,
-                                           userData=j)
+            self.comboBoxFit.setFont(font)
+            self.comboBoxFit.addItem(_class.displayedLabel,
+                                     userData=j)
 
-        self.comboBoxFiltering.currentIndexChanged.connect(self.comboBoxFilteringIndexChanched)
-        self.verticalLayoutFilteringModel.addWidget(self.comboBoxFiltering)
+        self.comboBoxFit.currentIndexChanged.connect(self.comboBoxFitIndexChanched)
+        self.verticalLayoutFitModel.addWidget(self.comboBoxFit)
 
 
 
-    def comboBoxFilteringIndexChanched(self) -> None:
+    def comboBoxFitIndexChanched(self) -> None:
         """
         Method called when user click on a radioButton of a fitModel.
         Launch a fit of the data using the chosen model and display the results.
         """
         # If a fit curve is already plotted, we remove it before plotting a new
         # one without trigering new event
-        currentIndex = self.comboBoxFiltering.currentIndex()
+        currentIndex = self.comboBoxFit.currentIndex()
         if hasattr(self, 'dialogRef'):
-            self.filteringClose()
+            self.fitClose()
 
-        self.comboBoxFiltering.blockSignals(True)
-        self.comboBoxFiltering.setCurrentIndex(currentIndex)
-        self.comboBoxFiltering.blockSignals(False)
+        self.comboBoxFit.blockSignals(True)
+        self.comboBoxFit.setCurrentIndex(currentIndex)
+        self.comboBoxFit.blockSignals(False)
 
         # If the user want to remove all fit
-        if self.comboBoxFiltering.currentText()=='None':
+        if self.comboBoxFit.currentText()=='None':
             return
 
         # Find which model has been chosed and instance it
-        _class = getattr(dialogFiltering, self.comboBoxFiltering.currentData())
+        _class = getattr(dialogFit, self.comboBoxFit.currentData())
         self.dialog = _class(parent=self,
                         xData=self.selectedX,
-                        yData=self.selectedY)
+                        yData=self.selectedY,
+                        xUnits=self.selectedXUnits,
+                        yUnits=self.selectedYUnits)
 
         self.dialog.signalCloseDialog.connect(self.slotCloseDialog)
         self.dialog.signalUpdateDialog.connect(self.slotUpdateDialog)
         self.dialogRef = {'dialog' : self.dialog,
-                          'comboBox': self.comboBoxFiltering}
-        self.curveIdFiltering = self.plotRef+'filtering'
-        # We catch possible error occuring during the filtering procedure
+                          'comboBox': self.comboBoxFit}
+        self.curveIdFit = self.plotRef+'fit'
+        # We catch possible error occuring during the fiting procedure
         try:
-            x, y, legend =  self.dialog.runFiltering()
+            x, y, params =  self.dialog.ffit()
             # Plot fit curve
             self.signalAddPlotDataItem.emit(x, # x
                                             y, # y
-                                            self.curveIdFiltering, # curveId
+                                            self.curveIdFit, # curveId
                                             self.selectedXLabel, # curveXLabel
                                             self.selectedXUnits, # curveXUnits
-                                            'Filtered: '+self.comboBoxFiltering.currentText(), # curveYLabel
+                                            'Fit: '+self.comboBoxFit.currentText(), # curveYLabel
                                             self.selectedYUnits, # curveYUnits
-                                            legend, # curveLegend
+                                            self.dialog.displayedLegend(params), # curveLegend
                                             True, # showInLegend
                                             False) # hidden
-        except:
-            pass
+        except Exception as e:
+            print(e)
+            self.dialog.fitError()
 
 
 
-    def filteringUpdate(self) -> None:
+    def fitUpdate(self) -> None:
 
-        if hasattr(self, 'curveIdFiltering'):
-            # We catch possible error occuring during the filtering procedure
+        if hasattr(self, 'curveIdFit'):
+            # We catch possible error occuring during the fiting procedure
             try:
-                x, y, legend =  self.dialog.runFiltering()
+                x, y, params =  self.dialog.ffit()
                 self.signalUpdatePlotDataItem.emit(x, # x
                                                    y, # y
-                                                   self.curveIdFiltering, # curveId
-                                                   legend, # curveLegend
+                                                   self.curveIdFit, # curveId
+                                                   self.dialog.displayedLegend(params), # curveLegend
                                                    False, # autoRange
                                                    False) # interactionUpdateAll
             except:
-                pass
+                self.dialog.fitError()
 
 
 
@@ -148,41 +150,40 @@ class GroupBoxFiltering(QtWidgets.QGroupBox):
             self.dialog.yData = self.selectedY
 
 
-
-
     @QtCore.pyqtSlot()
-    def slotFilteringUpdate(self):
-        self.filteringUpdate()
-
-
-    @QtCore.pyqtSlot()
-    def slotFilteringClose(self):
-        self.filteringClose()
+    def slotFitUpdate(self):
+        self.fitUpdate()
 
 
 
     @QtCore.pyqtSlot()
-    def slotUpdateDialog(self) -> None:
-        self.filteringUpdate()
+    def slotFitClose(self):
+        self.fitClose()
 
 
 
     @QtCore.pyqtSlot()
     def slotCloseDialog(self) -> None:
-        self.filteringClose()
+        self.fitClose()
 
 
 
-    def filteringClose(self) -> None:
+    @QtCore.pyqtSlot()
+    def slotUpdateDialog(self) -> None:
+        self.fitUpdate()
+
+
+
+    def fitClose(self) -> None:
 
         # We remove the curve
-        if hasattr(self, 'curveIdFiltering'):
+        if hasattr(self, 'curveIdFit'):
 
             self.signalRemovePlotDataItem.emit(self.plotRef,
-                                               self.curveIdFiltering)
+                                               self.curveIdFit)
 
             # Delete the reference
-            del(self.curveIdFiltering)
+            del(self.curveIdFit)
 
         # We close the dialog
         if hasattr(self, 'dialogRef'):

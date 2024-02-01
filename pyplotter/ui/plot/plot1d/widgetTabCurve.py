@@ -1,10 +1,9 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 from typing import List
 
 from .widgetTabCurveUi import Ui_widgetTabCurve
-from ...sources.functions import (clearTableWidget,
+from ....sources.functions import (clearTableWidget,
                                   getDatabaseNameFromAbsPath)
 
 

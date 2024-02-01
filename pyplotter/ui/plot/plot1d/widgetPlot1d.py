@@ -1,14 +1,13 @@
-# This Python file uses the following encoding: utf-8
 from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 from typing import Union, Optional, Tuple, Dict
 
 from .widgetPlot1dui import Ui_Dialog
-from ...sources.config import loadConfigCurrent
-from ...sources.functions import getCurveColorIndex
-from ...sources.pyqtgraph import pg
-from ..widgetPlot import WidgetPlot
+from ....sources.config import loadConfigCurrent
+from ....sources.functions import getCurveColorIndex
+from ....sources.pyqtgraph import pg
+from ..widgetPlotContainer import WidgetPlotContainer
 
 from .groupBoxStatistics import GroupBoxStatistics
 from .groupBoxCalculus import GroupBoxCalculus
@@ -19,7 +18,7 @@ from .groupBoxFiltering import GroupBoxFiltering
 from .widgetTabCurve import WidgetTabCurve
 
 
-class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
+class WidgetPlot1d(QtWidgets.QDialog):
     """
     Class to handle ploting in 1d.
     """
@@ -85,6 +84,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     signalRemoveSlopeClosePlot = QtCore.pyqtSignal()
 
 
+
     def __init__(self, x                  : np.ndarray,
                        y                  : np.ndarray,
                        title              : str,
@@ -98,7 +98,11 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                        databaseAbsPath    : str,
                        curveId            : str,
                        curveLegend        : str,
-                       dateTimeAxis       : bool) -> None:
+                       dateTimeAxis       : bool,
+                       dialogX         : Optional[int]=None,
+                       dialogY         : Optional[int]=None,
+                       dialogWidth     : Optional[int]=None,
+                       dialogHeight    : Optional[int]=None) -> None:
         """
         Class handling the plot of 1d data.
         Allow some quick data treatment.
@@ -148,12 +152,21 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         """
 
         # Set parent to None to have "free" qdialog
-        QtWidgets.QDialog.__init__(self, parent=None)
-        self.setupUi(self)
+        super(WidgetPlot1d, self).__init__(None)
+
+        # Build the UI
+        self.ui = Ui_Dialog()
+        self.ui.setupUi(self)
+        self.plotWidgetContainer = WidgetPlotContainer(self)
+
 
         self._allowClosing = False
 
         self.config = loadConfigCurrent()
+
+        # Shortcut to access the plot widget and item
+        self.plotWidget = self.plotWidgetContainer.plotWidget
+        self.plotItem = self.plotWidget.getPlotItem()
 
         # Allow resize of the plot window
         self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
@@ -180,10 +193,6 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         #                    'b' : pg.InfiniteLine}
         self.sliceItems: Dict[str, pg.InfiniteLine] = {}
 
-
-        # Get plotItem from the widget
-        self.plotItem = self.plotWidget.getPlotItem()
-
         # If the xaxis used timestamp, we use a dedicated axisItem
         if dateTimeAxis:
             # This utc offset is unclear to me...
@@ -193,30 +202,28 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.legendItem = self.plotItem.addLegend()
 
         # Connect UI
-        self.checkBoxLogX.stateChanged.connect(self.checkBoxLogState)
-        self.checkBoxLogY.stateChanged.connect(self.checkBoxLogState)
-        self.checkBoxSymbol.stateChanged.connect(self.checkBoxSymbolState)
-        self.checkBoxSplitYAxis.stateChanged.connect(self.checkBoxSplitYAxisState)
+        self.ui.checkBoxLogX.stateChanged.connect(self.checkBoxLogState)
+        self.ui.checkBoxLogY.stateChanged.connect(self.checkBoxLogState)
+        self.ui.checkBoxSymbol.stateChanged.connect(self.checkBoxSymbolState)
+        self.ui.checkBoxSplitYAxis.stateChanged.connect(self.checkBoxSplitYAxisState)
 
-        self.comboBoxXAxis.activated.connect(self.comboBoxXAxisActivated)
-
-
+        self.ui.comboBoxXAxis.activated.connect(self.comboBoxXAxisActivated)
 
         # Add a radio button for each model of the list
-        self.plotDataItemButtonGroup = QtWidgets.QButtonGroup()
-        self.radioButtonFitNone = QtWidgets.QRadioButton(self.groupBoxPlotDataItem)
-        self.radioButtonFitNone.setEnabled(True)
-        self.radioButtonFitNone.setChecked(True)
+        self.ui.plotDataItemButtonGroup = QtWidgets.QButtonGroup()
+        self.ui.radioButtonFitNone = QtWidgets.QRadioButton(self.ui.groupBoxPlotDataItem)
+        self.ui.radioButtonFitNone.setEnabled(True)
+        self.ui.radioButtonFitNone.setChecked(True)
         font = QtGui.QFont()
         font.setPointSize(8)
         font.setBold(False)
-        self.radioButtonFitNone.setFont(font)
-        self.radioButtonFitNone.setText('None')
-        self.radioButtonFitNone.curveId = None
-        self.radioButtonFitNone.clicked.connect(self.selectPlotDataItem)
+        self.ui.radioButtonFitNone.setFont(font)
+        self.ui.radioButtonFitNone.setText('None')
+        self.ui.radioButtonFitNone.curveId = None
+        self.ui.radioButtonFitNone.clicked.connect(self.selectPlotDataItem)
 
-        self.verticalLayoutPlotDataItem.addWidget(self.radioButtonFitNone)
-        self.plotDataItemButtonGroup.addButton(self.radioButtonFitNone, 0)
+        self.ui.verticalLayoutPlotDataItem.addWidget(self.ui.radioButtonFitNone)
+        self.ui.plotDataItemButtonGroup.addButton(self.ui.radioButtonFitNone, 0)
 
         # Order of initialization determine their GUI order
         self.initGroupBoxFFT()
@@ -275,15 +282,23 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                              curveYUnits        = yLabelUnits,
                              curveLegend        = curveLegend)
 
-        # AutoRange only after the first data item is added
-        self.autoRange()
-
         self.resize(*self.config['dialogWindowSize'])
-
-        WidgetPlot.__init__(self, databaseAbsPath=databaseAbsPath)
-
         self.show()
 
+        # Connect the button to get a screenshot of the plot
+        # Done here since we need a reference of the plotWidget
+        self.ui.qButtonCopy.clicked.connect(lambda: self.ui.qButtonCopy.clicked_(self.plotWidget))
+        # For unknown reason, I have to initialize the text here...
+        self.ui.qButtonCopy.setText(self.ui.qButtonCopy._text)
+
+
+        self.ui.qCheckBoxCrossHair.signalAddCrossHair.connect(self.plotWidget.slotAddCrossHair)
+
+        # AutoRange only after the first data item is added
+        # Must be done after the show()
+        # Must be called twice (I do not know why)
+        self.autoRange()
+        self.autoRange()
 
 
     ####################################
@@ -296,19 +311,19 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
     def initTabCurve(self) -> None:
 
-        self.widgetTabCurve = WidgetTabCurve(self.tabWidget,
-                                             self.plotRef)
+        self.ui.widgetTabCurve = WidgetTabCurve(self.ui.tabWidget,
+                                                self.plotRef)
 
         # Events from the groupBox to the plot1d
-        self.widgetTabCurve.signalAddPlotDataItem.connect(self.slotAddPlotDataItem)
-        self.widgetTabCurve.signalUpdatePlotDataItem.connect(self.slotUpdatePlotDataItem)
-        self.widgetTabCurve.signalRemovePlotDataItem.connect(self.slotRemoveCurve)
+        self.ui.widgetTabCurve.signalAddPlotDataItem.connect(self.slotAddPlotDataItem)
+        self.ui.widgetTabCurve.signalUpdatePlotDataItem.connect(self.slotUpdatePlotDataItem)
+        self.ui.widgetTabCurve.signalRemovePlotDataItem.connect(self.slotRemoveCurve)
 
 
 
     def initGroupBoxFFT(self) -> None:
 
-        self.groupBoxFFT = GroupBoxFFT(self.groupBoxCurveInteraction,
+        self.groupBoxFFT = GroupBoxFFT(self.ui.groupBoxCurveInteraction,
                                        self.config,
                                        self.databaseAbsPath,
                                        self.plotItem,
@@ -332,13 +347,13 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.groupBoxFFT.signalUpdateCurve.connect(self.signalUpdateCurve)
         self.groupBoxFFT.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot)
         self.groupBoxFFT.signalClose1dPlot.connect(self.signalClose1dPlot)
-        self.verticalLayout_2.addWidget(self.groupBoxFFT)
+        self.ui.verticalLayout_2.addWidget(self.groupBoxFFT)
 
 
 
     def initGroupBoxStatistics(self) -> None:
 
-        self.groupBoxStatistics = GroupBoxStatistics(self.groupBoxCurveInteraction,
+        self.groupBoxStatistics = GroupBoxStatistics(self.ui.groupBoxCurveInteraction,
                                                      self.config,
                                                      self.databaseAbsPath,
                                                      self.plotItem,
@@ -352,7 +367,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.groupBoxStatistics.signalUpdateCurve.connect(self.signalUpdateCurve)
         self.groupBoxStatistics.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot)
         self.groupBoxStatistics.signalClose1dPlot.connect(self.signalClose1dPlot)
-        self.verticalLayout_2.addWidget(self.groupBoxStatistics)
+        self.ui.verticalLayout_2.addWidget(self.groupBoxStatistics)
 
 
 
@@ -360,7 +375,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-        self.groupBoxCalculus = GroupBoxCalculus(self.groupBoxCurveInteraction,
+        self.groupBoxCalculus = GroupBoxCalculus(self.ui.groupBoxCurveInteraction,
                                                  self.config,
                                                  self.databaseAbsPath,
                                                  self.plotItem,
@@ -378,7 +393,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.groupBoxCalculus.signalUpdateCurve.connect(self.signalUpdateCurve)
         self.groupBoxCalculus.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot)
         self.groupBoxCalculus.signalClose1dPlot.connect(self.signalClose1dPlot)
-        self.verticalLayout_2.addWidget(self.groupBoxCalculus)
+        self.ui.verticalLayout_2.addWidget(self.groupBoxCalculus)
 
 
 
@@ -386,7 +401,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-        self.groupBoxNormalize = GroupBoxNormalize(self.groupBoxCurveInteraction,
+        self.groupBoxNormalize = GroupBoxNormalize(self.ui.groupBoxCurveInteraction,
                                                   self.config,
                                                   self.databaseAbsPath,
                                                   self.plotItem,
@@ -405,7 +420,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.groupBoxNormalize.signalUpdateCurve.connect(self.signalUpdateCurve)
         self.groupBoxNormalize.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot)
         self.groupBoxNormalize.signalClose1dPlot.connect(self.signalClose1dPlot)
-        self.verticalLayout_2.addWidget(self.groupBoxNormalize)
+        self.ui.verticalLayout_2.addWidget(self.groupBoxNormalize)
 
 
 
@@ -417,7 +432,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         to make them available.
         """
 
-        self.groupBoxFit  = GroupBoxFit(self.groupBoxCurveInteraction,
+        self.groupBoxFit  = GroupBoxFit(self.ui.groupBoxCurveInteraction,
                                         self.plotRef,
                                         self.plotItem)
 
@@ -432,7 +447,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.signalFitClose.connect(self.groupBoxFit.slotFitClose)
 
         # Add GUI
-        self.verticalLayout_2.addWidget(self.groupBoxFit)
+        self.ui.verticalLayout_2.addWidget(self.groupBoxFit)
 
 
 
@@ -444,7 +459,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         to make them available.
         """
 
-        self.groupBoxFiltering  = GroupBoxFiltering(self.groupBoxCurveInteraction,
+        self.groupBoxFiltering  = GroupBoxFiltering(self.ui.groupBoxCurveInteraction,
                                                     self.plotRef,
                                                     self.plotItem)
 
@@ -459,7 +474,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.signalFilteringClose.connect(self.groupBoxFiltering.slotFilteringClose)
 
         # Add GUI
-        self.verticalLayout_2.addWidget(self.groupBoxFiltering)
+        self.ui.verticalLayout_2.addWidget(self.groupBoxFiltering)
 
 
 
@@ -497,34 +512,37 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
     def updateListXAxis(self) -> None:
 
-        self.comboBoxXAxis.clear()
+        self.ui.comboBoxXAxis.clear()
 
         for curve in self.curves.values():
-            if self.comboBoxXAxis.findText(curve.curveXLabel)==-1:
-                self.comboBoxXAxis.addItem(curve.curveXLabel)
-            if self.comboBoxXAxis.findText(curve.curveYLabel)==-1:
-                self.comboBoxXAxis.addItem(curve.curveYLabel)
+            if self.ui.comboBoxXAxis.findText(curve.curveXLabel)==-1:
+                self.ui.comboBoxXAxis.addItem(curve.curveXLabel)
+            if self.ui.comboBoxXAxis.findText(curve.curveYLabel)==-1:
+                self.ui.comboBoxXAxis.addItem(curve.curveYLabel)
 
-        self.comboBoxXAxis.setCurrentIndex(self.comboBoxXAxis.findText(self.plotItem.getAxis('bottom').labelText))
+        self.ui.comboBoxXAxis.setCurrentIndex(self.ui.comboBoxXAxis.findText(self.plotItem.getAxis('bottom').labelText))
 
 
 
     def comboBoxXAxisActivated(self, autoRange: bool=False) -> None:
+        """
+        Method to change the xAxis along which the plotDataItem are plotted.
+        """
 
         # The change of x axis is enable only if there is no fit or filtering
         # being done
-        if self.comboBoxXAxis.isEnabled():
+        if self.ui.comboBoxXAxis.isEnabled():
             # Get a curve containing the data to update the plot
             # Either in its x or y axis
             for curve in self.curves.values():
                 # During liveplot, dataset may be None for the first iteration
                 if curve._dataset is not None:
-                    if curve.curveXLabel==self.comboBoxXAxis.currentText():
+                    if curve.curveXLabel==self.ui.comboBoxXAxis.currentText():
                         newXData  = curve.x
                         newXLabel = curve.curveXLabel
                         newXUnits = curve.curveXUnits
                         break
-                    if curve.curveYLabel==self.comboBoxXAxis.currentText():
+                    if curve.curveYLabel==self.ui.comboBoxXAxis.currentText():
                         newXData  = curve.y
                         newXLabel = curve.curveYLabel
                         newXUnits = curve.curveYUnits
@@ -540,8 +558,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
             # We update the x label
             self.plotItem.setLabel(axis ='bottom',
-                                text =newXLabel,
-                                units=newXUnits)
+                                   text =newXLabel,
+                                   units=newXUnits)
 
         if autoRange:
             self.autoRange()
@@ -683,7 +701,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.updateLegend()
 
         # If a curve selection has been done, we update the selected data
-        curveIdSelection = self.plotDataItemButtonGroup.checkedButton().curveId
+        curveIdSelection = self.ui.plotDataItemButtonGroup.checkedButton().curveId
         if curveIdSelection is not None:
             self.updateSelectedData()
             self.updatePlotDataItemStyle(curveIdSelection)
@@ -768,8 +786,8 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         # If there is only one point, we show symbols
         if len(x)==1:
-            self.checkBoxSymbol.setChecked(False)
-            self.checkBoxSymbol.setChecked(True)
+            self.ui.checkBoxSymbol.setChecked(False)
+            self.ui.checkBoxSymbol.setChecked(True)
 
 
 
@@ -881,9 +899,9 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         """
 
         if len(self.curves)==2:
-            self.checkBoxSplitYAxis.setEnabled(True)
+            self.ui.checkBoxSplitYAxis.setEnabled(True)
         else:
-            self.checkBoxSplitYAxis.setEnabled(False)
+            self.ui.checkBoxSplitYAxis.setEnabled(False)
 
         # Update list of plotDataItem only if the plotDataItem is not a fit
         if ('fit' not in curveId and
@@ -892,27 +910,27 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
             # Add a radioButton to allow the user to select the plotDataItem.
             # If there is already a button with curveId, we remove it
             createButton = True
-            for radioButton in self.plotDataItemButtonGroup.buttons():
+            for radioButton in self.ui.plotDataItemButtonGroup.buttons():
                 if radioButton.curveId==curveId:
-                    self.plotDataItemButtonGroup.removeButton(radioButton)
+                    self.ui.plotDataItemButtonGroup.removeButton(radioButton)
                     radioButton.setParent(None)
                     createButton = False
             # Otherwise, we create it
             if createButton:
                 radioButton = QtWidgets.QRadioButton(self.curves[curveId].curveYLabel)
                 radioButton.curveId = curveId
-                self.plotDataItemButtonGroup.addButton(radioButton, len(self.plotDataItemButtonGroup.buttons()))
+                self.ui.plotDataItemButtonGroup.addButton(radioButton, len(self.ui.plotDataItemButtonGroup.buttons()))
                 radioButton.clicked.connect(self.selectPlotDataItem)
-                self.verticalLayoutPlotDataItem.addWidget(radioButton)
+                self.ui.verticalLayoutPlotDataItem.addWidget(radioButton)
 
             # Add a checkBox to allow the user to hide the plotDataItem.
             # If there is already a button with curveId, we remove it
             createButton = True
-            for i in range(self.verticalLayoutHide.count()):
-                if self.verticalLayoutHide.itemAt(i) is not None:
-                    checkBox = self.verticalLayoutHide.itemAt(i).widget()
+            for i in range(self.ui.verticalLayoutHide.count()):
+                if self.ui.verticalLayoutHide.itemAt(i) is not None:
+                    checkBox = self.ui.verticalLayoutHide.itemAt(i).widget()
                     if checkBox.curveId==curveId:
-                        self.verticalLayoutHide.removeWidget(checkBox)
+                        self.ui.verticalLayoutHide.removeWidget(checkBox)
                         checkBox.setParent(None)
                         createButton = False
             # Otherwise, we create it
@@ -922,155 +940,11 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 checkBox.stateChanged.connect(lambda : self.hidePlotDataItem(checkBox))
 
                 checkBox.setChecked(self.curves[curveId].hidden)
-                self.verticalLayoutHide.addWidget(checkBox)
+                self.ui.verticalLayoutHide.addWidget(checkBox)
 
         # We update displayed information
         self.updateLegend()
         self.updateyLabel()
-
-
-
-    ####################################
-    #
-    #           Method to add curves from other plot window in the plot
-    #
-    ####################################
-
-
-
-    # def updatePlottedCurvesList(self, plots: List[WidgetPlot1d]) -> None:
-    #     """
-    #     Is called by the Main object when the user plots a new 1d curve.
-    #     Build a list of checkbox related to every already plotted curve and
-    #     display it in the curve tab.
-
-    #     Parameters
-    #     ----------
-    #     plots : List[WidgetPlot1d]
-    #         List containing all the 1d plot window currently displayed.
-    #     """
-
-    #     # Get all the curveIds to be potentially built
-    #     curveId2Builds = []
-    #     for plot in plots:
-    #         for curveId in plot.curves.keys():
-    #             if (self._windowTitle != plot.windowTitle() or
-    #                 plot.runId != self.runId or
-    #                 curveId not in self.curves.keys()):
-    #                 curveId2Builds.append(curveId)
-
-    #     # If there is, we build the GUI
-    #     if len(curveId2Builds)>0:
-
-    #         # Initialize GUI
-    #         if not hasattr(self, 'tabCurves'):
-
-
-                # self.tabCurves = QtWidgets.QWidget()
-
-                # self.tableWidgetCurves = QtWidgets.QTableWidget(self.tabCurves)
-                # self.tableWidgetCurves.setColumnCount(6)
-                # item = QtWidgets.QTableWidgetItem()
-                # self.tableWidgetCurves.setHorizontalHeaderItem(0, item)
-                # item = QtWidgets.QTableWidgetItem('plot')
-                # self.tableWidgetCurves.setHorizontalHeaderItem(1, item)
-                # item = QtWidgets.QTableWidgetItem('db')
-                # self.tableWidgetCurves.setHorizontalHeaderItem(2, item)
-                # item = QtWidgets.QTableWidgetItem('run id')
-                # self.tableWidgetCurves.setHorizontalHeaderItem(3, item)
-                # item = QtWidgets.QTableWidgetItem('axis')
-                # self.tableWidgetCurves.setHorizontalHeaderItem(4, item)
-                # item = QtWidgets.QTableWidgetItem('swept parameter')
-                # self.tableWidgetCurves.setHorizontalHeaderItem(5, item)
-
-                # ## Only used to propagate information
-                # # curveId
-                # self.tableWidgetCurves.setColumnHidden(0, True)
-
-                # self.tableWidgetCurves.horizontalHeader().setStretchLastSection(True)
-                # self.tableWidgetCurves.verticalHeader().setVisible(False)
-                # self.tableWidgetCurves.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-                # self.tableWidgetCurves.setAlternatingRowColors(True)
-                # self.tableWidgetCurves.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-                # self.tableWidgetCurves.setShowGrid(False)
-                # self.tabWidget.addTab(self.tabCurves, 'Add curves')
-
-
-            # clearTableWidget(self.tableWidgetCurves)
-            # self.tableWidgetCurves.setRowCount(len(curveId2Builds))
-
-            # for row, curveId2Build in enumerate(curveId2Builds):
-            #     cb = QtWidgets.QCheckBox()
-
-            #     if curveId2Build in self.curves.keys():
-            #         cb.setChecked(True)
-
-            #     for plot in plots:
-            #         for curveId in plot.curves.keys():
-            #             if curveId==curveId2Build:
-            #                 currentPlot = plot
-
-            #     cb.toggled.connect(lambda state,
-            #                               runId   = str(currentPlot.runId),
-            #                               curveId = curveId2Build,
-            #                               plot    = currentPlot: self.toggleNewPlot(state, runId, curveId, plot))
-
-            #     databaseName = getDatabaseNameFromAbsPath(currentPlot.databaseAbsPath)
-
-            #     self.tableWidgetCurves.setItem(row, 0, QtWidgets.QTableWidgetItem(curveId2Build))
-            #     self.tableWidgetCurves.setCellWidget(row, 1, cb)
-            #     self.tableWidgetCurves.setItem(row, 2, QtWidgets.QTableWidgetItem(databaseName))
-            #     self.tableWidgetCurves.setItem(row, 3, QtWidgets.QTableWidgetItem(str(currentPlot.runId)))
-            #     self.tableWidgetCurves.setItem(row, 4, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveYLabel))
-            #     self.tableWidgetCurves.setItem(row, 5, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveXLabel))
-            #     self.tableWidgetCurves.setItem(row, 4, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveYLabel))
-            #     self.tableWidgetCurves.setItem(row, 5, QtWidgets.QTableWidgetItem(currentPlot.curves[curveId2Build].curveXLabel))
-
-            # self.tableWidgetCurves.setSortingEnabled(True)
-            # self.tableWidgetCurves.sortByColumn(3, QtCore.Qt.DescendingOrder)
-            # self.tableWidgetCurves.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-            # self.tableWidgetCurves.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-
-
-        # else:
-        #     if hasattr(self, 'tabCurves'):
-        #         self.tabWidget.removeTab(1)
-        #         del(self.tabCurves)
-
-
-
-    # def toggleNewPlot(self, state: bool,
-    #                         runId: str,
-    #                         curveId: str,
-    #                         plot: WidgetPlot1d) -> None:
-    #     """
-    #     Called when user click on the checkbox of the curves tab.
-    #     Add or remove curve in the plot window.
-
-    #     Parameters
-    #     ----------
-    #     state : bool
-    #         State of the checkbox button.
-    #     runId : str
-    #         Id of the qcodes run, 0 if the curve is not from qcodes.
-    #     curveId : str
-    #         Id of the curve related to the checkbox, see getCurveId in the mainApp.
-    #     plot : WidgetPlot1d
-    #         WidgetPlot1d where the curve comes from.
-    #     """
-
-    #     if state:
-    #         self.addPlotDataItem(x           = plot.curves[curveId].xData,
-    #                              y           = plot.curves[curveId].yData,
-    #                              curveId     = curveId,
-    #                              curveXLabel = plot.curves[curveId].curveXLabel,
-    #                              curveXUnits = plot.curves[curveId].curveXUnits,
-    #                              curveYLabel = plot.curves[curveId].curveYLabel,
-    #                              curveYUnits = plot.curves[curveId].curveYUnits,
-    #                              curveLegend = '{} - {}'.format(runId, plot.curves[curveId].curveYLabel))
-
-    #     else:
-    #         self.removePlotDataItem(curveId)
 
 
 
@@ -1095,13 +969,13 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         else:
             plotItems = [self.plotItem]
 
-        if self.checkBoxLogX.isChecked():
-            if self.checkBoxLogY.isChecked():
+        if self.ui.checkBoxLogX.isChecked():
+            if self.ui.checkBoxLogY.isChecked():
                 [item.setLogMode(True, True) for item in plotItems]
             else:
                 [item.setLogMode(True, False) for item in plotItems]
         else:
-            if self.checkBoxLogY.isChecked():
+            if self.ui.checkBoxLogY.isChecked():
                 [item.setLogMode(False, True) for item in plotItems]
             else:
                 [item.setLogMode(False, False) for item in plotItems]
@@ -1117,7 +991,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         Put symbols on all plotDataItem except fit model.
         """
 
-        if self.checkBoxSymbol.isChecked():
+        if self.ui.checkBoxSymbol.isChecked():
 
             for i, (key, curve) in enumerate(list(self.curves.items())):
                 if key != 'fit':
@@ -1167,9 +1041,9 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
             leftCurveId  = list(self.curves.keys())[0]
             rightCurveId = list(self.curves.keys())[1]
 
-            if self.checkBoxSplitYAxis.isChecked():
+            if self.ui.checkBoxSplitYAxis.isChecked():
 
-                self.groupBoxCurveInteraction.setEnabled(False)
+                self.ui.groupBoxCurveInteraction.setEnabled(False)
 
                 # Create an empty plotDataItem which will contain the right curve
                 self.curveRight = pg.PlotDataItem(pen=self.curves[rightCurveId].pen)
@@ -1219,7 +1093,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 self.plotItem.autoBtn.clicked.connect(self.splitAutoBtnClicked)
             else:
 
-                self.groupBoxCurveInteraction.setEnabled(True)
+                self.ui.groupBoxCurveInteraction.setEnabled(True)
 
                 # Restore the autoRange button original method
                 self.plotItem.autoBtn.clicked.disconnect(self.splitAutoBtnClicked)
@@ -1246,7 +1120,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         plotDataItem = self.curves[curveId]
 
         # We get the interaction radioBox having the same curveId
-        radioBox = [i for i in [self.verticalLayoutPlotDataItem.itemAt(i).widget() for i in range(self.verticalLayoutPlotDataItem.count())] if i.curveId==curveId][0]
+        radioBox = [i for i in [self.ui.verticalLayoutPlotDataItem.itemAt(i).widget() for i in range(self.ui.verticalLayoutPlotDataItem.count())] if i.curveId==curveId][0]
 
         if cb.isChecked():
 
@@ -1325,7 +1199,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
             Id of the curve.
             See getCurveId from MainApp
         """
-        curveId = self.plotDataItemButtonGroup.checkedButton().curveId
+        curveId = self.ui.plotDataItemButtonGroup.checkedButton().curveId
 
         if curveId is not None:
             a = self.sliceItems['a'].value()
@@ -1518,12 +1392,12 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
             updatePlotDataItemStyle
             enableWhenPlotDataItemSelected
         """
-        radioButton = self.plotDataItemButtonGroup.checkedButton()
+        radioButton = self.ui.plotDataItemButtonGroup.checkedButton()
 
         # When user click None, we unselect everything
         if radioButton.curveId is None:
 
-            checkBoxes = (self.verticalLayoutHide.itemAt(i).widget() for i in range(self.verticalLayoutHide.count()))
+            checkBoxes = (self.ui.verticalLayoutHide.itemAt(i).widget() for i in range(self.ui.verticalLayoutHide.count()))
             for checkBox in checkBoxes:
                 checkBox.setEnabled(True)
 
@@ -1540,7 +1414,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         else:
 
-            checkBoxes = (self.verticalLayoutHide.itemAt(i).widget() for i in range(self.verticalLayoutHide.count()))
+            checkBoxes = (self.ui.verticalLayoutHide.itemAt(i).widget() for i in range(self.ui.verticalLayoutHide.count()))
             for checkBox in checkBoxes:
                 if checkBox.curveId==radioButton.curveId:
                     checkBox.setEnabled(False)
@@ -1584,7 +1458,7 @@ class WidgetPlot1d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.groupBoxNormalize.setEnabled(enable)
 
         # The change of x-axis is enable only when no interaction is done
-        self.comboBoxXAxis.setEnabled(not enable)
+        self.ui.comboBoxXAxis.setEnabled(not enable)
 
 
 

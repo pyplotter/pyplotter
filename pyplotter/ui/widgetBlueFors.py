@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtWidgets, QtWidgets, QtCore
 import os
 import pandas as pd

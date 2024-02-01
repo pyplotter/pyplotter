@@ -1,12 +1,11 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import inspect
 import lmfit
 
-from ...sources.pyqtgraph import pg
+from ....sources.pyqtgraph import pg
 from . import dialogFit
-from ...sources.config import loadConfigCurrent
+from ....sources.config import loadConfigCurrent
 
 
 class GroupBoxFit(QtWidgets.QGroupBox):

@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 from typing import Tuple, Any, Optional
@@ -123,22 +122,6 @@ class SavitzkyGolay(QtWidgets.QDialog):
 
         self.signalUpdateDialog.emit()
 
-
-
-    # def updateCurve(self, x: Optional[np.ndarray]=None,
-    #                       y: Optional[np.ndarray]=None) -> None:
-
-    #     if x is not None:
-    #         self.xData = x
-    #     if y is not None:
-    #         self.yData = y
-
-    #     self.signalUpdateDialog.emit(self.xData,
-    #                            savgol_filter(self.yData,
-    #                                          self.windowLength,
-    #                                          self.polyorder),
-    #                             'filtering',
-    #                             self.legend2display())
 
 
 

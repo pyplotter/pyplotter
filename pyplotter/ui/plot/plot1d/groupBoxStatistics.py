@@ -1,13 +1,12 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 from typing import Tuple
 
 from .groupBoxStatisticsUi import Ui_groupBoxStatistics
-from ...sources.functions import parse_number
-from ...sources.pyqtgraph import pg
+from ....sources.functions import parse_number
+from ....sources.pyqtgraph import pg
 
-class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
+class GroupBoxStatistics(QtWidgets.QGroupBox):
 
 
     signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
@@ -22,8 +21,11 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
                        plotRef:str,
                        windowTitle: str) -> None:
 
-        QtWidgets.QGroupBox.__init__(self, parent)
-        self.setupUi(self)
+        super(GroupBoxStatistics, self).__init__(parent)
+
+        # Build the UI
+        self.ui = Ui_groupBoxStatistics()
+        self.ui.setupUi(self)
 
         self.config = config
         self.databaseAbsPath = databaseAbsPath
@@ -31,8 +33,8 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
         self.plotRef = plotRef
         self._windowTitle = windowTitle
 
-        self.checkBoxStatistics.clicked.connect(self.clickStatistics)
-        self.spinBoxStatistics.valueChanged.connect(self.statisticsUpdateCurve)
+        self.ui.checkBoxStatistics.clicked.connect(self.clickStatistics)
+        self.ui.spinBoxStatistics.valueChanged.connect(self.statisticsUpdateCurve)
 
 
 
@@ -46,8 +48,8 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
 
     @QtCore.pyqtSlot(bool)
     def slotCheckBoxStatisticsSetChecked(self, state: bool):
-        self.checkBoxStatistics.setChecked(state)
-        self.statisticsLabel.setMaximumHeight(0)
+        self.ui.checkBoxStatistics.setChecked(state)
+        self.ui.statisticsLabel.setMaximumHeight(0)
         del(self.statisticsPlotRef)
         del(self.statisticsCurveId)
 
@@ -89,7 +91,7 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
 
     def statisticsGetData(self) -> Tuple[np.ndarray, np.ndarray]:
 
-        y, binEdges   = np.histogram(self.selectedY, bins=self.spinBoxStatistics.value())
+        y, binEdges   = np.histogram(self.selectedY, bins=self.ui.spinBoxStatistics.value())
         x = np.mean(np.vstack([binEdges[0:-1],binEdges[1:]]), axis=0)
 
         return x, y
@@ -116,7 +118,7 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
             mean   = np.nanmean(self.selectedY)
             std    = np.nanstd(self.selectedY)
             median = np.nanmedian(self.selectedY)
-            xLabelUnits = self.yLabelUnits
+            xLabelUnits = self.selectedYLabel
 
             # We add some statistics info on the GUI
             txt = 'mean: {}{}<br/>'\
@@ -128,8 +130,8 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
                                         parse_number(median, self.config['fitParameterNbNumber'], unified=True),
                                         xLabelUnits)
 
-            self.statisticsLabel.setText(txt)
-            self.statisticsLabel.setMaximumHeight(16777215)
+            self.ui.statisticsLabel.setText(txt)
+            self.ui.statisticsLabel.setMaximumHeight(16777215)
 
 
 
@@ -141,10 +143,10 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
         """
 
         # If user wants to plot the histogram, we add a new plotWindow
-        if self.checkBoxStatistics.isChecked():
+        if self.ui.checkBoxStatistics.isChecked():
 
-            xLabelText  = self.yLabelText
-            xLabelUnits = self.yLabelUnits
+            xLabelText  = self.selectedYLabel
+            xLabelUnits = self.selectedYUnits
             yLabelText  = 'Count'
             yLabelUnits = ''
 
@@ -176,4 +178,4 @@ class GroupBoxStatistics(QtWidgets.QGroupBox, Ui_groupBoxStatistics):
     def statisticsClosePlot(self) -> None:
         if hasattr(self, 'statisticsPlotRef'):
             self.signalClose1dPlot.emit(self.statisticsPlotRef)
-            self.statisticsLabel.setMaximumHeight(0)
+            self.ui.statisticsLabel.setMaximumHeight(0)

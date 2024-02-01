@@ -1,14 +1,13 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 from typing import Tuple
 from scipy.integrate import cumtrapz
 
 from .groupBoxCalculusUi import Ui_groupBoxCalculus
-from ...sources.pyqtgraph import pg
+from ....sources.pyqtgraph import pg
 
 
-class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
+class GroupBoxCalculus(QtWidgets.QGroupBox):
 
 
     signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
@@ -23,8 +22,11 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
                        plotRef:str,
                        windowTitle: str) -> None:
 
-        QtWidgets.QGroupBox.__init__(self, parent)
-        self.setupUi(self)
+        super(GroupBoxCalculus, self).__init__(parent)
+
+        # Build the UI
+        self.ui = Ui_groupBoxCalculus()
+        self.ui.setupUi(self)
 
         self.config = config
         self.databaseAbsPath = databaseAbsPath
@@ -32,8 +34,8 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
         self.plotRef = plotRef
         self._windowTitle = windowTitle
 
-        self.checkBoxDifferentiate.clicked.connect(self.clickDifferentiate)
-        self.checkBoxIntegrate.clicked.connect(self.clickIntegrate)
+        self.ui.checkBoxDifferentiate.clicked.connect(self.clickDifferentiate)
+        self.ui.checkBoxIntegrate.clicked.connect(self.clickIntegrate)
 
 
 
@@ -47,7 +49,7 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
 
     @QtCore.pyqtSlot(bool)
     def slotCheckBoxDifferentiateSetChecked(self, state: bool):
-        self.checkBoxDifferentiate.setChecked(state)
+        self.ui.checkBoxDifferentiate.setChecked(state)
         del(self.differentiatePlotRef)
         del(self.differentiateCurveId)
 
@@ -55,7 +57,7 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
 
     @QtCore.pyqtSlot(bool)
     def slotCheckBoxIntegrateSetChecked(self, state: bool):
-        self.checkBoxIntegrate.setChecked(state)
+        self.ui.checkBoxIntegrate.setChecked(state)
         del(self.integratePlotRef)
         del(self.integrateCurveId)
 
@@ -134,10 +136,10 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
         """
 
         # If user wants to plot the derivative, we add a new plotWindow
-        if self.checkBoxDifferentiate.isChecked():
+        if self.ui.checkBoxDifferentiate.isChecked():
 
-            xLabelText  = self.xLabelText
-            xLabelUnits = self.xLabelUnits
+            xLabelText  = self.selectedXLabel
+            xLabelUnits = self.selectedXUnits
             yLabelText  = '∂('+self.selectedYLabel+')/∂('+xLabelText+')'
             yLabelUnits = self.selectedYUnits+'/'+xLabelUnits
 
@@ -197,10 +199,10 @@ class GroupBoxCalculus(QtWidgets.QGroupBox, Ui_groupBoxCalculus):
         """
 
         # If user wants to plot the primitive, we add a new plotWindow
-        if self.checkBoxIntegrate.isChecked():
+        if self.ui.checkBoxIntegrate.isChecked():
 
-            xLabelText  = self.xLabelText
-            xLabelUnits = self.xLabelUnits
+            xLabelText  = self.selectedXLabel
+            xLabelUnits = self.selectedXUnits
             yLabelText  = '∫ '+self.selectedYLabel+'  d '+xLabelText
             yLabelUnits = self.selectedYUnits+' x '+xLabelUnits
 

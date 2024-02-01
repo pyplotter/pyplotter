@@ -1,12 +1,11 @@
-# This Python file uses the following encoding: utf-8
 import os
 import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
-from typing import Tuple
+from typing import Optional, Tuple
 
 from .mainWindowui import Ui_MainWindow
-from .plot1d.widgetPlot1d import WidgetPlot1d
-from .plot2d.widgetPlot2d import WidgetPlot2d
+from .plot.plot1d.widgetPlot1d import WidgetPlot1d
+from .plot.plot2d.widgetPlot2d import WidgetPlot2d
 from .hBoxLayoutLabelPath import HBoxLayoutLabelPath
 from .widgetCSV import WidgetCSV
 from .widgetBlueFors import WidgetBlueFors
@@ -18,7 +17,7 @@ config = loadConfigCurrent()
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../ui/pictures/')
 
 
-class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
+class MainApp(QtWidgets.QMainWindow):
 
     signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
     signalRemoveProgressBar    = QtCore.pyqtSignal(int)
@@ -32,7 +31,10 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
                        parent=None):
 
         super(MainApp, self).__init__(parent)
-        self.setupUi(self)
+
+        # Build the UI
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
 
         self.qapp = QApplication
         self.widgetCSV = WidgetCSV(None)
@@ -41,131 +43,127 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Can't promote layout on qtdesigner...
         self.hBoxLayoutPath = HBoxLayoutLabelPath()
-        self.verticalLayout_12.addLayout(self.hBoxLayoutPath)
+        self.ui.verticalLayout_12.addLayout(self.hBoxLayoutPath)
 
 
-        self.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
-        self.signalEnableCheck.connect(self.tableWidgetParameter.enableCheck)
-        self.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
-        self.signalAddRow.connect(self.tableWidgetParameter.slotAddRow)
-        self.signalRunClickDone.connect(self.tableWidgetDataBase.slotRunClickDone)
+        self.signalRemoveProgressBar.connect(self.ui.statusBarMain.removeProgressBar)
+        self.signalEnableCheck.connect(self.ui.tableWidgetParameter.enableCheck)
+        self.signalSendStatusBarMessage.connect(self.ui.statusBarMain.setStatusBarMessage)
+        self.signalAddRow.connect(self.ui.tableWidgetParameter.slotAddRow)
+        self.signalRunClickDone.connect(self.ui.tableWidgetDataBase.slotRunClickDone)
 
 
 
 
-        self.lineEditFilterSnapshot.signallineEditFilterSnapshotTextEdited.connect(self.treeViewSnapshot.searchItem)
+        self.ui.lineEditFilterSnapshot.signallineEditFilterSnapshotTextEdited.connect(self.ui.treeViewSnapshot.searchItem)
 
 
         # Connect menuBar signal
-        self.menuBarMain.signalUpdateStyle.connect(self.updateStyle)
-        self.menuBarMain.signalUpdateTableWidgetDatabase.connect(self.tableWidgetDataBase.slotUpdate)
-        self.menuBarMain.signal2MainWindowAddPlot.connect(self.slotFromPlotAddPlot)
-        self.menuBarMain.signalUpdateCurve.connect(self.slotUpdateCurve)
-        self.menuBarMain.signalUpdate2d.connect(self.slotUpdate2d)
-        self.menuBarMain.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
-        self.menuBarMain.signalUpdatePlotProperty.connect(self.slotUpdatePlotProperty)
+        self.ui.menuBarMain.signalUpdateStyle.connect(self.updateStyle)
+        self.ui.menuBarMain.signalUpdateTableWidgetDatabase.connect(self.ui.tableWidgetDataBase.slotUpdate)
+        self.ui.menuBarMain.signalAddLivePlot.connect(self.slotFromLivePlotAddPlot)
+        self.ui.menuBarMain.signalUpdate1d.connect(self.slotUpdateCurve)
+        self.ui.menuBarMain.signalUpdate2d.connect(self.slotUpdate2d)
+        self.ui.menuBarMain.signalUpdatePlotProperty.connect(self.slotUpdatePlotProperty)
 
 
 
-        self.hBoxLayoutPath.signalButtonClick.connect(self.tableWidgetFolder.folderOpened)
+        self.hBoxLayoutPath.signalButtonClick.connect(self.ui.tableWidgetFolder.folderOpened)
 
-        self.treeViewSnapshot.signalLineEditSnapshotClean.connect(self.lineEditFilterSnapshot.clean)
-        self.checkBoxHidden.signalcheckBoxHiddenClick.connect(self.tableWidgetDataBase.slotFromCheckBoxHiddenCheckBoxHiddenClick)
-        self.checkBoxStared.signalCheckBoxStaredClick.connect(self.tableWidgetDataBase.slotFromCheckBoxStaredCheckBoxStaredClick)
+        self.ui.treeViewSnapshot.signalLineEditSnapshotClean.connect(self.ui.lineEditFilterSnapshot.clean)
+        self.ui.checkBoxHidden.signalcheckBoxHiddenClick.connect(self.ui.tableWidgetDataBase.slotFromCheckBoxHiddenCheckBoxHiddenClick)
+        self.ui.checkBoxStared.signalCheckBoxStaredClick.connect(self.ui.tableWidgetDataBase.slotFromCheckBoxStaredCheckBoxStaredClick)
 
-        self.pushButtonOpenFolder.signalFolderOpened.connect(self.tableWidgetFolder.folderOpened)
+        self.ui.pushButtonOpenFolder.signalFolderOpened.connect(self.ui.tableWidgetFolder.folderOpened)
 
-        self.widgetCSV.signalClearTableWidgetDatabase.connect(self.tableWidgetDataBase.slotClearTable)
-        self.widgetCSV.signalClearTableWidgetParameter.connect(self.tableWidgetParameter.slotClearTable)
-        self.widgetCSV.signalClearSnapshot.connect(self.treeViewSnapshot.cleanSnapshot)
-        self.widgetCSV.signalUpdateLabelCurrentSnapshot.connect(self.labelCurrentSnapshot.setText)
-        self.widgetCSV.signalUpdateLabelCurrentRun.connect(self.labelCurrentRun.setText)
-        self.widgetCSV.signalLineEditSnapshotEnabled.connect(self.lineEditFilterSnapshot.enabled)
-        self.widgetCSV.signalAddSnapshot.connect(self.treeViewSnapshot.addSnapshot)
-        self.widgetCSV.signalLabelSnapshotEnabled.connect(self.labelSnapshot.enabled)
-        self.widgetCSV.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
-        self.widgetCSV.signalFillTableWidgetParameter.connect(self.tableWidgetParameter.slotFillTableWidgetParameter)
-        self.widgetCSV.signalUpdateProgressBar.connect(self.statusBarMain.updateProgressBar)
-        self.widgetCSV.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
+        self.widgetCSV.signalClearTableWidgetDatabase.connect(self.ui.tableWidgetDataBase.slotClearTable)
+        self.widgetCSV.signalClearTableWidgetParameter.connect(self.ui.tableWidgetParameter.slotClearTable)
+        self.widgetCSV.signalClearSnapshot.connect(self.ui.treeViewSnapshot.cleanSnapshot)
+        self.widgetCSV.signalUpdateLabelCurrentSnapshot.connect(self.ui.labelCurrentSnapshot.setText)
+        self.widgetCSV.signalUpdateLabelCurrentRun.connect(self.ui.labelCurrentRun.setText)
+        self.widgetCSV.signalLineEditSnapshotEnabled.connect(self.ui.lineEditFilterSnapshot.enabled)
+        self.widgetCSV.signalAddSnapshot.connect(self.ui.treeViewSnapshot.addSnapshot)
+        self.widgetCSV.signalLabelSnapshotEnabled.connect(self.ui.labelSnapshot.enabled)
+        self.widgetCSV.signalSendStatusBarMessage.connect(self.ui.statusBarMain.setStatusBarMessage)
+        self.widgetCSV.signalFillTableWidgetParameter.connect(self.ui.tableWidgetParameter.slotFillTableWidgetParameter)
+        self.widgetCSV.signalUpdateProgressBar.connect(self.ui.statusBarMain.updateProgressBar)
+        self.widgetCSV.signalRemoveProgressBar.connect(self.ui.statusBarMain.removeProgressBar)
         self.widgetCSV.signalLoadedDataFull.connect(self.loadedDataFull)
 
-        self.widgetBlueFors.signalClearTableWidgetDatabase.connect(self.tableWidgetDataBase.slotClearTable)
-        self.widgetBlueFors.signalClearTableWidgetParameter.connect(self.tableWidgetParameter.slotClearTable)
-        self.widgetBlueFors.signalClearSnapshot.connect(self.treeViewSnapshot.cleanSnapshot)
-        self.widgetBlueFors.signalUpdateLabelCurrentSnapshot.connect(self.labelCurrentSnapshot.setText)
-        self.widgetBlueFors.signalUpdateLabelCurrentRun.connect(self.labelCurrentRun.setText)
-        self.widgetBlueFors.signalLineEditSnapshotEnabled.connect(self.lineEditFilterSnapshot.enabled)
-        self.widgetBlueFors.signalLabelSnapshotEnabled.connect(self.labelSnapshot.enabled)
-        self.widgetBlueFors.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
-        self.widgetBlueFors.signalFillTableWidgetParameter.connect(self.tableWidgetParameter.slotFillTableWidgetParameter)
-        self.widgetBlueFors.signalUpdateProgressBar.connect(self.statusBarMain.updateProgressBar)
-        self.widgetBlueFors.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
+        self.widgetBlueFors.signalClearTableWidgetDatabase.connect(self.ui.tableWidgetDataBase.slotClearTable)
+        self.widgetBlueFors.signalClearTableWidgetParameter.connect(self.ui.tableWidgetParameter.slotClearTable)
+        self.widgetBlueFors.signalClearSnapshot.connect(self.ui.treeViewSnapshot.cleanSnapshot)
+        self.widgetBlueFors.signalUpdateLabelCurrentSnapshot.connect(self.ui.labelCurrentSnapshot.setText)
+        self.widgetBlueFors.signalUpdateLabelCurrentRun.connect(self.ui.labelCurrentRun.setText)
+        self.widgetBlueFors.signalLineEditSnapshotEnabled.connect(self.ui.lineEditFilterSnapshot.enabled)
+        self.widgetBlueFors.signalLabelSnapshotEnabled.connect(self.ui.labelSnapshot.enabled)
+        self.widgetBlueFors.signalSendStatusBarMessage.connect(self.ui.statusBarMain.setStatusBarMessage)
+        self.widgetBlueFors.signalFillTableWidgetParameter.connect(self.ui.tableWidgetParameter.slotFillTableWidgetParameter)
+        self.widgetBlueFors.signalUpdateProgressBar.connect(self.ui.statusBarMain.updateProgressBar)
+        self.widgetBlueFors.signalRemoveProgressBar.connect(self.ui.statusBarMain.removeProgressBar)
         self.widgetBlueFors.signalLoadedDataFull.connect(self.loadedDataFull)
 
-        self.statusBarMain.signalExportRunLoad.connect(self.tableWidgetDataBase.exportRunLoad)
-        self.statusBarMain.signalCsvLoad.connect(self.widgetCSV.csvLoad)
-        self.statusBarMain.signalBlueForsLoad.connect(self.widgetBlueFors.blueForsLoad)
-        self.statusBarMain.signalDatabaseLoad.connect(self.tableWidgetDataBase.databaseClick)
-        # self.statusBarMain.signalDatabaseLoadingStop.connect(self.tableWidgetDataBase.databaseLoadingStop)
-        self.statusBarMain.signalAddCurve.connect(self.tableWidgetParameter.getData)
+        self.ui.statusBarMain.signalExportRunLoad.connect(self.ui.tableWidgetDataBase.exportRunLoad)
+        self.ui.statusBarMain.signalCsvLoad.connect(self.widgetCSV.csvLoad)
+        self.ui.statusBarMain.signalBlueForsLoad.connect(self.widgetBlueFors.blueForsLoad)
+        self.ui.statusBarMain.signalDatabaseLoad.connect(self.ui.tableWidgetDataBase.databaseClick)
+        self.ui.statusBarMain.signalAddCurve.connect(self.ui.tableWidgetParameter.getData)
 
-        self.tableWidgetFolder.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
-        self.tableWidgetFolder.signalBlueForsClick.connect(self.statusBarMain.blueForsLoad)
-        self.tableWidgetFolder.signalCSVClick.connect(self.statusBarMain.csvLoad)
-        # self.tableWidgetFolder.signalDatabaseLoadingStop.connect(self.statusBarMain.databaseLoadingStop)
-        self.tableWidgetFolder.signalDatabaseClick.connect(self.statusBarMain.databaseLoad)
-        self.tableWidgetFolder.signalDatabaseClick.connect(self.checkBoxHidden.databaseClick)
-        self.tableWidgetFolder.signalDatabaseClick.connect(self.checkBoxStared.databaseClick)
-        self.tableWidgetFolder.signalUpdateLabelPath.connect(self.hBoxLayoutPath.updateLabelPath)
-        self.tableWidgetFolder.signalDatabasePathUpdate.connect(self.tableWidgetDataBase.updateDatabasePath)
-        self.tableWidgetFolder.first_call()
+        self.ui.tableWidgetFolder.signalSendStatusBarMessage.connect(self.ui.statusBarMain.setStatusBarMessage)
+        self.ui.tableWidgetFolder.signalBlueForsClick.connect(self.ui.statusBarMain.blueForsLoad)
+        self.ui.tableWidgetFolder.signalCSVClick.connect(self.ui.statusBarMain.csvLoad)
+        self.ui.tableWidgetFolder.signalDatabaseClick.connect(self.ui.statusBarMain.databaseLoad)
+        self.ui.tableWidgetFolder.signalDatabaseClick.connect(self.ui.checkBoxHidden.databaseClick)
+        self.ui.tableWidgetFolder.signalDatabaseClick.connect(self.ui.checkBoxStared.databaseClick)
+        self.ui.tableWidgetFolder.signalUpdateLabelPath.connect(self.hBoxLayoutPath.updateLabelPath)
+        self.ui.tableWidgetFolder.signalDatabasePathUpdate.connect(self.ui.tableWidgetDataBase.updateDatabasePath)
+        self.ui.tableWidgetFolder.first_call()
 
 
 
-        self.tableWidgetDataBase.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
-        self.tableWidgetDataBase.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
-        self.tableWidgetDataBase.signalAddStatusBarMessage.connect(self.statusBarMain.addStatusBarMessage)
-        self.tableWidgetDataBase.signalUpdateProgressBar.connect(self.statusBarMain.updateProgressBar)
-        self.tableWidgetDataBase.signal2StatusBarDatabaseUpdate.connect(self.statusBarMain.databaseLoad)
-        self.tableWidgetDataBase.signalExportRunAddProgressBar.connect(self.statusBarMain.exportRunAddProgressBar)
+        self.ui.tableWidgetDataBase.signalRemoveProgressBar.connect(self.ui.statusBarMain.removeProgressBar)
+        self.ui.tableWidgetDataBase.signalSendStatusBarMessage.connect(self.ui.statusBarMain.setStatusBarMessage)
+        self.ui.tableWidgetDataBase.signalAddStatusBarMessage.connect(self.ui.statusBarMain.addStatusBarMessage)
+        self.ui.tableWidgetDataBase.signalUpdateProgressBar.connect(self.ui.statusBarMain.updateProgressBar)
+        self.ui.tableWidgetDataBase.signal2StatusBarDatabaseUpdate.connect(self.ui.statusBarMain.databaseLoad)
+        self.ui.tableWidgetDataBase.signalExportRunAddProgressBar.connect(self.ui.statusBarMain.exportRunAddProgressBar)
 
-        self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.tableWidgetFolder.databaseClickDone)
-        self.tableWidgetDataBase.signalDatabaseStars.connect(self.tableWidgetFolder.slotFromTableWidgetDataBaseDatabaseStars)
-        self.tableWidgetDataBase.signalDatabaseUnstars.connect(self.tableWidgetFolder.slotFromTableWidgetDataBaseDatabaseUnstars)
+        self.ui.tableWidgetDataBase.signalDatabaseClickDone.connect(self.ui.tableWidgetFolder.databaseClickDone)
+        self.ui.tableWidgetDataBase.signalDatabaseStars.connect(self.ui.tableWidgetFolder.slotFromTableWidgetDataBaseDatabaseStars)
+        self.ui.tableWidgetDataBase.signalDatabaseUnstars.connect(self.ui.tableWidgetFolder.slotFromTableWidgetDataBaseDatabaseUnstars)
 
-        self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.checkBoxHidden.databaseClickDone)
-        self.tableWidgetDataBase.signalCheckBoxHiddenHideRow.connect(self.checkBoxHidden.hideRow)
-        self.tableWidgetDataBase.signalCheckBoxStaredChecked.connect(self.checkBoxHidden.checkBoxStaredChecked)
+        self.ui.tableWidgetDataBase.signalDatabaseClickDone.connect(self.ui.checkBoxHidden.databaseClickDone)
+        self.ui.tableWidgetDataBase.signalCheckBoxHiddenHideRow.connect(self.ui.checkBoxHidden.hideRow)
+        self.ui.tableWidgetDataBase.signalCheckBoxStaredChecked.connect(self.ui.checkBoxHidden.checkBoxStaredChecked)
 
-        self.tableWidgetDataBase.signalDatabaseClickDone.connect(self.checkBoxStared.databaseClickDone)
-        self.tableWidgetDataBase.signalCheckBoxHiddenChecked.connect(self.checkBoxStared.checkBoxHiddenChecked)
+        self.ui.tableWidgetDataBase.signalDatabaseClickDone.connect(self.ui.checkBoxStared.databaseClickDone)
+        self.ui.tableWidgetDataBase.signalCheckBoxHiddenChecked.connect(self.ui.checkBoxStared.checkBoxHiddenChecked)
 
-        self.tableWidgetDataBase.signalUpdateCurrentDatabase.connect(self.labelCurrentDataBase.setText)
+        self.ui.tableWidgetDataBase.signalUpdateCurrentDatabase.connect(self.ui.labelCurrentDataBase.setText)
 
-        self.tableWidgetDataBase.signalRunClick.connect(self.tableWidgetParameter.slotFillTableWidgetParameter)
-
-        # self.tableWidgetDataBase.signalDatabaseLoadingStop.connect(self.tableWidgetFolder.databaseLoadingStop)
-
-        self.tableWidgetDataBase.first_call()
+        self.ui.tableWidgetDataBase.signalRunClick.connect(self.ui.tableWidgetParameter.slotFillTableWidgetParameter)
 
 
+        self.ui.tableWidgetDataBase.first_call()
 
-        self.tableWidgetParameter.signalSendStatusBarMessage.connect(self.statusBarMain.setStatusBarMessage)
-        self.tableWidgetParameter.signalRemoveProgressBar.connect(self.statusBarMain.removeProgressBar)
-        self.tableWidgetParameter.signalUpdateProgressBar.connect(self.statusBarMain.updateProgressBar)
-        self.tableWidgetParameter.signalAddCurve.connect(self.statusBarMain.addCurve)
-        self.tableWidgetParameter.signalCleanSnapshot.connect(self.treeViewSnapshot.cleanSnapshot)
-        self.tableWidgetParameter.signalAddSnapshot.connect(self.treeViewSnapshot.addSnapshot)
-        self.tableWidgetParameter.signalLineEditSnapshotEnabled.connect(self.lineEditFilterSnapshot.enabled)
-        self.tableWidgetParameter.signalLabelSnapshotEnabled.connect(self.labelSnapshot.enabled)
-        self.tableWidgetParameter.signalUpdateLabelCurrentSnapshot.connect(self.labelCurrentSnapshot.setText)
-        self.tableWidgetParameter.signalUpdateLabelCurrentRun.connect(self.labelCurrentRun.setText)
-        self.tableWidgetParameter.signalLoadedDataFull.connect(self.loadedDataFull)
-        self.tableWidgetParameter.signalLoadedDataEmpty.connect(self.loadedDataEmpty)
-        self.tableWidgetParameter.signalCSVLoadData.connect(self.widgetCSV.loadData)
-        self.tableWidgetParameter.signalBlueForsLoadData.connect(self.widgetBlueFors.loadData)
-        self.tableWidgetParameter.signaladdRow.connect(self.addRow)
-        self.tableWidgetParameter.first_call()
+
+
+        self.ui.tableWidgetParameter.signalSendStatusBarMessage.connect(self.ui.statusBarMain.setStatusBarMessage)
+        self.ui.tableWidgetParameter.signalRemoveProgressBar.connect(self.ui.statusBarMain.removeProgressBar)
+        self.ui.tableWidgetParameter.signalUpdateProgressBar.connect(self.ui.statusBarMain.updateProgressBar)
+        self.ui.tableWidgetParameter.signalAddCurve.connect(self.ui.statusBarMain.addCurve)
+        self.ui.tableWidgetParameter.signalCleanSnapshot.connect(self.ui.treeViewSnapshot.cleanSnapshot)
+        self.ui.tableWidgetParameter.signalAddSnapshot.connect(self.ui.treeViewSnapshot.addSnapshot)
+        self.ui.tableWidgetParameter.signalLineEditSnapshotEnabled.connect(self.ui.lineEditFilterSnapshot.enabled)
+        self.ui.tableWidgetParameter.signalLabelSnapshotEnabled.connect(self.ui.labelSnapshot.enabled)
+        self.ui.tableWidgetParameter.signalUpdateLabelCurrentSnapshot.connect(self.ui.labelCurrentSnapshot.setText)
+        self.ui.tableWidgetParameter.signalUpdateLabelCurrentRun.connect(self.ui.labelCurrentRun.setText)
+        self.ui.tableWidgetParameter.signalLoadedDataFull.connect(self.loadedDataFull)
+        self.ui.tableWidgetParameter.signalLoadedDataEmpty.connect(self.loadedDataEmpty)
+        self.ui.tableWidgetParameter.signalCSVLoadData.connect(self.widgetCSV.loadData)
+        self.ui.tableWidgetParameter.signalBlueForsLoadData.connect(self.widgetBlueFors.loadData)
+        self.ui.tableWidgetParameter.signaladdRow.connect(self.addRow)
+        self.ui.tableWidgetParameter.first_call()
 
         # References of all opened plot window.
         # Structure:
@@ -266,8 +264,8 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
         Close every 1d and 2d plot opened.
         """
 
-        if hasattr(self.menuBarMain, 'DialogLiveplot'):
-            self.menuBarMain.DialogLiveplot.close()
+        if hasattr(self.ui.menuBarMain, 'DialogLiveplot'):
+            self.ui.menuBarMain.DialogLiveplot.close()
 
         plotRefs = [plot for plot in self._plotRefs.keys()]
         # plot1d window open from a plo1d window are taken care by the plot1d itself
@@ -291,10 +289,10 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
             except:
                 pass
 
-        if hasattr(self.tableWidgetDataBase, 'dialogComment'):
-            self.tableWidgetDataBase.dialogComment._allowClosing = True
-            self.tableWidgetDataBase.dialogComment.deleteLater()
-            del(self.tableWidgetDataBase.dialogComment)
+        if hasattr(self.ui.tableWidgetDataBase, 'dialogComment'):
+            self.ui.tableWidgetDataBase.dialogComment._allowClosing = True
+            self.ui.tableWidgetDataBase.dialogComment.deleteLater()
+            del(self.ui.tableWidgetDataBase.dialogComment)
 
 
 
@@ -408,21 +406,71 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 
-    def addPlot(self, plotRef            : str,
-                      databaseAbsPath    : str,
-                      data               : Tuple[np.ndarray, ...],
-                      xLabelText         : str,
-                      xLabelUnits        : str,
-                      yLabelText         : str,
-                      yLabelUnits        : str,
-                      zLabelText         : str,
-                      zLabelUnits        : str,
-                      runId              : int,
-                      curveId            : str,
-                      plotTitle          : str,
-                      windowTitle        : str,
-                      dateTimeAxis       : bool,
-                      curveLegend        : str) -> None:
+
+    @QtCore.pyqtSlot(int, str, str, str, str, str, tuple, str, str, str, str, str, str, int, int, int, int)
+    def slotFromLivePlotAddPlot(self, runId           : int,
+                                      curveId         : str,
+                                      plotTitle       : str,
+                                      windowTitle     : str,
+                                      plotRef         : str,
+                                      databaseAbsPath : str,
+                                      data            : Tuple[np.ndarray, ...],
+                                      xLabelText      : str,
+                                      xLabelUnits     : str,
+                                      yLabelText      : str,
+                                      yLabelUnits     : str,
+                                      zLabelText      : str,
+                                      zLabelUnits     : str,
+                                      dialogX         : int,
+                                      dialogY         : int,
+                                      dialogWidth     : int,
+                                      dialogHeight    : int,
+                                      ) -> None:
+        """
+        Call from livePlot dialog to add plot.
+        """
+
+        self.addPlot(plotRef         = plotRef,
+                     databaseAbsPath = databaseAbsPath,
+                     data            = data,
+                     xLabelText      = xLabelText,
+                     xLabelUnits     = xLabelUnits,
+                     yLabelText      = yLabelText,
+                     yLabelUnits     = yLabelUnits,
+                     zLabelText      = zLabelText,
+                     zLabelUnits     = zLabelUnits,
+                     runId           = runId,
+                     curveId         = curveId,
+                     plotTitle       = plotTitle,
+                     windowTitle     = windowTitle,
+                     dateTimeAxis    = False,
+                     curveLegend     = yLabelText,
+                     dialogX         = dialogX,
+                     dialogY         = dialogY,
+                     dialogWidth     = dialogWidth,
+                     dialogHeight    = dialogHeight)
+
+
+
+    def addPlot(self, plotRef         : str,
+                      databaseAbsPath : str,
+                      data            : Tuple[np.ndarray, ...],
+                      xLabelText      : str,
+                      xLabelUnits     : str,
+                      yLabelText      : str,
+                      yLabelUnits     : str,
+                      zLabelText      : str,
+                      zLabelUnits     : str,
+                      runId           : int,
+                      curveId         : str,
+                      plotTitle       : str,
+                      windowTitle     : str,
+                      dateTimeAxis    : bool,
+                      curveLegend     : str,
+                      dialogX         : Optional[int]=None,
+                      dialogY         : Optional[int]=None,
+                      dialogWidth     : Optional[int]=None,
+                      dialogHeight    : Optional[int]=None) -> None:
         """
         Methods called once the data are downloaded to add a plot of the data.
         Discriminate between 1d and 2d plot through the length of data list.
@@ -484,20 +532,24 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
             if plotRef not in self._plotRefs:
 
 
-                p = WidgetPlot1d(x                  = data[0],
-                              y                  = data[1],
-                              title              = plotTitle,
-                              xLabelText         = xLabelText,
-                              xLabelUnits        = xLabelUnits,
-                              yLabelText         = yLabelText,
-                              yLabelUnits        = yLabelUnits,
-                              windowTitle        = windowTitle,
-                              runId              = runId,
-                              plotRef            = plotRef,
-                              databaseAbsPath    = databaseAbsPath,
-                              curveId            = curveId,
-                              curveLegend        = curveLegend,
-                              dateTimeAxis       = dateTimeAxis)
+                p = WidgetPlot1d(x               = data[0],
+                                 y               = data[1],
+                                 title           = plotTitle,
+                                 xLabelText      = xLabelText,
+                                 xLabelUnits     = xLabelUnits,
+                                 yLabelText      = yLabelText,
+                                 yLabelUnits     = yLabelUnits,
+                                 windowTitle     = windowTitle,
+                                 runId           = runId,
+                                 plotRef         = plotRef,
+                                 databaseAbsPath = databaseAbsPath,
+                                 curveId         = curveId,
+                                 curveLegend     = curveLegend,
+                                 dateTimeAxis    = dateTimeAxis,
+                                 dialogX         = dialogX,
+                                 dialogY         = dialogY,
+                                 dialogWidth     = dialogWidth,
+                                 dialogHeight    = dialogHeight)
 
                 # Through interaction, we open new plot
                 p.signal2MainWindowAddPlot.connect(self.slotFromPlotAddPlot)
@@ -511,7 +563,7 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
 
                 # When use uncheck a parameter in tableWidgetParameter, we
                 # propagate the event to plot
-                self.tableWidgetParameter.signalRemoveCurve.connect(p.slotRemoveCurve)
+                self.ui.tableWidgetParameter.signalRemoveCurve.connect(p.slotRemoveCurve)
 
                 # If the plot comes from 2dplot, we connect signal
                 for plot in self._plotRefs.values():
@@ -539,20 +591,24 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
             # Determine if we should open a new WidgetPlot2d
             if plotRef not in self._plotRefs:
                 p = WidgetPlot2d(x               = data[0],
-                              y               = data[1],
-                              z               = data[2],
-                              title           = plotTitle,
-                              xLabelText      = xLabelText,
-                              xLabelUnits     = xLabelUnits,
-                              yLabelText      = yLabelText,
-                              yLabelUnits     = yLabelUnits,
-                              zLabelText      = zLabelText,
-                              zLabelUnits     = zLabelUnits,
-                              windowTitle     = windowTitle,
-                              runId           = runId,
-                              curveId         = curveId,
-                              plotRef         = plotRef,
-                              databaseAbsPath = databaseAbsPath)
+                                 y               = data[1],
+                                 z               = data[2],
+                                 title           = plotTitle,
+                                 xLabelText      = xLabelText,
+                                 xLabelUnits     = xLabelUnits,
+                                 yLabelText      = yLabelText,
+                                 yLabelUnits     = yLabelUnits,
+                                 zLabelText      = zLabelText,
+                                 zLabelUnits     = zLabelUnits,
+                                 windowTitle     = windowTitle,
+                                 runId           = runId,
+                                 curveId         = curveId,
+                                 plotRef         = plotRef,
+                                 databaseAbsPath = databaseAbsPath,
+                                 dialogX         = dialogX,
+                                 dialogY         = dialogY,
+                                 dialogWidth     = dialogWidth,
+                                 dialogHeight    = dialogHeight)
 
                 # p.signalGet1dColorIndex.connect(self.slotGet1dColorIndex)
                 p.signal2MainWindowAddPlot.connect(self.slotFromPlotAddPlot)
@@ -624,11 +680,10 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
             plots = [plot for plot in self._plotRefs.values() if plot.plotType=='1d']
 
             # Send the list to every 1d plot windows
-            # [plot.widgetTabCurve.updateList1dCurvesLabels(plot, plots) for plot in plots]
             for plot in plots:
-                plot.widgetTabCurve.updateList1dCurvesLabels(plot.plotRef,
-                                                             list(plot.curves.keys()),
-                                                             plots)
+                plot.ui.widgetTabCurve.updateList1dCurvesLabels(plot.plotRef,
+                                                                list(plot.curves.keys()),
+                                                                plots)
 
 
 
@@ -638,7 +693,7 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
         # We uncheck all curves from the tableWidgetParameter
         curvesId = list(self._plotRefs[plotRef].curves.keys())
         for curveId in curvesId:
-            self.tableWidgetParameter.slotUncheck(curveId)
+            self.ui.tableWidgetParameter.slotUncheck(curveId)
 
 
         # We check for all possible interaction plots from that 1d plot
@@ -665,8 +720,8 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
         # We check if that 1d plot was an interaction from a 2d plot
         for curveType in ('vertical',
                           'horizontal',
-                          'anyvertical',
-                          'anyhorizontal',
+                          'anyVertical',
+                          'anyHorizontal',
                           ):
 
             # We get the curveId of the closed curved and remove their attached
@@ -698,12 +753,12 @@ class MainApp(QtWidgets.QMainWindow, Ui_MainWindow):
                               curveId: str) -> None:
 
         # We uncheck the tableWidgetParameter
-        self.tableWidgetParameter.slotUncheck(curveId)
+        self.ui.tableWidgetParameter.slotUncheck(curveId)
 
         for curveType in ('vertical',
                           'horizontal',
-                          'anyvertical',
-                          'anyhorizontal',
+                          'anyVertical',
+                          'anyHorizontal',
                           'minimum',
                           'maximum',
                           ):

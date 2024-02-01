@@ -1,6 +1,5 @@
-# This Python file uses the following encoding: utf-8
 from __future__ import annotations
-from PyQt5 import QtWidgets, QtCore, QtTest
+from PyQt5 import QtWidgets, QtCore
 import numpy as np
 import os
 from datetime import datetime
@@ -13,18 +12,22 @@ from ...sources.functions import (getDatabaseNameFromAbsPath,
                                   getCurveId,
                                   getWindowTitle,
                                   getPlotTitle,
-                                  getPlotRef)
+                                  getPlotRef,
+                                  getDialogWidthHeight)
 
 
 class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
-    signal2MainWindowAddPlot = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
+    ## Signal to the mainWindow to
+    # Add plot
+    signalAddLivePlot = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str, int, int, int, int)
 
-    signalUpdateCurve = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
+    # Update a 1d plotDataItem
+    signalUpdate1d = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
+    # Update a 2d ImageView
     signalUpdate2d = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
+    # Update the plot dialog title when the measurement is done
     signalUpdatePlotProperty = QtCore.pyqtSignal(str, str, str)
-
-    signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
 
     # Make mypy happy
     _livePlotRunId: int
@@ -146,7 +149,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                     name=yParamName,
                                     runId=self._livePlotRunId)
 
-                self.signalUpdateCurve.emit(plotRef, # plotRef
+                self.signalUpdate1d.emit(plotRef, # plotRef
                                             curveId, # curveId
                                             yParamName, # curveLegend
                                             data[0], # x
@@ -190,7 +193,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                        self._livePlotRunName)
             self.signalUpdatePlotProperty.emit(plotRef, # plotRef
                                                'plotTitle', # property
-                                               plotTitle) # value
+                                                plotTitle) # value
 
             self.labelLivePlotInProgressState.setText('False')
             self.labelLivePlotRunidid.setText('')
@@ -306,7 +309,16 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         # We get the liveplot parameters
         self.livePlotGetPlotParameters()
 
-        for xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef in zip(*self._livePlotGetPlotParameters):
+        # We get the dialog position and size to tile the screen
+        dialogTilings = getDialogWidthHeight(nbDialog=len(self._livePlotGetPlotParameters[0]))
+
+        for (xParamName, xParamLabel, xParamUnit,
+             yParamName, yParamLabel, yParamUnit,
+             zParamName, zParamLabel, zParamUnit,
+             plotRef,
+             dialogX, dialogY,
+             dialogWidth, dialogHeight) in zip(*self._livePlotGetPlotParameters,
+                                                 *dialogTilings):
             # Only the first dependent parameter is displayed per default
             if yParamLabel==paramsIndependent[0].label:
                 hidden = False
@@ -327,19 +339,23 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                  name=yParamName,
                                  runId=self._livePlotRunId)
 
-            self.signal2MainWindowAddPlot.emit(self._livePlotRunId, # runId
-                                               curveId, # curveId
-                                               plotTitle, # plotTitle
-                                               windowTitle, # windowTitle
-                                               plotRef, # plotRef
-                                               self._livePlotDatabaseAbsPath, # databaseAbsPath
-                                               data, # data
-                                               xParamLabel, # xLabelText
-                                               xParamUnit, # xLabelUnits
-                                               yParamLabel, # yLabelText
-                                               yParamUnit, # yLabelUnits
-                                               zParamLabel, # zLabelText
-                                               zParamUnit) # zLabelUnits
+            self.signalAddLivePlot.emit(self._livePlotRunId, # runId
+                                        curveId, # curveId
+                                        plotTitle, # plotTitle
+                                        windowTitle, # windowTitle
+                                        plotRef, # plotRef
+                                        self._livePlotDatabaseAbsPath, # databaseAbsPath
+                                        data, # data
+                                        xParamLabel, # xLabelText
+                                        xParamUnit, # xLabelUnits
+                                        yParamLabel, # yLabelText
+                                        yParamUnit, # yLabelUnits
+                                        zParamLabel, # zLabelText
+                                        zParamUnit, # zLabelUnits
+                                        dialogX, # dialog position x
+                                        dialogY, # dialog position y
+                                        dialogWidth, # dialog width
+                                        dialogHeight) # dialog height
 
 
 
@@ -487,7 +503,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         from qcodes import initialise_or_create_database_at, load_by_run_spec
         self.pushButtonLivePlot.setText('Select database...')
         self.loadDataset = load_by_run_spec
-        # self.setStatusBarMessage('Ready')
 
         fname = QtWidgets.QFileDialog.getOpenFileName(self,
                                                       'Open QCoDeS database',

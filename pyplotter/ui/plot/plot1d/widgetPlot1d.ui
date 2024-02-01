@@ -29,9 +29,6 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="PlotWidget" name="plotWidget" native="true"/>
-     </item>
-     <item>
       <widget class="QTabWidget" name="tabWidget">
        <property name="enabled">
         <bool>true</bool>
@@ -133,7 +130,7 @@
               <x>0</x>
               <y>0</y>
               <width>267</width>
-              <height>350</height>
+              <height>405</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -192,9 +189,16 @@
                    <number>1</number>
                   </property>
                   <item>
-                   <widget class="QPushButton" name="pushButtonCopy">
+                   <widget class="QButtonCopy" name="qButtonCopy">
+                    <property name="font">
+                     <font>
+                      <pointsize>8</pointsize>
+                      <weight>50</weight>
+                      <bold>false</bold>
+                     </font>
+                    </property>
                     <property name="text">
-                     <string>Click to copie</string>
+                     <string/>
                     </property>
                    </widget>
                   </item>
@@ -300,7 +304,13 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QCheckBox" name="checkBoxCrossHair">
+                   <widget class="QCheckBoxCrossHair" name="qCheckBoxCrossHair">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>0</height>
+                     </size>
+                    </property>
                     <property name="font">
                      <font>
                       <pointsize>8</pointsize>
@@ -452,35 +462,6 @@
            </widget>
           </widget>
          </item>
-         <item>
-          <widget class="QLabel" name="labelLivePlot">
-           <property name="text">
-            <string/>
-           </property>
-           <property name="textFormat">
-            <enum>Qt::RichText</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="labelCoordinate">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;x:&lt;br/&gt;y:&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-          </widget>
-         </item>
         </layout>
        </widget>
       </widget>
@@ -491,10 +472,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>PlotWidget</class>
-   <extends>QWidget</extends>
-   <header>.plotWidget</header>
-   <container>1</container>
+   <class>QButtonCopy</class>
+   <extends>QPushButton</extends>
+   <header>..qButtonCopy</header>
+  </customwidget>
+  <customwidget>
+   <class>QCheckBoxCrossHair</class>
+   <extends>QCheckBox</extends>
+   <header>..qCheckBoxCrossHair</header>
   </customwidget>
  </customwidgets>
  <resources/>

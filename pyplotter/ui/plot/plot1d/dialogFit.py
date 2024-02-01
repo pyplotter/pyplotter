@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 import numpy as np
@@ -17,12 +16,12 @@ import os
 from scipy.signal import hilbert
 from typing import Tuple
 
-from ...sources.config import loadConfigCurrent
+from ....sources.config import loadConfigCurrent
 config = loadConfigCurrent()
-from ...sources.functions import parse_number
+from ....sources.functions import parse_number
 
 LOC = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-JSPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', 'mathjax', 'tex-chtml.js')
+JSPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..', 'mathjax', 'tex-chtml.js')
 
 
 

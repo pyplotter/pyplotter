@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 from typing import Union, Tuple, Optional, List, Dict
@@ -6,17 +5,18 @@ from math import atan2
 import uuid
 
 from .widgetPlot2dui import Ui_Dialog
-from ...sources import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
-from ...sources.config import loadConfigCurrent
-from ...sources.functions import getCurveColorIndex, hex_to_rgba
-from ...sources.pyqtgraph import pg
-from ...sources.functions import parse_number
-from ..widgetPlot import WidgetPlot
+from ....sources import palettes # File copy from bokeh: https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py
+from ....sources.config import loadConfigCurrent
+from ....sources.functions import getCurveColorIndex, hex_to_rgba
+from ....sources.pyqtgraph import pg
+from ....sources.functions import parse_number
+from ..widgetPlotContainer import WidgetPlotContainer
+from .widgetHistogram import WidgetHistogram
 
 from .groupBoxFit import GroupBoxFit
 
 
-class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
+class WidgetPlot2d(QtWidgets.QDialog):
     """
     Class to handle ploting in 2d.
     """
@@ -40,6 +40,10 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
     signalUpdate2dFitResult = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
 
 
+    # Signal towards the histogram
+    signalIsoCurve = QtCore.pyqtSignal(bool, pg.ImageView)
+
+
     def __init__(self, x              : np.ndarray,
                        y              : np.ndarray,
                        z              : np.ndarray,
@@ -54,7 +58,11 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                        runId          : int,
                        curveId        : str,
                        plotRef        : str,
-                       databaseAbsPath: str):
+                       databaseAbsPath: str,
+                       dialogX         : Optional[int]=None,
+                       dialogY         : Optional[int]=None,
+                       dialogWidth     : Optional[int]=None,
+                       dialogHeight    : Optional[int]=None) -> None:
         """
         Class handling the plot of 2d data, i.e. colormap.
         Since pyqtgraph does not handle non regular image, there could be funny
@@ -99,41 +107,53 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         """
 
         # Set parent to None to have "free" qdialog
-        QtWidgets.QDialog.__init__(self, parent=None)
-        self.setupUi(self)
+        super(WidgetPlot2d, self).__init__(None)
+
+        # Build the UI
+        self.ui = Ui_Dialog()
+        self.ui.setupUi(self)
+
+        self.plotWidgetContainer = WidgetPlotContainer(self)
 
         self._allowClosing = False
 
         self.config = loadConfigCurrent()
 
+        # Shortcut to access the plot widget and item
+        self.plotWidget = self.plotWidgetContainer.plotWidget
+        self.plotItem = self.plotWidget.getPlotItem()
+
         # Must be set on False, see
         # https://github.com/pyqtgraph/pyqtgraph/issues/1371
-        self.plotWidget.useOpenGL(False)
+        # self.plotWidget.plotWidget.useOpenGL(False)
+
+        # Shortcut to access the plot widget and item
+        # self.plotWidget = self.plotWidget.plotWidget
+        # self.plotItem = self.plotWidget.plotWidget.getPlotItem()
 
         # Allow resize of the plot window
         self.setWindowFlags(QtCore.Qt.WindowMinimizeButtonHint|
                             QtCore.Qt.WindowMaximizeButtonHint|
                             QtCore.Qt.WindowCloseButtonHint)
-
         self.plotType = '2d'
 
-        self.xData         = x
-        self.yData         = y
-        self.zData         = z
-        self.xDataRef      = x # To keep track of all operation done on the z data
-        self.yDataRef      = y # To keep track of all operation done on the z data
-        self.zDataRef      = z # To keep track of all operation done on the z data
-        self._xLabelText    = xLabelText
-        self._xLabelUnits   = xLabelUnits
-        self._yLabelText    = yLabelText
-        self._yLabelUnits   = yLabelUnits
-        self._zLabelText    = zLabelText
-        self._zLabelUnits   = zLabelUnits
-        self.title         = title
-        self._windowTitle   = windowTitle
-        self.runId         = runId
-        self.curveId       = curveId
-        self.plotRef       = plotRef
+        self.xData           = x
+        self.yData           = y
+        self.zData           = z
+        self.xDataRef        = x # To keep track of all operation done on the z data
+        self.yDataRef        = y # To keep track of all operation done on the z data
+        self.zDataRef        = z # To keep track of all operation done on the z data
+        self._xLabelText     = xLabelText
+        self._xLabelUnits    = xLabelUnits
+        self._yLabelText     = yLabelText
+        self._yLabelUnits    = yLabelUnits
+        self._zLabelText     = zLabelText
+        self._zLabelUnits    = zLabelUnits
+        self.title           = title
+        self._windowTitle    = windowTitle
+        self.runId           = runId
+        self.curveId         = curveId
+        self.plotRef         = plotRef
         self.databaseAbsPath = databaseAbsPath
 
 
@@ -146,11 +166,6 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         # Keep track of the sub-interaction plots launched fron that plot
         self.interactionRefs: Dict[str, dict] = {}
-
-        # Get plotItem from the widget
-        self.plotItem = self.plotWidget.getPlotItem()
-        self.resize(*self.config['dialogWindowSize'])
-
 
         # Create a Image item to host the image view
         self.imageItem = pg.ImageItem(image=np.array([[0,0],[0,0]]))
@@ -170,15 +185,15 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.plotItem.getAxis('bottom').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTickLabelsColor'])
         self.plotItem.getAxis('left').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTickLabelsColor'])
 
-        self.histWidget.item.axis.setPen(self.config['styles'][self.config['style']]['pyqtgraphzAxisTicksColor'])
 
-
-        # Create a histogram item linked to the imageitem
-        self.histWidget.setImageItem(self.imageItem)
-        self.histWidget.autoHistogramRange()
-        self.histWidget.setFixedWidth(100)
-        self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(), max=z[~np.isnan(z)].max())
-        self.histWidget.axis.setTickFont(font)
+        # Histogram of the imageItem colormap
+        self.hist = WidgetHistogram(parent=self.ui.horizontalLayout,
+                                    imageItem=self.imageItem,
+                                    zLabelText=zLabelText,
+                                    zLabelUnits=zLabelUnits)
+        self.hist.setLevels(min=z[~np.isnan(z)].min(),
+                            max=z[~np.isnan(z)].max())
+        self.signalIsoCurve.connect(self.hist.slotIsoCurve)
 
         self.setImageView()
 
@@ -197,69 +212,65 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
                                   'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
 
-        # The only reliable way I have found to correctly display the zLabel
-        # is by using a Qlabel from the GUI
-        self.plot2dzLabel.setText(zLabelText+' ('+zLabelUnits+')')
-        self.plot2dzLabel.setFont(font)
         self.setWindowTitle(windowTitle)
 
 
         # Initialize internal widget
-        self.initGroupBoxFit()
+        # self.initGroupBoxFit()
 
         self.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
         self.setStyleSheet("color: "+str(self.config['styles'][self.config['style']]['dialogTextColor'])+";")
 
 
-        # Connect UI
-        self.checkBoxFindSlope.clicked.connect(self.cbFindSlope)
-        self.checkBoxDrawIsoCurve.clicked.connect(self.cbIsoCurve)
-        self.checkBoxInvert.clicked.connect(lambda : self.cbcmInvert(self.checkBoxInvert))
-        self.checkBoxMaximum.clicked.connect(self.checkBoxMaximumClicked)
-        self.checkBoxMinimum.clicked.connect(self.checkBoxMinimumClicked)
-        self.checkBoxSwapxy.clicked.connect(self.checkBoxSwapxyState)
-        self.checkBoxAspectEqual.clicked.connect(self.checkBoxAspectEqualState)
-        self.checkBoxSubtractAverageX.clicked.connect(self.zDataTransformation)
-        self.checkBoxSubtractAverageY.clicked.connect(self.zDataTransformation)
-        self.spinBoxSubtractPolyX.valueChanged.connect(self.zDataTransformation)
-        self.spinBoxSubtractPolyY.valueChanged.connect(self.zDataTransformation)
-        self.checkBoxUnwrapX.clicked.connect(self.zDataTransformation)
-        self.checkBoxUnwrapY.clicked.connect(self.zDataTransformation)
-        self.pushButton3d.clicked.connect(self.launched3d)
-        self.plotItem.scene().sigMouseClicked.connect(self.plotItemdoubleClick)
-        self.radioButtonSliceSingleAny.toggled.connect(self.radioBoxSliceChanged)
-        self.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
-        self.radioButtonSliceSingleVertical.toggled.connect(self.radioBoxSliceChanged)
-        self.radioButtonSliceAveragedHorizontal.toggled.connect(self.radioBoxSliceChanged)
-        self.radioButtonSliceAveragedVertical.toggled.connect(self.radioBoxSliceChanged)
-
-        # UI for the derivative combobox
-        for label in self.config['plot2dDerivative']:
-            self.comboBoxDerivative.addItem(label)
-        self.comboBoxDerivative.activated.connect(self.zDataTransformation)
+        # # Connect UI
+        # self.ui.checkBoxFindSlope.clicked.connect(self.cbFindSlope)
+        # self.ui.checkBoxDrawIsoCurve.clicked.connect(self.isoCurveClicked)
+        # self.ui.checkBoxMaximum.clicked.connect(self.checkBoxMaximumClicked)
+        # self.ui.checkBoxMinimum.clicked.connect(self.checkBoxMinimumClicked)
+        # self.ui.checkBoxSwapxy.clicked.connect(self.checkBoxSwapxyState)
+        # self.ui.checkBoxAspectEqual.clicked.connect(self.checkBoxAspectEqualState)
+        # self.ui.checkBoxSubtractAverageX.clicked.connect(self.zDataTransformation)
+        # self.ui.checkBoxSubtractAverageY.clicked.connect(self.zDataTransformation)
+        # self.ui.spinBoxSubtractPolyX.valueChanged.connect(self.zDataTransformation)
+        # self.ui.spinBoxSubtractPolyY.valueChanged.connect(self.zDataTransformation)
+        # self.ui.checkBoxUnwrapX.clicked.connect(self.zDataTransformation)
+        # self.ui.checkBoxUnwrapY.clicked.connect(self.zDataTransformation)
+        # self.ui.pushButton3d.clicked.connect(self.launched3d)
+        # self.plotItem.scene().sigMouseClicked.connect(self.plotItemdoubleClick)
+        # self.ui.radioButtonSliceSingleAny.toggled.connect(self.radioBoxSliceChanged)
+        # self.ui.radioButtonSliceSingleHorizontal.toggled.connect(self.radioBoxSliceChanged)
+        # self.ui.radioButtonSliceSingleVertical.toggled.connect(self.radioBoxSliceChanged)
+        # self.ui.radioButtonSliceAveragedHorizontal.toggled.connect(self.radioBoxSliceChanged)
+        # self.ui.radioButtonSliceAveragedVertical.toggled.connect(self.radioBoxSliceChanged)
 
 
-        ## Colormap initialization
+        # # UI for the derivative combobox
+        # for label in self.config['plot2dDerivative']:
+        #     self.ui.comboBoxDerivative.addItem(label)
+        # self.ui.comboBoxDerivative.activated.connect(self.zDataTransformation)
 
-        # Build the colormap comboBox, the default one being from the config file
-        index = 0
-        indexViridis = 0
-        for cm in [i for i in palettes.all_palettes.keys() if i[-2:] !='_r']:
-            self.comboBoxcm.addItem(cm)
-            if cm==self.config['plot2dcm']:
-                indexViridis = index
 
-            index += 1
-
-        self.colorMapInversed = False
-        self.setColorMap(self.config['plot2dcm'])
-        self.comboBoxcm.setCurrentIndex(indexViridis)
-        self.comboBoxcm.currentIndexChanged.connect(self.comboBoxcmChanged)
-
-        # Should be initialize last
-        WidgetPlot.__init__(self, self.databaseAbsPath)
+        self.resize(*self.config['dialogWindowSize'])
 
         self.show()
+
+
+        # # Connect the button to get a screenshot of the plot
+        # # Done here since we need a reference of the plotWidget
+        # self.ui.qButtonCopy.clicked.connect(lambda plotWidget=self.plotWidget: self.ui.qButtonCopy.clicked_(self.plotWidget))
+        # # For unknown reason, I have to initialize the text here...
+        # self.ui.qButtonCopy.setText(self.ui.qButtonCopy._text)
+
+        # self.ui.qCheckBoxCrossHair.signalAddCrossHair.connect(self.plotWidget.slotAddCrossHair)
+
+
+        # if the dialog size was given (usually meaning a live plot is done)
+        if dialogWidth is not None and dialogHeight is not None:
+            self.adjustSize()
+            frameHeight = self.frameGeometry().height()-self.height()
+            frameWidth = self.frameGeometry().width()-self.width()
+            self.resize(dialogWidth-frameWidth, dialogHeight-frameHeight)
+            self.move(dialogX, dialogY)
 
 
 
@@ -425,8 +436,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.yData  = y
         self.zData  = z
 
-        self.histWidget.item.setLevels(min=z[~np.isnan(z)].min(),
-                                       max=z[~np.isnan(z)].max())
+        self.hist.setLevels(min=z[~np.isnan(z)].min(),
+                            max=z[~np.isnan(z)].max())
         self.setImageView()
 
         self.interactionUpdateAll()
@@ -456,7 +467,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
             b (int): State of the box.
         """
 
-        if self.checkBoxAspectEqual.isChecked():
+        if self.ui.checkBoxAspectEqual.isChecked():
             self.plotItem.vb.setAspectLocked(True)
         else:
             self.plotItem.vb.setAspectLocked(False)
@@ -475,7 +486,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
         # If user wants to swap axes
-        if self.checkBoxSwapxy.isChecked():
+        if self.ui.checkBoxSwapxy.isChecked():
             # If axes are not already swapped
             if not self._isAxesSwapped:
 
@@ -518,9 +529,9 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         Return the type of slice the user want
         """
 
-        if self.radioButtonSliceSingleHorizontal.isChecked() or self.radioButtonSliceSingleVertical.isChecked():
+        if self.ui.radioButtonSliceSingleHorizontal.isChecked() or self.ui.radioButtonSliceSingleVertical.isChecked():
             sliceItem = 'InfiniteLine'
-        elif self.radioButtonSliceSingleAny.isChecked():
+        elif self.ui.radioButtonSliceSingleAny.isChecked():
             sliceItem = 'LineSegmentROI'
         else:
             sliceItem = 'LinearRegionItem'
@@ -562,9 +573,11 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         Method called when user change the data slice orientation.
         """
 
-        if self.radioButtonSliceSingleHorizontal.isChecked() or self.radioButtonSliceAveragedHorizontal.isChecked():
+        if (self.ui.radioButtonSliceSingleHorizontal.isChecked()
+            or self.ui.radioButtonSliceAveragedHorizontal.isChecked()):
             self.sliceOrientation = 'horizontal'
-        elif self.radioButtonSliceSingleVertical.isChecked() or self.radioButtonSliceAveragedVertical.isChecked():
+        elif (self.ui.radioButtonSliceSingleVertical.isChecked()
+            or self.ui.radioButtonSliceAveragedVertical.isChecked()):
             self.sliceOrientation = 'vertical'
         else:
             self.sliceOrientation = 'any'
@@ -599,14 +612,14 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         # We update the curve associated to the sliceLine
         if isinstance(sliceItem, pg.LineSegmentROI):
-            self.signalUpdateCurve.emit(self.plotRef+sliceOrientation+'horizontal', # plotRef
+            self.signalUpdateCurve.emit(self.plotRef+sliceOrientation+'Horizontal', # plotRef
                                         sliceItem.curveId, # curveId
                                         sliceLegend, # curveLegend
                                         sliceX[0], # x
                                         sliceY, # y
                                         False, # autorange
                                         True) # interactionUpdateAll
-            self.signalUpdateCurve.emit(self.plotRef+sliceOrientation+'vertical', # plotRef
+            self.signalUpdateCurve.emit(self.plotRef+sliceOrientation+'Vertical', # plotRef
                                         sliceItem.curveId, # curveId
                                         sliceLegend, # curveLegend
                                         sliceX[1], # x
@@ -675,19 +688,19 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
             angle    = 90.
             if sliceItem=='LinearRegionItem':
                 dx = (self.xData[-1]-self.xData[0])/20
-                position = (self.mousePos[0]-dx, self.mousePos[0]+dx)
+                position = (self.plotWidget.mousePos[0]-dx, self.plotWidget.mousePos[0]+dx)
             else:
-                position = self.mousePos[0]
+                position = self.plotWidget.mousePos[0]
         elif sliceOrientation=='horizontal':
             angle    = 0.
             if sliceItem=='LinearRegionItem':
                 dy = (self.yData[-1]-self.yData[0])/20
-                position = (self.mousePos[1]-dy, self.mousePos[1]+dy)
+                position = (self.plotWidget.mousePos[1]-dy, self.plotWidget.mousePos[1]+dy)
             else:
-                position = self.mousePos[1]
+                position = self.plotWidget.mousePos[1]
         else:
-            position = (((self.mousePos[0]+self.xData[0])/2,  (self.mousePos[1]+self.yData[0])/2),
-                        ((self.mousePos[0]+self.xData[-1])/2, (self.mousePos[1]+self.yData[-1])/2))
+            position = (((self.plotWidget.mousePos[0]+self.xData[0])/2,  (self.plotWidget.mousePos[1]+self.yData[0])/2),
+                        ((self.plotWidget.mousePos[0]+self.xData[-1])/2, (self.plotWidget.mousePos[1]+self.yData[-1])/2))
 
 
         # If we are adding an InfiniteLine
@@ -784,7 +797,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         if len(self.sliceItems)==0:
             # when we do not interact with the map, we allow swapping
-            self.checkBoxSwapxy.setEnabled(True)
+            self.ui.checkBoxSwapxy.setEnabled(True)
 
 
 
@@ -812,28 +825,30 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
         # Determine if we are handling single of average slice
         if sliceItem is None:
-            if self.radioButtonSliceSingleHorizontal.isChecked() or self.radioButtonSliceAveragedHorizontal.isChecked() or self.radioButtonSliceSingleAny.isChecked():
+            if (self.ui.radioButtonSliceSingleHorizontal.isChecked()
+                or self.ui.radioButtonSliceAveragedHorizontal.isChecked()
+                or self.ui.radioButtonSliceSingleAny.isChecked()):
                 sliceType = 'single'
                 if self.sliceOrientation=='vertical':
                     orientation = 'vertical'
-                    xSlice = self.mousePos[0]
+                    xSlice = self.plotWidget.mousePos[0]
                 elif self.sliceOrientation=='horizontal':
                     orientation = 'horizontal'
-                    ySlice = self.mousePos[1]
+                    ySlice = self.plotWidget.mousePos[1]
                 else:
                     orientation = 'any'
-                    xSlice = ((self.mousePos[0]+self.xData[0])/2, (self.mousePos[0]+self.xData[-1])/2)
-                    ySlice = ((self.mousePos[1]+self.yData[0])/2, (self.mousePos[1]+self.yData[-1])/2)
+                    xSlice = ((self.plotWidget.mousePos[0]+self.xData[0])/2, (self.plotWidget.mousePos[0]+self.xData[-1])/2)
+                    ySlice = ((self.plotWidget.mousePos[1]+self.yData[0])/2, (self.plotWidget.mousePos[1]+self.yData[-1])/2)
             else:
                 sliceType = 'averaged'
                 if self.sliceOrientation=='vertical':
                     orientation = 'vertical'
                     dx = (self.xData[-1]-self.xData[0])/20
-                    xSlice = (self.mousePos[0]-dx, self.mousePos[0]+dx)
+                    xSlice = (self.plotWidget.mousePos[0]-dx, self.plotWidget.mousePos[0]+dx)
                 elif self.sliceOrientation=='horizontal':
                     orientation = 'horizontal'
                     dy = (self.yData[-1]-self.yData[0])/20
-                    ySlice = (self.mousePos[1]-dy, self.mousePos[1]+dy)
+                    ySlice = (self.plotWidget.mousePos[1]-dy, self.plotWidget.mousePos[1]+dy)
         else:
             if isinstance(sliceItem, pg.LinearRegionItem):
                 sliceType = 'averaged'
@@ -866,19 +881,19 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 n = np.abs(self.xData-xSlice).argmin()
                 sliceX        = self.yData
                 sliceY        = self.zData[n]
-                sliceLegend   = '{} = {}{}'.format(self.xLabelText,
+                sliceLegend   = '{} = {}{}'.format(self._xLabelText,
                                                    parse_number(self.xData[n], 3, unified=True),
-                                                   self.xLabelUnits)
-                sliceLabel = '{}{}'.format(parse_number(self.xData[n], 3, unified=True), self.xLabelUnits)
+                                                   self._xLabelUnits)
+                sliceLabel = '{}{}'.format(parse_number(self.xData[n], 3, unified=True), self._xLabelUnits)
             elif orientation=='horizontal':
 
                 n = np.abs(self.yData-ySlice).argmin()
                 sliceX        = self.xData
                 sliceY        = self.zData[:,n]
-                sliceLegend   = '{} = {}{}'.format(self.yLabelText,
+                sliceLegend   = '{} = {}{}'.format(self._yLabelText,
                                                    parse_number(self.yData[n], 3, unified=True),
-                                                   self.yLabelUnits)
-                sliceLabel = '{}{}'.format(parse_number(self.yData[n], 3, unified=True), self.yLabelUnits)
+                                                   self._yLabelUnits)
+                sliceLabel = '{}{}'.format(parse_number(self.yData[n], 3, unified=True), self._yLabelUnits)
             else:
                 # Greatly inspired from
                 # https://stackoverflow.com/questions/7878398/how-to-extract-an-arbitrary-line-of-values-from-a-numpy-array
@@ -895,10 +910,11 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 y_index = np.linspace(y0_index, y1_index, nb_points).astype(int)
 
                 sliceX = (self.xData[x_index], self.yData[y_index])
-                sliceLegend = 'From ({}{}, {}{}) to ({}{}, {}{})'.format(parse_number(xSlice[0], 3, unified=True), self.xLabelUnits,
-                                                                         parse_number(ySlice[0], 3, unified=True), self.yLabelUnits,
-                                                                         parse_number(xSlice[1], 3, unified=True), self.xLabelUnits,
-                                                                         parse_number(ySlice[1], 3, unified=True), self.yLabelUnits,)
+                sliceY = self.zData[x_index,y_index]
+                sliceLegend = 'From ({}{}, {}{}) to ({}{}, {}{})'.format(parse_number(xSlice[0], 3, unified=True), self._xLabelUnits,
+                                                                         parse_number(ySlice[0], 3, unified=True), self._yLabelUnits,
+                                                                         parse_number(xSlice[1], 3, unified=True), self._xLabelUnits,
+                                                                         parse_number(ySlice[1], 3, unified=True), self._yLabelUnits,)
                 sliceLabel = ''
 
         # If averaged  slice
@@ -916,16 +932,16 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                         nmax=nmin+1
                 sliceX        = self.yData
                 sliceY        = np.mean(self.zData[nmin:nmax], axis=0)
-                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.xLabelText,
+                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self._xLabelText,
                                                                                          parse_number(self.xData[nmin], 3, unified=True),
-                                                                                         self.xLabelUnits,
+                                                                                         self._xLabelUnits,
                                                                                          parse_number(self.xData[nmax], 3, unified=True),
-                                                                                         self.xLabelUnits,
+                                                                                         self._xLabelUnits,
                                                                                          parse_number((self.xData[nmin]+self.xData[nmax])/2, 3, unified=True),
-                                                                                         self.xLabelUnits,
+                                                                                         self._xLabelUnits,
                                                                                          int(nmax-nmin))
-                sliceLabel = ('{}{}'.format(parse_number(self.xData[nmin], 3, unified=True), self.xLabelUnits),
-                              '{}{}'.format(parse_number(self.xData[nmax], 3, unified=True), self.xLabelUnits))
+                sliceLabel = ('{}{}'.format(parse_number(self.xData[nmin], 3, unified=True), self._xLabelUnits),
+                              '{}{}'.format(parse_number(self.xData[nmax], 3, unified=True), self._xLabelUnits))
             else:
 
                 nmin = np.abs(self.yData-ySlice[0]).argmin()
@@ -938,16 +954,16 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                         nmax=nmin+1
                 sliceX        = self.xData
                 sliceY        = np.mean(self.zData[:,nmin:nmax], axis=1)
-                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self.yLabelText,
+                sliceLegend   = '{}: from {}{} to {}{}, mean: {}{}, nb samples: {}'.format(self._yLabelText,
                                                                                          parse_number(self.yData[nmin], 3, unified=True),
-                                                                                         self.yLabelUnits,
+                                                                                         self._yLabelUnits,
                                                                                          parse_number(self.yData[nmax], 3, unified=True),
-                                                                                         self.yLabelUnits,
+                                                                                         self._yLabelUnits,
                                                                                          parse_number((self.yData[nmin]+self.yData[nmax])/2, 3, unified=True),
-                                                                                         self.yLabelUnits,
+                                                                                         self._yLabelUnits,
                                                                                          int(nmax-nmin))
-                sliceLabel = ('{}{}'.format(parse_number(self.yData[nmin], 3, unified=True), self.yLabelUnits),
-                              '{}{}'.format(parse_number(self.yData[nmax], 3, unified=True), self.yLabelUnits))
+                sliceLabel = ('{}{}'.format(parse_number(self.yData[nmin], 3, unified=True), self._yLabelUnits),
+                              '{}{}'.format(parse_number(self.yData[nmax], 3, unified=True), self._yLabelUnits))
 
         return sliceX, sliceY, sliceLegend, sliceLabel
 
@@ -971,12 +987,12 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         """
 
         # We check that the user mouse has already moved above the plotItem
-        if not hasattr(self, 'mousePos'):
+        if not hasattr(self.plotWidget, 'mousePos'):
             return
 
         # If double click is detected and mouse is over the viewbox, we launch
         # a 1d plot corresponding to a data slice
-        if e._double and self.isMouseOverView():
+        if e._double and self.plotWidget.isMouseOverView():
 
             # Get the data of the slice
             sliceX, sliceY, sliceLegend, sliceLabel = self.getDataSlice()
@@ -1067,7 +1083,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                   plotRef: Optional[str]=None) -> None:
 
         # when we interact with the map, we do not allow swapping
-        self.checkBoxSwapxy.setEnabled(False)
+        self.ui.checkBoxSwapxy.setEnabled(False)
 
         # If sliceOrientation is None, users just doubleClick on the plotItem
         # The sliceOrientation is the one given by the GUI
@@ -1090,12 +1106,12 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                 plotRef = self.plotRef+sliceOrientation
 
             if sliceOrientation=='vertical':
-                xLabelText  = self.yLabelText
-                xLabelUnits = self.yLabelUnits
+                xLabelText  = self._yLabelText
+                xLabelUnits = self._yLabelUnits
 
             elif sliceOrientation=='horizontal':
-                xLabelText  = self.xLabelText
-                xLabelUnits = self.xLabelUnits
+                xLabelText  = self._xLabelText
+                xLabelUnits = self._xLabelUnits
 
             if sliceOrientation in self.interactionRefs.keys():
                 self.interactionRefs[sliceOrientation]['nbCurve'] += 1
@@ -1120,8 +1136,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         else:
 
             if plotRef is None:
-                plotRefHorizontal = self.plotRef+sliceOrientation+'horizontal'
-                plotRefVertical   = self.plotRef+sliceOrientation+'vertical'
+                plotRefHorizontal = self.plotRef+sliceOrientation+'Horizontal'
+                plotRefVertical   = self.plotRef+sliceOrientation+'Vertical'
 
 
                 if 'any' in self.interactionRefs.keys():
@@ -1139,8 +1155,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                                plotRefHorizontal, # plotRef
                                                self.databaseAbsPath, # databaseAbsPath
                                                (data[0][0], data[1]), # data
-                                               self.xLabelText, # xLabelText
-                                               self.xLabelUnits, # xLabelUnits
+                                               self._xLabelText, # xLabelText
+                                               self._xLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
                                                yLabelUnits, # yLabelUnits
                                                '', # zLabelText
@@ -1153,8 +1169,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                                plotRefVertical, # plotRef
                                                self.databaseAbsPath, # databaseAbsPath
                                                (data[0][1], data[1]), # data
-                                               self.yLabelText, # xLabelText
-                                               self.yLabelUnits, # xLabelUnits
+                                               self._yLabelText, # xLabelText
+                                               self._yLabelUnits, # xLabelUnits
                                                yLabelText, # yLabelText
                                                yLabelUnits, # yLabelUnits
                                                '', # zLabelText
@@ -1185,114 +1201,50 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         zData = np.copy(self.zDataRef)
 
         # global average removal
-        if self.checkBoxSubtractAverageX.isChecked():
+        if self.ui.checkBoxSubtractAverageX.isChecked():
             zData = zData - np.nanmean(zData, axis=0)
-        if self.checkBoxSubtractAverageY.isChecked():
+        if self.ui.checkBoxSubtractAverageY.isChecked():
             zData = (zData.T - np.nanmean(zData, axis=1)).T
 
         # Data unwrapping
-        if self.checkBoxUnwrapX.isChecked():
+        if self.ui.checkBoxUnwrapX.isChecked():
             zData[~np.isnan(zData)] = np.unwrap(np.ravel(zData[~np.isnan(zData)], order='F'))
-        if self.checkBoxUnwrapY.isChecked():
+        if self.ui.checkBoxUnwrapY.isChecked():
             zData[~np.isnan(zData)] = np.unwrap(np.ravel(zData[~np.isnan(zData)], order='C'))
 
         # Polynomial fit removal
-        if self.spinBoxSubtractPolyX.value()>0:
+        if self.ui.spinBoxSubtractPolyX.value()>0:
             for i, z in enumerate(zData):
-                c = np.polynomial.Polynomial.fit(self.yData, z, self.spinBoxSubtractPolyX.value())
+                c = np.polynomial.Polynomial.fit(self.yData, z, self.ui.spinBoxSubtractPolyX.value())
                 zData[i] = c(self.yData)
-        if self.spinBoxSubtractPolyY.value()>0:
+        if self.ui.spinBoxSubtractPolyY.value()>0:
             for i, z in enumerate(zData.T):
-                c = np.polynomial.Polynomial.fit(self.xData, z, self.spinBoxSubtractPolyY.value())
+                c = np.polynomial.Polynomial.fit(self.xData, z, self.ui.spinBoxSubtractPolyY.value())
                 zData[:,i] = c(self.xData)
 
         # Depending on the asked derivative, we calculate the new z data and
         # the new z label
         # Since only one derivative at a time is possible, we use elif here
-        label = str(self.comboBoxDerivative.currentText())
+        label = str(self.ui.comboBoxDerivative.currentText())
         if label=='∂z/∂x':
             zData = np.gradient(zData, self.xData, axis=0)
-            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+'/'+self.xLabelUnits+')')
+            self.hist.setLabel(self._zLabelText+' ('+self._zLabelUnits+'/'+self._xLabelUnits+')')
         elif label=='∂z/∂y':
             zData = np.gradient(zData, self.yData, axis=1)
-            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+'/'+self.yLabelUnits+')')
+            self.hist.setLabel(self._zLabelText+' ('+self._zLabelUnits+'/'+self._yLabelUnits+')')
         elif label=='√((∂z/∂x)² + (∂z/∂y)²)':
             zData = np.sqrt(np.gradient(zData, self.xData, axis=0)**2. + np.gradient(zData, self.yData, axis=1)**2.)
-            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+' x √('+self.xLabelUnits+'² + '+self.yLabelUnits+'²)')
+            self.hist.setLabel(self._zLabelText+' ('+self._zLabelUnits+' x √('+self._xLabelUnits+'² + '+self._yLabelUnits+'²)')
         elif label=='∂²z/∂x²':
             zData = np.gradient(np.gradient(zData, self.xData, axis=0), self.xData, axis=0)
-            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+'/'+self.xLabelUnits+'²)')
+            self.hist.setLabel(self._zLabelText+' ('+self._zLabelUnits+'/'+self._xLabelUnits+'²)')
         elif label=='∂²z/∂y²':
             zData = np.gradient(np.gradient(zData, self.yData, axis=1), self.yData, axis=1)
-            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+'/'+self.yLabelUnits+'²)')
+            self.hist.setLabel(self._zLabelText+' ('+self._zLabelUnits+'/'+self._yLabelUnits+'²)')
         else:
-            self.plot2dzLabel.setText(self._zLabelText+' ('+self._zLabelUnits+')')
+            self.hist.setLabel(self._zLabelText+' ('+self._zLabelUnits+')')
 
         self.updateImageItem(self.xData, self.yData, zData)
-
-
-
-    ####################################
-    #
-    #           Colormap
-    #
-    ####################################
-
-
-
-    def comboBoxcmChanged(self, index:int) -> None:
-        """
-        Method called when user clicks on the colorbar comboBox
-
-        Parameters
-        ----------
-        index : int
-            index of the colorbar
-        """
-
-        self.cbcmInvert(self.checkBoxInvert)
-
-
-
-    def cbcmInvert(self, b: QtWidgets.QCheckBox) -> None:
-        """
-        Method called when user clicks the inverted colormap checkbox.
-
-        Parameters
-        ----------
-        b : QtWidgets.QCheckBox
-            Invert colormap checkbox.
-        """
-
-        if b.isChecked():
-            self.colorMapInversed = True
-        else:
-            self.colorMapInversed = False
-
-        self.setColorMap(self.comboBoxcm.currentText())
-
-
-
-    def setColorMap(self, cm: str) -> None:
-        """
-        Set the colormap of the imageItem from the colormap name.
-        See the palettes file.
-
-        Parameters
-        ----------
-        cm : str
-            colormap name
-        """
-
-        rgba_colors = [hex_to_rgba(i) for i in palettes.all_palettes[cm][self.config['2dMapNbColorPoints']]]
-
-        if self.colorMapInversed:
-            rgba_colors = [i for i in reversed(rgba_colors)]
-
-        pos = np.linspace(0, 1, self.config['2dMapNbColorPoints'])
-        # Set the colormap
-        pgColormap =  pg.ColorMap(pos, rgba_colors)
-        self.histWidget.item.gradient.setColorMap(pgColormap)
 
 
 
@@ -1304,7 +1256,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-    def cbFindSlope(self, b: QtWidgets.QCheckBox) -> None:
+    def cbFindSlope(self) -> None:
         """
         Method called when user clicks on the Find slope checkbox.
         Display a LineSegmentROI with information about its angle and length ratio.
@@ -1316,15 +1268,15 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         """
 
         # Check
-        if b!=0:
+        if self.ui.checkBoxFindSlope.isChecked():
             # Add a spinBox in the GUI and create an empty list to keep track of
             # all the future findSlope widgets
             self.findSlopeLines: List[pg.LineSegmentROI]= []
-            self.findSlopesb = QtWidgets.QSpinBox()
-            self.findSlopesb.setValue(1)
+            self.ui.findSlopesb = QtWidgets.QSpinBox()
+            self.ui.findSlopesb.setValue(1)
 
-            self.findSlopesb.valueChanged.connect(self.findSlopesbChanged)
-            self.horizontalLayoutFindSlope.addWidget(self.findSlopesb)
+            self.ui.findSlopesb.valueChanged.connect(self.findSlopesbChanged)
+            self.ui.horizontalLayoutFindSlope.addWidget(self.ui.findSlopesb)
 
             self.findSlopesbChanged()
 
@@ -1332,9 +1284,8 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         else:
             self.findSlopeLineRemove(self.findSlopeLines[-1])
             del(self.findSlopeLines)
-            self.findSlopesb.deleteLater()
-            self.horizontalLayoutFindSlope.removeWidget(self.findSlopesb)
-
+            self.ui.findSlopesb.deleteLater()
+            self.ui.horizontalLayoutFindSlope.removeWidget(self.ui.findSlopesb)
 
 
 
@@ -1345,10 +1296,11 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         plotItem.
         """
 
-        nbFindSlope = self.findSlopesb.value()
+        nbFindSlope = self.ui.findSlopesb.value()
         # If there is no findSlope widget to display, we remove the spinBox widget
         if nbFindSlope==0:
-            self.checkBoxFindSlope.setChecked(False)
+            self.ui.checkBoxFindSlope.setChecked(False)
+            self.cbFindSlope()
         else:
             # Otherwise, we add or remove findSlope widget
             if len(self.findSlopeLines)<nbFindSlope:
@@ -1442,68 +1394,13 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
 
 
 
-    def cbIsoCurve(self, b: QtWidgets.QCheckBox) -> None:
+    def isoCurveClicked(self):
         """
         Method called when user clicks on the Draw isocurve checkbox.
-
-        Parameters
-        ----------
-        b : QtWidgets.QCheckBox
-            Draw isocurve checkbox
+        Send a signal to the histogram widget
         """
-
-        # When user check the box we create the items and the events
-        if self.checkBoxDrawIsoCurve.isChecked():
-
-            # If items do not exist, we create them
-            if not hasattr(self, 'isoCurve'):
-
-                z = self.imageView.image
-
-                self.penIsoLine = pg.mkPen(color='w', width=2)
-                # Isocurve drawing
-                self.isoCurve = pg.IsocurveItem(level=0.5, pen=self.penIsoLine)
-                self.isoCurve.setParentItem(self.imageView.imageItem)
-                self.isoCurve.setZValue(np.median(z[~np.isnan(z)]))
-                # build isocurves
-                zTemp = np.copy(z)
-                # We can't have np.nan value in the isocurve so we replace
-                # them by small value
-                zTemp[np.isnan(zTemp)] = zTemp[~np.isnan(zTemp)].min()-1000
-                self.isoCurve.setData(zTemp)
-
-
-                # Draggable line for setting isocurve level
-                self.isoLine = pg.InfiniteLine(angle=0, movable=True, pen=self.penIsoLine)
-                self.histWidget.item.vb.addItem(self.isoLine)
-                self.histWidget.item.vb.setMouseEnabled(y=False) # makes user interaction a little easier
-                self.isoLine.setValue(np.median(z[~np.isnan(z)]))
-                self.isoLine.setZValue(1000) # bring iso line above contrast controls
-
-                # Connect event
-                self.isoLine.sigDragged.connect(self.draggedIsoLine)
-            else:
-
-                self.isoCurve.show()
-                self.isoLine.show()
-
-        # If the user uncheck the box, we hide the items
-        else:
-            self.isoCurve.setParentItem(None)
-            self.histWidget.item.vb.removeItem(self.isoLine)
-            del(self.isoCurve)
-            del(self.isoLine)
-
-
-
-    def draggedIsoLine(self) -> None:
-        """
-        Method called when user drag the iso line display on the histogram.
-        By simply updating the value of the isoCurve, the plotItem will update
-        itself.
-        """
-
-        self.isoCurve.setLevel(self.isoLine.value())
+        self.signalIsoCurve.emit(self.ui.checkBoxDrawIsoCurve.isChecked(),
+                                 self.imageView)
 
 
 
@@ -1526,7 +1423,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         Extract data and launch them in a dedicated 1d plot.
         """
 
-        if self.checkBoxMaximum.isChecked():
+        if self.ui.checkBoxMaximum.isChecked():
             self.maximumPlotRef = self.plotRef+'maximum'
             self.maximumCurveId = self.getCurveId()
 
@@ -1541,10 +1438,10 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                                self.maximumPlotRef, # plotRef
                                                self.databaseAbsPath, # databaseAbsPath
                                                self.maximumGetData(), # data
-                                               self.xLabelText, # xLabelText
-                                               self.xLabelUnits, # xLabelUnits
-                                               self.yLabelText, # yLabelText
-                                               self.yLabelUnits, # yLabelUnits
+                                               self._xLabelText, # xLabelText
+                                               self._xLabelUnits, # xLabelUnits
+                                               self._yLabelText, # yLabelText
+                                               self._yLabelUnits, # yLabelUnits
                                                '', # zLabelText
                                                '') # zLabelUnits
         else:
@@ -1583,7 +1480,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         Extract data and launch them in a dedicated 1d plot.
         """
 
-        if self.checkBoxMinimum.isChecked():
+        if self.ui.checkBoxMinimum.isChecked():
             self.minimumPlotRef = self.plotRef+'minimum'
             self.minimumCurveId = self.getCurveId()
             y = self.yData[np.nanargmax(self.zData, axis=1)]
@@ -1599,10 +1496,10 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
                                                self.minimumPlotRef, # plotRef
                                                self.databaseAbsPath, # databaseAbsPath
                                                self.minimumGetData(), # data
-                                               self.xLabelText, # xLabelText
-                                               self.xLabelUnits, # xLabelUnits
-                                               self.yLabelText, # yLabelText
-                                               self.yLabelUnits, # yLabelUnits
+                                               self._xLabelText, # xLabelText
+                                               self._xLabelUnits, # xLabelUnits
+                                               self._yLabelText, # yLabelText
+                                               self._yLabelUnits, # yLabelUnits
                                                '', # zLabelText
                                                '') # zLabelUnits
         else:
@@ -1635,11 +1532,11 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         Uncheck their associated checkBox
         """
         if 'minimum' in curveId:
-            self.checkBoxMinimum.setChecked(False)
+            self.ui.checkBoxMinimum.setChecked(False)
             del(self.minimumPlotRef)
             del(self.minimumCurveId)
         elif 'maximumPlotRef' in curveId:
-            self.checkBoxMaximum.setChecked(False)
+            self.ui.checkBoxMaximum.setChecked(False)
             del(self.maximumPlotRef)
             del(self.maximumCurveId)
 
@@ -1689,14 +1586,14 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         to make them available.
         """
 
-        self.groupBoxFit  = GroupBoxFit(self.groupBoxInteraction,
+        self.groupBoxFit  = GroupBoxFit(self.ui.groupBoxInteraction,
                                         self.plotRef,
                                         self.plotItem,
-                                        self.xLabelText,
-                                        self.yLabelText,
+                                        self._xLabelText,
+                                        self._yLabelText,
                                         self._zLabelText,
-                                        self.xLabelUnits,
-                                        self.yLabelUnits,
+                                        self._xLabelUnits,
+                                        self._yLabelUnits,
                                         self._zLabelUnits,
                                         self._windowTitle,
                                         self.databaseAbsPath,
@@ -1717,7 +1614,7 @@ class WidgetPlot2d(QtWidgets.QDialog, Ui_Dialog, WidgetPlot):
         self.signalUpdate2dFitData.connect(self.groupBoxFit.updateData)
 
         # Add to GUI
-        self.verticalLayout_5.addWidget(self.groupBoxFit)
+        self.ui.verticalLayout_5.addWidget(self.groupBoxFit)
 
 
 

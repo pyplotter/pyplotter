@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 # Correct bug with pyqtgraph and python3.8 by replacing function name
 import numpy as np
 try:
@@ -173,3 +172,22 @@ def getData(self):
     return self.xDisp, self.yDisp
 
 pg.PlotDataItem.getData = getData
+
+# Replace the setTitle function to have a litle bit more space below the title
+def setTitle(self, title=None, **args):
+    """
+    Set the title of the plot. Basic HTML formatting is allowed.
+    If title is None, then the title will be hidden.
+    """
+    if title is None:
+        self.titleLabel.setVisible(False)
+        self.layout.setRowFixedHeight(0, 0)
+        self.titleLabel.setMaximumHeight(0)
+    else:
+        self.titleLabel.setMaximumHeight(40)
+        self.layout.setRowFixedHeight(0, 40)
+        self.titleLabel.setVisible(True)
+        self.titleLabel.setText(title, **args)
+
+
+pg.PlotItem.setTitle = setTitle

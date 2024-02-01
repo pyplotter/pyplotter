@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 from PyQt5 import QtCore, QtWidgets
 from typing import Optional, Any
 import os
@@ -17,15 +16,15 @@ class MenuBar(QtWidgets.QMenuBar):
 
     signalUpdateStyle               = QtCore.pyqtSignal(dict)
     signalUpdateTableWidgetDatabase = QtCore.pyqtSignal(dict)
-    signalOpenDialogLivePlot        = QtCore.pyqtSignal()
 
-    signal2MainWindowAddPlot   = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str)
 
-    signalUpdateCurve          = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
-    signalUpdate2d             = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
-    signalUpdatePlotProperty   = QtCore.pyqtSignal(str, str, str)
+    ## Propagate signal from the livePlot dialog window to the mainWindow
+    signalAddLivePlot        = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str, int, int, int, int)
+    signalUpdate1d           = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
+    signalUpdate2d           = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
+    signalUpdatePlotProperty = QtCore.pyqtSignal(str, str, str)
 
-    signalSendStatusBarMessage = QtCore.pyqtSignal(str, str)
+
 
     def __init__(self, parent: Optional[Any]=None) -> None:
         super(MenuBar, self).__init__(parent)
@@ -38,7 +37,6 @@ class MenuBar(QtWidgets.QMenuBar):
         self.actionqdark = self.menuStyle.addAction('qdark')
         self.actionwhite = self.menuStyle.addAction('white')
         self.actionDefaultPath = self.menuPreferences.addAction('Select default folder')
-        # self.menuPreferences.addAction(self.menuStyle.menuAction())
 
         self.menuPlot = self.menuPreferences.addMenu('Plot')
         self.actionAxisLabelColor = self.menuPlot.addAction('Axis label color')
@@ -231,10 +229,9 @@ class MenuBar(QtWidgets.QMenuBar):
 
         self.dialogLiveplot = DialogLiveplot(config)
 
-        self.dialogLiveplot.signal2MainWindowAddPlot.connect(self.signal2MainWindowAddPlot.emit)
-        self.dialogLiveplot.signalUpdateCurve.connect(self.signalUpdateCurve.emit)
+        self.dialogLiveplot.signalAddLivePlot.connect(self.signalAddLivePlot.emit)
+        self.dialogLiveplot.signalUpdate1d.connect(self.signalUpdate1d.emit)
         self.dialogLiveplot.signalUpdate2d.connect(self.signalUpdate2d.emit)
-        self.dialogLiveplot.signalSendStatusBarMessage.connect(self.signalSendStatusBarMessage.emit)
         self.dialogLiveplot.signalUpdatePlotProperty.connect(self.signalUpdatePlotProperty.emit)
 
 

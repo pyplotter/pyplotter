@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 # Inspired from: https://gist.github.com/markjay4k/da2f55e28514be7160a7c5fbf95bd243
 from pyqtgraph.Qt import QtGui
 import pyqtgraph.opengl as gl
