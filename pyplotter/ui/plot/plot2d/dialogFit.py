@@ -177,7 +177,7 @@ class RabiChevron(Fit2d):
         """
 
 
-        self.getLatexEquation = 'y = A \\frac{f_\\mathrm{rabi}^2}{f_\\mathrm{rabi}^2+\\left(f_\\mathrm{probe}-f_\\mathrm{qb}\\right)^2} \\sin^2\\left(\\pi t \\sqrt{f_\\mathrm{rabi}^2+\\left(f_\\mathrm{probe}-f_\\mathrm{qb}\\right)^2}  + \\varphi \\right ) \\exp\\left(-\\frac{t}{T_2^\\mathrm{rabi}} \\right) + B'
+        self.getLatexEquation = r'y = A \\frac{f_\\mathrm{rabi}^2}{f_\\mathrm{rabi}^2+\\left(f_\\mathrm{probe}-f_\\mathrm{qb}\\right)^2} \\sin^2\\left(\\pi t \\sqrt{f_\\mathrm{rabi}^2+\\left(f_\\mathrm{probe}-f_\\mathrm{qb}\\right)^2}  + \\varphi \\right ) \\exp\\left(-\\frac{t}{T_2^\\mathrm{rabi}} \\right) + B'
 
         Fit2d.__init__(self, parent=parent)
 

@@ -2,7 +2,8 @@ from PyQt5 import QtWidgets, QtCore
 import os
 from typing import Union
 import pandas as pd
-from skrf import Touchstone # To easily read s2p file
+from skrf import Touchstone, __version__ # To easily read s2p file
+from skrf import __version__ as skrt_version
 import numpy as np
 
 # There is a bug in the original Touchstone io function so while they accept our
@@ -70,8 +71,11 @@ def get_sparameter_data(self, format='ri'):
 
     return ret
 
-
-Touchstone.get_sparameter_data = get_sparameter_data
+# Our patch was implemented in 0.21.0, see
+# https://github.com/scikit-rf/scikit-rf/pull/604
+# We do not want to change that function after that version
+if int(skrt_version.split('.')[1])<21:
+    Touchstone.get_sparameter_data = get_sparameter_data
 
 
 class WidgetCSV(QtWidgets.QWidget):

@@ -179,7 +179,7 @@ class Polynomial(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = 'y = \sum_{k=0}^n a_k x^k'
+        self.getLatexEquation = r'y = \sum_{k=0}^n a_k x^k'
 
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
@@ -319,7 +319,7 @@ class T2Gaussian(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = 'y = A \\left( 1 - \\cos \\left( 2 \\pi \\frac{x}{T} + \\varphi \\right) \\exp \\left( - \\frac{x}{T_2} - \\left( \\frac{x}{T_{2,g}} \\right)^2 \\right) \\right) + B'
+        self.getLatexEquation = r'y = A \\left( 1 - \\cos \\left( 2 \\pi \\frac{x}{T} + \\varphi \\right) \\exp \\left( - \\frac{x}{T_2} - \\left( \\frac{x}{T_{2,g}} \\right)^2 \\right) \\right) + B'
 
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
@@ -439,7 +439,7 @@ class T2(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = 'y = A \\left( 1 - \\cos \\left( 2 \\pi \\frac{x}{T} + \\varphi \\right) \\exp \\left( - \\frac{x}{T_2} \\right) \\right) + B'
+        self.getLatexEquation = r'y = A \\left( 1 - \\cos \\left( 2 \\pi \\frac{x}{T} + \\varphi \\right) \\exp \\left( - \\frac{x}{T_2} \\right) \\right) + B'
 
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
@@ -560,7 +560,7 @@ class T11d(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = 'y = A \\exp \\left( - \\frac{x}{T_1} \\right) + B'
+        self.getLatexEquation = r'y = A \\exp \\left( - \\frac{x}{T_1} \\right) + B'
 
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
@@ -667,7 +667,7 @@ class ResonancePeakdB(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = 'y = 20 \\log \\left( \\left\\lVert 1-\\left( 1+\\frac{e^{i \\phi } Q_\\mathrm{i}}{Q_\\mathrm{c} \\left(1+\\frac{2 i Q_\\mathrm{i} (x-f_0)}{f_0}\\right)}\\right)^{-1} \\right\\rVert\\right) + B'
+        self.getLatexEquation = r'y = 20 \\log \\left( \\left\\lVert 1-\\left( 1+\\frac{e^{i \\phi } Q_\\mathrm{i}}{Q_\\mathrm{c} \\left(1+\\frac{2 i Q_\\mathrm{i} (x-f_0)}{f_0}\\right)}\\right)^{-1} \\right\\rVert\\right) + B'
 
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
@@ -766,7 +766,7 @@ class ResonanceDipdB(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = 'y = 20 \\log \\left( \\left\\lVert \\left( 1+\\frac{e^{i \\phi } Q_\\mathrm{i}}{Q_\\mathrm{c} \\left(1+\\frac{2 i Q_\\mathrm{i} (x-f_0)}{f_0}\\right)}\\right)^{-1} \\right\\rVert\\right) + B'
+        self.getLatexEquation = r'y = 20 \\log \\left( \\left\\lVert \\left( 1+\\frac{e^{i \\phi } Q_\\mathrm{i}}{Q_\\mathrm{c} \\left(1+\\frac{2 i Q_\\mathrm{i} (x-f_0)}{f_0}\\right)}\\right)^{-1} \\right\\rVert\\right) + B'
 
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
@@ -871,7 +871,7 @@ class LorentzianPeak(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = 'y = \\frac{I}{ 1+ \\left(\\frac{x-x_0}{\\delta_\\mathrm{FWHM}/2}\\right)^2} + B'
+        self.getLatexEquation = r'y = \\frac{I}{ 1+ \\left(\\frac{x-x_0}{\\delta_\\mathrm{FWHM}/2}\\right)^2} + B'
 
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
@@ -986,7 +986,7 @@ class LorentzianDip(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = 'y = 1 - \\frac{I}{ 1+ \\left(\\frac{x-x_0}{\\delta_\\mathrm{FWHM}/2}\\right)^2} + B'
+        self.getLatexEquation = r'y = 1 - \\frac{I}{ 1+ \\left(\\frac{x-x_0}{\\delta_\\mathrm{FWHM}/2}\\right)^2} + B'
 
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
@@ -1098,7 +1098,7 @@ class GaussianPeak(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = 'y = A \\exp \\left(-\\frac{\\left(x-x_0\\right)^2}{2\\sigma^2}\\right) + B'
+        self.getLatexEquation = r'y = A \\exp \\left(-\\frac{\\left(x-x_0\\right)^2}{2\\sigma^2}\\right) + B'
 
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
