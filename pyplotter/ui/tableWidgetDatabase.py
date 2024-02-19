@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from typing import List
 import os
 from time import time
+from typing import Optional
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
@@ -74,7 +75,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
 
     def eventFilter(self, source,
-                          event) -> None:
+                          event) -> Optional[bool]:
         """
         We use an event filter to detect
             right click -> display run parameter
@@ -380,8 +381,18 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         # If we detect a double click on the "Comments" column
         # We do not launch a plot but open a comment dialog
         if currentColumn==config['DatabaseDisplayColumn']['comment']['index']:
+
+            currentComment = self.item(currentRow, config['DatabaseDisplayColumn']['comment']['index']).text()
+            savedComment = self.properties.getRunComment(runId)
+            # Either the user just added a comment in this session
+            if currentComment!=self.properties.getRunComment(runId):
+                comment = currentComment
+            # Or the current comment is the one saved in the json file
+            else:
+                comment = savedComment
+
             self.dialogComment = DialogComment(runId,
-                                                self.properties.getRunComment(runId))
+                                               comment)
             self.dialogComment.signalCloseDialogComment.connect(self.slotCloseCommentDialog)
             self.dialogComment.signalUpdateDialogComment.connect(self.slotUpdateCommentDialog)
         else:
@@ -390,19 +401,18 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.disableRow(currentRow)
             self.doubleClickCurrentRow = currentRow
             self.doubleClickDatabaseAbsPath = databaseAbsPath
-            # self._dataDowloadingFlag = True
 
-        self.signalSendStatusBarMessage.emit('Loading run parameters', 'orange')
+            self.signalSendStatusBarMessage.emit('Loading run parameters', 'orange')
 
-        worker = LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
-                                   runId, # runId
-                                   experimentName, # experimentName
-                                   runName, # runName
-                                   True) # doubleClicked
-        worker.signal.updateRunInfo.connect(self.signalRunClick)
+            worker = LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
+                                    runId, # runId
+                                    experimentName, # experimentName
+                                    runName, # runName
+                                    True) # doubleClicked
+            worker.signal.updateRunInfo.connect(self.signalRunClick)
 
-        # Execute the thread
-        self.threadpool.start(worker)
+            # Execute the thread
+            self.threadpool.start(worker)
 
 
 
