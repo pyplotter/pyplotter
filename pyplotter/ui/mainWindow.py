@@ -273,7 +273,7 @@ class MainApp(QtWidgets.QMainWindow):
 
             for plot in self._plotRefs.values():
                 plot.config = newConfig
-                plot.updateStyle()
+                plot.plotWidget.updateStyle()
 
 
 

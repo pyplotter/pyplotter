@@ -83,40 +83,40 @@ class WidgetPlot(pg.PlotWidget):
     def updateStyle(self) -> None:
 
         for qlabel in self.findChildren(QtWidgets.QLabel)+self.findChildren(QtWidgets.QCheckBox)+self.findChildren(QtWidgets.QGroupBox):
-            qlabel.setStyleSheet("background-color: "+str(self.config['styles'][self.config['style']]['dialogBackgroundColor'])+";")
-            qlabel.setStyleSheet("color: "+str(self.config['styles'][self.config['style']]['dialogTextColor'])+";")
+            qlabel.setStyleSheet("background-color: "+str(self.parent().parent().config['styles'][self.parent().parent().config['style']]['dialogBackgroundColor'])+";")
+            qlabel.setStyleSheet("color: "+str(self.parent().parent().config['styles'][self.parent().parent().config['style']]['dialogTextColor'])+";")
 
         self.plotItem.getAxis('bottom')._updateLabel()
         font=QtGui.QFont()
-        font.setPixelSize(self.config['tickLabelFontSize'])
+        font.setPixelSize(self.parent().parent().config['tickLabelFontSize'])
         self.plotItem.getAxis('bottom').setTickFont(font)
         self.plotItem.getAxis('left').setTickFont(font)
-        self.plotItem.getAxis('bottom').setPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTicksColor'])
-        self.plotItem.getAxis('left').setPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTicksColor'])
-        self.plotItem.getAxis('bottom').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphxAxisTickLabelsColor'])
-        self.plotItem.getAxis('left').setTextPen(self.config['styles'][self.config['style']]['pyqtgraphyAxisTickLabelsColor'])
+        self.plotItem.getAxis('bottom').setPen(self.parent().parent().config['styles'][self.parent().parent().config['style']]['pyqtgraphxAxisTicksColor'])
+        self.plotItem.getAxis('left').setPen(self.parent().parent().config['styles'][self.parent().parent().config['style']]['pyqtgraphyAxisTicksColor'])
+        self.plotItem.getAxis('bottom').setTextPen(self.parent().parent().config['styles'][self.parent().parent().config['style']]['pyqtgraphxAxisTickLabelsColor'])
+        self.plotItem.getAxis('left').setTextPen(self.parent().parent().config['styles'][self.parent().parent().config['style']]['pyqtgraphyAxisTickLabelsColor'])
 
         if self.parent().parent().plotType=='2d':
             self.parent().parent().ui.plot2dzLabel.setFont(font)
             self.parent().parent().ui.histWidget.axis.setTickFont(font)
 
         self.plotItem.setTitle(title=self.plotItem.titleLabel.text,
-                               color=self.config['styles'][self.config['style']]['pyqtgraphTitleTextColor'])
+                               color=self.parent().parent().config['styles'][self.parent().parent().config['style']]['pyqtgraphTitleTextColor'])
 
         self.plotItem.setLabel(axis='bottom',
-                               text=self.parent().parent().xLabelText,
-                               units=self.parent().parent().xLabelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphxLabelTextColor'],
-                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
+                               text=self.xLabelText,
+                               units=self.xLabelUnits,
+                               **{'color'     : self.parent().parent().config['styles'][self.parent().parent().config['style']]['pyqtgraphxLabelTextColor'],
+                                  'font-size' : str(self.parent().parent().config['axisLabelFontSize'])+'pt'})
         self.plotItem.setLabel(axis='left',
-                               text=self.parent().parent().yLabelText,
-                               units=self.parent().parent().yLabelUnits,
-                               **{'color'     : self.config['styles'][self.config['style']]['pyqtgraphyLabelTextColor'],
-                                  'font-size' : str(self.config['axisLabelFontSize'])+'pt'})
+                               text=self.yLabelText,
+                               units=self.yLabelUnits,
+                               **{'color'     : self.parent().parent().config['styles'][self.parent().parent().config['style']]['pyqtgraphyLabelTextColor'],
+                                  'font-size' : str(self.parent().parent().config['axisLabelFontSize'])+'pt'})
 
         # Update colormap
         if self.parent().parent().plotType=='2d':
-            index = self.parent().parent().ui.comboBoxcm.findText(self.config['plot2dcm'])
+            index = self.parent().parent().ui.comboBoxcm.findText(self.parent().parent().config['plot2dcm'])
             self.parent().parent().ui.comboBoxcm.setCurrentIndex(index)
 
 
