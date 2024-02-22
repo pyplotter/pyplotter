@@ -16,6 +16,7 @@ from .groupBoxNormalize import GroupBoxNormalize
 from .groupBoxFit import GroupBoxFit
 from .groupBoxFiltering import GroupBoxFiltering
 from .widgetTabCurve import WidgetTabCurve
+from .widgetDownsampling import WidgetDownsampling
 
 
 class WidgetPlot1d(QtWidgets.QDialog):
@@ -206,8 +207,11 @@ class WidgetPlot1d(QtWidgets.QDialog):
         self.ui.checkBoxLogY.stateChanged.connect(self.checkBoxLogState)
         self.ui.checkBoxSymbol.stateChanged.connect(self.checkBoxSymbolState)
         self.ui.checkBoxSplitYAxis.stateChanged.connect(self.checkBoxSplitYAxisState)
-
         self.ui.comboBoxXAxis.activated.connect(self.comboBoxXAxisActivated)
+
+        ## Add a widget to handle downsampling
+        self.widgetDownsampling = WidgetDownsampling(parent=self.ui.groupBoxDisplay)
+        self.widgetDownsampling.signalDownsamplingChanged.connect(self.downsamplingChanged)
 
         # Add a radio button for each model of the list
         self.ui.plotDataItemButtonGroup = QtWidgets.QButtonGroup()
@@ -1149,6 +1153,21 @@ class WidgetPlot1d(QtWidgets.QDialog):
         self.updateLegend()
         self.autoRange()
 
+
+
+    @QtCore.pyqtSlot(int)
+    def downsamplingChanged(self, downsamplingValue: int) -> None:
+        """
+        Called from widgetDownsampling when user click on the spinBox.
+        Used to changed the downSampling of the displayed curves.
+
+        Args:
+            downsamplingValue: Factor of the downsampling
+        """
+
+        # We update all the curve with the new downsampling
+        for curve in self.curves.values():
+            curve.setDownsampling(downsamplingValue)
 
 
 
