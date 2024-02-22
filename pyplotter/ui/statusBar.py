@@ -12,6 +12,7 @@ class StatusBar(QtWidgets.QStatusBar):
     signalDatabaseLoadingStop = QtCore.pyqtSignal()
     signalDatabaseLoad        = QtCore.pyqtSignal(str, int)
     signalCsvLoad             = QtCore.pyqtSignal(str, bool, int)
+    signalNpzLoad             = QtCore.pyqtSignal(str, bool, int)
     signalExportRunLoad       = QtCore.pyqtSignal(str, str, int, int)
     signalBlueForsLoad        = QtCore.pyqtSignal(str, bool, int)
     signalAddCurve            = QtCore.pyqtSignal(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
@@ -76,6 +77,16 @@ class StatusBar(QtWidgets.QStatusBar):
     @QtCore.pyqtSlot(str, bool)
     def csvLoad(self, databaseAbsPath: str,
                       doubleClick: bool) -> None:
+        """
+        Signal sent from tableWidgetFolder when user click on a CSV file to
+        display its info in the tableWidgetParameter.
+        Add a progressBar to the statusBar and propagate the signal to the
+        tableWidgetParameter with progressBar id.
+
+        Args:
+            databaseAbsPath: Absolute path of the file
+            doubleClick: if the user double click on the file.
+        """
 
         progressBarId = self.addProgressBar()
         self.signalCsvLoad.emit(databaseAbsPath,
@@ -85,9 +96,39 @@ class StatusBar(QtWidgets.QStatusBar):
 
 
     @QtCore.pyqtSlot(str, bool)
+    def npzLoad(self, databaseAbsPath: str,
+                      doubleClick: bool) -> None:
+        """
+        Signal sent from tableWidgetFolder when user click on a NPZ file to
+        display its info in the tableWidgetParameter.
+        Add a progressBar to the statusBar and propagate the signal to the
+        tableWidgetParameter with progressBar id.
+
+        Args:
+            databaseAbsPath: Absolute path of the file
+            doubleClick: if the user double click on the file.
+        """
+
+        progressBarId = self.addProgressBar()
+        self.signalNpzLoad.emit(databaseAbsPath,
+                                doubleClick,
+                                progressBarId)
+
+
+
+    @QtCore.pyqtSlot(str, bool)
     def blueForsLoad(self, databaseAbsPath: str,
                            doubleClick: bool) -> None:
+        """
+        Signal sent from tableWidgetFolder when user click on a BlueFors file to
+        display its info in the tableWidgetParameter.
+        Add a progressBar to the statusBar and propagate the signal to the
+        tableWidgetParameter with progressBar id.
 
+        Args:
+            databaseAbsPath: Absolute path of the file
+            doubleClick: if the user double click on the file.
+        """
         progressBarId = self.addProgressBar()
         self.signalBlueForsLoad.emit(databaseAbsPath,
                                      doubleClick,

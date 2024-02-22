@@ -8,6 +8,7 @@ from .plot.plot1d.widgetPlot1d import WidgetPlot1d
 from .plot.plot2d.widgetPlot2d import WidgetPlot2d
 from .hBoxLayoutLabelPath import HBoxLayoutLabelPath
 from .widgetCSV import WidgetCSV
+from .widgetNpz import WidgetNpz
 from .widgetBlueFors import WidgetBlueFors
 
 from ..sources.config import loadConfigCurrent
@@ -38,6 +39,7 @@ class MainApp(QtWidgets.QMainWindow):
 
         self.qapp = QApplication
         self.widgetCSV = WidgetCSV(None)
+        self.widgetNpz = WidgetNpz(None)
         self.widgetBlueFors = WidgetBlueFors(None)
 
 
@@ -90,6 +92,20 @@ class MainApp(QtWidgets.QMainWindow):
         self.widgetCSV.signalRemoveProgressBar.connect(self.ui.statusBarMain.removeProgressBar)
         self.widgetCSV.signalLoadedDataFull.connect(self.loadedDataFull)
 
+        self.widgetNpz.signalClearTableWidgetDatabase.connect(self.ui.tableWidgetDataBase.slotClearTable)
+        self.widgetNpz.signalClearTableWidgetParameter.connect(self.ui.tableWidgetParameter.slotClearTable)
+        self.widgetNpz.signalClearSnapshot.connect(self.ui.treeViewSnapshot.cleanSnapshot)
+        self.widgetNpz.signalUpdateLabelCurrentSnapshot.connect(self.ui.labelCurrentSnapshot.setText)
+        self.widgetNpz.signalUpdateLabelCurrentRun.connect(self.ui.labelCurrentRun.setText)
+        self.widgetNpz.signalLineEditSnapshotEnabled.connect(self.ui.lineEditFilterSnapshot.enabled)
+        self.widgetNpz.signalLabelSnapshotEnabled.connect(self.ui.labelSnapshot.enabled)
+        self.widgetNpz.signalSendStatusBarMessage.connect(self.ui.statusBarMain.setStatusBarMessage)
+        self.widgetNpz.signalFillTableWidgetParameter.connect(self.ui.tableWidgetParameter.slotFillTableWidgetParameter)
+        self.widgetNpz.signalUpdateProgressBar.connect(self.ui.statusBarMain.updateProgressBar)
+        self.widgetNpz.signalRemoveProgressBar.connect(self.ui.statusBarMain.removeProgressBar)
+        self.widgetNpz.signalLoadedDataFull.connect(self.loadedDataFull)
+        self.widgetNpz.signalNpzIncorrectSize.connect(self.ui.tableWidgetParameter.slotNpzIncorrectSize)
+
         self.widgetBlueFors.signalClearTableWidgetDatabase.connect(self.ui.tableWidgetDataBase.slotClearTable)
         self.widgetBlueFors.signalClearTableWidgetParameter.connect(self.ui.tableWidgetParameter.slotClearTable)
         self.widgetBlueFors.signalClearSnapshot.connect(self.ui.treeViewSnapshot.cleanSnapshot)
@@ -105,6 +121,7 @@ class MainApp(QtWidgets.QMainWindow):
 
         self.ui.statusBarMain.signalExportRunLoad.connect(self.ui.tableWidgetDataBase.exportRunLoad)
         self.ui.statusBarMain.signalCsvLoad.connect(self.widgetCSV.csvLoad)
+        self.ui.statusBarMain.signalNpzLoad.connect(self.widgetNpz.npzLoad)
         self.ui.statusBarMain.signalBlueForsLoad.connect(self.widgetBlueFors.blueForsLoad)
         self.ui.statusBarMain.signalDatabaseLoad.connect(self.ui.tableWidgetDataBase.databaseClick)
         self.ui.statusBarMain.signalAddCurve.connect(self.ui.tableWidgetParameter.getData)
@@ -112,6 +129,7 @@ class MainApp(QtWidgets.QMainWindow):
         self.ui.tableWidgetFolder.signalSendStatusBarMessage.connect(self.ui.statusBarMain.setStatusBarMessage)
         self.ui.tableWidgetFolder.signalBlueForsClick.connect(self.ui.statusBarMain.blueForsLoad)
         self.ui.tableWidgetFolder.signalCSVClick.connect(self.ui.statusBarMain.csvLoad)
+        self.ui.tableWidgetFolder.signalNpzClick.connect(self.ui.statusBarMain.npzLoad)
         self.ui.tableWidgetFolder.signalDatabaseClick.connect(self.ui.statusBarMain.databaseLoad)
         self.ui.tableWidgetFolder.signalDatabaseClick.connect(self.ui.checkBoxHidden.databaseClick)
         self.ui.tableWidgetFolder.signalDatabaseClick.connect(self.ui.checkBoxStared.databaseClick)
@@ -161,6 +179,7 @@ class MainApp(QtWidgets.QMainWindow):
         self.ui.tableWidgetParameter.signalLoadedDataFull.connect(self.loadedDataFull)
         self.ui.tableWidgetParameter.signalLoadedDataEmpty.connect(self.loadedDataEmpty)
         self.ui.tableWidgetParameter.signalCSVLoadData.connect(self.widgetCSV.loadData)
+        self.ui.tableWidgetParameter.signalNpzLoadData.connect(self.widgetNpz.loadData)
         self.ui.tableWidgetParameter.signalBlueForsLoadData.connect(self.widgetBlueFors.loadData)
         self.ui.tableWidgetParameter.signaladdRow.connect(self.addRow)
         self.ui.tableWidgetParameter.first_call()

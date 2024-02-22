@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets, QtTest
+from PyQt5 import QtCore, QtGui, QtWidgets, QtTest
 import os
 
 
@@ -35,6 +35,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     signalLoadedDataEmpty  = QtCore.pyqtSignal(QtWidgets.QCheckBox, int)
     signalLoadedDataFull   = QtCore.pyqtSignal(int, str, str, str, str, str, QtWidgets.QCheckBox, int, tuple, str, str, str, str, str, str, bool)
     signalCSVLoadData      = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
+    signalNpzLoadData      = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
     signalBlueForsLoadData = QtCore.pyqtSignal(str, str, str, str, str, int, str, QtWidgets.QCheckBox, int)
 
 
@@ -275,6 +276,17 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                                         windowTitle,
                                         cb,
                                         progressBarId)
+        elif dataType=='npz':
+
+            self.signalNpzLoadData.emit(curveId,
+                                        databaseAbsPath,
+                                        dependentParamName,
+                                        plotRef,
+                                        plotTitle,
+                                        runId,
+                                        windowTitle,
+                                        cb,
+                                        progressBarId)
         elif dataType=='bluefors':
 
             self.signalBlueForsLoadData.emit(curveId,
@@ -479,5 +491,45 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
     @QtCore.pyqtSlot()
     def slotClearTable(self) -> None:
-
         clearTableWidget(self)
+
+
+    @QtCore.pyqtSlot(str)
+    def slotNpzIncorrectSize(self, dependentParamName: str) -> None:
+        """
+        Signal from the widgetNpz.
+        Is sent when the npz y parameter can't be displayed as function of the x
+        one since they do not share the same size.
+
+        We change the display of the dependent parameter row that can't be
+        plotted.
+
+        Args:
+            dependentParamName: the dependent parameter the user tried to plot
+        """
+
+        # Find the row from which the parameter was clicked on
+        targetRow = 0
+        for row in range(self.rowCount()):
+            item = self.item(row, self._columnIndexes['axis'])
+            if dependentParamName==item.text():
+                targetRow = row
+                break
+
+        # Modify the displayed items
+        cols = [self._columnIndexes['axis'],
+                self._columnIndexes['unit'],
+                self._columnIndexes['shape']]
+        for col in cols:
+            item = self.item(targetRow, col)
+            item.setBackground(QtGui.QBrush(QtCore.Qt.black))
+            item.setForeground(QtGui.QBrush(QtCore.Qt.red))
+
+        # Modify the displayed label
+        label = self.cellWidget(targetRow, self._columnIndexes['sweptParameters'])
+        label.setStyleSheet("QLabel { background-color: black;color: red;}")
+
+        # Clear the user selection
+        self.clearSelection()
+
+

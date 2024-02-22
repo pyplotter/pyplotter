@@ -28,6 +28,7 @@ configPackage = {
 # Other files will not appear in the plotter
 'authorizedExtension' : ['db',
                          'csv',
+                         'npz',
                          's2p'],
 # Will not be displayed, usefull for some windows file
 'forbiddenFile' : ['thumbs.db',

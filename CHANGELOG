@@ -3,10 +3,13 @@ pyplotter-0.3.7
   Bug Fixes:
     - Fix 2d liveplot for unlabeled parameters
     - Solve isoCurve and isoLine not deletion bug
+    - Solve s2p issue with newer version of skrf
+    - Solve string issue on python 3.12
 
   New Features:
     - Add livePlot Tiling
     - Add button to hide interaction
+    - Add npz basic support
 
 
 pyplotter-0.3.6

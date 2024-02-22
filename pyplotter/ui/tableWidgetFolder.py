@@ -26,6 +26,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
     signalDatabaseClick    = QtCore.pyqtSignal(str)
     signalDatabaseLoadingStop    = QtCore.pyqtSignal()
     signalCSVClick         = QtCore.pyqtSignal(str, bool)
+    signalNpzClick         = QtCore.pyqtSignal(str, bool)
     signalBlueForsClick         = QtCore.pyqtSignal(str, bool)
     signalDatabasePathUpdate         = QtCore.pyqtSignal(str)
     signalUpdateLabelPath    = QtCore.pyqtSignal(str)
@@ -35,8 +36,8 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
     def __init__(self, parent=None) -> None:
         super(TableWidgetFolder, self).__init__(parent)
 
-        self.cellClicked.connect(self.itemClicked)
-        self.customContextMenuRequested.connect(self.itemClicked)
+        self.cellClicked.connect(self.itemClicked_)
+        self.customContextMenuRequested.connect(self.itemClicked_)
 
         self.properties = RunPropertiesExtra()
 
@@ -152,6 +153,8 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
                             item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'csv.png')))
                         elif file_extension.lower()=='s2p':
                             item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 's2p.png')))
+                        elif file_extension.lower()=='npz':
+                            item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'npz.png')))
                         elif DatabaseAlreadyOpened and file in databaseStared:
                             item.setIcon(QtGui.QIcon(os.path.join(PICTURESPATH, 'databaseOpenedStared.png')))
                             item.setForeground(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
@@ -181,7 +184,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
 
 
-    def itemClicked(self, b: Union[int, QtCore.QPoint]) -> None:
+    def itemClicked_(self, b: Union[int, QtCore.QPoint]) -> None:
         """
         Handle event when user clicks on datafile.
         The user can either click on a folder or a file.
@@ -207,6 +210,9 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
             # If it is a csv or a s2p file
             elif nextPath[-3:].lower() in ['csv', 's2p']:
                 self.csvClick()
+            # If it is a npz file
+            elif nextPath[-3:].lower() in 'npz':
+                self.npzClick()
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
                 self.signalSendStatusBarMessage.emit('Updating', 'orange')
@@ -264,6 +270,24 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
         self.signalDatabasePathUpdate.emit(self.databaseAbsPath)
         self.signalCSVClick.emit(self.databaseAbsPath,
                                  doubleClick)
+
+
+
+    def npzClick(self, currentRow: int=0,
+                       currentColumn: int=0,
+                       previousRow: int=0,
+                       previousColumn: int=0) -> None:
+
+        doubleClick = False
+        if currentRow==self.lastClickRow:
+            if time() - self.lastClickTime<0.5:
+                doubleClick = True
+
+        # We inform the tableWidgetDatabase of the the databasePath
+        self.signalDatabasePathUpdate.emit(self.databaseAbsPath)
+        self.signalNpzClick.emit(self.databaseAbsPath,
+                                 doubleClick)
+
 
 
     def databaseClick(self) -> None:
