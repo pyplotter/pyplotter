@@ -10,6 +10,7 @@ pyplotter-0.3.7
     - Add livePlot Tiling
     - Add button to hide interaction
     - Add npz basic support
+    - Add downSampling for widgetPlot1d
 
 
 pyplotter-0.3.6
