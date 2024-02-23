@@ -11,6 +11,7 @@ pyplotter-0.3.7
     - Add button to hide interaction
     - Add npz basic support
     - Add downSampling for widgetPlot1d
+    - Add Sobel filter for 2D plot
 
 
 pyplotter-0.3.6

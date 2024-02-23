@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\plot/plot2d\widgetPlot2d.ui'
+# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\plot\plot2d\widgetPlot2d.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -39,7 +39,7 @@ class Ui_Dialog(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 232, 516))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, -228, 232, 516))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
@@ -389,7 +389,7 @@ class Ui_Dialog(object):
         self.label_2.setText(_translate("Dialog", "Unwrap along:"))
         self.checkBoxUnwrapX.setText(_translate("Dialog", "x"))
         self.checkBoxUnwrapY.setText(_translate("Dialog", "y"))
-        self.label_9.setText(_translate("Dialog", "Derivative:"))
+        self.label_9.setText(_translate("Dialog", "Transformation:"))
         self.comboBoxDerivative.setItemText(0, _translate("Dialog", "None"))
         self.groupBoxSlicing.setTitle(_translate("Dialog", "Data slicing (double click)"))
         self.groupBoxSlicingSingle.setTitle(_translate("Dialog", "Single"))

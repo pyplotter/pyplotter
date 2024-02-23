@@ -62,7 +62,7 @@
             <property name="geometry">
              <rect>
               <x>0</x>
-              <y>0</y>
+              <y>-228</y>
               <width>232</width>
               <height>516</height>
              </rect>
@@ -505,7 +505,7 @@
                      </font>
                     </property>
                     <property name="text">
-                     <string>Derivative:</string>
+                     <string>Transformation:</string>
                     </property>
                    </widget>
                   </item>

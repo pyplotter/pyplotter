@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 import numpy as np
 from typing import Union, Tuple, Optional, List, Dict
+from scipy.ndimage import sobel
 from math import atan2
 import uuid
 
@@ -1237,6 +1238,11 @@ class WidgetPlot2d(QtWidgets.QDialog):
         elif label=='∂²z/∂y²':
             zData = np.gradient(np.gradient(zData, self.yData, axis=1), self.yData, axis=1)
             self.hist.setLabel(self._zLabelText+' ('+self._zLabelUnits+'/'+self._yLabelUnits+'²)')
+        elif label=='sobel':
+            sx = sobel(zData, axis=0, mode='constant')
+            sy = sobel(zData, axis=1, mode='constant')
+            zData = np.hypot(sx, sy)
+            self.hist.setLabel('Sobel('+self._zLabelText+') ('+self._zLabelUnits+')')
         else:
             self.hist.setLabel(self._zLabelText+' ('+self._zLabelUnits+')')
 
