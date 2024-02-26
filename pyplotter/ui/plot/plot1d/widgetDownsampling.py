@@ -10,7 +10,7 @@ class WidgetDownsampling(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QGroupBox) -> None:
         """
         Widget handling the downsampling in a 1d plot.
-        Display a spinBox and a label.
+        Display a label and a spinBox.
         User may interact with the spinBox to change the downsampling value.
         When the user change the downsampling value, a signal is sent to the
         widgetplot1d which will use the pyqtgraph downsampling method of all
@@ -36,7 +36,7 @@ class WidgetDownsampling(QtWidgets.QWidget):
 
         self.label = QtWidgets.QLabel(self)
         self.label.setFont(font)
-        self.label.setText(': downsampling')
+        self.label.setText('downsampling: ')
 
         self.sbox = QtWidgets.QSpinBox(self)
         self.sbox.setFont(font)
@@ -47,8 +47,8 @@ class WidgetDownsampling(QtWidgets.QWidget):
 
         spacerItem = QtWidgets.QSpacerItem(1, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
 
-        self.hLayout.addWidget(self.sbox)
         self.hLayout.addWidget(self.label)
+        self.hLayout.addWidget(self.sbox)
         self.hLayout.addItem(spacerItem)
 
         self.setLayout(self.hLayout)

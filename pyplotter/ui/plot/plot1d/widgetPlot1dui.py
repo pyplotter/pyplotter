@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\plot/plot1d\widgetPlot1d.ui'
+# Form implementation generated from reading ui file '.\scripts\pyplotter\pyplotter\ui\plot\plot1d\widgetPlot1d.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -141,14 +141,6 @@ class Ui_Dialog(object):
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayoutLog.addItem(spacerItem1)
         self.verticalLayout_4.addLayout(self.horizontalLayoutLog)
-        self.checkBoxSymbol = QtWidgets.QCheckBox(self.groupBoxDisplay)
-        font = QtGui.QFont()
-        font.setPointSize(8)
-        font.setBold(False)
-        font.setWeight(50)
-        self.checkBoxSymbol.setFont(font)
-        self.checkBoxSymbol.setObjectName("checkBoxSymbol")
-        self.verticalLayout_4.addWidget(self.checkBoxSymbol)
         self.qCheckBoxCrossHair = QCheckBoxCrossHair(self.groupBoxDisplay)
         self.qCheckBoxCrossHair.setMinimumSize(QtCore.QSize(0, 0))
         font = QtGui.QFont()
@@ -238,7 +230,6 @@ class Ui_Dialog(object):
         self.labelXAxis.setText(_translate("Dialog", "x axis:"))
         self.checkBoxLogX.setText(_translate("Dialog", "log x"))
         self.checkBoxLogY.setText(_translate("Dialog", "log y"))
-        self.checkBoxSymbol.setText(_translate("Dialog", "symbol (fastest without)"))
         self.qCheckBoxCrossHair.setText(_translate("Dialog", "cross hair (fastest without)"))
         self.checkBoxSplitYAxis.setText(_translate("Dialog", "split y axis (only for 2 curves)"))
         self.groupBoxCurveInteraction.setTitle(_translate("Dialog", "Curve interaction"))

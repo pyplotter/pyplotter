@@ -17,6 +17,7 @@ from .groupBoxFit import GroupBoxFit
 from .groupBoxFiltering import GroupBoxFiltering
 from .widgetTabCurve import WidgetTabCurve
 from .widgetDownsampling import WidgetDownsampling
+from .widgetCurveStyle import WidgetCurveStyle
 
 
 class WidgetPlot1d(QtWidgets.QDialog):
@@ -205,9 +206,12 @@ class WidgetPlot1d(QtWidgets.QDialog):
         # Connect UI
         self.ui.checkBoxLogX.stateChanged.connect(self.checkBoxLogState)
         self.ui.checkBoxLogY.stateChanged.connect(self.checkBoxLogState)
-        self.ui.checkBoxSymbol.stateChanged.connect(self.checkBoxSymbolState)
         self.ui.checkBoxSplitYAxis.stateChanged.connect(self.checkBoxSplitYAxisState)
         self.ui.comboBoxXAxis.activated.connect(self.comboBoxXAxisActivated)
+
+        ## Add a widget to handle line style
+        self.widgetCurveStyle = WidgetCurveStyle(parent=self.ui.groupBoxDisplay)
+        self.widgetCurveStyle.signalCurveStyleChanged.connect(self.curveStyleChanged)
 
         ## Add a widget to handle downsampling
         self.widgetDownsampling = WidgetDownsampling(parent=self.ui.groupBoxDisplay)
@@ -653,7 +657,7 @@ class WidgetPlot1d(QtWidgets.QDialog):
 
 
 
-    def getLineColor(self) -> Tuple[int, QtGui.QPen]:
+    def getLineColor(self, onlyOnePoint: bool) -> Tuple[int, QtGui.QPen, Optional[str]]:
         """
         Return a pyqtgraph mKpen with the color of the next curve following
         the colors in config files
@@ -661,11 +665,25 @@ class WidgetPlot1d(QtWidgets.QDialog):
 
         colorIndex = getCurveColorIndex([curve.colorIndex for curve in self.curves.values()],
                                         self.config)
-        color = self.config['plot1dColors'][colorIndex]
+        pen = pg.mkPen(color=self.config['plot1dColors'][colorIndex],
+                       width=self.config['plotDataItemWidth'])
 
-        pen = pg.mkPen(color=color, width=self.config['plotDataItemWidth'])
+        # If the user changed the default curveStyle
+        if hasattr(self, 'curveStyle'):
+            # If symbol are needed
+            if self.curveStyle in ('o', 'o-'):
+                symbol = self.config['plot1dSymbol'][colorIndex]
+            else:
+                symbol = None
+        else:
+            symbol = None
 
-        return colorIndex, pen
+        # If there is only one data point, we override user choice and draw a
+        # symbol, otherwise the point is not visible.
+        if onlyOnePoint:
+            symbol = self.config['plot1dSymbol'][colorIndex]
+
+        return colorIndex, pen, symbol
 
 
 
@@ -763,16 +781,13 @@ class WidgetPlot1d(QtWidgets.QDialog):
         """
 
         # Get the dataPlotItem color
-        colorIndex, pen = self.getLineColor()
-
-        # If there is only one point, the Pen is incorrect
-        if len(x)==1:
-            pen = None
+        colorIndex, pen, symbol = self.getLineColor(len(x)==1)
 
         # Create plotDataItem and save its reference
         self.curves[curveId] = self.plotItem.plot(x,
                                                   y,
                                                   pen=pen,
+                                                  symbol=symbol,
                                                   useCache=True, # Improve performance
                                                   autoDownsample=True, # Improve performance
                                                 #   clipToView = True, # Improve performance
@@ -793,11 +808,6 @@ class WidgetPlot1d(QtWidgets.QDialog):
 
         self.updateListDataPlotItem(curveId)
         self.updateListXAxis()
-
-        # If there is only one point, we show symbols
-        if len(x)==1:
-            self.ui.checkBoxSymbol.setChecked(False)
-            self.ui.checkBoxSymbol.setChecked(True)
 
 
 
@@ -995,30 +1005,51 @@ class WidgetPlot1d(QtWidgets.QDialog):
 
 
 
-    def checkBoxSymbolState(self, b: QtWidgets.QCheckBox) -> None:
+    @QtCore.pyqtSlot(str)
+    def curveStyleChanged(self, curveStyle: str) -> None:
         """
-        Method called when user click on the Symbol checkBox.
-        Put symbols on all plotDataItem except fit model.
+        Called from widgetCurveStyle when user click on the comboBox.
+        Used to changed the curveStyle of the displayed curves.
         """
 
-        if self.ui.checkBoxSymbol.isChecked():
+        # Save the current curveStyle
+        self.curveStyle = curveStyle
+
+        # CurveStyle: symbol + line
+        if curveStyle=='o-':
 
             for i, (key, curve) in enumerate(list(self.curves.items())):
                 if key != 'fit':
                     curve.setSymbol(self.config['plot1dSymbol'][i%len(self.config['plot1dSymbol'])])
+                    curve.setPen(curve.pen)
 
                     # If split y axis enable
                     if hasattr(self, 'curveRight'):
                         self.curveRight.setSymbol(self.config['plot1dSymbol'][i%len(self.config['plot1dSymbol'])])
+                        self.curveRight.setPen(self.curveRight.pen)
+        # CurveStyle: symbol
+        elif curveStyle==' o':
 
+            for i, (key, curve) in enumerate(list(self.curves.items())):
+                if key != 'fit':
+                    curve.setSymbol(self.config['plot1dSymbol'][i%len(self.config['plot1dSymbol'])])
+                    curve.setPen(pg.mkPen(None))
+
+                    # If split y axis enable
+                    if hasattr(self, 'curveRight'):
+                        self.curveRight.setSymbol(self.config['plot1dSymbol'][i%len(self.config['plot1dSymbol'])])
+                        self.curveRight.setPen(pg.mkPen(None))
+        # CurveStyle: line
         else:
             for i, (key, curve) in enumerate(list(self.curves.items())):
                 if key != 'fit':
                     curve.setSymbol(None)
+                    curve.setPen(curve.pen)
 
             # If split y axis enable
             if hasattr(self, 'curveRight'):
                 self.curveRight.setSymbol(None)
+                self.curveRight.setPen(self.curveRight.pen)
 
 
 
