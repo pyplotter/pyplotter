@@ -97,8 +97,8 @@ class WidgetPlot(pg.PlotWidget):
         self.plotItem.getAxis('left').setTextPen(self.parent().parent().config['styles'][self.parent().parent().config['style']]['pyqtgraphyAxisTickLabelsColor'])
 
         if self.parent().parent().plotType=='2d':
-            self.parent().parent().ui.plot2dzLabel.setFont(font)
-            self.parent().parent().ui.histWidget.axis.setTickFont(font)
+            self.parent().parent().hist.label.setFont(font)
+            self.parent().parent().hist.pgHist.axis.setTickFont(font)
 
         self.plotItem.setTitle(title=self.plotItem.titleLabel.text,
                                color=self.parent().parent().config['styles'][self.parent().parent().config['style']]['pyqtgraphTitleTextColor'])
@@ -116,8 +116,8 @@ class WidgetPlot(pg.PlotWidget):
 
         # Update colormap
         if self.parent().parent().plotType=='2d':
-            index = self.parent().parent().ui.comboBoxcm.findText(self.parent().parent().config['plot2dcm'])
-            self.parent().parent().ui.comboBoxcm.setCurrentIndex(index)
+            index = self.parent().parent().hist.colorMapComboBox.findText(self.parent().parent().config['plot2dcm'])
+            self.parent().parent().hist.colorMapComboBox.setCurrentIndex(index)
 
 
     ####################################

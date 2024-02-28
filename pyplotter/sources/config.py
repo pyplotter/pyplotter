@@ -323,7 +323,7 @@ configPackage = {
                               (  2,  64, 144),
                               ( 89,  49,  28),
                               ( 53,  77,  41)],
-"plotDataItemWidth" : 2,
+"plotDataItemWidth" : 1,
 "plotDataItemShadowWidth" : 10,
 "plotCoordinateNbNumber" : '2', # str, how many decimal for coordinates
 

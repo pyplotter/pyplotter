@@ -657,7 +657,11 @@ class WidgetPlot1d(QtWidgets.QDialog):
 
 
 
-    def getLineColor(self, onlyOnePoint: bool) -> Tuple[int, QtGui.QPen, Optional[str]]:
+    def getLineColor(self, onlyOnePoint: bool) -> Tuple[int,
+                                                        QtGui.QPen,
+                                                        Optional[str],
+                                                        QtGui.QPen,
+                                                        QtGui.QBrush]:
         """
         Return a pyqtgraph mKpen with the color of the next curve following
         the colors in config files
@@ -665,13 +669,16 @@ class WidgetPlot1d(QtWidgets.QDialog):
 
         colorIndex = getCurveColorIndex([curve.colorIndex for curve in self.curves.values()],
                                         self.config)
-        pen = pg.mkPen(color=self.config['plot1dColors'][colorIndex],
-                       width=self.config['plotDataItemWidth'])
+        linePen = pg.mkPen(color=self.config['plot1dColors'][colorIndex],
+                           width=self.config['plotDataItemWidth'])
+        symbolBrush = pg.mkBrush(color=self.config['plot1dColors'][colorIndex])
+        symbolPen = pg.mkPen(color='black',
+                             width=self.config['plotDataItemWidth'])
 
         # If the user changed the default curveStyle
         if hasattr(self, 'curveStyle'):
             # If symbol are needed
-            if self.curveStyle in ('o', 'o-'):
+            if self.curveStyle in (' o', 'o-'):
                 symbol = self.config['plot1dSymbol'][colorIndex]
             else:
                 symbol = None
@@ -683,7 +690,7 @@ class WidgetPlot1d(QtWidgets.QDialog):
         if onlyOnePoint:
             symbol = self.config['plot1dSymbol'][colorIndex]
 
-        return colorIndex, pen, symbol
+        return colorIndex, linePen, symbol, symbolPen, symbolBrush
 
 
 
@@ -781,13 +788,15 @@ class WidgetPlot1d(QtWidgets.QDialog):
         """
 
         # Get the dataPlotItem color
-        colorIndex, pen, symbol = self.getLineColor(len(x)==1)
+        colorIndex, linePen, symbol, symbolPen, symbolBrush = self.getLineColor(len(x)==1)
 
         # Create plotDataItem and save its reference
         self.curves[curveId] = self.plotItem.plot(x,
                                                   y,
-                                                  pen=pen,
+                                                  pen=linePen,
                                                   symbol=symbol,
+                                                  symbolPen=symbolPen,
+                                                  symbolBrush=symbolBrush,
                                                   useCache=True, # Improve performance
                                                   autoDownsample=True, # Improve performance
                                                 #   clipToView = True, # Improve performance
@@ -804,7 +813,7 @@ class WidgetPlot1d(QtWidgets.QDialog):
         self.curves[curveId].curveLegend        = curveLegend
         self.curves[curveId].showInLegend       = showInLegend
         self.curves[curveId].hidden             = hidden
-        self.curves[curveId].pen                = pen
+        self.curves[curveId].pen                = linePen
 
         self.updateListDataPlotItem(curveId)
         self.updateListXAxis()
