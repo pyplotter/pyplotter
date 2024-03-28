@@ -68,6 +68,9 @@ configPackage = {
 # Removed once the measurement is done.
 'livePlotMessageStart' : '<div style="color: green; font-weight: bold; text-align: center;">LivePlot</div><br>',
 'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
+# Default folder open when clicking on the select database of the liveplot dialog
+'livePlotDefaultFolder' : 'C:/',
+
 
 # Interactivity
 'keyPressedStared' : 's', # To star a run

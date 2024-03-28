@@ -33,10 +33,12 @@ class MenuBar(QtWidgets.QMenuBar):
         self.menuPreferences = self.addMenu('Preferences')
 
         self.menuStyle = self.menuPreferences.addMenu('Style')
+        self.menuStyle.setToolTipsVisible(True)
         self.actionqb = self.menuStyle.addAction('qb')
         self.actionqdark = self.menuStyle.addAction('qdark')
         self.actionwhite = self.menuStyle.addAction('white')
         self.actionDefaultPath = self.menuPreferences.addAction('Select default folder')
+        self.actionDefaultLivePlotFolder = self.menuPreferences.addAction('Select liveplot default folder')
 
         self.menuPlot = self.menuPreferences.addMenu('Plot')
         self.actionAxisLabelColor = self.menuPlot.addAction('Axis label color')
@@ -56,6 +58,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.actionqdark.triggered.connect(self.menuBackgroundQdark)
         self.actionwhite.triggered.connect(self.menuBackgroundWhite)
         self.actionDefaultPath.triggered.connect(self.menuDefaultPath)
+        self.actionDefaultLivePlotFolder.triggered.connect(self.menuDefaultLivePlotFolder)
         self.actionDatabase.triggered.connect(self.menuDatabase)
         self.actionAxisLabelColor.triggered.connect(self.menuAxisLabelColor)
         self.actionAxisTickLabelsColor.triggered.connect(self.menuAxisTickLabelsColor)
@@ -140,6 +143,19 @@ class MenuBar(QtWidgets.QMenuBar):
 
             updateUserConfig('path', os.path.abspath(path))
             updateUserConfig('root', os.path.splitdrive(path)[0])
+
+
+
+    def menuDefaultLivePlotFolder(self):
+
+        # Ask user to chose a path
+        path = QtWidgets.QFileDialog.getExistingDirectory(self,
+                                                          caption='Open folder',
+                                                          directory=os.getcwd(),
+                                                          options=QtWidgets.QFileDialog.ReadOnly|QtWidgets.QFileDialog.ShowDirsOnly)
+        if path != '':
+
+            updateUserConfig('livePlotDefaultFolder', os.path.abspath(path))
 
 
 

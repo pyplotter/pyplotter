@@ -506,7 +506,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         fname = QtWidgets.QFileDialog.getOpenFileName(self,
                                                       'Open QCoDeS database',
-                                                      self.config['path'],
+                                                      self.config['livePlotDefaultFolder'],
                                                       'QCoDeS database (*.db).')
 
         if fname[0]!='':
