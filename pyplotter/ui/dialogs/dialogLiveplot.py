@@ -6,15 +6,18 @@ from datetime import datetime
 from typing import Tuple
 
 from ...sources.workers.loadDataFromCache import LoadDataFromCacheThread
+from ...sources.workers.loadLabradDataFromCache import LoadLabradDataFromCacheThread
 from .dialogLiveplotUi import Ui_LivePlot
 from ...sources.qcodesDatabase import getNbTotalRunAndLastRunName, isRunCompleted
+from ...sources.labrad_datavault import dep_name, getNbTotalRunAndLastRunNameLabrad, getNbTotalRunmp, isRunCompletedLabrad
 from ...sources.functions import (getDatabaseNameFromAbsPath,
                                   getCurveId,
                                   getWindowTitle,
                                   getPlotTitle,
                                   getPlotRef,
-                                  getDialogWidthHeight)
-
+                                  getDialogWidthHeight, 
+                                  getParallelDialogWidthHeight,
+                                  MAX_LIVE_PLOTS, plotIdGenerator)
 
 class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
@@ -35,6 +38,12 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
     _livePlotRunName: str
     _livePlotDatabaseAbsPath: str
 
+    # list for parallel live plots
+    # aims to tile the screen with MAX_LIVE_PLOTS windows that show recent new runs
+    livePlotRunIds: list
+    livePlotPreviousDataLengths: list
+    livePlotRunNames: list
+
     # We make mypy "happy" without loading qcodes lib (save time)
     _livePlotDataSet: DataSetProtocol # type: ignore
 
@@ -51,15 +60,17 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self.config           = config
 
         # Connect events
-        self.pushButtonLivePlot.clicked.connect(self.livePlotPushButton)
+        self.pushButtonMenu = QtWidgets.QMenu()
+        self.pushButtonMenu.addAction('Database File', self.livePlotPushButton)
+        self.pushButtonMenu.addAction('Database Folder', self.livePlotPushButtonFolder)
+        self.pushButtonLivePlot.setMenu(self.pushButtonMenu)
+        # self.pushButtonLivePlot.clicked.connect(self.livePlotPushButton)
         self.spinBoxLivePlotRefreshRate.setValue(int(config['livePlotTimer']))
         self.spinBoxLivePlotRefreshRate.valueChanged.connect(self.livePlotSpinBoxChanged)
 
         self.threadpool = QtCore.QThreadPool()
-
+        self.threadpools = [QtCore.QThreadPool() for i in range(MAX_LIVE_PLOTS)]
         self.show()
-
-
 
 
     ###########################################################################
@@ -69,8 +80,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
     #
     #
     ###########################################################################
-
-
 
     def livePlotClockUpdate(self):
 
@@ -88,7 +97,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             t += '{:02}s'.format(seconds)
             self.labelLivePlotSinceLastRefreshInfo.setText(t)
 
-
         # # New data since last time we interogate the dataCache?
         if self.labelLivePlotLastUpdateInfo.text()!='':
             datetimeLastUpdate = datetime.strptime(self.labelLivePlotLastUpdateInfo.text(), '%Y-%m-%d %H:%M:%S')
@@ -103,7 +111,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             self.labelLivePlotSinceLastUpdateInfo.setText(t)
 
 
-
     @QtCore.pyqtSlot(str, str)
     def slotLiveplotMessage(self, message: str,
                                   color: str) -> None:
@@ -111,12 +118,12 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self.labelLivePlotInfoInfo.setText('<span style="color: {};">{}</span>'.format(color, message))
 
 
-
-    @QtCore.pyqtSlot(str, tuple, str, bool)
-    def slotUpdatePlotData(self, plotRef        : str,
+    def slotUpdatePlot(self,     plotRef        : str,
                                  data           : Tuple[np.ndarray, ...],
                                  yParamName     : str,
-                                 lastUpdate     : bool) -> None:
+                                 lastUpdate     : bool,
+                                 lastDependent  : bool=False,
+                                 plotId         : int=-1) -> None:
         """
         Methods called in live plot mode to update plot.
 
@@ -133,6 +140,10 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             True if this is the last update of the livePlot, a.k.a. the run is
             marked as completed by qcodes.
         """
+        if plotId != -1:
+            self._livePlotRunId =  self.livePlotRunIds[plotId]
+            self._livePlotRunName = self.livePlotRunNames[plotId]
+            self._livePlotPreviousDataLength = self.livePlotPreviousDataLengths[plotId]
 
         # Last time since we interogated the dataCache
         self.labelLivePlotLastRefreshInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
@@ -204,6 +215,61 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             self.labelLivePlotSinceLastUpdateInfo.setText('')
             self.labelLivePlotLastRefreshInfo.setText('')
             self.labelLivePlotSinceLastRefreshInfo.setText('')
+
+        if lastDependent and plotId != -1:
+            self.livePlotPreviousDataLengths[plotId] = len(data[0])
+
+    def livePlotSpinBoxChanged(self, val):
+        """
+        When user modify the spin box associated to the live plot timer.
+        When val==0, stop the liveplot monitoring.
+        """
+
+        # If a Qt timer is running, we modify it following the user input.
+        if hasattr(self, '_livePlotTimer'):
+
+            # If the timer is 0, we stopped the liveplot
+            if val==0:
+                self._livePlotTimer.stop()
+                self._livePlotTimer.deleteLater()
+                del(self._livePlotTimer)
+
+                self._livePlotClockTimer.stop()
+                self._livePlotClockTimer.deleteLater()
+                del(self._livePlotClockTimer)
+
+                # self.labelLivePlotDataBase.setText('')
+                # self.groupBoxLivePlot.setStyleSheet('QGroupBox:title{color: white}')
+                self.pushButtonLivePlot.setText('Select database')
+                self.labelLivePlotInProgressState.setText('')
+                self.labelLivePlotRunidid.setText('')
+                self.labelLivePlotRunNameInfo.setText('')
+                self.labelLivePlotDatabasePathInfo.setText('')
+                self.labelLivePlotDatabaseNameInfo.setText('')
+                self.labelLivePlotLastUpdateInfo.setText('')
+                self.labelLivePlotSinceLastUpdateInfo.setText('')
+                self.labelLivePlotLastRefreshInfo.setText('')
+                self.labelLivePlotSinceLastRefreshInfo.setText('')
+                if hasattr(self, '_livePlotDatabaseAbsPath'):
+                    del(self._livePlotDatabaseAbsPath)
+                if hasattr(self, '_livePlotDataSet'):
+                    del(self._livePlotDataSet)
+            else:
+                self._livePlotTimer.setInterval(val*1000)
+
+
+    ###########################################################################
+    #                           Qcodes plotting
+    ###########################################################################
+
+
+    @QtCore.pyqtSlot(str, tuple, str, bool)
+    def slotUpdatePlotData(self, 
+                           plotRef        : str,
+                           data           : Tuple[np.ndarray, ...],
+                           yParamName     : str,
+                           lastUpdate     : bool) -> None:
+        self.slotUpdatePlot(plotRef, data, yParamName, lastUpdate)
 
 
     def livePlotGetPlotParameters(self) -> None:
@@ -278,7 +344,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                     plot1dNotAlreadyAdded = False
 
         self._livePlotGetPlotParameters = xParamNames, xParamLabels, xParamUnits, yParamNames, yParamLabels, yParamUnits, zParamNames, zParamLabels, zParamUnits, plotRefs
-
 
 
     def livePlotLaunchPlot(self) -> None:
@@ -358,7 +423,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                         dialogHeight) # dialog height
 
 
-
     def livePlotUpdatePlot(self, lastUpdate: bool=False) -> None:
         """
         Method called by livePlotUpdate.
@@ -393,7 +457,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
             # Execute the thread
             self.threadpool.start(worker)
-
 
 
     def livePlotUpdate(self) -> None:
@@ -448,47 +511,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                     del(self._livePlotNbPlot)
 
 
-
-    def livePlotSpinBoxChanged(self, val):
-        """
-        When user modify the spin box associated to the live plot timer.
-        When val==0, stop the liveplot monitoring.
-        """
-
-        # If a Qt timer is running, we modify it following the user input.
-        if hasattr(self, '_livePlotTimer'):
-
-            # If the timer is 0, we stopped the liveplot
-            if val==0:
-                self._livePlotTimer.stop()
-                self._livePlotTimer.deleteLater()
-                del(self._livePlotTimer)
-
-                self._livePlotClockTimer.stop()
-                self._livePlotClockTimer.deleteLater()
-                del(self._livePlotClockTimer)
-
-                # self.labelLivePlotDataBase.setText('')
-                # self.groupBoxLivePlot.setStyleSheet('QGroupBox:title{color: white}')
-                self.pushButtonLivePlot.setText('Select database')
-                self.labelLivePlotInProgressState.setText('')
-                self.labelLivePlotRunidid.setText('')
-                self.labelLivePlotRunNameInfo.setText('')
-                self.labelLivePlotDatabasePathInfo.setText('')
-                self.labelLivePlotDatabaseNameInfo.setText('')
-                self.labelLivePlotLastUpdateInfo.setText('')
-                self.labelLivePlotSinceLastUpdateInfo.setText('')
-                self.labelLivePlotLastRefreshInfo.setText('')
-                self.labelLivePlotSinceLastRefreshInfo.setText('')
-                if hasattr(self, '_livePlotDatabaseAbsPath'):
-                    del(self._livePlotDatabaseAbsPath)
-                if hasattr(self, '_livePlotDataSet'):
-                    del(self._livePlotDataSet)
-            else:
-                self._livePlotTimer.setInterval(val*1000)
-
-
-
     def livePlotPushButton(self) -> None:
         """
         Call when user click on the 'LivePlot' button.
@@ -531,6 +553,421 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
             self._livePlotTimer = QtCore.QTimer()
             self._livePlotTimer.timeout.connect(self.livePlotUpdate)
+            self._livePlotTimer.setInterval(self.spinBoxLivePlotRefreshRate.value()*1000)
+            self._livePlotTimer.start()
+
+            self._livePlotClockTimer = QtCore.QTimer()
+            self._livePlotClockTimer.timeout.connect(self.livePlotClockUpdate)
+            self._livePlotClockTimer.setInterval(1000)
+            self._livePlotClockTimer.start()
+
+        self.pushButtonLivePlot.setText('Modify database')
+
+
+    ###########################################################################
+    #                           Labrad plotting
+    ###########################################################################
+
+
+    @QtCore.pyqtSlot(str, tuple, str, bool, bool, int)
+    def slotUpdatePlotLabradData(self, 
+                                 plotRef        : str,
+                                 data           : Tuple[np.ndarray, ...],
+                                 yParamName     : str,
+                                 lastUpdate     : bool,
+                                 lastDependent  : bool,
+                                 plotId         : int) -> None:
+        self.slotUpdatePlot(plotRef, data, yParamName, lastUpdate, lastDependent, plotId)
+
+
+    def livePlotGetLabradPlotParameters(self, plotId: int) -> None:
+        """
+        Gather the information from the current live plot dataset and sort them
+        into iterables.
+
+        Each dependent parameters must be treated independently since they
+        can each have a different number of independent parameters.
+        """
+
+        # Get dataset params
+        paramsDependents   = [i for i in self.livePlotDataSets[plotId].getPlotDependents()]
+
+        xParamNames  = []
+        xParamLabels = []
+        xParamUnits  = []
+        yParamNames  = []
+        yParamLabels = []
+        yParamUnits  = []
+        zParamNames  = []
+        zParamLabels = []
+        zParamUnits  = []
+        plotRefs     = []
+
+        # We calculate how many livePlot we should have
+        self._livePlotNbPlot  = 0
+        plot1dNotAlreadyAdded = True
+
+        for paramsDependent in paramsDependents:
+
+            # # For each dependent parameter we them the parameter(s) they depend
+            # # on.
+            # depends_on = [i for i in paramsDependent.depends_on.split(', ')]
+
+            depends_on = [i for i in self.livePlotDataSets[plotId].getIndependents()]
+
+            param_x = depends_on[0]
+            xParamNames.append(param_x.label + ' (name)')
+            xParamLabels.append(param_x.label)
+            xParamUnits.append(param_x.unit)
+
+            # For 2d plot
+            if len(depends_on)>1:
+                param_y = depends_on[1]
+                yParamNames.append(param_y.label + ' (name)')
+                yParamLabels.append(param_y.label)
+                yParamUnits.append(param_y.unit)
+
+                zParamNames.append(dep_name(paramsDependent))
+                zParamLabels.append(paramsDependent.label)
+                zParamUnits.append(paramsDependent.unit)
+
+                plotRefs.append(getPlotRef(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                           paramDependent={'depends_on' : [0, 1], 'name': dep_name(paramsDependent)},
+                                           runId=self.livePlotRunIds[plotId]))
+                self._livePlotNbPlot += 1
+            # For 1d plot
+            else:
+                yParamNames.append(dep_name(paramsDependent))
+                yParamLabels.append(paramsDependent.label)
+                yParamUnits.append(paramsDependent.unit)
+
+                zParamNames.append('')
+                zParamLabels.append('')
+                zParamUnits.append('')
+
+                plotRefs.append(getPlotRef(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                           paramDependent={'depends_on' : [0]},
+                                           runId=self.livePlotRunIds[plotId]))
+                # We only add 1 1dplot for all 1d curves
+                if plot1dNotAlreadyAdded:
+                    self._livePlotNbPlot += 1
+                    plot1dNotAlreadyAdded = False
+
+        return xParamNames, xParamLabels, xParamUnits, yParamNames, yParamLabels, yParamUnits, zParamNames, zParamLabels, zParamUnits, plotRefs
+
+
+    def livePlotLaunchLabradPlot(self, plotId) -> None:
+        """
+        Method called by the livePlotUpdate method.
+        Obtain the info of the current live plot dataset cache, treat them and
+        send them to the addPlot method.
+
+        Each dependent parameters must be treated independently since they
+        can each have a different number of independent parameters.
+        """
+
+        data: Tuple[np.ndarray, ...]
+
+        #    1d.  We launch a plot window with all the dependent parameters
+        #         plotted as plotDataItem.
+        #    2d.  We launch as many plot window as dependent parameters.
+        # Get dataset params
+        paramsIndependent = [i for i in self.livePlotDataSets[plotId].getIndependents()]
+
+        plotTitle   = getPlotTitle(self._livePlotDatabaseAbsPath,
+                                   self.livePlotRunIds[plotId],
+                                   self.livePlotRunNames[plotId]) + self.config['livePlotTitleAppend']
+        windowTitle = getWindowTitle(self._livePlotDatabaseAbsPath,
+                                     self.livePlotRunIds[plotId],
+                                     self.livePlotRunNames[plotId])
+
+        # We get the liveplot parameters
+        self.livePlotGetPlotParameterList[plotId] = self.livePlotGetLabradPlotParameters(plotId)
+
+        for tile_idx, (xParamName, xParamLabel, xParamUnit,
+             yParamName, yParamLabel, yParamUnit,
+             zParamName, zParamLabel, zParamUnit,
+             plotRef) in enumerate(zip(*self.livePlotGetPlotParameterList[plotId])):
+
+            # We get the dialog position and size to tile the screen
+            if zParamName == '':
+                dialogTilings = getParallelDialogWidthHeight(nbDialog=1, plotId=plotId)
+                dialogX, dialogY, dialogWidth, dialogHeight = [tile[0] for tile in dialogTilings]
+            else:
+                # tile 3D plot with plot windows
+                num_2d_plots = len(self.livePlotGetPlotParameterList[plotId][0])
+                dialogTilings = getParallelDialogWidthHeight(num_2d_plots, plotId=plotId)
+                dialogX, dialogY, dialogWidth, dialogHeight = [tile[tile_idx] for tile in dialogTilings]
+
+            # Only the first dependent parameter is displayed per default
+            if yParamLabel==paramsIndependent[0].label:
+                hidden = False
+            else:
+                hidden = True
+
+            # Create empty data for the plot window launching
+            if zParamName=='':
+                data = (np.array([]),
+                        np.array([]))
+            else:
+                data = (np.array([0., 1.]),
+                        np.array([0., 1.]),
+                        np.array([[0., 1.],
+                                  [0., 1.]]))
+
+            curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                 name=yParamName,
+                                 runId=self.livePlotRunIds[plotId])
+            self.signalAddLivePlot.emit(self.livePlotRunIds[plotId], # runId
+                                        curveId, # curveId
+                                        plotTitle, # plotTitle
+                                        windowTitle, # windowTitle
+                                        plotRef, # plotRef
+                                        self._livePlotDatabaseAbsPath, # databaseAbsPath
+                                        data, # data
+                                        xParamLabel, # xLabelText
+                                        xParamUnit, # xLabelUnits
+                                        yParamLabel, # yLabelText
+                                        yParamUnit, # yLabelUnits
+                                        zParamLabel, # zLabelText
+                                        zParamUnit, # zLabelUnits
+                                        dialogX, # dialog position x
+                                        dialogY, # dialog position y
+                                        dialogWidth, # dialog width
+                                        dialogHeight) # dialog height
+
+
+    def livePlotUpdateLabradPlot(self, plotId: int, lastUpdate: bool=False) -> None:
+        """
+        Method called by livePlotUpdate.
+        Obtain the info of the current live plot dataset cache, treat them and
+        send them to the slotUpdatePlotData method.
+
+        Parameters
+        ----------
+        lastUpdate : bool
+            True if this is the last update of the livePlot, a.k.a. the run is
+            marked as completed by qcodes.
+        """
+
+        # We show to user that the plot is being updated
+        self.labelLivePlotInfoInfo.setText('<span style="color: orange;">Interrogating cache</span>')
+
+        # Keep track of all the update we should do
+        # The flags are False until the worker update them to True
+        self._updatingFlag = []
+
+        self.livePlotDataSets[plotId].data.dataset.refresh()
+        d = self.livePlotDataSets[plotId].getData()[0]
+        
+        for dep_idx, [xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef] in enumerate(zip(*self.livePlotGetPlotParameterList[plotId])):
+            self._updatingFlag.append(False)
+
+            dataDict = {}
+            dataDict[xParamName] =  d[:,0]
+            if zParamName:
+                dataDict[yParamName] = d[:,1]
+                dataDict[zParamName] = {zParamName: d[:,2 + dep_idx],
+                                        yParamName: dataDict[yParamName],
+                                        xParamName: dataDict[xParamName]}
+            elif yParamName:
+                dataDict[yParamName] = {yParamName: d[:,1 + dep_idx],
+                                        xParamName: dataDict[xParamName]}
+            else:
+                raise ValueError
+            
+            lastDependent = (dep_idx == len(self.livePlotGetPlotParameterList[plotId][0]) - 1)
+            worker = LoadLabradDataFromCacheThread(plotRef,
+                                                   dataDict,
+                                                   xParamName,
+                                                   yParamName,
+                                                   zParamName,
+                                                   lastUpdate,
+                                                   lastDependent,
+                                                   plotId)
+
+            worker.signal.dataLoaded.connect(self.slotUpdatePlotLabradData)
+            worker.signal.sendLivePlotInfoMessage.connect(self.slotLiveplotMessage)
+
+            # Execute the thread
+            self.threadpools[plotId].start(worker)
+
+
+    def livePlotUpdateLabrad(self) -> None:
+        """
+        Method called periodically by a QTimer.
+        1. Obtain the last runId of the livePlotDatabase
+        2. If this run is not marked as completed, load its dataset and plot its
+           parameters
+        3. Update the plots until the run is marked completed
+        4. When the run is completed, remove its dataset from memory
+        """
+
+        # We get the last run id of the database
+        self._livePlotRunId = getNbTotalRunmp(self._livePlotDatabaseAbsPath)
+        # self._livePlotRunId, self._livePlotRunName = getNbTotalRunAndLastRunNameLabrad(self._livePlotDatabaseAbsPath)
+        num_live_plots = min(self._livePlotRunId, MAX_LIVE_PLOTS)
+        updateIds = np.arange(self.plotId, self.plotId + num_live_plots) % MAX_LIVE_PLOTS
+        currPlotId = self.plotId
+        for ii, _plotId in enumerate(updateIds):
+            # fist run and setup
+            if self.livePlotRunIds[_plotId] is None:
+                # set new
+                self.livePlotRunIds[_plotId] = self._livePlotRunId - ii
+                self.livePlotPreviousDataLengths[_plotId] = 0
+                self.livePlotDataSets[_plotId] = self.loadDataset(self._livePlotRunId - ii)
+                self.livePlotRunNames[_plotId] = self.livePlotDataSets[_plotId].name
+                # TODO: remove old plot -XL
+                self.livePlotLaunchLabradPlot(_plotId)
+
+            # While the run is not completed, we update the plot
+            if not isRunCompletedLabrad(
+                self._livePlotDatabaseAbsPath, self.livePlotRunIds[_plotId]
+            ):
+                self.labelLivePlotInProgressState.setText(
+                    '<span style="color: green;">True</span>'
+                )
+                self.labelLivePlotRunidid.setText("{}".format(self.livePlotRunIds[_plotId]))
+                self.labelLivePlotRunNameInfo.setText("{}".format(self.livePlotRunNames[_plotId]))
+                self.labelLivePlotInfoInfo.setText(
+                    '<span style="color: green;">New run detected</span>'
+                )
+                self.livePlotUpdateLabradPlot(_plotId)
+
+            # new RunId detected, replace the first plotID
+            if _plotId == currPlotId and (
+                self._livePlotRunId != self.livePlotRunIds[_plotId]
+            ):
+                # move to the next plot window for new data
+                self.plotId = next(self.plotIdGenerator)
+                # remove old
+                self.livePlotRunIds.pop(self.plotId)
+                self.livePlotPreviousDataLengths.pop(self.plotId)
+                self.livePlotRunNames.pop(self.plotId)
+                old_dataset = self.livePlotDataSets.pop(self.plotId)
+                old_dataset.close()
+                # set new
+                self.livePlotRunIds.insert(self.plotId, self._livePlotRunId)
+                self.livePlotPreviousDataLengths.insert(self.plotId, 0)
+                self.livePlotDataSets.insert(self.plotId, self.loadDataset(self._livePlotRunId))
+                self.livePlotRunNames.insert(self.plotId, self.livePlotDataSets[self.plotId].name)
+                # TODO: remove old plot -XL
+                self.livePlotLaunchLabradPlot(self.plotId)
+
+
+    def livePlotPushButtonFolder(self) -> None:
+
+        """
+        Call when user click on the 'LivePlot' button.
+        Allow user to chose any available qcodes database in his computer.
+        This database will be monitored and any new run will be plotted.
+        """
+        self.pushButtonLivePlot.setText('Loading Labrad...')
+        self.pushButtonLivePlot.repaint()
+
+        QtCore.QThread.msleep(100)
+        self.pushButtonLivePlot.setText('Select database...')
+        fname = QtWidgets.QFileDialog.getExistingDirectory(self, 
+                                                           'Open Labrad database',
+                                                           self.config['livePlotDefaultFolder'])
+        if fname:
+            self._livePlotDatabaseAbsPath = fname
+            self._livePlotDataBaseName = os.path.split(fname)[-1]
+
+            self._livePlotPreviousDataLength = 0
+            self.plotIdGenerator = plotIdGenerator()
+            self.plotId = next(self.plotIdGenerator)  # the idx of live plot, changes to create new window
+            self.livePlotRunIds = [None] * MAX_LIVE_PLOTS
+            self.livePlotPreviousDataLengths = [None] * MAX_LIVE_PLOTS
+            self.livePlotRunNames = [None] * MAX_LIVE_PLOTS
+            self.livePlotDataSets = [None] * MAX_LIVE_PLOTS
+            self.livePlotGetPlotParameterList = [None] * MAX_LIVE_PLOTS
+
+            def load_by_run_spec(idx):
+                from ...sources.labrad_datavault import switch_session_path
+                dv = switch_session_path(self._livePlotDatabaseAbsPath)
+                return dv.openDataset(idx, noisy=False)  # noisy=false to turn off the open message
+
+            self.loadDataset = load_by_run_spec
+
+            self.labelLivePlotDatabasePathInfo.setText('{}'.format(self._livePlotDatabaseAbsPath))
+            self.labelLivePlotDatabaseNameInfo.setText('{}'.format(self._livePlotDataBaseName))
+
+            # We call the liveplot function once manually to be sure it has been
+            # initialized properly
+            self.livePlotUpdateLabrad()
+
+            # Launch a Qt timer which will periodically check if a new run is
+            # launched
+            # If the user disable the livePlot previously
+            if self.spinBoxLivePlotRefreshRate.value()==0:
+                self.spinBoxLivePlotRefreshRate.setValue(1)
+
+            self._livePlotTimer = QtCore.QTimer()
+            self._livePlotTimer.timeout.connect(self.livePlotUpdateLabrad)
+            self._livePlotTimer.setInterval(self.spinBoxLivePlotRefreshRate.value()*1000)
+            self._livePlotTimer.start()
+
+            self._livePlotClockTimer = QtCore.QTimer()
+            self._livePlotClockTimer.timeout.connect(self.livePlotClockUpdate)
+            self._livePlotClockTimer.setInterval(1000)
+            self._livePlotClockTimer.start()
+
+        self.pushButtonLivePlot.setText('Modify database')
+
+
+    def livePlotPushButtonFolderTest(self) -> None:
+
+        """
+        Call when user click on the 'LivePlot' button.
+        Allow user to chose any available qcodes database in his computer.
+        This database will be monitored and any new run will be plotted.
+        """
+        self.pushButtonLivePlot.setText('Loading Labrad...')
+        self.pushButtonLivePlot.repaint()
+
+        QtCore.QThread.msleep(100)
+        self.pushButtonLivePlot.setText('Select database...')
+
+        from ...sources.config import loadConfigCurrent
+        config = loadConfigCurrent()
+        fname = config['livePlotDefaultFolder']
+
+        if fname:
+            self._livePlotDatabaseAbsPath = fname
+            self._livePlotDataBaseName = os.path.split(fname)[-1]
+
+            self._livePlotPreviousDataLength = 0
+            self.plotIdGenerator = plotIdGenerator()
+            self.plotId = next(self.plotIdGenerator)  # the idx of live plot, changes to create new window
+            self.livePlotRunIds = [None] * MAX_LIVE_PLOTS
+            self.livePlotPreviousDataLengths = [None] * MAX_LIVE_PLOTS
+            self.livePlotRunNames = [None] * MAX_LIVE_PLOTS
+            self.livePlotDataSets = [None] * MAX_LIVE_PLOTS
+            self.livePlotGetPlotParameterList = [None] * MAX_LIVE_PLOTS
+
+            def load_by_run_spec(idx):
+                from ...sources.labrad_datavault import switch_session_path
+                dv = switch_session_path(self._livePlotDatabaseAbsPath)
+                return dv.openDataset(idx, noisy=False)  # noisy=false to turn off the open message
+
+            self.loadDataset = load_by_run_spec
+
+            self.labelLivePlotDatabasePathInfo.setText('{}'.format(self._livePlotDatabaseAbsPath))
+            self.labelLivePlotDatabaseNameInfo.setText('{}'.format(self._livePlotDataBaseName))
+
+            # We call the liveplot function once manually to be sure it has been
+            # initialized properly
+            self.livePlotUpdateLabrad()
+
+            # Launch a Qt timer which will periodically check if a new run is
+            # launched
+            # If the user disable the livePlot previously
+            if self.spinBoxLivePlotRefreshRate.value()==0:
+                self.spinBoxLivePlotRefreshRate.setValue(1)
+
+            self._livePlotTimer = QtCore.QTimer()
+            self._livePlotTimer.timeout.connect(self.livePlotUpdateLabrad)
             self._livePlotTimer.setInterval(self.spinBoxLivePlotRefreshRate.value()*1000)
             self._livePlotTimer.start()
 
