@@ -10,9 +10,12 @@ from ..sources.runPropertiesExtra import RunPropertiesExtra
 from ..sources.functions import (
     clearTableWidget,
     isBlueForsFolder,
+    isLabradFolder,
+    isQcodesData,
     sizeof_fmt,
     getDatabaseNameFromAbsPath
 )
+from ..sources.labrad_datavault import switch_session_path
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -37,6 +40,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
         super(TableWidgetFolder, self).__init__(parent)
 
         self.cellClicked.connect(self.itemClicked_)
+        self.cellDoubleClicked.connect(self.itemDoubleClicked_)
         self.customContextMenuRequested.connect(self.itemClicked_)
 
         self.properties = RunPropertiesExtra()
@@ -184,7 +188,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
 
 
-    def itemClicked_(self, b: Union[int, QtCore.QPoint]) -> None:
+    def itemClicked_(self, b: Union[int, QtCore.QPoint], double_click: bool=False) -> None:
         """
         Handle event when user clicks on datafile.
         The user can either click on a folder or a file.
@@ -203,9 +207,13 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
             nextPath = os.path.join(self.currentPath, currentItem)
             self.databaseAbsPath = os.path.normpath(os.path.join(self.currentPath, currentItem)).replace("\\", "/")
-
+            # If the folder is a regulat folder):
+            if double_click and os.path.isdir(nextPath):
+                self.signalSendStatusBarMessage.emit('Updating', 'orange')
+                self.folderClicked(directory=nextPath)
+                self.signalSendStatusBarMessage.emit('Ready', 'green')
             # If the folder is a BlueFors folder
-            if isBlueForsFolder(currentItem):
+            elif isBlueForsFolder(currentItem):
                 self.blueForsClick()
             # If it is a csv or a s2p file
             elif nextPath[-3:].lower() in ['csv', 's2p']:
@@ -213,12 +221,24 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
             # If it is a npz file
             elif nextPath[-3:].lower() in 'npz':
                 self.npzClick()
+            elif isinstance(b, QtCore.QPoint):
+                # Job done, we restor the usual cursor
+                QtWidgets.QApplication.restoreOverrideCursor()
+
+                # We open a homemade menu
+                MenuDb(self.databaseAbsPath)
+            # If it is a QCoDeS database
+            elif isQcodesData(currentItem):
+                self.databaseClick()
+            # if it is a Labrad datavault folder
+            elif isLabradFolder(self.databaseAbsPath):
+                self.LabradDataClick()
+                switch_session_path(self.databaseAbsPath)
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
                 self.signalSendStatusBarMessage.emit('Updating', 'orange')
                 self.folderClicked(directory=nextPath)
                 self.signalSendStatusBarMessage.emit('Ready', 'green')
-            # If it is a QCoDeS database
             else:
                 # If right clicked
                 if isinstance(b, QtCore.QPoint):
@@ -228,7 +248,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
                     # We open a homemade menu
                     MenuDb(self.databaseAbsPath)
                 else:
-                    self.databaseClick()
+                    print('file not recognized!')
 
             # Job done, we restor the usual cursor
             QtWidgets.QApplication.restoreOverrideCursor()
@@ -237,6 +257,9 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
         if not self._guiInitialized:
             self._guiInitialized = True
 
+
+    def itemDoubleClicked_(self, b: Union[int, QtCore.QPoint]):
+        return self.itemClicked_(b, True)
 
 
     def blueForsClick(self, currentRow: int=0,
@@ -325,6 +348,41 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
         self.signalDatabaseClick.emit(self.databaseAbsPath)
 
+
+    def LabradDataClick(self) -> None:
+        """
+        Display the content of the clicked dataBase into the database table
+        which will then contain all runs.
+        """
+
+        # We inform the tableWidgetDatabase of the the databasePath
+        self.signalDatabasePathUpdate.emit(self.databaseAbsPath)
+
+        self.currentPath  = os.path.dirname(self.databaseAbsPath)
+        self.databaseName = os.path.basename(self.databaseAbsPath)
+
+        # Load runs extra properties
+        self.properties.jsonLoad(self.currentPath,
+                                 self.databaseName)
+
+        # To avoid the opening of two databases as once
+        if self._flagDatabaseClicking:
+            # Emit signal to stop loading the previous database
+            self.signalDatabaseLoadingStop.emit()
+
+        self._flagDatabaseClicking = True
+
+
+        row = self.rowNumberFromText(getDatabaseNameFromAbsPath(self.databaseAbsPath))
+
+        # We show the database is now opened
+        if self.properties.isDatabaseStared(self.databaseName):
+            self.databaseUpdateIcon(row, 'labradIcon.png')
+        else:
+            self.databaseUpdateIcon(row, 'labradIcon.png')
+
+
+        self.signalDatabaseClick.emit(self.databaseAbsPath)
 
 
     @QtCore.pyqtSlot(str)

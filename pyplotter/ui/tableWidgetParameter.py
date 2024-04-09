@@ -4,12 +4,53 @@ import os
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..sources.workers.loadDataFromRun import LoadDataFromRunThread
+from ..sources.workers import loadDataFromRun, loadLabradDataFromRun
 from ..sources.functions import (clearTableWidget,
                                  getCurveId,
                                  getPlotRef,
                                  getPlotTitle,
-                                 getWindowTitle)
+                                 getWindowTitle,
+                                 isQcodesData,
+                                 isLabradFolder)
+
+
+def LoadDataFromRunThread(
+    curveId,
+    databaseAbsPath,
+    dependentParamName,
+    plotRef,
+    plotTitle,
+    runId,
+    windowTitle,
+    cb,
+    progressBarId,
+):
+    if isLabradFolder(databaseAbsPath):
+        worker = loadLabradDataFromRun.LoadDataFromRunThread(
+            curveId,
+            databaseAbsPath,
+            dependentParamName,
+            plotRef,
+            plotTitle,
+            runId,
+            windowTitle,
+            cb,
+            progressBarId,
+        )
+    elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        worker = loadDataFromRun.LoadDataFromRunThread(
+            curveId,
+            databaseAbsPath,
+            dependentParamName,
+            plotRef,
+            plotTitle,
+            runId,
+            windowTitle,
+            cb,
+            progressBarId,
+        )
+    return worker
+
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -243,7 +284,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         cb.setEnabled(False)
         QtCore.QThread.msleep(100)
 
-        if dataType=='qcodes':
+        if dataType in ['qcodes', 'Labrad']:
             worker = LoadDataFromRunThread(curveId,
                                            databaseAbsPath,
                                            dependentParamName,
