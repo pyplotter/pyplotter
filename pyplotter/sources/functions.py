@@ -119,6 +119,17 @@ def isBlueForsFolder(folderName : str) -> bool:
 
 
 
+def isQcodesData(folderName: str):
+    return '.db' in folderName
+    
+
+def isLabradFolder(abs_folderName : str) -> bool:
+    """
+    Return True if a string follow Labrad log folder name pattern.
+    """
+    return abs_folderName.split('.')[-1] == "dir"
+
+
 def sizeof_fmt(num: float, suffix: str='B') -> str:
     """
     Return human readable number of Bytes
