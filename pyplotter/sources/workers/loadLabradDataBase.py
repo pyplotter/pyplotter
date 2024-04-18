@@ -5,7 +5,7 @@ from ..config import loadConfigCurrent
 
 config = loadConfigCurrent()
 
-from .. import labrad_datavault
+from ..labrad_datavault import getRunInfos
 
 
 class LoadDataBaseSignal(QtCore.QObject):
@@ -63,10 +63,7 @@ class LoadDataBaseThread(QtCore.QRunnable):
         if self._stop:
             return
 
-        dv = labrad_datavault.switch_session_path(self.databaseAbsPath)
-        allNames = dv.listDatasets()
-        allNums = dv.listDatasetNums()
-        runInfos = dict(zip(allNums, allNames))
+        runInfos = getRunInfos(self.databaseAbsPath)
 
         # If database is empty
         if runInfos is None:

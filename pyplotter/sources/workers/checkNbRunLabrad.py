@@ -1,13 +1,7 @@
 from PyQt5 import QtCore, QtTest
 import multiprocess as mp
 
-from .. import labrad_datavault
-
-
-def getNbTotalRunmp(databaseAbsPath: str, queueNbRun: mp.Queue) -> None:
-    dv = labrad_datavault.switch_session_path(databaseAbsPath)
-    nbTotalRun = len(dv.listDatasets())
-    queueNbRun.put(nbTotalRun)
+from ..labrad_datavault import getNbTotalRunmp
 
 
 class dataBaseCheckNbRunSignal(QtCore.QObject):
@@ -57,7 +51,11 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
         # Queue will contain the nb of run in the database
         queueNbRun: mp.Queue = mp.Queue()
 
-        self.worker = mp.Process(target=getNbTotalRunmp, args=(self.databaseAbsPath, queueNbRun))
+        def get_func(databaseAbsPath, queueNbRun):
+            nbTotalRun = getNbTotalRunmp(databaseAbsPath)
+            queueNbRun.put(nbTotalRun)
+
+        self.worker = mp.Process(target=get_func, args=(self.databaseAbsPath, queueNbRun))
         self.worker.start()
 
         nbTotalRun: int = queueNbRun.get()

@@ -3,37 +3,10 @@ from PyQt5 import QtCore
 from ..config import loadConfigCurrent
 
 config = loadConfigCurrent()
-from .. import labrad_datavault
+from ..labrad_datavault import getDependentSnapshotShapeFromRunId
 
 dataType = "Labrad"
 from typing import Dict, Tuple, List, Union, Optional
-
-
-def getDependentSnapshotShapeFromRunId(
-    databaseAbsPath: str, runId: int
-) -> Tuple[list, dict, dict]:
-    dv = labrad_datavault.switch_session_path(databaseAbsPath)
-    data = dv.openDataset(runId)
-    dependents = data.getDependents()
-    independents = data.getIndependents()
-    dependentList = []
-    for dep in dependents:
-        dependentList.append(
-            {
-                "name": labrad_datavault.dep_name(dep),
-                "paramtype": dep.datatype,
-                "label": labrad_datavault.dep_name(dep),
-                "unit": dep.unit,
-                "inferred_from": [],
-                "depends_on": [indep.label for indep in independents],
-            }
-        )
-    snapshotDict = data.getParamDict()
-    shapesDict = {}
-    for dep in dependents:
-        shapesDict[labrad_datavault.dep_name(dep)] = [tuple(ind.shape) for ind in independents]
-    return dependentList, snapshotDict, shapesDict
-
 
 class LoadRunInfoSignal(QtCore.QObject):
     """

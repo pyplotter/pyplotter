@@ -797,6 +797,8 @@ class SimpleHDF5Data(HDF5MetaData):
         #    field = "f%d" % (col,)
         #    new_data[field] = data[:,col]
         self.dataset[old_rows:(old_rows + new_rows)] = data
+        self.dataset.flush()
+
 
     def getData(self, limit, start, transpose, simpleOnly):
         """Get up to limit rows from a dataset."""
@@ -818,14 +820,17 @@ class SimpleHDF5Data(HDF5MetaData):
     def hasMore(self, pos):
         return pos < len(self)
 
-def open_hdf5_file(filename):
+def open_hdf5_file(filename, write_access=False):
     """Factory for HDF5 files.  
 
     We check the version of the file to construct the proper class.  Currently, only two
     options exist: version 2.0.0 -> legacy format, 3.0.0 -> extended format.
     Version 1 is reserved for CSV files.
     """
-    fh = SelfClosingFile(h5py.File, open_args=(filename, 'a'))
+    if write_access:
+        fh = SelfClosingFile(h5py.File, open_args=(filename, 'a'), open_kw={'libver': "latest"})
+    else:
+        fh = SelfClosingFile(h5py.File, open_args=(filename, 'r'), open_kw={'libver': "latest", 'swmr': True})
     version = fh().attrs['Version']
     if version[0] == 2:
         return SimpleHDF5Data(fh)
@@ -834,7 +839,11 @@ def open_hdf5_file(filename):
 
 def create_backend(filename, title, indep, dep, extended):
     hdf5_file = filename + '.hdf5'
-    fh = SelfClosingFile(h5py.File, open_args=(hdf5_file, 'a'))
+    fh = SelfClosingFile(h5py.File, open_args=(hdf5_file, 'w'), open_kw={'libver': "latest"})
+    # You can not switch to swmr mode before creating fields in the dataset!!! 
+    # see 5.6.2 in h5py Documentation, Release 3.11.0 [https://readthedocs.org/projects/h5py/downloads/pdf/stable/]
+    # assert not fh().swmr_mode
+    # fh().swmr_mode = True
     if extended:
         data = ExtendedHDF5Data(fh)
     else:
@@ -842,7 +851,7 @@ def create_backend(filename, title, indep, dep, extended):
     data.initialize_info(title, indep, dep)
     return data
 
-def open_backend(filename):
+def open_backend(filename, write_access=False):
     """Make a data object that manages in-memory and on-disk storage for a dataset.
 
     filename should be specified without a file extension. If there is an existing
@@ -858,6 +867,6 @@ def open_backend(filename):
         else:
             return CsvListData(csv_file)
     elif os.path.exists(hdf5_file):
-        return open_hdf5_file(hdf5_file)
+        return open_hdf5_file(hdf5_file, write_access)
     else: # We should have already checked, this should not happen
         raise errors.DatasetNotFoundError(filename)

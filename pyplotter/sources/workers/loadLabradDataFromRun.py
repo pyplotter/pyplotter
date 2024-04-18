@@ -4,7 +4,7 @@ from typing import Tuple
 import multiprocessing as mp
 import time
 
-# from ..qcodesDatabase import getParameterDatamp, getParameterInfo
+from ..labrad_datavault import getParameterInfo  # getParameterDatamp
 from ..config import loadConfigCurrent
 
 config = loadConfigCurrent()
@@ -16,39 +16,6 @@ from pathlib import Path
 
 
 from typing import Dict, Tuple, List, Union, Optional
-
-
-def getParameterInfo(
-    databaseAbsPath: str, runId: int, parameterName: str
-) -> Tuple[dict, List[dict]]:
-    dv = labrad_datavault.switch_session_path(databaseAbsPath)
-    data = dv.openDataset(runId)
-    dependents = data.getDependents()
-    independents = data.getIndependents()
-    dep_names = [labrad_datavault.dep_name(dep) for dep in dependents]
-    dep = dependents[dep_names.index(parameterName)]
-    dependences = {
-        "name": labrad_datavault.dep_name(dep),
-        "paramtype": dep.datatype,
-        "label": labrad_datavault.dep_name(dep),
-        "unit": dep.unit,
-        "inferred_from": [],
-        "depends_on": [indep.label for indep in independents],
-        "index": dep_names.index(parameterName),
-    }
-    param = []
-    for indep in independents:
-        param.append(
-            {
-                "name": indep.label,
-                "paramtype": indep.datatype,
-                "label": indep.label,
-                "unit": indep.unit,
-                "inferred_from": [],
-                "depends_on": [],
-            }
-        )
-    return dependences, param
 
 
 class LoadDataFromRunSignal(QtCore.QObject):
@@ -152,19 +119,8 @@ class LoadDataFromRunThread(QtCore.QRunnable):
             self.databaseAbsPath, self.runId, self.dependentParamName
         )
 
-        dv = labrad_datavault.switch_session_path(self.databaseAbsPath)
-        data = dv.openDataset(self.runId)
-        val, dlen = data.getData(None, 0, None, None)
-        dep_idx = paramsDependent["index"]
-        indep_len = len(paramsIndependent)
-        d = np.concatenate(
-            [
-                val[:, :indep_len],
-                val[:, indep_len + dep_idx : indep_len + dep_idx + 1],
-            ],
-            axis=1,
-        )
-        print("load Data [done]: ", time.time() - t0)
+        d = paramsDependent['data']
+        print(f"load Data (shape={d.shape}) [done]: ", time.time() - t0)
         t0 = time.time()
 
         # If getParameterDatamp failed, or the database is empty we emit a specific

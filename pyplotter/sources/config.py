@@ -70,6 +70,10 @@ configPackage = {
 'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
 # Default folder open when clicking on the select database of the liveplot dialog
 'livePlotDefaultFolder' : 'C:/',
+'liveDialogWindowSize': [720, 640],
+'liveDialogWindowOffsets': [0, 0],
+'livePlotWindowNumber': 1,
+'livePlotScreenIndex': 0, # 0 to n-1
 
 
 # Interactivity
