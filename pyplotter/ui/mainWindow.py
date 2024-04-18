@@ -64,6 +64,7 @@ class MainApp(QtWidgets.QMainWindow):
         self.ui.menuBarMain.signalUpdateStyle.connect(self.updateStyle)
         self.ui.menuBarMain.signalUpdateTableWidgetDatabase.connect(self.ui.tableWidgetDataBase.slotUpdate)
         self.ui.menuBarMain.signalAddLivePlot.connect(self.slotFromLivePlotAddPlot)
+        self.ui.menuBarMain.signalCloseLivePlot.connect(self.slotClose1dPlot)
         self.ui.menuBarMain.signalUpdate1d.connect(self.slotUpdateCurve)
         self.ui.menuBarMain.signalUpdate2d.connect(self.slotUpdate2d)
         self.ui.menuBarMain.signalUpdatePlotProperty.connect(self.slotUpdatePlotProperty)

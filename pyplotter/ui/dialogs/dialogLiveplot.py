@@ -24,6 +24,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
     ## Signal to the mainWindow to
     # Add plot
     signalAddLivePlot = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str, int, int, int, int)
+    signalCloseLivePlot = QtCore.pyqtSignal(str)
 
     # Update a 1d plotDataItem
     signalUpdate1d = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
@@ -840,6 +841,9 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             ):
                 # move to the next plot window for new data
                 self.plotId = next(self.plotIdGenerator)
+                # plotRefs are the same in one live dataset
+                plotRefs = self.livePlotGetPlotParameterList[self.plotId][-1]
+                self.signalCloseLivePlot.emit(plotRefs[0])
                 # remove old
                 self.livePlotRunIds.pop(self.plotId)
                 self.livePlotPreviousDataLengths.pop(self.plotId)
