@@ -539,6 +539,7 @@ class Dataset(object):
         self.listeners = set()  # contexts that want to hear about added data
         self.param_listeners = set()
         self.comment_listeners = set()
+        self.noisy = noisy
 
         if create:
             print(f"create {name}") if noisy else None
@@ -598,6 +599,20 @@ class Dataset(object):
 
     def getDependents(self):
         return self.data.getDependents()
+
+    def getPlotDependents(self):
+        if not hasattr(self, 'plot_dependents'):
+            try:
+                self.plot_dependents = self.getParameter('plot_dependents')
+            except errors.BadParameterError:
+                if self.noisy:
+                    print("'plot_dependents' parameter not found: set all dependents for plotting!")
+                self.plot_dependents = None
+        plotDependents = []
+        for dep in self.getDependents():
+            if self.plot_dependents is None or dep_name(dep) in self.plot_dependents:
+                plotDependents.append(dep)
+        return plotDependents
 
     def getRowType(self):
         return self.data.getRowType()

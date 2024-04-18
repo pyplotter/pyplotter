@@ -590,7 +590,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         """
 
         # Get dataset params
-        paramsDependents   = [i for i in self.livePlotDataSets[plotId].getDependents()]
+        paramsDependents   = [i for i in self.livePlotDataSets[plotId].getPlotDependents()]
 
         xParamNames  = []
         xParamLabels = []
@@ -932,7 +932,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         from ...sources.config import loadConfigCurrent
         config = loadConfigCurrent()
         fname = config['livePlotDefaultFolder']
-        
+
         if fname:
             self._livePlotDatabaseAbsPath = fname
             self._livePlotDataBaseName = os.path.split(fname)[-1]
