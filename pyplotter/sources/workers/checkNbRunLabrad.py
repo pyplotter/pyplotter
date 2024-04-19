@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtTest
 import multiprocess as mp
 
-from ..labrad_datavault import getNbTotalRunmp
+from ..labradDatavault import getNbTotalRunmp
 
 
 class dataBaseCheckNbRunSignal(QtCore.QObject):

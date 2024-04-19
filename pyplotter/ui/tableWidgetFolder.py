@@ -15,7 +15,7 @@ from ..sources.functions import (
     sizeof_fmt,
     getDatabaseNameFromAbsPath
 )
-from ..sources.labrad_datavault import switch_session_path
+from ..sources.labradDatavault import switch_session_path
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')

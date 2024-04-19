@@ -10,15 +10,25 @@ from ...sources.workers.loadDataFromCache import LoadDataFromCacheThread
 from ...sources.workers.loadLabradDataFromCache import LoadLabradDataFromCacheThread
 from .dialogLiveplotUi import Ui_LivePlot
 from ...sources.qcodesDatabase import getNbTotalRunAndLastRunName, isRunCompleted
-from ...sources.labrad_datavault import check_busy_dataset, switch_session_path, dep_name, getNbTotalRunAndLastRunNameLabrad, isRunCompletedLabrad
-from ...sources.functions import (getDatabaseNameFromAbsPath,
-                                  getCurveId,
-                                  getWindowTitle,
-                                  getPlotTitle,
-                                  getPlotRef,
-                                  getDialogWidthHeight, 
-                                  getParallelDialogWidthHeight,
-                                  MAX_LIVE_PLOTS, plotIdGenerator)
+from ...sources.labradDatavault import (
+    dep_name,
+    switch_session_path,
+    getNbTotalRunAndLastRunNameLabrad,
+    isRunCompletedLabrad,
+    check_busy_datasets,
+)
+from ...sources.functions import (
+    getDatabaseNameFromAbsPath,
+    getCurveId,
+    getWindowTitle,
+    getPlotTitle,
+    getPlotRef,
+    getDialogWidthHeight,
+    getParallelDialogWidthHeight,
+    MAX_LIVE_PLOTS,
+    isLabradFolder,
+    plotIdGenerator,
+)
 
 class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
@@ -259,6 +269,32 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             else:
                 self._livePlotTimer.setInterval(val*1000)
 
+
+    def is2dPlot(self, livePlotGetPlotParameter)  :
+        if livePlotGetPlotParameter[6][0]:
+            return True
+        else:
+            return False
+
+
+    def genCurveIds(self, livePlotGetPlotParameter, livePlotRunIds):
+        curveIds = []
+        for yParamName in livePlotGetPlotParameter[3]:
+            curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                 name=yParamName,
+                                 runId=livePlotRunIds)
+            curveIds.append(curveId)
+        return curveIds
+
+
+    def isDataBusy(self, livePlotRunName):
+        if isLabradFolder(self._livePlotDatabaseAbsPath):
+            if not hasattr(self, 'session'):
+                self.session = switch_session_path(self._livePlotDatabaseAbsPath)
+            return check_busy_datasets(self.session, [livePlotRunName])[0]
+        elif isMongoDBFolder(self._livePlotDatabaseAbsPath):
+            return False
+        
 
     ###########################################################################
     #                           Qcodes plotting
@@ -570,21 +606,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
     #                           Labrad plotting
     ###########################################################################
 
-    def is2dPlot(self, livePlotGetPlotParameter)  :
-        if livePlotGetPlotParameter[6][0]:
-            return True
-        else:
-            return False
-
-    def genCurveIds(self, livePlotGetPlotParameter, livePlotRunIds):
-        curveIds = []
-        for yParamName in livePlotGetPlotParameter[3]:
-            curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
-                                 name=yParamName,
-                                 runId=livePlotRunIds)
-            curveIds.append(curveId)
-        return curveIds
-
 
     @QtCore.pyqtSlot(str, tuple, str, bool, bool, int)
     def slotUpdatePlotLabradData(self, 
@@ -775,7 +796,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self._updatingFlag = []
 
         self.livePlotDataSets[plotId].data.dataset.refresh()
-        d = self.livePlotDataSets[plotId].getData()[0]
+        d = self.livePlotDataSets[plotId].getPlotData()[0]
         
         for dep_idx, [xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef] in enumerate(zip(*self.livePlotGetPlotParameterList[plotId])):
             self._updatingFlag.append(False)
@@ -827,7 +848,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         updateIds = np.arange(self.plotId, self.plotId + num_live_plots) % MAX_LIVE_PLOTS
         currPlotId = self.plotId
         
-        isBusy = check_busy_dataset(self.session, [self._livePlotRunName])[0]
+        isBusy = self.isDataBusy(self._livePlotRunName)
         if isBusy:
             print(f'WARNING: dataset {self._livePlotRunName} is busy, please set swmr mode!')
             return
@@ -945,7 +966,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self.pushButtonLivePlot.setText('Modify database')
 
 
-    def livePlotPushButtonFolderTest(self) -> None:
+    def livePlotPushButtonFolder(self, fname=None) -> None:
 
         """
         Call when user click on the 'LivePlot' button.
@@ -957,11 +978,10 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         QtCore.QThread.msleep(100)
         self.pushButtonLivePlot.setText('Select database...')
-
-        from ...sources.config import loadConfigCurrent
-        config = loadConfigCurrent()
-        fname = config['livePlotDefaultFolder']
-
+        if fname is None:
+            fname = QtWidgets.QFileDialog.getExistingDirectory(self, 
+                                                           'Open Labrad database',
+                                                           self.config['livePlotDefaultFolder'])
         if fname:
             self._livePlotDatabaseAbsPath = fname
             self._livePlotDataBaseName = os.path.split(fname)[-1]

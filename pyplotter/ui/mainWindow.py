@@ -68,6 +68,7 @@ class MainApp(QtWidgets.QMainWindow):
         self.ui.menuBarMain.signalUpdate1d.connect(self.slotUpdateCurve)
         self.ui.menuBarMain.signalUpdate2d.connect(self.slotUpdate2d)
         self.ui.menuBarMain.signalUpdatePlotProperty.connect(self.slotUpdatePlotProperty)
+        self.ui.menuBarMain.signalCloseAllPlot.connect(self.slotCloseAllPlots)
 
 
 
@@ -481,6 +482,23 @@ class MainApp(QtWidgets.QMainWindow):
         else:
             self.slotClose1dPlot(plotRefs[0])
 
+
+    @QtCore.pyqtSlot()
+    def slotCloseAllPlots(self):
+        # print('Close all plots')
+        plotRefs = []
+        plotTypes = []
+        curveIds = []
+        for plotRef, p in self._plotRefs.items():
+            plotRefs.append(plotRef)
+            plotTypes.append(p.plotType)
+            curveIds.append(p.curveId) if p.plotType == '2d' else None
+            
+        for plotRef, plotType, curveId in zip(plotRefs, plotTypes, curveIds):
+            if plotType == '1d':
+                self.slotClose1dPlot(plotRef)
+            elif plotType == '2d':
+                self.slotClose2dPlot(plotRef, curveId=curveId)
 
     def addPlot(self, plotRef         : str,
                       databaseAbsPath : str,

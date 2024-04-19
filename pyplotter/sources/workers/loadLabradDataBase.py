@@ -5,7 +5,7 @@ from ..config import loadConfigCurrent
 
 config = loadConfigCurrent()
 
-from ..labrad_datavault import getRunInfos
+from ..labradDatavault import getRunInfos
 
 
 class LoadDataBaseSignal(QtCore.QObject):

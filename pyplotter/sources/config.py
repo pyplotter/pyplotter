@@ -62,6 +62,9 @@ configPackage = {
 # If you encounter issues with opengl, set this to False.
 'pyqtgraphOpenGL' : True,
 
+# whether H5 file can be opened when being written to, set 'FALSE' to enable live plot
+'HDF5_USE_FILE_LOCKING': 'FALSE',
+
 # Live plot
 'livePlotTimer' : 1, # In second
 # Added to the plot title while a live plot is still measured.
@@ -301,6 +304,7 @@ configPackage = {
 'plot1dSymbol' : ['o', 's', 't', 'd', '+'],
 'plot1dAntialias' : False,
 'plot2dcm' : 'Viridis', # Default colormap
+'plotHideInteractionPanel': False,
 # List of derivative for 2d plot
 # Each new entry should also be coded in the comboBoxDerivativeActivated method
 # see plot_2d_app.py.

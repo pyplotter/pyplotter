@@ -3,7 +3,7 @@ from PyQt5 import QtCore
 from ..config import loadConfigCurrent
 
 config = loadConfigCurrent()
-from ..labrad_datavault import getDependentSnapshotShapeFromRunId
+from ..labradDatavault import getDependentSnapshotShapeFromRunId
 
 dataType = "Labrad"
 from typing import Dict, Tuple, List, Union, Optional
