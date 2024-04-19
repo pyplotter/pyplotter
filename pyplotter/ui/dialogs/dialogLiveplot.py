@@ -1,5 +1,6 @@
 from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore
+from idna import check_bidi
 import numpy as np
 import os
 from datetime import datetime
@@ -9,7 +10,7 @@ from ...sources.workers.loadDataFromCache import LoadDataFromCacheThread
 from ...sources.workers.loadLabradDataFromCache import LoadLabradDataFromCacheThread
 from .dialogLiveplotUi import Ui_LivePlot
 from ...sources.qcodesDatabase import getNbTotalRunAndLastRunName, isRunCompleted
-from ...sources.labrad_datavault import dep_name, getNbTotalRunAndLastRunNameLabrad, getNbTotalRunmp, isRunCompletedLabrad
+from ...sources.labrad_datavault import check_busy_dataset, switch_session_path, dep_name, getNbTotalRunAndLastRunNameLabrad, isRunCompletedLabrad
 from ...sources.functions import (getDatabaseNameFromAbsPath,
                                   getCurveId,
                                   getWindowTitle,
@@ -24,7 +25,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
     ## Signal to the mainWindow to
     # Add plot
     signalAddLivePlot = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str, int, int, int, int)
-    signalCloseLivePlot = QtCore.pyqtSignal(str)
+    signalCloseLivePlot = QtCore.pyqtSignal(tuple, bool, tuple)
 
     # Update a 1d plotDataItem
     signalUpdate1d = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
@@ -569,6 +570,21 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
     #                           Labrad plotting
     ###########################################################################
 
+    def is2dPlot(self, livePlotGetPlotParameter)  :
+        if livePlotGetPlotParameter[6][0]:
+            return True
+        else:
+            return False
+
+    def genCurveIds(self, livePlotGetPlotParameter, livePlotRunIds):
+        curveIds = []
+        for yParamName in livePlotGetPlotParameter[3]:
+            curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                 name=yParamName,
+                                 runId=livePlotRunIds)
+            curveIds.append(curveId)
+        return curveIds
+
 
     @QtCore.pyqtSlot(str, tuple, str, bool, bool, int)
     def slotUpdatePlotLabradData(self, 
@@ -805,20 +821,26 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         """
 
         # We get the last run id of the database
-        self._livePlotRunId = getNbTotalRunmp(self._livePlotDatabaseAbsPath)
-        # self._livePlotRunId, self._livePlotRunName = getNbTotalRunAndLastRunNameLabrad(self._livePlotDatabaseAbsPath)
+        # self._livePlotRunId = getNbTotalRunmp(self._livePlotDatabaseAbsPath)
+        self._livePlotRunId, self._livePlotRunName = getNbTotalRunAndLastRunNameLabrad(self._livePlotDatabaseAbsPath)
         num_live_plots = min(self._livePlotRunId, MAX_LIVE_PLOTS)
         updateIds = np.arange(self.plotId, self.plotId + num_live_plots) % MAX_LIVE_PLOTS
         currPlotId = self.plotId
+        
+        isBusy = check_busy_dataset(self.session, [self._livePlotRunName])[0]
+        if isBusy:
+            print(f'WARNING: dataset {self._livePlotRunName} is busy, please set swmr mode!')
+            return
+
         for ii, _plotId in enumerate(updateIds):
             # fist run and setup
             if self.livePlotRunIds[_plotId] is None:
                 # set new
+                dataset = self.loadDataset(self._livePlotRunId - ii)
                 self.livePlotRunIds[_plotId] = self._livePlotRunId - ii
                 self.livePlotPreviousDataLengths[_plotId] = 0
-                self.livePlotDataSets[_plotId] = self.loadDataset(self._livePlotRunId - ii)
-                self.livePlotRunNames[_plotId] = self.livePlotDataSets[_plotId].name
-                # TODO: remove old plot -XL
+                self.livePlotDataSets[_plotId] = dataset
+                self.livePlotRunNames[_plotId] = dataset.name
                 self.livePlotLaunchLabradPlot(_plotId)
 
             # While the run is not completed, we update the plot
@@ -843,7 +865,10 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 self.plotId = next(self.plotIdGenerator)
                 # plotRefs are the same in one live dataset
                 plotRefs = self.livePlotGetPlotParameterList[self.plotId][-1]
-                self.signalCloseLivePlot.emit(plotRefs[0])
+                is2Dplot = self.is2dPlot(self.livePlotGetPlotParameterList[self.plotId])
+                curveIds = self.genCurveIds(self.livePlotGetPlotParameterList[self.plotId], 
+                                            self.livePlotRunIds[self.plotId])
+                self.signalCloseLivePlot.emit(tuple(plotRefs), is2Dplot, tuple(curveIds))
                 # remove old
                 self.livePlotRunIds.pop(self.plotId)
                 self.livePlotPreviousDataLengths.pop(self.plotId)
@@ -855,7 +880,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 self.livePlotPreviousDataLengths.insert(self.plotId, 0)
                 self.livePlotDataSets.insert(self.plotId, self.loadDataset(self._livePlotRunId))
                 self.livePlotRunNames.insert(self.plotId, self.livePlotDataSets[self.plotId].name)
-                # TODO: remove old plot -XL
                 self.livePlotLaunchLabradPlot(self.plotId)
 
 
@@ -887,10 +911,11 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             self.livePlotDataSets = [None] * MAX_LIVE_PLOTS
             self.livePlotGetPlotParameterList = [None] * MAX_LIVE_PLOTS
 
+            self.session = switch_session_path(self._livePlotDatabaseAbsPath)
+
             def load_by_run_spec(idx):
-                from ...sources.labrad_datavault import switch_session_path
-                dv = switch_session_path(self._livePlotDatabaseAbsPath)
-                return dv.openDataset(idx, noisy=False)  # noisy=false to turn off the open message
+                # noisy=false to turn off the open message
+                return self.session.openDataset(idx, noisy=False)  
 
             self.loadDataset = load_by_run_spec
 
@@ -950,8 +975,8 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             self.livePlotDataSets = [None] * MAX_LIVE_PLOTS
             self.livePlotGetPlotParameterList = [None] * MAX_LIVE_PLOTS
 
+            self.session = switch_session_path(self._livePlotDatabaseAbsPath)
             def load_by_run_spec(idx):
-                from ...sources.labrad_datavault import switch_session_path
                 dv = switch_session_path(self._livePlotDatabaseAbsPath)
                 return dv.openDataset(idx, noisy=False)  # noisy=false to turn off the open message
 

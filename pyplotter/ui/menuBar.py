@@ -20,7 +20,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
     ## Propagate signal from the livePlot dialog window to the mainWindow
     signalAddLivePlot        = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str, int, int, int, int)
-    signalCloseLivePlot      = QtCore.pyqtSignal(str)
+    signalCloseLivePlot      = QtCore.pyqtSignal(tuple, bool, tuple)
     signalUpdate1d           = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
     signalUpdate2d           = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
     signalUpdatePlotProperty = QtCore.pyqtSignal(str, str, str)

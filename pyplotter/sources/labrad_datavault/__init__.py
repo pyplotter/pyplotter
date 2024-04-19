@@ -601,12 +601,14 @@ class Dataset(object):
         return self.data.getDependents()
 
     def getPlotDependents(self):
-        if not hasattr(self, 'plot_dependents'):
+        if not hasattr(self, "plot_dependents"):
             try:
-                self.plot_dependents = self.getParameter('plot_dependents')
+                self.plot_dependents = self.getParameter("plot_dependents")
             except errors.BadParameterError:
                 if self.noisy:
-                    print("'plot_dependents' parameter not found: set all dependents for plotting!")
+                    print(
+                        "'plot_dependents' parameter not found: set all dependents for plotting!"
+                    )
                 self.plot_dependents = None
         plotDependents = []
         for dep in self.getDependents():
