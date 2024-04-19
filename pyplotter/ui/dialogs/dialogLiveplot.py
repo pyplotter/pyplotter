@@ -270,6 +270,32 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 self._livePlotTimer.setInterval(val*1000)
 
 
+    def is2dPlot(self, livePlotGetPlotParameter)  :
+        if livePlotGetPlotParameter[6][0]:
+            return True
+        else:
+            return False
+
+
+    def genCurveIds(self, livePlotGetPlotParameter, livePlotRunIds):
+        curveIds = []
+        for yParamName in livePlotGetPlotParameter[3]:
+            curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
+                                 name=yParamName,
+                                 runId=livePlotRunIds)
+            curveIds.append(curveId)
+        return curveIds
+
+
+    def isDataBusy(self, livePlotRunName):
+        if isLabradFolder(self._livePlotDatabaseAbsPath):
+            if not hasattr(self, 'session'):
+                self.session = switch_session_path(self._livePlotDatabaseAbsPath)
+            return check_busy_datasets(self.session, [livePlotRunName])[0]
+        elif isMongoDBFolder(self._livePlotDatabaseAbsPath):
+            return False
+        
+
     ###########################################################################
     #                           Qcodes plotting
     ###########################################################################
@@ -581,30 +607,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
     ###########################################################################
 
 
-    def is2dPlot(self, livePlotGetPlotParameter)  :
-        if livePlotGetPlotParameter[6][0]:
-            return True
-        else:
-            return False
-
-
-    def genCurveIds(self, livePlotGetPlotParameter, livePlotRunIds):
-        curveIds = []
-        for yParamName in livePlotGetPlotParameter[3]:
-            curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
-                                 name=yParamName,
-                                 runId=livePlotRunIds)
-            curveIds.append(curveId)
-        return curveIds
-
-
-    def isDataBusy(self, livePlotRunName):
-        if isLabradFolder(self._livePlotDatabaseAbsPath):
-            if not hasattr(self, 'session'):
-                self.session = switch_session_path(self._livePlotDatabaseAbsPath)
-            return check_busy_datasets(self.session, [livePlotRunName])[0]
-
-
     @QtCore.pyqtSlot(str, tuple, str, bool, bool, int)
     def slotUpdatePlotLabradData(self, 
                                  plotRef        : str,
@@ -794,7 +796,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self._updatingFlag = []
 
         self.livePlotDataSets[plotId].data.dataset.refresh()
-        d = self.livePlotDataSets[plotId].getData()[0]
+        d = self.livePlotDataSets[plotId].getPlotData()[0]
         
         for dep_idx, [xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef] in enumerate(zip(*self.livePlotGetPlotParameterList[plotId])):
             self._updatingFlag.append(False)
@@ -964,7 +966,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self.pushButtonLivePlot.setText('Modify database')
 
 
-    def livePlotPushButtonFolderTest(self) -> None:
+    def livePlotPushButtonFolder(self, fname=None) -> None:
 
         """
         Call when user click on the 'LivePlot' button.
@@ -976,11 +978,10 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         QtCore.QThread.msleep(100)
         self.pushButtonLivePlot.setText('Select database...')
-
-        from ...sources.config import loadConfigCurrent
-        config = loadConfigCurrent()
-        fname = config['livePlotDefaultFolder']
-
+        if fname is None:
+            fname = QtWidgets.QFileDialog.getExistingDirectory(self, 
+                                                           'Open Labrad database',
+                                                           self.config['livePlotDefaultFolder'])
         if fname:
             self._livePlotDatabaseAbsPath = fname
             self._livePlotDataBaseName = os.path.split(fname)[-1]

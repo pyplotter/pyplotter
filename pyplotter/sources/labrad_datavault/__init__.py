@@ -683,6 +683,14 @@ class Dataset(object):
     def getData(self, limit=None, start=0, transpose=False, simpleOnly=False):
         return self.data.getData(limit, start, transpose, simpleOnly)
 
+    def getPlotData(self, limit=None, start=0, transpose=False, simpleOnly=False):
+        d, new_pos = self.getData(limit, start, transpose, simpleOnly)
+        num_indeps = len(self.getIndependents())
+        deps = self.getDependents()
+        sel_idx = np.arange(num_indeps).tolist()
+        sel_idx += [num_indeps + deps.index(dep) for dep in self.getPlotDependents()]
+        return d[:, sel_idx], new_pos
+
     def keepStreaming(self, context, pos):
         # keepStreaming does something a bit odd and has a confusing name (ERJ)
         #

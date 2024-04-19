@@ -512,6 +512,7 @@ class HDF5MetaData(object):
             attrs[prefix + 'shape'] = i.shape
             attrs[prefix + 'datatype'] = i.datatype
             attrs[prefix + 'unit'] = i.unit
+            attrs[prefix + 'index'] = idx
 
         for idx, d, in enumerate(dep):
             prefix = 'Dependent{}.'.format(idx)
@@ -520,6 +521,7 @@ class HDF5MetaData(object):
             attrs[prefix + 'shape'] = d.shape
             attrs[prefix + 'datatype'] = d.datatype
             attrs[prefix + 'unit'] = d.unit
+            attrs[prefix + 'index'] = idx
 
     def access(self):
         self.dataset.attrs['Access Time'] = time.time()
