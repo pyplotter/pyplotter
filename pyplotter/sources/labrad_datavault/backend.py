@@ -602,6 +602,9 @@ class HDF5MetaData(object):
         if keyname in self.dataset.attrs:
             raise errors.ParameterInUseError(name)
         value = labrad_urlencode(data)
+        if self.file.swmr_mode:
+            print('can not set attrs in swmr mode!')
+            return
         self.dataset.attrs[keyname] = value
 
     def getParameter(self, name, case_sensitive=True):
@@ -631,6 +634,9 @@ class HDF5MetaData(object):
         new_comment = np.array([(t, user, comment)], dtype=self.comment_type)
         old_comments = self.dataset.attrs['Comments']
         data = np.hstack((old_comments, new_comment))
+        if self.file.swmr_mode:
+            print('can not set attrs in swmr mode!')
+            return
         self.dataset.attrs.create('Comments', data, dtype=self.comment_type)
 
     def getComments(self, limit, start):

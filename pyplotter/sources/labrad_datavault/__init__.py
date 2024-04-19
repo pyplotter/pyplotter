@@ -33,6 +33,11 @@ def switch_session_path(absolute_path):
     return Session(datadir=DATAVAULT_PATH, path=tuple(session), hub=None, session_store=None)
 
 
+def check_busy_dataset(session, dataset_names):
+    _, dataTags = session.getTags([], dataset_names)
+    return ["busy" in dataTag[1] for dataTag in dataTags]
+
+
 def dep_name(dep):
     if dep.legend:
         return dep.label + f"({dep.legend})"
@@ -129,11 +134,9 @@ def getNbTotalRunAndLastRunNameLabrad(databaseAbsPath: str) -> Tuple[int, str]:
     """
     Return the number of run in the database and the name of the last run
     """
-    nbTotalRun = getNbTotalRunmp(databaseAbsPath)
     dv = switch_session_path(databaseAbsPath)
-    data = dv.openDataset(nbTotalRun, noisy=False)
-    runName = data.name
-    return nbTotalRun, runName
+    dataset_names = dv.listDatasets()
+    return len(dataset_names), dataset_names[-1]
 
 
 def isRunCompletedLabrad(databaseAbsPath: str, runId: int) -> bool:
@@ -401,12 +404,17 @@ class Session(object):
     def listDatasetNums(self):
         return list(int(file_name.split(" - ")[0]) for file_name in self.listDatasets())
 
+    def datasetName(self, title):
+        return "%05d - %s" % (self.counter, title)
+
     def newDataset(self, title, independents, dependents, extended=False):
         num = self.counter
+        name = self.datasetName(title)
+
         self.counter += 1
         self.modified = datetime.now()
 
-        name = "%05d - %s" % (num, title)
+        # name = "%05d - %s" % (num, title)
         dataset = Dataset(
             self,
             name,
@@ -481,6 +489,8 @@ class Session(object):
                         tag = tag[1:]
                         if tag in entryTags:
                             entryTags.remove(tag)
+                            if not len(entryTags):
+                                d.pop(entry)
                             changed = True
                     elif tag[:1] == "^":
                         # toggle this tag
@@ -637,16 +647,20 @@ class Dataset(object):
             self.data.addParam(name, data)
         if saveNow:
             self.save()
-        # This function is assumed to happend at last,
-        # no other update is alowed before file closes.
-        # -XL
-        if not self.data.file.swmr_mode:
-            print("switch to swmrmode, PLEASE NO DOT CHANGE THE ATTRS AFTER !!!")
-            self.data.file.swmr_mode = True
-
         # notify all listening contexts
         self.hub.onNewParameter(None, self.param_listeners)
         self.param_listeners = set()
+
+    def enableSWMRmode(self):
+        # This function is assumed to happend just after the creation of HDF5 file,
+        # then, others can read the following added data...
+        # But no update of the attrs is allowed before all other people close the file.
+        # -XL
+        if not self.data.file.swmr_mode:
+            print("switch to swmr_mode, PLEASE NO DOT CHANGE THE ATTRS AFTER !!!")
+            self.data.file.swmr_mode = True
+        else:
+            raise Exception("Already in swmr mode!")
 
     def getParameter(self, name, case_sensitive=True):
         return self.data.getParameter(name, case_sensitive)

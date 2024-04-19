@@ -166,6 +166,7 @@ class DataVault(LabradServer):
         c['filepos'] = 0 # start at the beginning
         c['commentpos'] = 0
         c['writing'] = True
+        session.updateTags(['busy'], [], [dataset.name])
         return c['path'], c['dataset']
 
     @setting(1009, name='s', 
@@ -423,6 +424,13 @@ class DataVault(LabradServer):
         dataset = self.getDataset(c)
         dataset.addParameters(params)
 
+    @setting(125, 'enable SWMR mode', returns='')
+    def enable_swmr_mode(self, c):
+        """Add a new parameter to the current dataset."""
+        dataset = self.getDataset(c)
+        dataset.enableSWMRmode()
+        sess = self.getSession(c)
+        sess.updateTags(['-busy'], [], [dataset.name])
 
     @setting(126, 'get name', returns='s')
     def get_name(self, c):
