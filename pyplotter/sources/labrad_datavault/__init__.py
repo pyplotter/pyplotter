@@ -33,7 +33,7 @@ def switch_session_path(absolute_path):
     return Session(datadir=DATAVAULT_PATH, path=tuple(session), hub=None, session_store=None)
 
 
-def check_busy_dataset(session, dataset_names):
+def check_busy_datasets(session, dataset_names):
     _, dataTags = session.getTags([], dataset_names)
     return ["busy" in dataTag[1] for dataTag in dataTags]
 
