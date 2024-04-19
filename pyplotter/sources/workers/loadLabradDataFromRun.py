@@ -133,8 +133,18 @@ class LoadDataFromRunThread(QtCore.QRunnable):
             self.signal.sendStatusBarMessage.emit("Run empty", "red")
             self.signal.loadedDataEmpty.emit(self.cb, self.progressBarId)
         else:
+            # no independent, i.e. IQ data, set clicks as the x axis
+            if len(paramsIndependent) == 0:
+                data: Tuple[np.ndarray, ...] = (np.arange(len(d[:, 0])), d[:, 0])
+
+                xLabelText = 'clicks'
+                xLabelUnits = ''
+                yLabelText = paramsDependent["label"]
+                yLabelUnits = paramsDependent["unit"]
+                zLabelText = ""
+                zLabelUnits = ""
             # 1d plot
-            if len(paramsIndependent) == 1:
+            elif len(paramsIndependent) == 1:
                 data: Tuple[np.ndarray, ...] = (d[:, 0], d[:, 1])
 
                 xLabelText = paramsIndependent[0]["label"]
@@ -164,6 +174,9 @@ class LoadDataFromRunThread(QtCore.QRunnable):
                 yLabelUnits = paramsIndependent[yi]["unit"]
                 zLabelText = paramsDependent["label"]
                 zLabelUnits = paramsDependent["unit"]
+            else:
+                print("WARNNING: bad paramsIndependent", paramsIndependent)
+                return 
 
             print("load Data [start emit]: ", time.time() - t0)
             t0 = time.time()
