@@ -64,7 +64,7 @@ class MainApp(QtWidgets.QMainWindow):
         self.ui.menuBarMain.signalUpdateStyle.connect(self.updateStyle)
         self.ui.menuBarMain.signalUpdateTableWidgetDatabase.connect(self.ui.tableWidgetDataBase.slotUpdate)
         self.ui.menuBarMain.signalAddLivePlot.connect(self.slotFromLivePlotAddPlot)
-        self.ui.menuBarMain.signalCloseLivePlot.connect(self.slotClose1dPlot)
+        self.ui.menuBarMain.signalCloseLivePlot.connect(self.slotFromLivePlotClosePlot)
         self.ui.menuBarMain.signalUpdate1d.connect(self.slotUpdateCurve)
         self.ui.menuBarMain.signalUpdate2d.connect(self.slotUpdate2d)
         self.ui.menuBarMain.signalUpdatePlotProperty.connect(self.slotUpdatePlotProperty)
@@ -470,6 +470,16 @@ class MainApp(QtWidgets.QMainWindow):
                      dialogWidth     = dialogWidth,
                      dialogHeight    = dialogHeight)
 
+    @QtCore.pyqtSlot(tuple, bool, tuple)
+    def slotFromLivePlotClosePlot(self, plotRefs        : tuple[str,...],
+                                        is2dPlot        : bool,
+                                        curveIds        : Tuple[str,...],
+                                        ) -> None:
+        if is2dPlot:
+            for plotRef, curveId in zip(plotRefs, curveIds):
+                self.slotClose2dPlot(plotRef, curveId)
+        else:
+            self.slotClose1dPlot(plotRefs[0])
 
 
     def addPlot(self, plotRef         : str,
