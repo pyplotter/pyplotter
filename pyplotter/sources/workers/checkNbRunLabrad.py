@@ -2,6 +2,8 @@ from PyQt5 import QtCore, QtTest
 import multiprocess as mp
 
 from ..labradDatavault import getNbTotalRunmp
+from ..config import loadConfigCurrent
+config = loadConfigCurrent()
 
 
 class dataBaseCheckNbRunSignal(QtCore.QObject):
@@ -43,7 +45,14 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
     @QtCore.pyqtSlot()
     def run(self):
 
-        QtCore.QThread.msleep(1000)
+        for twait in range(config['delayBetweendataBaseNbRunCheck']):
+            # We check if the thread ias being stopped
+            if self._stop:
+                return
+            elapsedTime = config['delayBetweendataBaseNbRunCheck']-twait
+            self.signal.addStatusBarMessage.emit(' (Check for new run in {}s)'.format(elapsedTime),
+                                                  'green')
+            QtCore.QThread.msleep(1000)
 
         # We check if the thread ias being stopped
         if self._stop:
@@ -51,11 +60,8 @@ class dataBaseCheckNbRunThread(QtCore.QRunnable):
         # Queue will contain the nb of run in the database
         queueNbRun: mp.Queue = mp.Queue()
 
-        def get_func(databaseAbsPath, queueNbRun):
-            nbTotalRun = getNbTotalRunmp(databaseAbsPath)
-            queueNbRun.put(nbTotalRun)
-
-        self.worker = mp.Process(target=get_func, args=(self.databaseAbsPath, queueNbRun))
+        self.worker = mp.Process(target=getNbTotalRunmp, 
+                                 args=(self.databaseAbsPath, queueNbRun))
         self.worker.start()
 
         nbTotalRun: int = queueNbRun.get()

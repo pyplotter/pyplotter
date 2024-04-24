@@ -3,7 +3,8 @@ import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 from typing import Optional, Tuple
 
-from .mainWindowui import Ui_MainWindow
+# from .mainWindowui import Ui_MainWindow
+from .mainWindowui_r2c2 import Ui_MainWindow
 from .plot.plot1d.widgetPlot1d import WidgetPlot1d
 from .plot.plot2d.widgetPlot2d import WidgetPlot2d
 from .hBoxLayoutLabelPath import HBoxLayoutLabelPath
@@ -172,6 +173,10 @@ class MainApp(QtWidgets.QMainWindow):
         self.ui.tableWidgetParameter.signalRemoveProgressBar.connect(self.ui.statusBarMain.removeProgressBar)
         self.ui.tableWidgetParameter.signalUpdateProgressBar.connect(self.ui.statusBarMain.updateProgressBar)
         self.ui.tableWidgetParameter.signalAddCurve.connect(self.ui.statusBarMain.addCurve)
+        self.ui.tableWidgetParameter.signalAddPlot.connect(self.slotFromLivePlotAddPlot)
+        self.ui.tableWidgetParameter.signalUpdate1d.connect(self.slotUpdateCurve)
+        self.ui.tableWidgetParameter.signalUpdate2d.connect(self.slotUpdate2d)
+
         self.ui.tableWidgetParameter.signalCleanSnapshot.connect(self.ui.treeViewSnapshot.cleanSnapshot)
         self.ui.tableWidgetParameter.signalAddSnapshot.connect(self.ui.treeViewSnapshot.addSnapshot)
         self.ui.tableWidgetParameter.signalLineEditSnapshotEnabled.connect(self.ui.lineEditFilterSnapshot.enabled)
@@ -472,7 +477,7 @@ class MainApp(QtWidgets.QMainWindow):
                      dialogHeight    = dialogHeight)
 
     @QtCore.pyqtSlot(tuple, bool, tuple)
-    def slotFromLivePlotClosePlot(self, plotRefs        : tuple[str,...],
+    def slotFromLivePlotClosePlot(self, plotRefs        : Tuple[str,...],
                                         is2dPlot        : bool,
                                         curveIds        : Tuple[str,...],
                                         ) -> None:
@@ -485,17 +490,22 @@ class MainApp(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def slotCloseAllPlots(self):
-        # print('Close all plots')
+        print('Close all plots')
         plotRefs = []
         plotTypes = []
         curveIds = []
         for plotRef, p in self._plotRefs.items():
             plotRefs.append(plotRef)
             plotTypes.append(p.plotType)
-            curveIds.append(p.curveId) if p.plotType == '2d' else None
-            
+            if p.plotType == '1d':
+                curveIds.extend(p.curves.keys())
+            elif p.plotType == '2d':
+                curveIds.append(p.curveId)
+            else:
+                curveIds.append(None)
+        
         for plotRef, plotType, curveId in zip(plotRefs, plotTypes, curveIds):
-            if plotType == '1d':
+            if plotType == '1d' and curveId is not None:
                 self.slotClose1dPlot(plotRef)
             elif plotType == '2d':
                 self.slotClose2dPlot(plotRef, curveId=curveId)
@@ -701,7 +711,7 @@ class MainApp(QtWidgets.QMainWindow):
                                                        curveLegend,
                                                        autoRange,
                                                        interactionUpdateAll)
-
+        self.signalRunClickDone.emit()
 
 
     QtCore.pyqtSlot(str, str, str, np.ndarray, np.ndarray)
@@ -712,6 +722,7 @@ class MainApp(QtWidgets.QMainWindow):
         self._plotRefs[plotRef].updatePlotData(x=x,
                                                y=y,
                                                z=z)
+        self.signalRunClickDone.emit()
 
 
     def updateList1dCurvesLabels(self) -> None:
@@ -741,6 +752,7 @@ class MainApp(QtWidgets.QMainWindow):
         # We uncheck all curves from the tableWidgetParameter
         curvesId = list(self._plotRefs[plotRef].curves.keys())
         for curveId in curvesId:
+            print(f'close 1D plots {plotRef}-{curveId}')
             self.ui.tableWidgetParameter.slotUncheck(curveId)
 
 
