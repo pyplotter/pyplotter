@@ -4,13 +4,12 @@ from typing import Tuple
 import multiprocessing as mp
 import time
 
-from ..labrad_datavault import getParameterInfo  # getParameterDatamp
+from ..labradDatavault import getParameterInfo  # getParameterDatamp
 from ..config import loadConfigCurrent
 
 config = loadConfigCurrent()
 from ..functions import findXYIndex, shapeData2d, make_grid
 
-from .. import labrad_datavault
 import os
 from pathlib import Path
 

@@ -10,7 +10,7 @@ from ...sources.workers.loadDataFromCache import LoadDataFromCacheThread
 from ...sources.workers.loadLabradDataFromCache import LoadLabradDataFromCacheThread
 from .dialogLiveplotUi import Ui_LivePlot
 from ...sources.qcodesDatabase import getNbTotalRunAndLastRunName, isRunCompleted
-from ...sources.labrad_datavault import (
+from ...sources.labradDatavault import (
     dep_name,
     switch_session_path,
     getNbTotalRunAndLastRunNameLabrad,
