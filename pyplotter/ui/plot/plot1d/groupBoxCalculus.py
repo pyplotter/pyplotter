@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 from typing import Tuple
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 
 from .groupBoxCalculusUi import Ui_groupBoxCalculus
 from ....sources.pyqtgraph import pg
@@ -175,7 +175,7 @@ class GroupBoxCalculus(QtWidgets.QGroupBox):
 
     def integrateGetData(self) -> Tuple[np.ndarray, np.ndarray]:
 
-        return self.selectedX, cumtrapz(self.selectedY, self.selectedX, initial=0)
+        return self.selectedX, cumulative_trapezoid(self.selectedY, self.selectedX, initial=0)
 
 
 
