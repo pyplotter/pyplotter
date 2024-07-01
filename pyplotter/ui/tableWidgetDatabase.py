@@ -8,16 +8,54 @@ from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..sources.runPropertiesExtra import RunPropertiesExtra
 from .tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
-from ..sources.workers.loadDataBase import LoadDataBaseThread
-from ..sources.workers.loadRunInfo import LoadRunInfoThread
-from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
+# from ..sources.workers.loadDataBase import LoadDataBaseThread
+# from ..sources.workers.loadRunInfo import LoadRunInfoThread
+# from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
+from ..sources.workers import loadDataBase, loadRunInfo, checkNbRunDatabase
+from ..sources.workers import loadLabradDataBase, loadLabradRunInfo, checkNbRunLabrad
 from ..sources.workers.exportRun import ExportRunThread
-from ..sources.functions import clearTableWidget, getDatabaseNameFromAbsPath
+from ..sources.functions import clearTableWidget, getDatabaseNameFromAbsPath, isLabradFolder, isQcodesData
 from ..ui.dialogs.dialogComment import DialogComment
 from ..ui.menuExportRun import MenuExportRun
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
+
+
+def LoadDataBaseThread(databaseAbsPath, progressBar):
+    if isLabradFolder(databaseAbsPath):
+        workerLoadDatabase = loadLabradDataBase.LoadDataBaseThread(
+            databaseAbsPath, progressBar
+        )
+    elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        workerLoadDatabase = loadDataBase.LoadDataBaseThread(databaseAbsPath, progressBar)
+    return workerLoadDatabase
+
+
+def LoadRunInfoThread(
+    databaseAbsPath,  # databaseAbsPath
+    runId,  # runId
+    experimentName,  # experimentName
+    runName,  # runName
+    doubleClicked,
+):
+    if isLabradFolder(databaseAbsPath):
+        worker = loadLabradRunInfo.LoadRunInfoThread(
+            databaseAbsPath, runId, experimentName, runName, doubleClicked
+        )
+    elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        worker = loadRunInfo.LoadRunInfoThread(
+            databaseAbsPath, runId, experimentName, runName, doubleClicked
+        )
+    return worker
+
+
+def dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun):
+    if isLabradFolder(databaseAbsPath):
+        workerCheck = checkNbRunLabrad.dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun)
+    elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        workerCheck = checkNbRunDatabase.dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun)
+    return workerCheck
 
 
 class TableWidgetDatabase(QtWidgets.QTableWidget):

@@ -20,10 +20,11 @@ class MenuBar(QtWidgets.QMenuBar):
 
     ## Propagate signal from the livePlot dialog window to the mainWindow
     signalAddLivePlot        = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str, int, int, int, int)
+    signalCloseLivePlot      = QtCore.pyqtSignal(tuple, bool, tuple)
     signalUpdate1d           = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
     signalUpdate2d           = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
     signalUpdatePlotProperty = QtCore.pyqtSignal(str, str, str)
-
+    signalCloseAllPlot       = QtCore.pyqtSignal()
 
 
     def __init__(self, parent: Optional[Any]=None) -> None:
@@ -50,7 +51,13 @@ class MenuBar(QtWidgets.QMenuBar):
         self.menuPreferences.addAction(self.menuPlot.menuAction())
 
         self.menuLiveplot    = self.addMenu('Liveplot')
-        self.actionOpenliveplot = self.menuLiveplot.addAction('Open liveplot')
+        # self.actionOpenliveplot = self.menuLiveplot.addAction('Open liveplot')
+        self.openLivePlotAction = QtWidgets.QAction('Open liveplot', self)
+        self.openLivePlotAction.triggered.connect(self.menuOpenLiveplot)
+        self.menuLiveplot.addAction(self.openLivePlotAction)
+        self.openLivePlotAction = QtWidgets.QAction('Close all plots', self)
+        self.openLivePlotAction.triggered.connect(self.menuCloseAllPlots)
+        self.menuLiveplot.addAction(self.openLivePlotAction)
 
         self.actionDatabase = self.menuPreferences.addAction('Database display')
 
@@ -66,7 +73,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.actionTitleColor.triggered.connect(self.menuTitleColor)
         self.actionFontsize.triggered.connect(self.menuFontsize)
         self.actionColormap.triggered.connect(self.menuColormap)
-        self.actionOpenliveplot.triggered.connect(self.menuOpenLiveplot)
+        # self.actionOpenliveplot.triggered.connect(self.menuOpenLiveplot)
 
 
         if config['style']=='qbstyles':
@@ -246,10 +253,15 @@ class MenuBar(QtWidgets.QMenuBar):
         self.dialogLiveplot = DialogLiveplot(config)
 
         self.dialogLiveplot.signalAddLivePlot.connect(self.signalAddLivePlot.emit)
+        self.dialogLiveplot.signalCloseLivePlot.connect(self.signalCloseLivePlot.emit)
         self.dialogLiveplot.signalUpdate1d.connect(self.signalUpdate1d.emit)
         self.dialogLiveplot.signalUpdate2d.connect(self.signalUpdate2d.emit)
         self.dialogLiveplot.signalUpdatePlotProperty.connect(self.signalUpdatePlotProperty.emit)
 
+
+    def menuCloseAllPlots(self):
+        
+        self.signalCloseAllPlot.emit()
 
 
     QtCore.pyqtSlot(dict)
