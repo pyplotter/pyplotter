@@ -137,28 +137,33 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         # Last time since we interogated the dataCache
         self.labelLivePlotLastRefreshInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
-        # New data since last time we interogate the dataCache?
-        if self._livePlotPreviousDataLength!=len(data[0]):
-
-            self.labelLivePlotLastUpdateInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-
-            # 1d plot
-            if len(data)==2:
+        # 1d plot
+        if len(data)==2:
+            # New data since last time we interogate the dataCache?
+            if self._livePlotPreviousDataLength!=len(data[0]):
+                self.labelLivePlotLastUpdateInfo.setText(
+                    "{}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                )
 
                 curveId = getCurveId(databaseAbsPath=self._livePlotDatabaseAbsPath,
-                                    name=yParamName,
-                                    runId=self._livePlotRunId)
+                                     name=yParamName,
+                                     runId=self._livePlotRunId)
 
                 self.signalUpdate1d.emit(plotRef, # plotRef
-                                            curveId, # curveId
-                                            yParamName, # curveLegend
-                                            data[0], # x
-                                            data[1], # y
-                                            self.checkBoxLiveplotAutorange.isChecked(), # autoRange
-                                            True)  # interactionUpdateAll
-            # 2d plot
-            elif len(data)==3:
+                                         curveId, # curveId
+                                         yParamName, # curveLegend
+                                         data[0], # x
+                                         data[1], # y
+                                         self.checkBoxLiveplotAutorange.isChecked(), # autoRange
+                                         True)  # interactionUpdateAll
+        # 2d plot
+        elif len(data)==3:
 
+            # New data since last time we interogate the dataCache?
+            if self._livePlotPreviousDataLength != len(data[0]) + len(data[1]):
+                self.labelLivePlotLastUpdateInfo.setText(
+                    "{}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                )
                 self.signalUpdate2d.emit(plotRef,
                                          data[0],
                                          data[1],
@@ -172,11 +177,20 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         # We save the current data length for the next iteration
         if all(self._updatingFlag):
-            if self._livePlotPreviousDataLength==len(data[0]):
-                self.labelLivePlotInfoInfo.setText('<span style="color: red;">No new data in cache</span>')
-            else:
-                self.labelLivePlotInfoInfo.setText('<span style="color: green;">New data in cache plotted</span>')
-            self._livePlotPreviousDataLength = len(data[0])
+            # 1d plot
+            if len(data)==2:
+                if self._livePlotPreviousDataLength==len(data[0]):
+                    self.labelLivePlotInfoInfo.setText('<span style="color: red;">No new data in cache</span>')
+                else:
+                    self.labelLivePlotInfoInfo.setText('<span style="color: green;">New data in cache plotted</span>')
+                self._livePlotPreviousDataLength = len(data[0])
+            # 2d plot
+            elif len(data) == 3:
+                if self._livePlotPreviousDataLength == len(data[0]) + len(data[1]):
+                    self.labelLivePlotInfoInfo.setText('<span style="color: red;">No new data in cache</span>')
+                else:
+                    self.labelLivePlotInfoInfo.setText('<span style="color: green;">New data in cache plotted</span>')
+                self._livePlotPreviousDataLength = len(data[0]) + len(data[1])
 
             # Display the current nb of data point
             if len(data)==2:
