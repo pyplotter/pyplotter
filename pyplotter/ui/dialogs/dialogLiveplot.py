@@ -518,10 +518,15 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self.pushButtonLivePlot.setText('Select database...')
         self.loadDataset = load_by_run_spec
 
-        fname = QtWidgets.QFileDialog.getOpenFileName(self,
-                                                      'Open QCoDeS database',
-                                                      self.config['livePlotDefaultFolder'],
-                                                      'QCoDeS database (*.db).')
+        # set DontUseNativeDialog to True to avoid error on mac
+        qfd = QtWidgets.QFileDialog(self)
+        qfd.setOption(QtWidgets.QFileDialog.DontUseNativeDialog)
+        fname = qfd.getOpenFileName(
+            self,
+            "Open QCoDeS database",
+            self.config["livePlotDefaultFolder"],
+            "QCoDeS database (*.db).",
+        )
 
         if fname[0]!='':
             self._livePlotDatabaseAbsPath = os.path.abspath(fname[0])
