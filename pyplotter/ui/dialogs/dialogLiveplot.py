@@ -29,6 +29,31 @@ from ...sources.functions import (
     plotIdGenerator,
 )
 
+def getCurrentDependentParamLength(data: Tuple[np.ndarray, ...]) -> int:
+    """
+    Get the number of non np.nan point in the dependent parameter of data.
+
+    Args:
+        data : tuple
+            For 1d plot: (xData, yData)
+            For 2d plot: (xData, yData, zData)
+
+    Returns:
+        int: number of non np.nan point in
+            For 1d plot: yData
+            For 2d plot: zData
+    """
+
+    # 1d plot
+    if len(data)==2:
+        length = np.count_nonzero(~np.isnan(data[1]))
+    # 2d plot
+    elif len(data)==3:
+        length = np.count_nonzero(~np.isnan(data[2].ravel()))
+
+    return length
+
+
 class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
     ## Signal to the mainWindow to
@@ -159,10 +184,13 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         # Last time since we interogated the dataCache
         self.labelLivePlotLastRefreshInfo.setText('{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
+        # Get the number of point of the displayed run.
+        length = getCurrentDependentParamLength(data)
+
         # 1d plot
         if len(data)==2:
             # New data since last time we interogate the dataCache?
-            if self._livePlotPreviousDataLength!=len(data[0]):
+            if self._livePlotPreviousDataLength != length:
                 self.labelLivePlotLastUpdateInfo.setText(
                     "{}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 )
@@ -182,7 +210,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         elif len(data)==3:
 
             # New data since last time we interogate the dataCache?
-            if self._livePlotPreviousDataLength != len(data[0]) + len(data[1]):
+            if self._livePlotPreviousDataLength != length:
                 self.labelLivePlotLastUpdateInfo.setText(
                     "{}".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
                 )
@@ -201,24 +229,24 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         if all(self._updatingFlag):
             # 1d plot
             if len(data)==2:
-                if self._livePlotPreviousDataLength==len(data[0]):
+                if self._livePlotPreviousDataLength==length:
                     self.labelLivePlotInfoInfo.setText('<span style="color: red;">No new data in cache</span>')
                 else:
                     self.labelLivePlotInfoInfo.setText('<span style="color: green;">New data in cache plotted</span>')
-                self._livePlotPreviousDataLength = len(data[0])
+                self._livePlotPreviousDataLength = length
             # 2d plot
             elif len(data) == 3:
-                if self._livePlotPreviousDataLength == len(data[0]) + len(data[1]):
+                if self._livePlotPreviousDataLength == length:
                     self.labelLivePlotInfoInfo.setText('<span style="color: red;">No new data in cache</span>')
                 else:
                     self.labelLivePlotInfoInfo.setText('<span style="color: green;">New data in cache plotted</span>')
-                self._livePlotPreviousDataLength = len(data[0]) + len(data[1])
+                self._livePlotPreviousDataLength = length
 
             # Display the current nb of data point
             if len(data)==2:
-                nbPoint = len(data[0])
+                nbPoint = length
             elif len(data)==3:
-                nbPoint = int(len(data[0])*len(data[1]))
+                nbPoint = length
             self.labelLivePlotNbPointInfo.setText(str(nbPoint))
 
         # We show to user the time of the last update
