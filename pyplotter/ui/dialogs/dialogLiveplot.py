@@ -1,6 +1,5 @@
 from __future__ import annotations
 from PyQt5 import QtWidgets, QtCore
-from idna import check_bidi
 import numpy as np
 import os
 from datetime import datetime
@@ -11,8 +10,8 @@ from ...sources.workers.loadLabradDataFromCache import LoadLabradDataFromCacheTh
 from .dialogLiveplotUi import Ui_LivePlot
 from ...sources.qcodesDatabase import getNbTotalRunAndLastRunName, isRunCompleted
 from ...sources.labradDatavault import (
-    dep_name,
-    switch_session_path,
+    dep_label,
+    LabradDataset,
     getNbTotalRunAndLastRunNameLabrad,
     isRunCompletedLabrad,
     check_busy_datasets,
@@ -303,10 +302,8 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
     def isDataBusy(self, livePlotRunName):
         if isLabradFolder(self._livePlotDatabaseAbsPath):
-            if not hasattr(self, 'session'):
-                self.session = switch_session_path(self._livePlotDatabaseAbsPath)
-            return check_busy_datasets(self.session, [livePlotRunName])[0]
-        elif isMongoDBFolder(self._livePlotDatabaseAbsPath):
+            return check_busy_datasets(None, [livePlotRunName])[0]
+        else:
             return False
         
 
@@ -684,17 +681,17 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 yParamLabels.append(param_y.label)
                 yParamUnits.append(param_y.unit)
 
-                zParamNames.append(dep_name(paramsDependent))
+                zParamNames.append(dep_label(paramsDependent))
                 zParamLabels.append(paramsDependent.label)
                 zParamUnits.append(paramsDependent.unit)
 
                 plotRefs.append(getPlotRef(databaseAbsPath=self._livePlotDatabaseAbsPath,
-                                           paramDependent={'depends_on' : [0, 1], 'name': dep_name(paramsDependent)},
+                                           paramDependent={'depends_on' : [0, 1], 'name': dep_label(paramsDependent)},
                                            runId=self.livePlotRunIds[plotId]))
                 self._livePlotNbPlot += 1
             # For 1d plot
             else:
-                yParamNames.append(dep_name(paramsDependent))
+                yParamNames.append(dep_label(paramsDependent))
                 yParamLabels.append(paramsDependent.label)
                 yParamUnits.append(paramsDependent.unit)
 
@@ -951,11 +948,10 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             self.livePlotDataSets = [None] * MAX_LIVE_PLOTS
             self.livePlotGetPlotParameterList = [None] * MAX_LIVE_PLOTS
 
-            self.session = switch_session_path(self._livePlotDatabaseAbsPath)
-
             def load_by_run_spec(idx):
                 # noisy=false to turn off the open message
-                return self.session.openDataset(idx, noisy=False)  
+                dataset = LabradDataset(self._livePlotDatabaseAbsPath, noisy=False)
+                return dataset.loadDataset(idx)  
 
             self.loadDataset = load_by_run_spec
 
@@ -1014,10 +1010,10 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             self.livePlotDataSets = [None] * MAX_LIVE_PLOTS
             self.livePlotGetPlotParameterList = [None] * MAX_LIVE_PLOTS
 
-            self.session = switch_session_path(self._livePlotDatabaseAbsPath)
             def load_by_run_spec(idx):
-                dv = switch_session_path(self._livePlotDatabaseAbsPath)
-                return dv.openDataset(idx, noisy=False)  # noisy=false to turn off the open message
+                dataset = LabradDataset(self._livePlotDatabaseAbsPath, noisy=False)
+                dataset.loadDataset(idx)
+                return dataset
 
             self.loadDataset = load_by_run_spec
 

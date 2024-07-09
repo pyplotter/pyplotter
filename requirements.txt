@@ -1,0 +1,10 @@
+# pyqtgraph is recommend to install via conda
+# default packages from anaconda
+PyQt5
+scipy
+pyqtwebengine
+# additional packages
+multiprocess
+qcodes>=0.26.0
+lmfit
+scikit-rf

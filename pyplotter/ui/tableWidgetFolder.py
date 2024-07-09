@@ -15,7 +15,6 @@ from ..sources.functions import (
     sizeof_fmt,
     getDatabaseNameFromAbsPath
 )
-from ..sources.labradDatavault import switch_session_path
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -233,7 +232,6 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
             # if it is a Labrad datavault folder
             elif isLabradFolder(self.databaseAbsPath):
                 self.LabradDataClick()
-                switch_session_path(self.databaseAbsPath)
             # If the folder is a regulat folder
             elif os.path.isdir(nextPath):
                 self.signalSendStatusBarMessage.emit('Updating', 'orange')

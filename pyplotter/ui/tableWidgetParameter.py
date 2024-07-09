@@ -13,9 +13,12 @@ from ..sources.functions import (clearTableWidget,
                                  isQcodesData,
                                  isLabradFolder,
                                  getParallelDialogWidthHeight,
+                                 findXYIndex, 
+                                 shapeData2d, 
+                                 make_grid
                                  )
 from qcodes import load_by_run_spec
-from ..sources.labradDatavault import switch_session_path, dep_name
+from ..sources.labradDatavault import LabradDataset, dep_label
 
 
 def LoadDataFromRunThread(
@@ -58,14 +61,14 @@ def LoadDataFromRunThread(
 
 def load_by_run_spec(databaseAbsPath, runId):
     if isLabradFolder(databaseAbsPath):
-        session = switch_session_path(databaseAbsPath)
-        dataset = session.openDataset(runId, noisy=False) 
-        return dataset 
-    elif isMongoDBFolder(databaseAbsPath):
-        dataset = switch_mongoDB_path(databaseAbsPath)
-        dataset.mount(runId - 1)  # MongoDB starts from 0
-        fixPath(dataset, databaseAbsPath)
-        return dataset
+        labrad_dataset = LabradDataset(databaseAbsPath, noisy=False)
+        labrad_dataset.loadDataset(runId)
+        return labrad_dataset 
+    # elif isMongoDBFolder(databaseAbsPath):
+    #     dataset = switch_mongoDB_path(databaseAbsPath)
+    #     dataset.mount(runId - 1)  # MongoDB starts from 0
+    #     fixPath(dataset, databaseAbsPath)
+    #     return dataset
     elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
         return load_by_run_spec(runId)
 
@@ -427,19 +430,19 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                 depends_on = [i for i in self.dataset.getIndependents()]
 
                 param_x = depends_on[0]
-                xParamNames.append(param_x.label + " (name)")
-                xParamLabels.append(param_x.label)
+                xParamNames.append(param_x.name + " (name)")
+                xParamLabels.append(param_x.name)
                 xParamUnits.append(param_x.unit)
 
                 # For 2d plot
                 if len(depends_on) > 1:
                     param_y = depends_on[1]
-                    yParamNames.append(param_y.label + " (name)")
-                    yParamLabels.append(param_y.label)
+                    yParamNames.append(param_y.name + " (name)")
+                    yParamLabels.append(param_y.name)
                     yParamUnits.append(param_y.unit)
 
-                    zParamNames.append(dep_name(paramsDependent))
-                    zParamLabels.append(paramsDependent.label)
+                    zParamNames.append(dep_label(paramsDependent))
+                    zParamLabels.append(paramsDependent.name)
                     zParamUnits.append(paramsDependent.unit)
 
                     plotRefs.append(
@@ -447,15 +450,15 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                             databaseAbsPath=databaseAbsPath,
                             paramDependent={
                                 "depends_on": [0, 1],
-                                "name": dep_name(paramsDependent),
+                                "name": dep_label(paramsDependent),
                             },
                             runId=runId,
                         )
                     )
                 # For 1d plot
                 else:
-                    yParamNames.append(dep_name(paramsDependent))
-                    yParamLabels.append(paramsDependent.label)
+                    yParamNames.append(dep_label(paramsDependent))
+                    yParamLabels.append(paramsDependent.name)
                     yParamUnits.append(paramsDependent.unit)
 
                     zParamNames.append("")
@@ -471,26 +474,37 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                     )
                 # We get the dialog position and size to tile the screen
                 if zParamNames[-1] == '':
-                    dialogTilings = getParallelDialogWidthHeight(nbDialog=1, plotId=1)
+                    dialogTilings = getParallelDialogWidthHeight(nbDialog=1, plotId=0)
                     dialogX, dialogY, dialogWidth, dialogHeight = [tile[0] for tile in dialogTilings]
                 else:
                     # tile 3D plot with plot windows
-                    num_2d_plots = len(len(paramsDependents))
-                    dialogTilings = getParallelDialogWidthHeight(num_2d_plots, plotId=1)
+                    num_2d_plots = len(paramsDependents)
+                    dialogTilings = getParallelDialogWidthHeight(num_2d_plots, plotId=0)
                     dialogX, dialogY, dialogWidth, dialogHeight = [tile[dep_idx] for tile in dialogTilings]
                 dialogXs.append(dialogX)
                 dialogYs.append(dialogY)
                 dialogWidths.append(dialogWidth)
                 dialogHeights.append(dialogHeight)
                 
-                d = self.dataset.getPlotData()[0]
+                d = self.dataset.getPlotData()
                 # Create empty data for the plot window launching
                 if zParamNames[-1]=='':
                     data = (d[:,0], d[:,1 + dep_idx])
                 else:
-                    data = (d[:,0],
-                            d[:,1],
-                            d[:,2 + dep_idx])
+
+                    # Find the effective x and y axis, see findXYIndex
+                    xi, yi = findXYIndex(d[:, 1])
+                    # We try to load data
+                    # if there is none, we return an empty array
+                    if config["2dGridInterpolation"] == "grid":
+                        data = make_grid(d[:, xi], d[:, yi], d[:, 2])
+                    else:
+                        data = shapeData2d(
+                            d[:, xi], d[:, yi], d[:, 2 + dep_idx], self.signalSendStatusBarMessage
+                        )
+                    # data = (d[:,0],
+                    #         d[:,1],
+                    #         d[:,2 + dep_idx])
                 dataList.append(data)
                 curveId = getCurveId(databaseAbsPath=databaseAbsPath,
                                     name=yParamNames[-1],
