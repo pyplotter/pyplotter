@@ -141,6 +141,10 @@ class MainApp(QtWidgets.QMainWindow):
         self.ui.tableWidgetFolder.first_call()
 
 
+        self.ui.tableWidgetFolder.signalClearTableWidget.connect(self.ui.tableWidgetDataBase.slotClearTable)
+        self.ui.tableWidgetFolder.signalAddRows.connect(self.ui.tableWidgetDataBase.databaseClickAddRows)
+        self.ui.tableWidgetFolder.signalLabradDataClickDone.connect(self.ui.tableWidgetDataBase.labradDatabaseClickDone)
+
 
         self.ui.tableWidgetDataBase.signalRemoveProgressBar.connect(self.ui.statusBarMain.removeProgressBar)
         self.ui.tableWidgetDataBase.signalSendStatusBarMessage.connect(self.ui.statusBarMain.setStatusBarMessage)

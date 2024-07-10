@@ -253,6 +253,9 @@ def getPlotTitle(databaseAbsPath: str,
 def getDatabaseNameFromAbsPath(databaseAbsPath: str) -> str:
         return os.path.basename(databaseAbsPath)[:-3]
 
+def getLabradDataVaultNameFromAbsPath(databaseAbsPath: str) -> str:
+        return os.path.basename(databaseAbsPath)[:-4]
+
 
 def getWindowTitle(databaseAbsPath: str,
                    runId: int,

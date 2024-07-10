@@ -349,6 +349,33 @@ def getRunInfos(databaseAbsPath: str):
     return runInfos
 
 
+def getDatabaseInfos(databaseAbsPath: str):
+    dv = get_datavault(databaseAbsPath)
+    allNames = dv.dir()[1]
+    runId = []
+    experimentName = []
+    for name in allNames:
+        runId.append(int(name.split(" - ")[0]))
+        experimentName.append(name)
+    num = len(allNames)
+    dim = ["-"] * num
+    sampleName = runName = started = completed = duration = runRecords = ["-"] * num
+    captured_run_id = guid = ["0"] * num
+    return (
+        runId,
+        dim,
+        experimentName,
+        sampleName,
+        runName,
+        captured_run_id,
+        guid,
+        started,
+        completed,
+        duration,
+        runRecords,
+    )
+
+
 def getRunInfosmp(
     databaseAbsPath: str, queueData: mp.Queue, queueProgressBar: mp.Queue, queueDone: mp.Queue
 ) -> None:
