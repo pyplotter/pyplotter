@@ -3,8 +3,8 @@ import numpy as np
 from PyQt5 import QtGui, QtCore, QtWidgets
 from typing import Optional, Tuple
 
-# from .mainWindowui import Ui_MainWindow
-from .mainWindowui_r2c2 import Ui_MainWindow
+from .mainWindowui import Ui_MainWindow
+# from .mainWindowui_r2c2 import Ui_MainWindow
 from .plot.plot1d.widgetPlot1d import WidgetPlot1d
 from .plot.plot2d.widgetPlot2d import WidgetPlot2d
 from .hBoxLayoutLabelPath import HBoxLayoutLabelPath

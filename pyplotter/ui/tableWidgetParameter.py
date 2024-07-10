@@ -17,7 +17,7 @@ from ..sources.functions import (clearTableWidget,
                                  shapeData2d, 
                                  make_grid
                                  )
-from qcodes import load_by_run_spec
+from qcodes import load_by_run_spec as qcodes_load_by_run_spec
 from ..sources.labradDatavault import LabradDataset, dep_label
 
 
@@ -70,7 +70,7 @@ def load_by_run_spec(databaseAbsPath, runId):
     #     fixPath(dataset, databaseAbsPath)
     #     return dataset
     elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
-        return load_by_run_spec(runId)
+        return qcodes_load_by_run_spec
 
 
 # Get the folder path for pictures
