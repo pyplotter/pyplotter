@@ -48,100 +48,7 @@
     </sizepolicy>
    </property>
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
-     <layout class="QHBoxLayout" name="TopHorizontalLayout">
-      <property name="sizeConstraint">
-       <enum>QLayout::SetFixedSize</enum>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <item>
-       <widget class="QGroupBox" name="groupBoxDataExplorer">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>50</height>
-         </size>
-        </property>
-        <property name="font">
-         <font>
-          <weight>75</weight>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="title">
-         <string>Data explorer</string>
-        </property>
-        <layout class="QHBoxLayout" name="verticalLayout_12">
-         <property name="spacing">
-          <number>4</number>
-         </property>
-         <property name="leftMargin">
-          <number>4</number>
-         </property>
-         <property name="topMargin">
-          <number>4</number>
-         </property>
-         <property name="rightMargin">
-          <number>4</number>
-         </property>
-         <property name="bottomMargin">
-          <number>4</number>
-         </property>
-         <item>
-          <widget class="pushButtonOpenFolder" name="pushButtonOpenFolder">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>80</width>
-             <height>50</height>
-            </size>
-           </property>
-           <property name="font">
-            <font>
-             <weight>50</weight>
-             <bold>false</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Open folder</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::MinimumExpanding</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item row="1" column="0">
+    <item row="2" column="0">
      <widget class="QSplitter" name="splitter_3">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -171,7 +78,7 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>600</width>
+          <width>1000</width>
           <height>200</height>
          </size>
         </property>
@@ -236,7 +143,7 @@
          </property>
         </column>
        </widget>
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout">
@@ -256,8 +163,8 @@
              </property>
              <property name="maximumSize">
               <size>
-               <width>60</width>
-               <height>20</height>
+               <width>150</width>
+               <height>120</height>
               </size>
              </property>
              <property name="text">
@@ -285,7 +192,7 @@
              <property name="maximumSize">
               <size>
                <width>16777215</width>
-               <height>20</height>
+               <height>120</height>
               </size>
              </property>
              <property name="font">
@@ -317,12 +224,12 @@
              </property>
              <property name="maximumSize">
               <size>
-               <width>90</width>
-               <height>20</height>
+               <width>150</width>
+               <height>120</height>
               </size>
              </property>
              <property name="text">
-              <string>Show hidden</string>
+              <string>Hidden</string>
              </property>
             </widget>
            </item>
@@ -345,12 +252,12 @@
              </property>
              <property name="maximumSize">
               <size>
-               <width>16777215</width>
-               <height>20</height>
+               <width>150</width>
+               <height>120</height>
               </size>
              </property>
              <property name="text">
-              <string>Show stared</string>
+              <string>Stared</string>
              </property>
             </widget>
            </item>
@@ -372,7 +279,7 @@
            </property>
            <property name="maximumSize">
             <size>
-             <width>600</width>
+             <width>1000</width>
              <height>16777215</height>
             </size>
            </property>
@@ -438,11 +345,11 @@
              <property name="maximumSize">
               <size>
                <width>150</width>
-               <height>20</height>
+               <height>120</height>
               </size>
              </property>
              <property name="text">
-              <string>Parameters run:</string>
+              <string>Parameters:</string>
              </property>
             </widget>
            </item>
@@ -548,12 +455,12 @@
              </property>
              <property name="maximumSize">
               <size>
-               <width>140</width>
-               <height>20</height>
+               <width>150</width>
+               <height>120</height>
               </size>
              </property>
              <property name="text">
-              <string>Metadata run:</string>
+              <string>Metadata:</string>
              </property>
             </widget>
            </item>
@@ -607,8 +514,8 @@
              </property>
              <property name="maximumSize">
               <size>
-               <width>40</width>
-               <height>20</height>
+               <width>150</width>
+               <height>120</height>
               </size>
              </property>
              <property name="text">
@@ -683,6 +590,107 @@
        </widget>
       </widget>
      </widget>
+    </item>
+    <item row="0" column="0">
+     <layout class="QHBoxLayout" name="TopHorizontalLayout">
+      <property name="sizeConstraint">
+       <enum>QLayout::SetFixedSize</enum>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QGroupBox" name="groupBoxDataExplorer">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>120</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="title">
+         <string>Data explorer</string>
+        </property>
+        <layout class="QHBoxLayout" name="verticalLayout_12">
+         <property name="spacing">
+          <number>4</number>
+         </property>
+         <property name="leftMargin">
+          <number>4</number>
+         </property>
+         <property name="topMargin">
+          <number>4</number>
+         </property>
+         <property name="rightMargin">
+          <number>4</number>
+         </property>
+         <property name="bottomMargin">
+          <number>4</number>
+         </property>
+         <item>
+          <widget class="pushButtonOpenFolder" name="pushButtonOpenFolder">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>150</width>
+             <height>50</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>Microsoft Sans Serif</family>
+            </font>
+           </property>
+           <property name="text">
+            <string>Open folder</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::MinimumExpanding</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
