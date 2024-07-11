@@ -62,9 +62,6 @@ configPackage = {
 # If you encounter issues with opengl, set this to False.
 'pyqtgraphOpenGL' : True,
 
-# whether H5 file can be opened when being written to, set 'FALSE' to enable live plot
-'HDF5_USE_FILE_LOCKING': 'FALSE',
-
 # Live plot
 'livePlotTimer' : 1, # In second
 # Added to the plot title while a live plot is still measured.

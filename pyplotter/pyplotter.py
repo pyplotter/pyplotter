@@ -6,7 +6,6 @@ from .sources.config import initConfig, loadConfigCurrent
 # Init config file, to be done first
 initConfig()
 config = loadConfigCurrent()
-os.environ['HDF5_USE_FILE_LOCKING'] = config['HDF5_USE_FILE_LOCKING']
 from .ui.mainWindow import MainApp
 
 
