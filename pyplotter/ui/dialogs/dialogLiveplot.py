@@ -547,7 +547,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         self.loadDataset = load_by_run_spec
 
         qfd = QtWidgets.QFileDialog(self)
-        qfd.setOption(QtWidgets.QFileDialog.DontUseNativeDialog)
         fname = qfd.getOpenFileName(
             self,
             "Open QCoDeS database",
