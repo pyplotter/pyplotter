@@ -9,7 +9,6 @@ from .config import loadConfigCurrent
 config = loadConfigCurrent()
 
 
-
 def parse_number(number: float,
                  precision: int,
                  inverse: bool=False,
@@ -73,11 +72,9 @@ def parse_number(number: float,
         return str(round(number, precision)), ''
 
 
-
 def pandasTimestamp2Int(dates: np.ndarray) -> np.ndarray:
 
     return (dates - pd.Timestamp('1970-01-01'))//pd.Timedelta('1s')
-
 
 
 def clearTableWidget(tableWidget : QtWidgets.QTableWidget) -> None:
@@ -90,7 +87,6 @@ def clearTableWidget(tableWidget : QtWidgets.QTableWidget) -> None:
 
     tableWidget.setSortingEnabled(False)
     tableWidget.setRowCount(0)
-
 
 
 def clearLayout(layout: QtWidgets.QLayout) -> None:
@@ -109,7 +105,6 @@ def clearLayout(layout: QtWidgets.QLayout) -> None:
             child.widget().deleteLater()
 
 
-
 def isBlueForsFolder(folderName : str) -> bool:
     """
     Return True if a string follow blueFors log folder name pattern.
@@ -117,6 +112,16 @@ def isBlueForsFolder(folderName : str) -> bool:
 
     return len(folderName.split('-'))==3 and all([len(i)==2 for i in folderName.split('-')])
 
+
+def isQcodesData(folderName: str):
+    return '.db' in folderName
+
+
+def isLabradFolder(abs_folderName : str) -> bool:
+    """
+    Return True if a string follow Labrad log folder name pattern.
+    """
+    return abs_folderName.split('.')[-1] == "dir"
 
 
 def sizeof_fmt(num: float, suffix: str='B') -> str:
@@ -144,7 +149,6 @@ def sizeof_fmt(num: float, suffix: str='B') -> str:
     return "%.1f %s%s" % (num, 'Y', suffix)
 
 
-
 def getCurveColorIndex(colorIndexes: List[int],
                        config: dict) -> int:
     """
@@ -158,7 +162,6 @@ def getCurveColorIndex(colorIndexes: List[int],
             break
 
     return colorIndex
-
 
 
 def getCurveId(databaseAbsPath: str,
@@ -177,7 +180,6 @@ def getCurveId(databaseAbsPath: str,
     """
 
     return databaseAbsPath+str(runId)+str(name)
-
 
 
 def getPlotRef(databaseAbsPath: str,
@@ -203,6 +205,8 @@ def getPlotRef(databaseAbsPath: str,
     # If BlueFors log files
     if isBlueForsFolder(currentPath):
         dataPath = currentPath
+    elif isLabradFolder(databaseAbsPath):
+        dataPath = databaseAbsPath+str(runId)
     # If csv or s2p files we return the filename without the extension
     elif databaseAbsPath[-3:].lower() in ('csv', 's2p'):
         dataPath = currentPath
@@ -214,7 +218,6 @@ def getPlotRef(databaseAbsPath: str,
         return dataPath+paramDependent['name']
     else:
         return dataPath
-
 
 
 def getPlotTitle(databaseAbsPath: str,
@@ -247,10 +250,11 @@ def getPlotTitle(databaseAbsPath: str,
         return '{}<br>{} - {}'.format(title, runId, experimentName)
 
 
-
 def getDatabaseNameFromAbsPath(databaseAbsPath: str) -> str:
         return os.path.basename(databaseAbsPath)[:-3]
 
+def getLabradDataVaultNameFromAbsPath(databaseAbsPath: str) -> str:
+        return os.path.basename(databaseAbsPath)[:-4]
 
 
 def getWindowTitle(databaseAbsPath: str,
@@ -269,7 +273,6 @@ def getWindowTitle(databaseAbsPath: str,
         windowTitle += ' - '+runName
 
     return windowTitle
-
 
 
 def hex_to_rgba(value: str) -> Tuple[int, int, int, int]:
@@ -293,7 +296,6 @@ def hex_to_rgba(value: str) -> Tuple[int, int, int, int]:
     return r, g, b, 255
 
 
-
 def findXYIndex(y: np.ndarray) -> Tuple[int, int]:
     """
     Find effective "x" column
@@ -315,7 +317,6 @@ def findXYIndex(y: np.ndarray) -> Tuple[int, int]:
         return 1, 0
     else:
         return 0, 1
-
 
 
 def shapeData2d(x: np.ndarray,
@@ -414,7 +415,6 @@ def shapeData2d(x: np.ndarray,
     return xx, yy, zz
 
 
-
 def make_grid(x: np.ndarray,
               y: np.ndarray,
               z: np.ndarray) -> Tuple[np.ndarray,
@@ -435,7 +435,6 @@ def make_grid(x: np.ndarray,
     yy[j] = y
     zz[i, j] = z
     return xx, yy, zz
-
 
 
 def shapeData2dPolygon(x : np.ndarray,
@@ -564,7 +563,6 @@ def shapeData2dPolygon(x : np.ndarray,
     return x2dVertices, y2dVertices, z2d
 
 
-
 def getDialogWidthHeight(nbDialog: int) -> Tuple[List[int]]:
     """
     Return the dialog position (x, y) and size (width, height) so that the given
@@ -606,3 +604,78 @@ def getDialogWidthHeight(nbDialog: int) -> Tuple[List[int]]:
         ys[i] = int(i//2*dialogHeight)
 
     return xs, ys, dialogWidths, dialogHeights
+
+
+MAX_LIVE_PLOTS = config["livePlotWindowNumber"]
+LIVE_PLOT_WINDOW_SIZE = config["liveDialogWindowSize"]
+LIVE_PLOT_SCREEN_INDEX = config["livePlotScreenIndex"]
+LIVE_PLOT_WINDOW_OFFSETS = config['liveDialogWindowOffsets']
+
+
+def getParallelDialogWidthHeight(nbDialog: int, plotId: int) -> Tuple[List[int]]:
+    """
+    Return the dialog position (x, y) and size (width, height) with user configuration
+
+    Args:
+        nbDialog: Number of dialog window we have to cover the screen
+
+    Returns:
+        tuple: dialogXs, dialogYs, dialogWidths, dialogHeights
+    """
+
+    # MAX_LIVE_PLOTS of windows
+
+    # screenSize = QtGui.QGuiApplication.primaryScreen().availableGeometry()
+    desktop = QtWidgets.QDesktopWidget()
+    # screen_count = desktop.screenCount()
+    live_screen = desktop.screen(LIVE_PLOT_SCREEN_INDEX)
+    screenSize = live_screen.geometry()
+    screenWidth = LIVE_PLOT_WINDOW_SIZE[0]  # screenSize.width()
+    screenHeight = LIVE_PLOT_WINDOW_SIZE[1]  # screenSize.height()
+    x_offset, y_offset = np.array(screenSize.getCoords()[:2]) + np.array(LIVE_PLOT_WINDOW_OFFSETS)
+
+    _xs = [0] * MAX_LIVE_PLOTS
+    _ys = [0] * MAX_LIVE_PLOTS
+    for i in range(MAX_LIVE_PLOTS):
+        if i % 2 == 0:
+            _xs[i] = x_offset
+        else:
+            _xs[i] = int(screenWidth) + x_offset
+
+        _ys[i] = int(i // 2 * screenHeight) + y_offset
+
+    # small tiles
+
+    if nbDialog == 1:
+        dialogWidth = screenWidth
+        dialogHeight = screenHeight
+    # if even number of dialog
+    elif nbDialog % 2 == 0:
+        dialogWidth = screenWidth / 2
+        dialogHeight = screenHeight / (nbDialog // 2)
+    # if odd number of dialog
+    else:
+        dialogWidth = screenWidth / 2
+        dialogHeight = screenHeight / (nbDialog // 2 + 1)
+    dialogWidths = [int(dialogWidth)] * nbDialog
+    dialogHeights = [int(dialogHeight)] * nbDialog
+
+    xs = [0] * nbDialog
+    ys = [0] * nbDialog
+    for i in range(nbDialog):
+        if i % 2 == 0:
+            xs[i] = 0
+        else:
+            xs[i] = int(dialogWidth)
+        ys[i] = int(i // 2 * dialogHeight)
+
+    xs = [x + _xs[plotId] for x in xs]
+    ys = [y + _ys[plotId] for y in ys]
+    return xs, ys, dialogWidths, dialogHeights
+
+
+def plotIdGenerator():
+    num = 0
+    while True:
+        yield num % MAX_LIVE_PLOTS
+        num += 1

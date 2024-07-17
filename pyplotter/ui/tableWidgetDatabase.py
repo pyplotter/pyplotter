@@ -9,15 +9,43 @@ config = loadConfigCurrent()
 from ..sources.runPropertiesExtra import RunPropertiesExtra
 from .tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
 from ..sources.workers.loadDataBase import LoadDataBaseThread
-from ..sources.workers.loadRunInfo import LoadRunInfoThread
-from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
+# from ..sources.workers.loadRunInfo import LoadRunInfoThread
+# from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
+from ..sources.workers import loadRunInfo, checkNbRunDatabase
+from ..sources.workers import loadLabradRunInfo, checkNbRunLabrad
 from ..sources.workers.exportRun import ExportRunThread
-from ..sources.functions import clearTableWidget, getDatabaseNameFromAbsPath
+from ..sources.functions import clearTableWidget, getDatabaseNameFromAbsPath, getLabradDataVaultNameFromAbsPath, isLabradFolder, isQcodesData
 from ..ui.dialogs.dialogComment import DialogComment
 from ..ui.menuExportRun import MenuExportRun
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
+
+
+def LoadRunInfoThread(
+    databaseAbsPath,  # databaseAbsPath
+    runId,  # runId
+    experimentName,  # experimentName
+    runName,  # runName
+    doubleClicked,
+):
+    if isLabradFolder(databaseAbsPath):
+        worker = loadLabradRunInfo.LoadRunInfoThread(
+            databaseAbsPath, runId, experimentName, runName, doubleClicked
+        )
+    elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        worker = loadRunInfo.LoadRunInfoThread(
+            databaseAbsPath, runId, experimentName, runName, doubleClicked
+        )
+    return worker
+
+
+def dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun):
+    if isLabradFolder(databaseAbsPath):
+        workerCheck = checkNbRunLabrad.dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun)
+    elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        workerCheck = checkNbRunDatabase.dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun)
+    return workerCheck
 
 
 class TableWidgetDatabase(QtWidgets.QTableWidget):
@@ -193,6 +221,10 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         Each call add n rows into the table.
         """
 
+        if not hasattr(self.properties, 'databaseName'):
+            # Load runs extra properties
+            self.properties.jsonLoad(os.path.dirname(databaseAbsPath),
+                                    os.path.basename(databaseAbsPath))
 
         if lrunId[0]==1:
             # self.statusBarMain.clearMessage()
@@ -297,6 +329,32 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.dataBaseCheckNbRun(databaseAbsPath,
                                 nbTotalRun)
 
+
+
+    @QtCore.pyqtSlot(str, int)
+    def labradDatabaseClickDone(self, databaseAbsPath: str, nbTotalRun: int) -> None:
+        
+        """
+        Called when the labrad Database table has been filled
+        """
+
+        self.setSortingEnabled(True)
+        self.sortItems(config['DatabaseDisplayColumn']['itemRunId']['index'], QtCore.Qt.DescendingOrder)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+
+        self.signalSendStatusBarMessage.emit('Ready', 'green')
+
+        # We store the total number of run
+        self.nbTotalRun = nbTotalRun
+
+        # Done
+        self.signalDatabaseClickDone.emit(databaseAbsPath)
+        self.signalUpdateCurrentDatabase.emit(getLabradDataVaultNameFromAbsPath(databaseAbsPath))
+
+        # We periodically check if there is not a new run to display
+        self.databaseAbsPath = databaseAbsPath
+        self.dataBaseCheckNbRun(databaseAbsPath, nbTotalRun)
 
 
     def dataBaseCheckNbRun(self, databaseAbsPath: str,

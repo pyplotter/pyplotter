@@ -25,13 +25,14 @@ class GroupBoxNormalize(QtWidgets.QGroupBox):
 
         # Build the UI
         self.ui = Ui_GroupBoxNormalize()
-        self.ui.setupUi(self)
 
         self.config = config
         self.databaseAbsPath = databaseAbsPath
         self.plotItem = plotItem
         self.plotRef = plotRef
         self._windowTitle = windowTitle
+
+        self.ui.setupUi(self)  # need plotItem to run
 
         self.ui.checkBoxUnwrap.clicked.connect(self.clickUnwrap)
         self.ui.checkBoxRemoveSlope.clicked.connect(self.clickRemoveSlope)

@@ -22,6 +22,7 @@ Currently the following packages are required:
 * qcodes>=0.26.0
 * scikit-rf
 * scipy
+* pylabrad (Labrad data support)
 
 ### Installation
 
@@ -46,6 +47,29 @@ git clone https://github.com/pyplotter/pyplotter
 cd pyplotter
 pip install -e .
 ```
+
+(Optional), Following the step 1 $ 2, you can also clone this repository, install required packages, and manually run pyplotter:
+```bash
+cd ./pyplotter
+pip install -r requirements.txt
+python -m pyplotter.pyplotter
+```
+
+
+Note for Labrad users: 
+
+  - You can access the Labrad data in two ways, depending on whether you have a connection to the Labrad datavault server:
+    1. Read Labrad datasets in local files (SWMR mode of hdf5 files).
+       However, this is not stable if the hdf5 file is busy! I strongly recommend "ONLY READ" the Labrad datasets that are not actively used by other users.
+    2. Support liveplot. Labrad data is accessed through the native RPC protocol
+       Pyplotter acts just like the normal Labrad Client. 
+
+  - Non-Labrad users should not be affected even if they do not have pylabrad. 
+  - To mimic the layout of Labrad Grapher, you could modify `ui/mainWindow.py` as:
+    ```
+    # from .mainWindowui import Ui_MainWindow
+    from .mainWindowui_r2c2 import Ui_MainWindow
+    ```
 
 ## 🛠️ Use
 
