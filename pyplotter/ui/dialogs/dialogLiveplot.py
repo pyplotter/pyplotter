@@ -23,7 +23,7 @@ from ...sources.functions import (
     getPlotTitle,
     getPlotRef,
     getDialogWidthHeight,
-    getParallelDialogWidthHeight,
+    getTiledWindowWidthHeight,
     MAX_LIVE_PLOTS,
     isLabradFolder,
     plotIdGenerator,
@@ -771,12 +771,12 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
             # We get the dialog position and size to tile the screen
             if zParamName == '':
-                dialogTilings = getParallelDialogWidthHeight(nbDialog=1, plotId=plotId)
+                dialogTilings = getTiledWindowWidthHeight(1, plotId=plotId)
                 dialogX, dialogY, dialogWidth, dialogHeight = [tile[0] for tile in dialogTilings]
             else:
                 # tile 3D plot with plot windows
                 num_2d_plots = len(self.livePlotGetPlotParameterList[plotId][0])
-                dialogTilings = getParallelDialogWidthHeight(num_2d_plots, plotId=plotId)
+                dialogTilings = getTiledWindowWidthHeight(num_2d_plots, plotId=plotId)
                 dialogX, dialogY, dialogWidth, dialogHeight = [tile[tile_idx] for tile in dialogTilings]
 
             # Only the first dependent parameter is displayed per default
@@ -884,7 +884,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         """
 
         # We get the last run id of the database
-        # self._livePlotRunId = getNbTotalRunmp(self._livePlotDatabaseAbsPath)
         self._livePlotRunId, self._livePlotRunName = getNbTotalRunAndLastRunNameLabrad(self._livePlotDatabaseAbsPath)
         num_live_plots = min(self._livePlotRunId, MAX_LIVE_PLOTS)
         updateIds = np.arange(self.plotId, self.plotId + num_live_plots) % MAX_LIVE_PLOTS

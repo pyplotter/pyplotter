@@ -13,7 +13,7 @@ from ..sources.functions import (clearTableWidget,
                                  getPlotTitle,
                                  getWindowTitle,
                                  isLabradFolder,
-                                 getParallelDialogWidthHeight,
+                                 getTiledWindowWidthHeight,
                                  findXYIndex, 
                                  shapeData2d, 
                                  make_grid
@@ -442,14 +442,14 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                     )
                 # We get the dialog position and size to tile the screen
                 if zParamNames[-1] == "":
-                    dialogTilings = getParallelDialogWidthHeight(nbDialog=1, plotId=0)
+                    dialogTilings = getTiledWindowWidthHeight(1, plotId=0)
                     dialogX, dialogY, dialogWidth, dialogHeight = [
                         tile[0] for tile in dialogTilings
                     ]
                 else:
                     # tile 3D plot with plot windows
                     num_2d_plots = len(paramsDependents)
-                    dialogTilings = getParallelDialogWidthHeight(num_2d_plots, plotId=0)
+                    dialogTilings = getTiledWindowWidthHeight(num_2d_plots, plotId=0)
                     dialogX, dialogY, dialogWidth, dialogHeight = [
                         tile[dep_idx] for tile in dialogTilings
                     ]
