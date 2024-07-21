@@ -1,9 +1,8 @@
-import glob
 import os
 import numpy as np
 import multiprocess as mp
 import copy
-from typing import Tuple, List  # , Dict,  Union, Optional, final
+from typing import Tuple, List
 from pathlib import Path
 import h5py
 import base64
@@ -18,24 +17,19 @@ except:
 
 CXN = None
 LOCAL_DATAVAULT = False
+# maximum plot dependents to avoid opening to many 2D windows, if not specificed by the user
+MAX_NUM_PLOT_DEPS = 8
 
 
-def name2idx(variables, name, default=np.nan):
-    name = name if isinstance(name, list) else [name]
-    names = [variable_i["name"] for variable_i in variables]
-    for _name in name:
-        if _name in names:
-            return names.index(_name)
-    else:
-        return default
-
-
-def labrad_urldecode(data_url):
+def labrad_urldecode(data_url) -> any:
+    """
+    Labrad data are encoded as dataurl and then stored in hdf5 files,
+    here we just decode these data using Labrad APIs.
+    """
 
     from labrad import types as T
 
     if data_url.startswith(DATA_URL_PREFIX):
-        # decode parameter data from dataurl
         all_bytes = base64.urlsafe_b64decode(data_url[len(DATA_URL_PREFIX) :])
         t, data_bytes = T.unflatten(all_bytes, "sy")
         data = T.unflatten(data_bytes, t)
@@ -53,11 +47,13 @@ Dependent = namedtuple("Dependent", ["name", "legend", "shape", "datatype", "uni
 
 class LocalDatavault:
     """
-    Manage the Labrad data with local data vault,
+    Manage the Labrad data with the local data vault,
     without connecting to the data_vault server.
+
+    The goal is to substitute APIs provided by the data_vault server, so there are unused variables as spaceholders.
     """
 
-    def __init__(self, root=None, session=None, absolute_path=None):
+    def __init__(self, root=None, session=None, absolute_path=None) -> None:
         if absolute_path is None:
             absolute_path = rootSession2absolutePath(root, session)
             self.root, self.session = root, session
@@ -67,31 +63,31 @@ class LocalDatavault:
         self.suffix = ".dir"
         self.file_name_loaded = None
 
-    def context(self):
+    def context(self) -> None:
         return None
 
-    def cd(self, session, context=None):
+    def cd(self, session, context=None) -> None:
         self.path = Path(rootSession2absolutePath(self.root, session))
 
-    def ls(self, onlyDir=False):
+    def ls(self, onlyDir=False) -> Tuple[List[str]]:
         patterns = ["*" + self.suffix] if onlyDir else ["*" + self.suffix, "*.hdf5"]
         return tuple(
             [file.name.replace(pattern[1:], "") for file in self.path.glob(pattern)]
             for pattern in patterns
         )
 
-    def dir(self, context=None):
+    def dir(self, context=None) -> Tuple[List[str]]:
         return self.ls()
 
-    def open(self, dataset, context=None):
+    def open(self, dataset, context=None) -> Tuple[any | List[str] | None, str]:
         self.filename = list(self.path.glob("{:05d}*.hdf5".format(dataset)))[0]
         self.dataset_name = self.filename.name.replace(".hdf5", "")
         return self.session, self.dataset_name
 
-    def get_name(self, context=None):
+    def get_name(self, context=None) -> str:
         return self.dataset_name
 
-    def _load(self):
+    def _load(self) -> None:
         if self.filename != self.file_name_loaded:
             self.file_name_loaded = self.filename
             with h5py.File(self.filename, "r", swmr=True) as hdf5_file:
@@ -136,20 +132,20 @@ class LocalDatavault:
                     for d in self.Dependents.values()
                 ]
 
-    def get_ex(self, context=None):
+    def get_ex(self, context=None) -> np.ndarray[any, np.dtype[any]]:
         self._load()
         return self.data
 
-    def variables_ex(self, context=None):
+    def variables_ex(self, context=None) -> Tuple[List[Independent] | List[Dependent]]:
         self._load()
         return self.inds_list, self.deps_list
 
-    def get_parameters(self, context=None):
+    def get_parameters(self, context=None) -> List[any]:
         self._load()
         return self.param_list
 
 
-def absolutePath2rootSession(absolute_path):
+def absolutePath2rootSession(absolute_path) -> Tuple[str | List[str]]:
     data_path_dir = str(absolute_path)
     session = [""]
     root, subdir = os.path.split(data_path_dir)
@@ -160,11 +156,11 @@ def absolutePath2rootSession(absolute_path):
     return root, session
 
 
-def rootSession2absolutePath(root, session):
+def rootSession2absolutePath(root, session) -> str:
     return Path(root).joinpath("/".join([folder + ".dir" for folder in session])).as_posix()
 
 
-def get_datavault(absolute_path, cxn=None):
+def get_datavault(absolute_path, cxn=None) -> LocalDatavault:  # any means labrad server object
     # access data through labrad server
     if cxn is not None:
         dv = cxn.data_vault
@@ -208,7 +204,7 @@ class LabradDataset(object):
         self.noisy = noisy
         self._clear_data()
 
-    def _clear_data(self):
+    def _clear_data(self) -> None:
         self.data: np.ndarray = None
         self.mat_cache: dict = {"mat": {}}
         self.data_shape: dict = {}
@@ -216,10 +212,10 @@ class LabradDataset(object):
         self.datasets_num: list = []
         self.dataset_name: str = None
 
-    def listDatasets(self):
+    def listDatasets(self) -> List[str]:
         return self.dv.dir(context=self._ctx)[1]
 
-    def loadDataset(self, dataset, load_data=True):
+    def loadDataset(self, dataset, load_data=True) -> None:
         assert isinstance(dataset, int)
         session, dataset_name = self.dv.open(dataset, context=self._ctx)
         self.dataset_num = int(dataset_name[0:5])
@@ -263,7 +259,7 @@ class LabradDataset(object):
             ]
         self.dim = len(self.inds)
 
-    def _get_dataset_info(self):
+    def _get_dataset_info(self) -> dict[str]:
         """
         Description:
         get dataset info for merge
@@ -275,36 +271,36 @@ class LabradDataset(object):
         }
         return info
 
-    def _load_parameters(self):
+    def _load_parameters(self) -> dict:
         self._parameters = dict(self.dv.get_parameters(context=self._ctx))
         return self._parameters
 
     @property
-    def parameters(self):
+    def parameters(self) -> dict:
         if not hasattr(self, "_parameters"):
             return self._load_parameters()
         else:
             return self._parameters
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.dataset_name
 
-    def getIndependents(self):
+    def getIndependents(self) -> List[Independent]:
         return self.inds
 
-    def getDependents(self):
+    def getDependents(self) -> List[Dependent]:
         return self.deps
 
-    def getPlotDependents(self):
+    def getPlotDependents(self) -> List[Dependent]:
         plotDepsNames = self.parameters.get("plot_dependents", None)
         plotDependents = []
         for dep in self.getDependents():
             if plotDepsNames is None or dep_label(dep) in plotDepsNames:
                 plotDependents.append(dep)
-        return plotDependents
+        return plotDependents[:MAX_NUM_PLOT_DEPS]
 
-    def getPlotData(self):
+    def getPlotData(self) -> np.ndarray:
         d = self.data
         num_inds = len(self.inds)
         sel_idx = np.arange(num_inds).tolist()
@@ -313,13 +309,16 @@ class LabradDataset(object):
         return d[:, sel_idx]
 
 
-def check_busy_datasets(session, dataset_names):
+def check_busy_datasets(session, dataset_names) -> List[bool]:
     # _, dataTags = session.getTags([], dataset_names)
     # return ["busy" in dataTag[1] for dataTag in dataTags]
     return [False] * len(dataset_names)
 
 
-def dep_label(dep):
+def dep_label(dep) -> str:
+    """
+    return unique label of dependents
+    """
     if isinstance(dep, Dependent):
         legend = dep.legend
         name = dep.name
@@ -332,24 +331,24 @@ def dep_label(dep):
         return name
 
 
-def getNbTotalRun(databaseAbsPath: str) -> None:
+def getNbTotalRun(databaseAbsPath: str) -> int:
     dv = get_datavault(databaseAbsPath)
     nbTotalRun = len(dv.dir()[1])
     return nbTotalRun
 
 
-def getNbTotalRunmp(databaseAbsPath: str, queueNbRun: mp.Queue):
+def getNbTotalRunmp(databaseAbsPath: str, queueNbRun: mp.Queue) -> None:
     queueNbRun.put(getNbTotalRun(databaseAbsPath))
 
 
-def getRunInfos(databaseAbsPath: str):
+def getRunInfos(databaseAbsPath: str) -> dict[int, str]:
     dv = get_datavault(databaseAbsPath)
     allNames = dv.dir()[1]
     runInfos = dict((int(name.split(" - ")[0]), name) for name in allNames)
     return runInfos
 
 
-def getDatabaseInfos(databaseAbsPath: str):
+def getDatabaseInfos(databaseAbsPath: str) -> Tuple:
     dv = get_datavault(databaseAbsPath)
     allNames = dv.dir()[1]
     runId = []
@@ -376,18 +375,18 @@ def getDatabaseInfos(databaseAbsPath: str):
     )
 
 
-def getRunInfosmp(
-    databaseAbsPath: str, queueData: mp.Queue, queueProgressBar: mp.Queue, queueDone: mp.Queue
-) -> None:
-    print("len(runINfo):")
-    runInfos = getRunInfos(databaseAbsPath)
-    if not len(runInfos):
-        queueData.put(None)
-        queueDone.put(True)
-        return None
-    queueProgressBar.put(queueProgressBar.get() + 100)
-    queueData.put(runInfos)
-    queueDone.put(True)
+# def getRunInfosmp(
+#     databaseAbsPath: str, queueData: mp.Queue, queueProgressBar: mp.Queue, queueDone: mp.Queue
+# ) -> None:
+#     print("len(runINfo):")
+#     runInfos = getRunInfos(databaseAbsPath)
+#     if not len(runInfos):
+#         queueData.put(None)
+#         queueDone.put(True)
+#         return None
+#     queueProgressBar.put(queueProgressBar.get() + 100)
+#     queueData.put(runInfos)
+#     queueDone.put(True)
 
 
 def getDependentSnapshotShapeFromRunId(
@@ -443,8 +442,6 @@ def getParameterInfo(
                 "depends_on": [],
             }
         )
-    # data = dv.open(runId)
-    # val, dlen = data.getData(None, 0, None, None)
     dep_idx = dependences["index"]
     indep_len = len(param)
     d = np.concatenate(
