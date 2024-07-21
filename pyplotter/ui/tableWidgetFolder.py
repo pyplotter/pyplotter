@@ -216,11 +216,6 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
             # If it is a npz file
             elif nextPath[-3:].lower() in 'npz':
                 self.npzClick()
-            elif isinstance(b, QtCore.QPoint):
-                # Job done, we restor the usual cursor
-                QtWidgets.QApplication.restoreOverrideCursor()
-                # We open a homemade menu
-                MenuDb(self.databaseAbsPath)
             # If it is a QCoDeS database
             elif isQcodesData(currentItem):
                 self.databaseClick()

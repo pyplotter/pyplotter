@@ -98,7 +98,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         # Connect events
         self.pushButtonMenu = QtWidgets.QMenu()
         self.pushButtonMenu.addAction('Database File', self.livePlotPushButton)
-        self.pushButtonMenu.addAction('Database Folder', self.livePlotPushButtonFolder)
+        self.pushButtonMenu.addAction('Labrad Data Folder', self.livePlotPushButtonFolder)
         self.pushButtonLivePlot.setMenu(self.pushButtonMenu)
         # self.pushButtonLivePlot.clicked.connect(self.livePlotPushButton)
         self.spinBoxLivePlotRefreshRate.setValue(int(config['livePlotTimer']))

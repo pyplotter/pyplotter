@@ -244,7 +244,7 @@ class MainApp(QtWidgets.QMainWindow):
                             parameterPlotted = True
                 if plot.plotType=='2d':
                     if plotRef in plot.plotRef:
-                        if plot.zLabelText==paramDependent['label']:
+                        if plot._zLabelText==paramDependent['label']:
                             parameterPlotted = True
 
         self.signalAddRow.emit(runId,
