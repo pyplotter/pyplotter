@@ -10,8 +10,8 @@ from ...sources.workers.loadLabradDataFromCache import LoadLabradDataFromCacheTh
 from .dialogLiveplotUi import Ui_LivePlot
 from ...sources.qcodesDatabase import getNbTotalRunAndLastRunName, isRunCompleted
 from ...sources.labradDatavault import (
-    dep_label,
     LabradDataset,
+    variable_label,
     getNbTotalRunAndLastRunNameLabrad,
     isRunCompletedLabrad,
     check_busy_datasets,
@@ -689,35 +689,31 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         for paramsDependent in paramsDependents:
 
-            # # For each dependent parameter we them the parameter(s) they depend
-            # # on.
-            # depends_on = [i for i in paramsDependent.depends_on.split(', ')]
-
             depends_on = [i for i in self.livePlotDataSets[plotId].getIndependents()]
 
             param_x = depends_on[0]
-            xParamNames.append(param_x.label + ' (name)')
+            xParamNames.append(param_x.name)
             xParamLabels.append(param_x.label)
             xParamUnits.append(param_x.unit)
 
             # For 2d plot
             if len(depends_on)>1:
                 param_y = depends_on[1]
-                yParamNames.append(param_y.label + ' (name)')
+                yParamNames.append(param_y.name)
                 yParamLabels.append(param_y.label)
                 yParamUnits.append(param_y.unit)
 
-                zParamNames.append(dep_label(paramsDependent))
+                zParamNames.append(variable_label(paramsDependent))
                 zParamLabels.append(paramsDependent.label)
                 zParamUnits.append(paramsDependent.unit)
 
                 plotRefs.append(getPlotRef(databaseAbsPath=self._livePlotDatabaseAbsPath,
-                                           paramDependent={'depends_on' : [0, 1], 'name': dep_label(paramsDependent)},
+                                           paramDependent={'depends_on' : [0, 1], 'name': variable_label(paramsDependent)},
                                            runId=self.livePlotRunIds[plotId]))
                 self._livePlotNbPlot += 1
             # For 1d plot
             else:
-                yParamNames.append(dep_label(paramsDependent))
+                yParamNames.append(variable_label(paramsDependent))
                 yParamLabels.append(paramsDependent.label)
                 yParamUnits.append(paramsDependent.unit)
 
@@ -837,10 +833,13 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         # The flags are False until the worker update them to True
         self._updatingFlag = []
 
-        self.livePlotDataSets[plotId].data.dataset.refresh()
-        d = self.livePlotDataSets[plotId].getPlotData()[0]
+        # self.livePlotDataSets[plotId].data.dataset.refresh()
+        d = self.livePlotDataSets[plotId].getPlotData()
         
-        for dep_idx, [xParamName, xParamLabel, xParamUnit, yParamName, yParamLabel, yParamUnit, zParamName, zParamLabel, zParamUnit, plotRef] in enumerate(zip(*self.livePlotGetPlotParameterList[plotId])):
+        for dep_idx, [xParamName, xParamLabel, xParamUnit, 
+                      yParamName, yParamLabel, yParamUnit, 
+                      zParamName, zParamLabel, zParamUnit, 
+                      plotRef] in enumerate(zip(*self.livePlotGetPlotParameterList[plotId])):
             self._updatingFlag.append(False)
 
             dataDict = {}
@@ -935,8 +934,8 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 self.livePlotRunIds.pop(self.plotId)
                 self.livePlotPreviousDataLengths.pop(self.plotId)
                 self.livePlotRunNames.pop(self.plotId)
-                old_dataset = self.livePlotDataSets.pop(self.plotId)
-                old_dataset.close()
+                # old_dataset = self.livePlotDataSets.pop(self.plotId)
+                # # old_dataset.close()
                 # set new
                 self.livePlotRunIds.insert(self.plotId, self._livePlotRunId)
                 self.livePlotPreviousDataLengths.insert(self.plotId, 0)

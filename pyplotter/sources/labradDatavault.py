@@ -16,7 +16,7 @@ except:
     print("Labrad not installed, you will not able to read labrad datasets!")
 
 CXN = None
-LOCAL_DATAVAULT = False
+USE_LABRAD_DATAVAULT_SERVER = True
 # maximum plot dependents to avoid opening to many 2D windows, if not specificed by the user
 MAX_NUM_PLOT_DEPS = 8
 
@@ -41,8 +41,8 @@ def labrad_urldecode(data_url) -> any:
         )
 
 
-Independent = namedtuple("Independent", ["name", "shape", "datatype", "unit"])
-Dependent = namedtuple("Dependent", ["name", "legend", "shape", "datatype", "unit"])
+Independent = namedtuple("Independent", ["name", "label", "shape", "datatype", "unit"])
+Dependent = namedtuple("Dependent", ["name", "legend", "label", "shape", "datatype", "unit"])
 
 
 class LocalDatavault:
@@ -115,6 +115,7 @@ class LocalDatavault:
                 self.inds_list = [
                     Independent(
                         name=d["label"],
+                        label=variable_label({"name": d["label"]}),
                         shape=d["shape"],
                         datatype=d["datatype"],
                         unit=d["unit"],
@@ -125,6 +126,7 @@ class LocalDatavault:
                     Dependent(
                         name=d["label"],
                         legend=d["legend"],
+                        label=variable_label({"name": d["label"], "legend": d["legend"]}),
                         shape=d["shape"],
                         datatype=d["datatype"],
                         unit=d["unit"],
@@ -160,12 +162,16 @@ def rootSession2absolutePath(root, session) -> str:
     return Path(root).joinpath("/".join([folder + ".dir" for folder in session])).as_posix()
 
 
-def get_datavault(absolute_path, cxn=None) -> LocalDatavault:  # any means labrad server object
-    # access data through labrad server
+def get_datavault(
+    absolute_path, cxn=None, noisy=True
+) -> LocalDatavault:  # any means labrad server object
     if cxn is not None:
+        if noisy:
+            print("access data through labrad server: ", absolute_path)
         dv = cxn.data_vault
-    # access data with local datavault
     else:
+        if noisy:
+            print("access data with local datavault: ", absolute_path)
         dv = LocalDatavault(absolute_path=absolute_path)
     return dv
 
@@ -175,15 +181,15 @@ class LabradDataset(object):
 
     def __init__(self, absolute_path, cxn=None, noisy=False):
         global CXN
-        global LOCAL_DATAVAULT
-        if LOCAL_DATAVAULT:
+        global USE_LABRAD_DATAVAULT_SERVER
+        if USE_LABRAD_DATAVAULT_SERVER:
             try:
-                CXN = labrad.connect()
+                CXN = labrad.connect(tls_mode="off")  # no tls_mode to avoid connection refusion!
                 CXN.data_vault
-                LOCAL_DATAVAULT = False
+                USE_LABRAD_DATAVAULT_SERVER = True
             except:
                 CXN = None
-                LOCAL_DATAVAULT = True
+                USE_LABRAD_DATAVAULT_SERVER = False
                 print("Failed to connect to Labrad, read hdf5 files locally!")
                 print(
                     "To enable liveplot, you might want to install Labrad, "
@@ -238,6 +244,7 @@ class LabradDataset(object):
             self.inds = [
                 Independent(
                     name=inds_i[0],
+                    label=variable_label({"name": inds_i[0]}),
                     shape=(1, len(self.data)),
                     datatype=inds_i[2],
                     unit=inds_i[3],
@@ -251,6 +258,7 @@ class LabradDataset(object):
                 Dependent(
                     name=deps_i[0],
                     legend=deps_i[1],
+                    label=variable_label({"name": deps_i[0], "legend": deps_i[1]}),
                     shape=deps_i[2],
                     datatype=deps_i[3],
                     unit=deps_i[4],
@@ -296,7 +304,7 @@ class LabradDataset(object):
         plotDepsNames = self.parameters.get("plot_dependents", None)
         plotDependents = []
         for dep in self.getDependents():
-            if plotDepsNames is None or dep_label(dep) in plotDepsNames:
+            if plotDepsNames is None or variable_label(dep) in plotDepsNames:
                 plotDependents.append(dep)
         return plotDependents[:MAX_NUM_PLOT_DEPS]
 
@@ -310,35 +318,42 @@ class LabradDataset(object):
 
 
 def check_busy_datasets(session, dataset_names) -> List[bool]:
-    # _, dataTags = session.getTags([], dataset_names)
-    # return ["busy" in dataTag[1] for dataTag in dataTags]
+    """
+    not busy
+    """
     return [False] * len(dataset_names)
 
 
-def dep_label(dep) -> str:
+def variable_label(var) -> str:
     """
-    return unique label of dependents
+    return unique label of variables
     """
-    if isinstance(dep, Dependent):
-        legend = dep.legend
-        name = dep.name
+    if isinstance(var, (Dependent, Independent)):
+        legend = var.legend
+        name = var.name
     else:
-        legend = dep.legend
-        name = dep.name
+        name = var["name"]
+        legend = var.get("legend", "")
     if legend:
         return name + f"({legend})"
     else:
         return name
 
 
-def getNbTotalRun(databaseAbsPath: str) -> int:
-    dv = get_datavault(databaseAbsPath)
+def getNbTotalRun(databaseAbsPath: str, noisy: bool = True) -> int:
+    """
+    check current dataset number, set noisy False to mute monitoring the dataset.
+    """
+    dv = get_datavault(databaseAbsPath, noisy=noisy)
     nbTotalRun = len(dv.dir()[1])
     return nbTotalRun
 
 
 def getNbTotalRunmp(databaseAbsPath: str, queueNbRun: mp.Queue) -> None:
-    queueNbRun.put(getNbTotalRun(databaseAbsPath))
+    """
+    check current dataset number (multi process)
+    """
+    queueNbRun.put(getNbTotalRun(databaseAbsPath, noisy=False))
 
 
 def getRunInfos(databaseAbsPath: str) -> dict[int, str]:
@@ -348,7 +363,7 @@ def getRunInfos(databaseAbsPath: str) -> dict[int, str]:
     return runInfos
 
 
-def getDatabaseInfos(databaseAbsPath: str) -> Tuple:
+def getLabradDatabaseInfos(databaseAbsPath: str) -> Tuple:
     dv = get_datavault(databaseAbsPath)
     allNames = dv.dir()[1]
     runId = []
@@ -375,20 +390,6 @@ def getDatabaseInfos(databaseAbsPath: str) -> Tuple:
     )
 
 
-# def getRunInfosmp(
-#     databaseAbsPath: str, queueData: mp.Queue, queueProgressBar: mp.Queue, queueDone: mp.Queue
-# ) -> None:
-#     print("len(runINfo):")
-#     runInfos = getRunInfos(databaseAbsPath)
-#     if not len(runInfos):
-#         queueData.put(None)
-#         queueDone.put(True)
-#         return None
-#     queueProgressBar.put(queueProgressBar.get() + 100)
-#     queueData.put(runInfos)
-#     queueDone.put(True)
-
-
 def getDependentSnapshotShapeFromRunId(
     databaseAbsPath: str, runId: int
 ) -> Tuple[list, dict, dict]:
@@ -400,17 +401,17 @@ def getDependentSnapshotShapeFromRunId(
     for dep in dependents:
         dependentList.append(
             {
-                "name": dep_label(dep),
-                "label": dep_label(dep),
+                "name": variable_label(dep),
+                "label": variable_label(dep),
                 "unit": dep.unit,
                 "inferred_from": [],
-                "depends_on": [dep_label(dep) for indep in independents],
+                "depends_on": [variable_label(dep) for indep in independents],
             }
         )
     snapshotDict = data.parameters
     shapesDict = {}
     for dep in dependents:
-        shapesDict[dep_label(dep)] = [tuple(ind.shape) for ind in independents]
+        shapesDict[variable_label(dep)] = [tuple(ind.shape) for ind in independents]
     return dependentList, snapshotDict, shapesDict
 
 
@@ -421,22 +422,22 @@ def getParameterInfo(
     data.loadDataset(runId)
     dependents = data.deps
     independents = data.inds
-    dep_names = [dep_label(dep) for dep in dependents]
+    dep_names = [variable_label(dep) for dep in dependents]
     dep = dependents[dep_names.index(parameterName)]
     dependences = {
-        "name": dep_label(dep),
-        "label": dep_label(dep),
+        "name": dep.name,
+        "label": variable_label(dep),
         "unit": dep.unit,
         "inferred_from": [],
-        "depends_on": [dep_label(dep) for indep in independents],
+        "depends_on": [variable_label(dep) for indep in independents],
         "index": dep_names.index(parameterName),
     }
     param = []
     for indep in independents:
         param.append(
             {
-                "name": dep_label(dep),
-                "label": dep_label(dep),
+                "name": dep.name,
+                "label": variable_label(dep),
                 "unit": indep.unit,
                 "inferred_from": [],
                 "depends_on": [],
@@ -459,7 +460,7 @@ def getNbTotalRunAndLastRunNameLabrad(databaseAbsPath: str) -> Tuple[int, str]:
     """
     Return the number of run in the database and the name of the last run
     """
-    dv = get_datavault(databaseAbsPath)
+    dv = get_datavault(databaseAbsPath, noisy=False)
     dataset_names = dv.dir()[1]
     return len(dataset_names), dataset_names[-1]
 
@@ -467,10 +468,6 @@ def getNbTotalRunAndLastRunNameLabrad(databaseAbsPath: str) -> Tuple[int, str]:
 def isRunCompletedLabrad(databaseAbsPath: str, runId: int) -> bool:
     """
     Return True if the run is marked as completed, False otherwise
+    Now set to False for simplicity
     """
-    data = LabradDataset(databaseAbsPath)
-    try:
-        data.loadDataset(runId)
-        return True
-    except:
-        return False
+    return False

@@ -6,7 +6,7 @@ from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..sources.workers.loadDataFromRun import LoadDataFromRunThread
 from ..sources.workers.loadLabradDataFromRun import LoadDataFromRunThread as LoadLabradDataFromRunThread
-from ..sources.labradDatavault import LabradDataset, dep_label
+from ..sources.labradDatavault import LabradDataset, variable_label
 from ..sources.functions import (clearTableWidget,
                                  getCurveId,
                                  getPlotRef,
@@ -409,7 +409,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                     yParamLabels.append(param_y.name)
                     yParamUnits.append(param_y.unit)
 
-                    zParamNames.append(dep_label(paramsDependent))
+                    zParamNames.append(variable_label(paramsDependent))
                     zParamLabels.append(paramsDependent.name)
                     zParamUnits.append(paramsDependent.unit)
 
@@ -418,14 +418,14 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                             databaseAbsPath=databaseAbsPath,
                             paramDependent={
                                 "depends_on": [0, 1],
-                                "name": dep_label(paramsDependent),
+                                "name": variable_label(paramsDependent),
                             },
                             runId=runId,
                         )
                     )
                 # For 1d plot
                 else:
-                    yParamNames.append(dep_label(paramsDependent))
+                    yParamNames.append(variable_label(paramsDependent))
                     yParamLabels.append(paramsDependent.name)
                     yParamUnits.append(paramsDependent.unit)
 

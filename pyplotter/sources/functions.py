@@ -120,11 +120,11 @@ def isQcodesData(folderName: str) -> bool:
     return '.db' in folderName
 
 
-def isLabradFolder(abs_folderName : str) -> bool:
+def isLabradFolder(folderName : str) -> bool:
     """
     Return True if a string follow Labrad data folder name pattern.
     """
-    return abs_folderName.split('.')[-1] == "dir"
+    return folderName.split('.')[-1] == "dir"
 
 
 def sizeof_fmt(num: float, suffix: str='B') -> str:
@@ -255,10 +255,12 @@ def getPlotTitle(databaseAbsPath: str,
 
 
 def getDatabaseNameFromAbsPath(databaseAbsPath: str) -> str:
-    return os.path.basename(databaseAbsPath)[:-3]
-
-def getLabradDataVaultNameFromAbsPath(databaseAbsPath: str) -> str:
-    return os.path.basename(databaseAbsPath)[:-4]
+    if isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        return os.path.basename(databaseAbsPath)[:-3]
+    elif isLabradFolder(os.path.split(databaseAbsPath)[-1]):
+        return os.path.basename(databaseAbsPath)[:-4]
+    else:
+        return os.path.basename(databaseAbsPath)
 
 
 def getWindowTitle(databaseAbsPath: str,
