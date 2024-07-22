@@ -74,7 +74,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.threadpool = QtCore.QThreadPool()
 
     def eventFilter(self, source,
-                          event) -> Optional[bool]:
+                          event) -> Optional[bool] | None:
         """
         We use an event filter to detect
             right click -> display run parameter
