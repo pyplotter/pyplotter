@@ -117,14 +117,16 @@ def isQcodesData(folderName: str) -> bool:
     """
     Return True if a string follow Qcodes database name pattern.
     """
-    return '.db' in folderName
+    baseName = os.path.split(folderName)[-1]
+    return '.db' in baseName
 
 
 def isLabradFolder(folderName : str) -> bool:
     """
     Return True if a string follow Labrad data folder name pattern.
     """
-    return folderName.split('.')[-1] == "dir"
+    baseName = os.path.split(folderName)[-1]
+    return baseName.split('.')[-1] == "dir"
 
 
 def sizeof_fmt(num: float, suffix: str='B') -> str:
@@ -255,9 +257,9 @@ def getPlotTitle(databaseAbsPath: str,
 
 
 def getDatabaseNameFromAbsPath(databaseAbsPath: str) -> str:
-    if isQcodesData(os.path.split(databaseAbsPath)[-1]):
+    if isQcodesData(databaseAbsPath):
         return os.path.basename(databaseAbsPath)[:-3]
-    elif isLabradFolder(os.path.split(databaseAbsPath)[-1]):
+    elif isLabradFolder(databaseAbsPath):
         return os.path.basename(databaseAbsPath)[:-4]
     else:
         return os.path.basename(databaseAbsPath)

@@ -152,7 +152,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
-        if isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        if isQcodesData(databaseAbsPath):
             # Create a thread which will read the database
             self.workerLoadDatabase = LoadDataBaseThread(databaseAbsPath, progressBar)
 
@@ -167,7 +167,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             # Execute the thread
             self.threadpool.start(self.workerLoadDatabase)
 
-        elif isLabradFolder(os.path.split(databaseAbsPath)[-1]):
+        elif isLabradFolder(databaseAbsPath):
             [
                 runId,
                 dim,
@@ -365,9 +365,9 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # From launch a thread which will periodically check if the database has
         # more run that what is currently displayed
-        if isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        if isQcodesData(databaseAbsPath):
             self.workerCheck = checkNbRunDatabase.dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun)
-        elif isLabradFolder(os.path.split(databaseAbsPath)[-1]):
+        elif isLabradFolder(databaseAbsPath):
             self.workerCheck = checkNbRunLabrad.dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun)
         else:
             raise Exception('dataset not supportted!')
@@ -409,7 +409,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         self.signalSendStatusBarMessage.emit('Loading run parameters', 'orange')
 
-        if isQcodesData(os.path.split(databaseAbsPath)[-1]):
+        if isQcodesData(databaseAbsPath):
             worker = loadRunInfo.LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
                                                    runId, # runId
                                                    experimentName, # experimentName
@@ -420,7 +420,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             # Execute the thread
             self.threadpool.start(worker)
 
-        elif isLabradFolder(os.path.split(databaseAbsPath)[-1]):
+        elif isLabradFolder(databaseAbsPath):
             worker = loadLabradRunInfo.LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
                                                          runId, # runId
                                                          experimentName, # experimentName
@@ -465,7 +465,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             self.signalSendStatusBarMessage.emit('Loading run parameters', 'orange')
 
-            if isQcodesData(os.path.split(databaseAbsPath)[-1]):
+            if isQcodesData(databaseAbsPath):
                 worker = loadRunInfo.LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
                                            runId, # runId
                                            experimentName, # experimentName
@@ -475,7 +475,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
                 # Execute the thread
                 self.threadpool.start(worker)
-            elif isLabradFolder(os.path.split(databaseAbsPath)[-1]):
+            elif isLabradFolder(databaseAbsPath):
                 worker = loadLabradRunInfo.LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
                                            runId, # runId
                                            experimentName, # experimentName
