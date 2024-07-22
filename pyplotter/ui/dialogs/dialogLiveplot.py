@@ -54,6 +54,31 @@ def getCurrentDependentParamLength(data: Tuple[np.ndarray, ...]) -> int:
     return length
 
 
+def getCurrentDependentParamLength(data: Tuple[np.ndarray, ...]) -> int:
+    """
+    Get the number of non np.nan point in the dependent parameter of data.
+
+    Args:
+        data : tuple
+            For 1d plot: (xData, yData)
+            For 2d plot: (xData, yData, zData)
+
+    Returns:
+        int: number of non np.nan point in
+            For 1d plot: yData
+            For 2d plot: zData
+    """
+
+    # 1d plot
+    if len(data)==2:
+        length = np.count_nonzero(~np.isnan(data[1]))
+    # 2d plot
+    elif len(data)==3:
+        length = np.count_nonzero(~np.isnan(data[2].ravel()))
+
+    return length
+
+
 class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
     ## Signal to the mainWindow to
