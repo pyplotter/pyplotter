@@ -357,6 +357,9 @@ def getNbTotalRunmp(databaseAbsPath: str, queueNbRun: mp.Queue) -> None:
 
 
 def getRunInfos(databaseAbsPath: str) -> dict[int, str]:
+    """
+    get the information of Labrad database
+    """
     dv = get_datavault(databaseAbsPath)
     allNames = dv.dir()[1]
     runInfos = dict((int(name.split(" - ")[0]), name) for name in allNames)
@@ -364,6 +367,9 @@ def getRunInfos(databaseAbsPath: str) -> dict[int, str]:
 
 
 def getLabradDatabaseInfos(databaseAbsPath: str) -> Tuple:
+    """
+    get the info of a Labrad dataset
+    """
     dv = get_datavault(databaseAbsPath)
     allNames = dv.dir()[1]
     runId = []
@@ -393,6 +399,27 @@ def getLabradDatabaseInfos(databaseAbsPath: str) -> Tuple:
 def getDependentSnapshotShapeFromRunId(
     databaseAbsPath: str, runId: int
 ) -> Tuple[list, dict, dict]:
+    """
+    copy the API of qcodesDatabase.py:
+    Get the list of dependent parameters from a runId.
+    Return a tuple of dependent parameters, each parameter
+    being a dict.
+
+    Parameters
+    ----------
+    runId: int
+        id of the run.
+
+    Return
+    ------
+    (dependent, snapshotDict) : tuple
+        dependents : list
+            list of dict of all dependents parameters.
+        snapshotDict : dict
+            Snapshot of the run.
+        shape : Dict[str, Optional[Tuple[int]]]
+            list of the dependent parameter shape.
+    """
     data = LabradDataset(databaseAbsPath)
     data.loadDataset(runId)
     dependents = data.deps
@@ -418,6 +445,30 @@ def getDependentSnapshotShapeFromRunId(
 def getParameterInfo(
     databaseAbsPath: str, runId: int, parameterName: str
 ) -> Tuple[dict, List[dict]]:
+    """
+    copy the API of qcodesDatabase.py:
+    Get the dependent qcodes parameter dictionary and all the independent
+    parameters dictionary it depends on.
+
+    Parameters
+    ----------
+    databaseAbsPath: str
+        Absolute path of the current database
+    runId: int
+        id of the run.
+    parameterName : str
+        Name of the dependent parameter.
+
+    Return
+    ------
+    (dependentParameter, independentParameter) : Tuple
+        dependentParameter : dict
+            Qcodes dependent parameter dictionnary.
+        independentParameter : List[dict]
+            List of Labrad independent parameters dictionnary.
+    """
+
+
     data = LabradDataset(databaseAbsPath)
     data.loadDataset(runId)
     dependents = data.deps
