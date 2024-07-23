@@ -60,7 +60,8 @@ class LocalDatavault:
         else:
             self.root, self.session = absolutePath2rootSession(absolute_path)
         self.path = Path(absolute_path)
-        self.suffix = ".dir"
+        self.folderPattern = "*.dir" 
+        self.dataPattern = '*.hdf5'
         self.file_name_loaded = None
 
     def context(self) -> None:
@@ -70,9 +71,9 @@ class LocalDatavault:
         self.path = Path(rootSession2absolutePath(self.root, session))
 
     def ls(self, onlyDir=False) -> Tuple[List[str]]:
-        patterns = ["*" + self.suffix] if onlyDir else ["*" + self.suffix, "*.hdf5"]
+        patterns = [self.folderPattern] if onlyDir else [self.folderPattern, self.dataPattern]
         return tuple(
-            [file.name.replace(pattern[1:], "") for file in self.path.glob(pattern)]
+            sorted([file.name.replace(pattern[1:], "") for file in self.path.glob(pattern)])
             for pattern in patterns
         )
 
