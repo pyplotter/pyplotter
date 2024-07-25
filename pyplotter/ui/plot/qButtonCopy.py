@@ -39,7 +39,6 @@ class QButtonCopy(QtWidgets.QPushButton):
 
         # For 2d plot, we want the colormap
         if hasattr(plotWidget.parent, 'hist'):
-            print('dfdf')
             witdh = plotWidget.frameGeometry().width()\
                    +plotWidget.parent.hist.width()
         else:

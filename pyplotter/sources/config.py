@@ -70,6 +70,10 @@ configPackage = {
 'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
 # Default folder open when clicking on the select database of the liveplot dialog
 'livePlotDefaultFolder' : 'C:/',
+'liveDialogWindowSize': [960, 640],
+'liveDialogWindowOffsets': [0, 0],
+'livePlotWindowNumber': 2,
+'livePlotScreenIndex': 0, # 0 to n-1
 
 
 # Interactivity
@@ -297,6 +301,7 @@ configPackage = {
 'plot1dSymbol' : ['o', 's', 't', 'd', '+'],
 'plot1dAntialias' : False,
 'plot2dcm' : 'Viridis', # Default colormap
+'plotHideInteractionPanel': False, # auto hide the interaction panel of a new plot window
 # List of derivative for 2d plot
 # Each new entry should also be coded in the comboBoxDerivativeActivated method
 # see plot_2d_app.py.
