@@ -2,7 +2,7 @@ import os
 import numpy as np
 import multiprocess as mp
 import copy
-from typing import Tuple, List
+from typing import Tuple, List, Any
 from pathlib import Path
 import h5py
 import base64
@@ -21,7 +21,7 @@ USE_LABRAD_DATAVAULT_SERVER = True
 MAX_NUM_PLOT_DEPS = 8
 
 
-def labrad_urldecode(data_url) -> any:
+def labrad_urldecode(data_url) -> Any:
     """
     Labrad data are encoded as dataurl and then stored in hdf5 files,
     here we just decode these data using Labrad APIs.
@@ -80,7 +80,7 @@ class LocalDatavault:
     def dir(self, context=None) -> Tuple[List[str]]:
         return self.ls()
 
-    def open(self, dataset, context=None) -> Tuple[any | List[str] | None, str]:
+    def open(self, dataset, context=None) -> Tuple[Any | List[str] | None, str]:
         self.filename = list(self.path.glob("{:05d}*.hdf5".format(dataset)))[0]
         self.dataset_name = self.filename.name.replace(".hdf5", "")
         return self.session, self.dataset_name
@@ -135,7 +135,7 @@ class LocalDatavault:
                     for d in self.Dependents.values()
                 ]
 
-    def get_ex(self, context=None) -> np.ndarray[any, np.dtype[any]]:
+    def get_ex(self, context=None) -> np.ndarray[Any, np.dtype[Any]]:
         self._load()
         return self.data
 
@@ -143,7 +143,7 @@ class LocalDatavault:
         self._load()
         return self.inds_list, self.deps_list
 
-    def get_parameters(self, context=None) -> List[any]:
+    def get_parameters(self, context=None) -> List[Any]:
         self._load()
         return self.param_list
 
