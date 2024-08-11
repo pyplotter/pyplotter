@@ -429,18 +429,18 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         self.signalSendStatusBarMessage.emit('Ready', 'green')
 
         if doubleClick:
-            if isQcodesData(databaseAbsPath):
-            # launch the first dependent plot
-                self.parameterCellClicked(0, self._columnIndexes['plotted'])
-            elif isLabradFolder(databaseAbsPath):
-            # launch a default plot of the Labrad Data (defined in "plot_dependents" parameter)
-            # To avoid displaying too many progress bar, user config['progressBarMaxNb'] default to 3
-            # See config.py for details -lxiang
+            if isLabradFolder(databaseAbsPath):
+                # launch a default plot of the Labrad Data (defined in "plot_dependents" parameter)
+                # To avoid displaying too many progress bar, user config['progressBarMaxNb'] default to 3
+                # See config.py for details -lxiang
                 self.dataset = LabradDataset(databaseAbsPath)
                 self.dataset.loadDataset(runId)
                 dep_indexes, _ = self.dataset.getPlotDependents()
                 for dep_i in dep_indexes:
                     self.parameterCellClicked(dep_i, self._columnIndexes['plotted'])
+            else:
+                # launch the first dependent plot
+                self.parameterCellClicked(0, self._columnIndexes['plotted'])
 
     @QtCore.pyqtSlot(int, dict, str, str, str, str, str, str, str, str, int, bool)
     def slotAddRow(self, runId: int,
