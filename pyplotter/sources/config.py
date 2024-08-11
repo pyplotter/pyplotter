@@ -48,6 +48,8 @@ configPackage = {
 'displayedDownloadQcodesPercentage' : 5, # int
 # Number of decimal for the progress bar
 'progressBarDecimal' : 100, # int
+# Maximum Number of progress bar to display
+'progressBarMaxNb' : 3, # int
 # The delay in ms between to check of a run download
 'delayBetweenProgressBarUpdate' : 100, # int
 # Number of runs to be transferred at the same time when displaying a database

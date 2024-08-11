@@ -304,17 +304,19 @@ class LabradDataset(object):
     def getPlotDependents(self) -> List[Dependent]:
         plotDepsNames = self.parameters.get("plot_dependents", None)
         plotDependents = []
+        plotDepIndexes = []
         for dep in self.getDependents():
             if plotDepsNames is None or variable_label(dep) in plotDepsNames:
                 plotDependents.append(dep)
-        return plotDependents[:MAX_NUM_PLOT_DEPS]
+                plotDepIndexes.append(self.deps.index(dep))
+        return plotDepIndexes[:MAX_NUM_PLOT_DEPS], plotDependents[:MAX_NUM_PLOT_DEPS]
 
     def getPlotData(self) -> np.ndarray:
         d = self.data
         num_inds = len(self.inds)
         sel_idx = np.arange(num_inds).tolist()
-        plotDeps = self.getPlotDependents()
-        sel_idx += [num_inds + self.deps.index(dep) for dep in plotDeps]
+        plotIdxs, plotDeps = self.getPlotDependents()
+        sel_idx += (num_inds + np.array(plotIdxs)).tolist()
         return d[:, sel_idx]
 
 
