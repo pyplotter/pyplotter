@@ -224,7 +224,8 @@ pip install --upgrade qcodes
 ## 👷🏼 Authors
 
 * **Etienne Dumur** -*main developer*- etienne.dumur@cea.fr
-
+* **Liang Xiang** -*labrad support*- xlelephant@gmail.com
+  
 ## 🕹️ License
 
 MIT
@@ -235,3 +236,4 @@ MIT
 * [pyqtgraph](http://www.pyqtgraph.org/), for the amazing and **fast** plotting library.
 * [bokeh](https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py), for their work on the colormap palette reused here.
 * [qb style](https://github.com/quantumblacklabs/qbstyles), for its color codes of lines.
+* [labrad Grapher](https://github.com/labrad/labrad-manager-delphi/tree/master/Grapher), for the two-column layout.
