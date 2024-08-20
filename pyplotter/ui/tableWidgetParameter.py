@@ -1,15 +1,21 @@
-from PyQt5 import QtCore, QtGui, QtWidgets, QtTest
+from PyQt5 import QtCore, QtGui, QtWidgets
 import os
-
+import numpy as np
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
 from ..sources.workers.loadDataFromRun import LoadDataFromRunThread
+from ..sources.workers.loadLabradDataFromRun import LoadDataFromRunThread as LoadLabradDataFromRunThread
+from ..sources.labradDatavault import LabradDataset
 from ..sources.functions import (clearTableWidget,
                                  getCurveId,
                                  getPlotRef,
                                  getPlotTitle,
-                                 getWindowTitle)
+                                 getWindowTitle,
+                                 isLabradFolder,
+                                 isQcodesData
+                                 )
+
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -22,6 +28,12 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     signalSendStatusBarMessage       = QtCore.pyqtSignal(str, str)
     signalUpdateProgressBar          = QtCore.pyqtSignal(int, float, str)
     signalRemoveProgressBar          = QtCore.pyqtSignal(int)
+    signalAddPlot                    = QtCore.pyqtSignal(int, str, str, str, str, str, tuple, str, str, str, str, str, str, int, int, int, int)
+    # Update a 1d plotDataItem
+    signalUpdate1d                   = QtCore.pyqtSignal(str, str, str, np.ndarray, np.ndarray, bool, bool)
+    # Update a 2d ImageView
+    signalUpdate2d                   = QtCore.pyqtSignal(str, np.ndarray, np.ndarray, np.ndarray)
+
     signalAddCurve                   = QtCore.pyqtSignal(str, str, str, str, str, str, int, str, QtWidgets.QCheckBox)
     signalRemoveCurve                = QtCore.pyqtSignal(str, str)
     signalCleanSnapshot              = QtCore.pyqtSignal()
@@ -243,7 +255,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         cb.setEnabled(False)
         QtCore.QThread.msleep(100)
 
-        if dataType=='qcodes':
+        if dataType == 'qcodes':
             worker = LoadDataFromRunThread(curveId,
                                            databaseAbsPath,
                                            dependentParamName,
@@ -265,6 +277,32 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
             # Execute the thread
             self.threadpool.start(worker)
+
+        # Labrad data loading will take a while when huge data/parameters are stored in HDF5 files
+        # We use threading just like what is for qcodes data to avoid frozen windows.
+        elif dataType == 'Labrad':
+            worker = LoadLabradDataFromRunThread(curveId,
+                                           databaseAbsPath,
+                                           dependentParamName,
+                                           plotRef,
+                                           plotTitle,
+                                           runId,
+                                           windowTitle,
+                                           cb,
+                                           progressBarId)
+            # Connect signals
+            # To update the status bar
+            worker.signal.sendStatusBarMessage.connect(self.signalSendStatusBarMessage)
+            # To update the progress bar
+            worker.signal.updateProgressBar.connect(self.signalUpdateProgressBar)
+            # If data download failed
+            worker.signal.loadedDataEmpty.connect(self.signalLoadedDataEmpty)
+            # When data download is done
+            worker.signal.loadedDataFull.connect(self.signalLoadedDataFull)
+
+            # Execute the thread
+            self.threadpool.start(worker)
+
         elif dataType=='csv':
 
             self.signalCSVLoadData.emit(curveId,
@@ -327,7 +365,6 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     ############################################################################
 
 
-
     @QtCore.pyqtSlot(int, list, dict, dict, str, str, str, str, bool)
     def slotFillTableWidgetParameter(self, runId: int,
                                            paramDependentList: list,
@@ -343,7 +380,6 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         clearTableWidget(self)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
-
 
         plotTitle       = getPlotTitle(databaseAbsPath=databaseAbsPath,
                                        runId=runId,
@@ -375,7 +411,6 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                                    dataType,
                                    rowPosition)
 
-
         self.setSortingEnabled(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
@@ -390,15 +425,22 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         self.signalUpdateLabelCurrentSnapshot.emit(str(runId))
         self.signalUpdateLabelCurrentRun.emit(str(runId))
 
-
         ## Update label
         self.signalSendStatusBarMessage.emit('Ready', 'green')
 
-        # If a double click is detected, we launch a plot of the first parameter
         if doubleClick:
-            self.parameterCellClicked(0, self._columnIndexes['plotted'])
-
-
+            if isLabradFolder(databaseAbsPath):
+                # launch a default plot of the Labrad Data (defined in "plot_dependents" parameter)
+                # To avoid displaying too many progress bar, user config['progressBarMaxNb'] default to 3
+                # See config.py for details -lxiang
+                self.dataset = LabradDataset(databaseAbsPath)
+                self.dataset.loadDataset(runId)
+                dep_indexes, _ = self.dataset.getPlotDependents()
+                for dep_i in dep_indexes:
+                    self.parameterCellClicked(dep_i, self._columnIndexes['plotted'])
+            else:
+                # launch the first dependent plot
+                self.parameterCellClicked(0, self._columnIndexes['plotted'])
 
     @QtCore.pyqtSlot(int, dict, str, str, str, str, str, str, str, str, int, bool)
     def slotAddRow(self, runId: int,

@@ -48,6 +48,8 @@ configPackage = {
 'displayedDownloadQcodesPercentage' : 5, # int
 # Number of decimal for the progress bar
 'progressBarDecimal' : 100, # int
+# Maximum Number of progress bar to display
+'progressBarMaxNb' : 3, # int
 # The delay in ms between to check of a run download
 'delayBetweenProgressBarUpdate' : 100, # int
 # Number of runs to be transferred at the same time when displaying a database
@@ -70,6 +72,10 @@ configPackage = {
 'livePlotTitleAppend' : ' <span style="color: green; font-weight: bold;">Measuring</span>',
 # Default folder open when clicking on the select database of the liveplot dialog
 'livePlotDefaultFolder' : 'C:/',
+'liveDialogWindowSize': [960, 640],
+'liveDialogWindowOffsets': [0, 0],
+'livePlotWindowNumber': 2,
+'livePlotScreenIndex': 0, # 0 to n-1
 
 
 # Interactivity
@@ -297,6 +303,7 @@ configPackage = {
 'plot1dSymbol' : ['o', 's', 't', 'd', '+'],
 'plot1dAntialias' : False,
 'plot2dcm' : 'Viridis', # Default colormap
+'plotHideInteractionPanel': False, # auto hide the interaction panel of a new plot window
 # List of derivative for 2d plot
 # Each new entry should also be coded in the comboBoxDerivativeActivated method
 # see plot_2d_app.py.

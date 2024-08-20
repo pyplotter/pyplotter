@@ -32,6 +32,8 @@ class QButtonInteraction(QtWidgets.QPushButton):
 
         self.clicked.connect(self.clicked_)
 
+        if config['plotHideInteractionPanel']:
+            self.clicked_()
 
     def clicked_(self):
 

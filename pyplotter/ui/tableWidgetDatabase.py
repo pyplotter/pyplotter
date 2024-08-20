@@ -9,10 +9,13 @@ config = loadConfigCurrent()
 from ..sources.runPropertiesExtra import RunPropertiesExtra
 from .tableWidgetItemNumOrdered import TableWidgetItemNumOrdered
 from ..sources.workers.loadDataBase import LoadDataBaseThread
-from ..sources.workers.loadRunInfo import LoadRunInfoThread
-from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
+from ..sources.labradDatavault import getLabradDatabaseInfos
+# from ..sources.workers.loadRunInfo import LoadRunInfoThread
+# from ..sources.workers.checkNbRunDatabase import dataBaseCheckNbRunThread
+from ..sources.workers import loadRunInfo, checkNbRunDatabase
+from ..sources.workers import loadLabradRunInfo, checkNbRunLabrad
 from ..sources.workers.exportRun import ExportRunThread
-from ..sources.functions import clearTableWidget, getDatabaseNameFromAbsPath
+from ..sources.functions import clearTableWidget, getDatabaseNameFromAbsPath, isLabradFolder, isQcodesData
 from ..ui.dialogs.dialogComment import DialogComment
 from ..ui.menuExportRun import MenuExportRun
 
@@ -53,10 +56,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     # Propagated to the statusBarMain which come back here to menuExportRun
     signalExportRunAddProgressBar = QtCore.pyqtSignal(str, str, int)
 
-
     # Internal event, see keyPressEvent
     keyPressed = QtCore.pyqtSignal(str, int)
-
 
     def __init__(self, parent=None) -> None:
         super(TableWidgetDatabase, self).__init__(parent)
@@ -72,10 +73,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.properties = RunPropertiesExtra()
         self.threadpool = QtCore.QThreadPool()
 
-
-
     def eventFilter(self, source,
-                          event) -> Optional[bool]:
+                          event) -> Optional[bool] | None:
         """
         We use an event filter to detect
             right click -> display run parameter
@@ -109,8 +108,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         return super().eventFilter(source, event)
 
-
-
     def first_call(self):
         """
         Call when the widget is initially display
@@ -130,15 +127,11 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             # Hide or display some column
             self.setColumnHidden(val['index'], False==val['visible'])
 
-
-
     def keyPressEvent(self, event):
         super(TableWidgetDatabase, self).keyPressEvent(event)
 
         # Emit the pressed key in human readable format in lower case
         self.keyPressed.emit(QtGui.QKeySequence(event.key()).toString().lower(), self.currentRow())
-
-
 
     @QtCore.pyqtSlot(str, int)
     def databaseClick(self, databaseAbsPath: str,
@@ -159,19 +152,55 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
-        # Create a thread which will read the database
-        self.workerLoadDatabase = LoadDataBaseThread(databaseAbsPath,
-                                                     progressBar)
+        if isQcodesData(databaseAbsPath):
+            # Create a thread which will read the database
+            self.workerLoadDatabase = LoadDataBaseThread(databaseAbsPath, progressBar)
 
-        # Connect signals
-        self.workerLoadDatabase.signal.sendStatusBarMessage.connect(self.signalSendStatusBarMessage)
-        self.workerLoadDatabase.signal.addRows.connect(self.databaseClickAddRows)
-        self.workerLoadDatabase.signal.updateProgressBar.connect(self.signalUpdateProgressBar)
-        self.workerLoadDatabase.signal.databaseClickDone.connect(self.databaseClickDone)
+            # Connect signals
+            self.workerLoadDatabase.signal.sendStatusBarMessage.connect(
+                self.signalSendStatusBarMessage
+            )
+            self.workerLoadDatabase.signal.addRows.connect(self.databaseClickAddRows)
+            self.workerLoadDatabase.signal.updateProgressBar.connect(self.signalUpdateProgressBar)
+            self.workerLoadDatabase.signal.databaseClickDone.connect(self.databaseClickDone)
 
-        # Execute the thread
-        self.threadpool.start(self.workerLoadDatabase)
+            # Execute the thread
+            self.threadpool.start(self.workerLoadDatabase)
 
+        elif isLabradFolder(databaseAbsPath):
+            [
+                runId,
+                dim,
+                experimentName,
+                sampleName,
+                runName,
+                captured_run_id,
+                guid,
+                started,
+                completed,
+                duration,
+                runRecords,
+            ] = getLabradDatabaseInfos(databaseAbsPath)
+            nbTotalRun = len(runId)
+
+            self.databaseClickAddRows(
+                runId,
+                dim,
+                experimentName,
+                sampleName,
+                runName,
+                captured_run_id,
+                guid,
+                started,
+                completed,
+                duration,
+                runRecords,
+                nbTotalRun,
+                databaseAbsPath,
+            )
+
+            self.signalRemoveProgressBar.emit(progressBar)
+            self.labradDatabaseClickDone(databaseAbsPath, nbTotalRun)
 
 
     QtCore.pyqtSlot(list, list, list, list, list, list, list, list, list, list, list, int, str)
@@ -193,6 +222,10 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         Each call add n rows into the table.
         """
 
+        if not hasattr(self.properties, 'databaseName'):
+            # Load runs extra properties
+            self.properties.jsonLoad(os.path.dirname(databaseAbsPath),
+                                    os.path.basename(databaseAbsPath))
 
         if lrunId[0]==1:
             # self.statusBarMain.clearMessage()
@@ -253,7 +286,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.item(runId-1,    config['DatabaseDisplayColumn']['itemRunId']['index']).setToolTip('Type "s" to star a run and "h" to hide it.')
             self.item(runId-1, config['DatabaseDisplayColumn']['comment']['index']).setToolTip('Double-click on the "Comments" column to add or modify a comment attached to a run')
 
-
     @QtCore.pyqtSlot(int, bool, str, int)
     def databaseClickDone(self,progressBarId  : int,
                                error          : bool,
@@ -281,9 +313,7 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
             self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
-
             self.signalSendStatusBarMessage.emit('Ready', 'green')
-
 
         # We store the total number of run
         self.nbTotalRun = nbTotalRun
@@ -297,7 +327,30 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.dataBaseCheckNbRun(databaseAbsPath,
                                 nbTotalRun)
 
+    @QtCore.pyqtSlot(str, int)
+    def labradDatabaseClickDone(self, databaseAbsPath: str, nbTotalRun: int) -> None:
 
+        """
+        Called when the labrad Database table has been filled
+        """
+
+        self.setSortingEnabled(True)
+        self.sortItems(config['DatabaseDisplayColumn']['itemRunId']['index'], QtCore.Qt.DescendingOrder)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+
+        self.signalSendStatusBarMessage.emit('Ready', 'green')
+
+        # We store the total number of run
+        self.nbTotalRun = nbTotalRun
+
+        # Done
+        self.signalDatabaseClickDone.emit(databaseAbsPath)
+        self.signalUpdateCurrentDatabase.emit(getDatabaseNameFromAbsPath(databaseAbsPath))
+
+        # We periodically check if there is not a new run to display
+        self.databaseAbsPath = databaseAbsPath
+        self.dataBaseCheckNbRun(databaseAbsPath, nbTotalRun)
 
     def dataBaseCheckNbRun(self, databaseAbsPath: str,
                                  nbTotalRun:  int):
@@ -312,8 +365,12 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # From launch a thread which will periodically check if the database has
         # more run that what is currently displayed
-        self.workerCheck = dataBaseCheckNbRunThread(databaseAbsPath,
-                                                    nbTotalRun)
+        if isQcodesData(databaseAbsPath):
+            self.workerCheck = checkNbRunDatabase.dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun)
+        elif isLabradFolder(databaseAbsPath):
+            self.workerCheck = checkNbRunLabrad.dataBaseCheckNbRunThread(databaseAbsPath, nbTotalRun)
+        else:
+            raise Exception('dataset not supportted!')
 
         # Connect signals
         self.workerCheck.signal.dataBaseUpdate.connect(self.signal2StatusBarDatabaseUpdate)
@@ -322,8 +379,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         # Execute the thread
         self.threadpool.start(self.workerCheck)
-
-
 
     QtCore.pyqtSlot(str, int)
     def slotDataBaseCheckNbRun(self, databaseAbsPath: str,
@@ -334,15 +389,11 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             self.dataBaseCheckNbRun(databaseAbsPath,
                                     nbTotalRun)
 
-
-
     QtCore.pyqtSlot(str)
     def updateDatabasePath(self, databaseAbsPath: str):
         self.databaseAbsPath=databaseAbsPath
         if hasattr(self, 'workerCheck'):
             self.workerCheck._stop = True
-
-
 
     def runClick(self, currentRow: int=0) -> None:
         """
@@ -358,17 +409,27 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
         self.signalSendStatusBarMessage.emit('Loading run parameters', 'orange')
 
-        worker = LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
-                                   runId, # runId
-                                   experimentName, # experimentName
-                                   runName, # runName
-                                   False) # doubleClicked
-        worker.signal.updateRunInfo.connect(self.signalRunClick)
+        if isQcodesData(databaseAbsPath):
+            worker = loadRunInfo.LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
+                                                   runId, # runId
+                                                   experimentName, # experimentName
+                                                   runName, # runName
+                                                   False) # doubleClicked
+            worker.signal.updateRunInfo.connect(self.signalRunClick)
 
-        # Execute the thread
-        self.threadpool.start(worker)
+            # Execute the thread
+            self.threadpool.start(worker)
 
+        elif isLabradFolder(databaseAbsPath):
+            worker = loadLabradRunInfo.LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
+                                                         runId, # runId
+                                                         experimentName, # experimentName
+                                                         runName, # runName
+                                                         False) # doubleClicked
+            worker.signal.updateRunInfo.connect(self.signalRunClick)
 
+            # Execute the thread
+            self.threadpool.start(worker)
 
     def runDoubleClick(self, currentRow: int=0,
                              currentColumn: int=0) -> None:
@@ -404,17 +465,26 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             self.signalSendStatusBarMessage.emit('Loading run parameters', 'orange')
 
-            worker = LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
-                                    runId, # runId
-                                    experimentName, # experimentName
-                                    runName, # runName
-                                    True) # doubleClicked
-            worker.signal.updateRunInfo.connect(self.signalRunClick)
+            if isQcodesData(databaseAbsPath):
+                worker = loadRunInfo.LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
+                                           runId, # runId
+                                           experimentName, # experimentName
+                                           runName, # runName
+                                           True) # doubleClicked
+                worker.signal.updateRunInfo.connect(self.signalRunClick)
 
-            # Execute the thread
-            self.threadpool.start(worker)
+                # Execute the thread
+                self.threadpool.start(worker)
+            elif isLabradFolder(databaseAbsPath):
+                worker = loadLabradRunInfo.LoadRunInfoThread(databaseAbsPath, # databaseAbsPath
+                                           runId, # runId
+                                           experimentName, # experimentName
+                                           runName, # runName
+                                           True) # doubleClicked
+                worker.signal.updateRunInfo.connect(self.signalRunClick)
 
-
+                # Execute the thread
+                self.threadpool.start(worker)
 
     def disableRow(self, row: int) -> None:
         """
@@ -426,8 +496,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
             if self.item(row, column) is not None:
                 self.item(row, column).setFlags(QtCore.Qt.ItemFlag(~(QtCore.Qt.ItemIsEnabled|QtCore.Qt.ItemIsSelectable)))
 
-
-
     def enableRow(self, row: int) -> None:
         """
         Enable the given row.
@@ -436,8 +504,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         for column in range(self.columnCount()):
             if self.item(row, column) is not None:
                 self.item(row, column).setFlags(QtCore.Qt.ItemFlag(QtCore.Qt.ItemIsEnabled|QtCore.Qt.ItemIsSelectable))
-
-
 
     def tableWidgetDataBasekeyPress(self, key: str,
                                           row : int) -> None:
@@ -493,7 +559,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 # If the database containing the stared run is displayed, we star it
                 self.signalDatabaseStars.emit()
 
-
         # If user wants to hide a run
         elif key==config['keyPressedHide'].lower():
 
@@ -520,10 +585,8 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 # We update the json
                 self.properties.jsonAddHiddenRun(runId)
 
-
             # We hide the row only if the user didn't check the checkboxhidden
             self.signalCheckBoxHiddenHideRow.emit()
-
 
     ############################################################################
     #
@@ -532,8 +595,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     #
     #
     ############################################################################
-
-
 
     def exportRun(self, currentRow: int) -> None:
         """
@@ -556,7 +617,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 self.signalExportRunAddProgressBar.emit(databaseAbsPath,
                                                         self.menu.filePath,
                                                         runId)
-
 
     @QtCore.pyqtSlot(str, str, int, int)
     def exportRunLoad(self, source_db_path: str,
@@ -589,8 +649,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         # Execute the thread
         self.threadpool.start(worker)
 
-
-
     ############################################################################
     #
     #
@@ -598,8 +656,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
     #
     #
     ############################################################################
-
-
 
     @QtCore.pyqtSlot()
     def slotRunClickDone(self) -> None:
@@ -613,8 +669,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 self.enableRow(self.doubleClickCurrentRow)
             del(self.doubleClickCurrentRow)
             del(self.doubleClickDatabaseAbsPath)
-
-
 
     @QtCore.pyqtSlot(int)
     def slotFromCheckBoxHiddenCheckBoxHiddenClick(self, state: int) -> None:
@@ -648,8 +702,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                     self.setRowHidden(row, True)
                 else:
                     self.setRowHidden(row, False)
-
-
 
     @QtCore.pyqtSlot(int)
     def slotFromCheckBoxStaredCheckBoxStaredClick(self, state: int) -> None:
@@ -685,14 +737,10 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
                 else:
                     self.setRowHidden(row, False)
 
-
-
     @QtCore.pyqtSlot()
     def slotClearTable(self) -> None:
 
         clearTableWidget(self)
-
-
 
     @QtCore.pyqtSlot()
     def slotCloseCommentDialog(self) -> None:
@@ -701,8 +749,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
         self.dialogComment._allowClosing = True
         self.dialogComment.deleteLater()
         del(self.dialogComment)
-
-
 
     @QtCore.pyqtSlot(dict)
     def slotUpdate(self, config: dict) -> None:
@@ -718,8 +764,6 @@ class TableWidgetDatabase(QtWidgets.QTableWidget):
 
             # Hide or display some column
             self.setColumnHidden(val['index'], False==val['visible'])
-
-
 
     @QtCore.pyqtSlot(int, str)
     def slotUpdateCommentDialog(self, runId: int,
