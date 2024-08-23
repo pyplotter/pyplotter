@@ -1,76 +1,20 @@
-from PyQt5 import QtCore, QtGui, QtWidgets, QtTest
+from PyQt5 import QtCore, QtGui, QtWidgets
 import os
 import numpy as np
 
 from ..sources.config import loadConfigCurrent
 config = loadConfigCurrent()
-from ..sources.workers import loadDataFromRun, loadLabradDataFromRun
+from ..sources.workers.loadDataFromRun import LoadDataFromRunThread
+from ..sources.workers.loadLabradDataFromRun import LoadDataFromRunThread as LoadLabradDataFromRunThread
+from ..sources.labradDatavault import LabradDataset
 from ..sources.functions import (clearTableWidget,
                                  getCurveId,
                                  getPlotRef,
                                  getPlotTitle,
                                  getWindowTitle,
-                                 isQcodesData,
                                  isLabradFolder,
-                                 getParallelDialogWidthHeight,
-                                 findXYIndex, 
-                                 shapeData2d, 
-                                 make_grid
+                                 isQcodesData
                                  )
-from qcodes import load_by_run_spec as qcodes_load_by_run_spec
-from ..sources.labradDatavault import LabradDataset, dep_label
-
-
-def LoadDataFromRunThread(
-    curveId,
-    databaseAbsPath,
-    dependentParamName,
-    plotRef,
-    plotTitle,
-    runId,
-    windowTitle,
-    cb,
-    progressBarId,
-):
-    if isLabradFolder(databaseAbsPath):
-        worker = loadLabradDataFromRun.LoadDataFromRunThread(
-            curveId,
-            databaseAbsPath,
-            dependentParamName,
-            plotRef,
-            plotTitle,
-            runId,
-            windowTitle,
-            cb,
-            progressBarId,
-        )
-    elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
-        worker = loadDataFromRun.LoadDataFromRunThread(
-            curveId,
-            databaseAbsPath,
-            dependentParamName,
-            plotRef,
-            plotTitle,
-            runId,
-            windowTitle,
-            cb,
-            progressBarId,
-        )
-    return worker
-
-
-def load_by_run_spec(databaseAbsPath, runId):
-    if isLabradFolder(databaseAbsPath):
-        labrad_dataset = LabradDataset(databaseAbsPath, noisy=False)
-        labrad_dataset.loadDataset(runId)
-        return labrad_dataset 
-    # elif isMongoDBFolder(databaseAbsPath):
-    #     dataset = switch_mongoDB_path(databaseAbsPath)
-    #     dataset.mount(runId - 1)  # MongoDB starts from 0
-    #     fixPath(dataset, databaseAbsPath)
-    #     return dataset
-    elif isQcodesData(os.path.split(databaseAbsPath)[-1]):
-        return qcodes_load_by_run_spec
 
 
 # Get the folder path for pictures
@@ -311,7 +255,7 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         cb.setEnabled(False)
         QtCore.QThread.msleep(100)
 
-        if dataType in ['qcodes', 'Labrad']:
+        if dataType == 'qcodes':
             worker = LoadDataFromRunThread(curveId,
                                            databaseAbsPath,
                                            dependentParamName,
@@ -333,6 +277,32 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
 
             # Execute the thread
             self.threadpool.start(worker)
+
+        # Labrad data loading will take a while when huge data/parameters are stored in HDF5 files
+        # We use threading just like what is for qcodes data to avoid frozen windows.
+        elif dataType == 'Labrad':
+            worker = LoadLabradDataFromRunThread(curveId,
+                                           databaseAbsPath,
+                                           dependentParamName,
+                                           plotRef,
+                                           plotTitle,
+                                           runId,
+                                           windowTitle,
+                                           cb,
+                                           progressBarId)
+            # Connect signals
+            # To update the status bar
+            worker.signal.sendStatusBarMessage.connect(self.signalSendStatusBarMessage)
+            # To update the progress bar
+            worker.signal.updateProgressBar.connect(self.signalUpdateProgressBar)
+            # If data download failed
+            worker.signal.loadedDataEmpty.connect(self.signalLoadedDataEmpty)
+            # When data download is done
+            worker.signal.loadedDataFull.connect(self.signalLoadedDataFull)
+
+            # Execute the thread
+            self.threadpool.start(worker)
+
         elif dataType=='csv':
 
             self.signalCSVLoadData.emit(curveId,
@@ -395,141 +365,6 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
     ############################################################################
 
 
-    def getPlotDataParameters(self, databaseAbsPath, runId) -> None:
-        """
-        Gather the information from the current dataset.
-
-        Each dependent parameters must be treated independently since they
-        can each have a different number of independent parameters.
-        """
-
-        # Get dataset params
-        paramsDependents = [i for i in self.dataset.getPlotDependents()]
-        # paramsIndependent = [i for i in self.dataset.getIndependents()]
-
-        xParamNames = []
-        xParamLabels = []
-        xParamUnits = []
-        yParamNames = []
-        yParamLabels = []
-        yParamUnits = []
-        zParamNames = []
-        zParamLabels = []
-        zParamUnits = []
-        plotRefs = []
-        dialogXs = []
-        dialogYs = []
-        dialogWidths = []
-        dialogHeights = []
-        dataList = []
-        curveIds = []
-
-        if isLabradFolder(databaseAbsPath):
-            for dep_idx, paramsDependent in enumerate(paramsDependents):
-
-                depends_on = [i for i in self.dataset.getIndependents()]
-
-                param_x = depends_on[0]
-                xParamNames.append(param_x.name + " (name)")
-                xParamLabels.append(param_x.name)
-                xParamUnits.append(param_x.unit)
-
-                # For 2d plot
-                if len(depends_on) > 1:
-                    param_y = depends_on[1]
-                    yParamNames.append(param_y.name + " (name)")
-                    yParamLabels.append(param_y.name)
-                    yParamUnits.append(param_y.unit)
-
-                    zParamNames.append(dep_label(paramsDependent))
-                    zParamLabels.append(paramsDependent.name)
-                    zParamUnits.append(paramsDependent.unit)
-
-                    plotRefs.append(
-                        getPlotRef(
-                            databaseAbsPath=databaseAbsPath,
-                            paramDependent={
-                                "depends_on": [0, 1],
-                                "name": dep_label(paramsDependent),
-                            },
-                            runId=runId,
-                        )
-                    )
-                # For 1d plot
-                else:
-                    yParamNames.append(dep_label(paramsDependent))
-                    yParamLabels.append(paramsDependent.name)
-                    yParamUnits.append(paramsDependent.unit)
-
-                    zParamNames.append("")
-                    zParamLabels.append("")
-                    zParamUnits.append("")
-
-                    plotRefs.append(
-                        getPlotRef(
-                            databaseAbsPath=databaseAbsPath,
-                            paramDependent={"depends_on": [0]},
-                            runId=runId,
-                        )
-                    )
-                # We get the dialog position and size to tile the screen
-                if zParamNames[-1] == '':
-                    dialogTilings = getParallelDialogWidthHeight(nbDialog=1, plotId=0)
-                    dialogX, dialogY, dialogWidth, dialogHeight = [tile[0] for tile in dialogTilings]
-                else:
-                    # tile 3D plot with plot windows
-                    num_2d_plots = len(paramsDependents)
-                    dialogTilings = getParallelDialogWidthHeight(num_2d_plots, plotId=0)
-                    dialogX, dialogY, dialogWidth, dialogHeight = [tile[dep_idx] for tile in dialogTilings]
-                dialogXs.append(dialogX)
-                dialogYs.append(dialogY)
-                dialogWidths.append(dialogWidth)
-                dialogHeights.append(dialogHeight)
-                
-                d = self.dataset.getPlotData()
-                # Create empty data for the plot window launching
-                if zParamNames[-1]=='':
-                    data = (d[:,0], d[:,1 + dep_idx])
-                else:
-
-                    # Find the effective x and y axis, see findXYIndex
-                    xi, yi = findXYIndex(d[:, 1])
-                    # We try to load data
-                    # if there is none, we return an empty array
-                    if config["2dGridInterpolation"] == "grid":
-                        data = make_grid(d[:, xi], d[:, yi], d[:, 2])
-                    else:
-                        data = shapeData2d(
-                            d[:, xi], d[:, yi], d[:, 2 + dep_idx], self.signalSendStatusBarMessage
-                        )
-                    # data = (d[:,0],
-                    #         d[:,1],
-                    #         d[:,2 + dep_idx])
-                dataList.append(data)
-                curveId = getCurveId(databaseAbsPath=databaseAbsPath,
-                                    name=yParamNames[-1],
-                                    runId=runId)
-                curveIds.append(curveId)
-
-        return (
-            xParamNames,
-            xParamLabels,
-            xParamUnits,
-            yParamNames,
-            yParamLabels,
-            yParamUnits,
-            zParamNames,
-            zParamLabels,
-            zParamUnits,
-            plotRefs,
-            dialogXs,
-            dialogYs,
-            dialogWidths,
-            dialogHeights,
-            dataList,
-            curveIds,
-        )
-
     @QtCore.pyqtSlot(int, list, dict, dict, str, str, str, str, bool)
     def slotFillTableWidgetParameter(self, runId: int,
                                            paramDependentList: list,
@@ -545,7 +380,6 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         clearTableWidget(self)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Fixed)
-
 
         plotTitle       = getPlotTitle(databaseAbsPath=databaseAbsPath,
                                        runId=runId,
@@ -577,7 +411,6 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
                                    dataType,
                                    rowPosition)
 
-
         self.setSortingEnabled(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
@@ -592,83 +425,22 @@ class TableWidgetParameter(QtWidgets.QTableWidget):
         self.signalUpdateLabelCurrentSnapshot.emit(str(runId))
         self.signalUpdateLabelCurrentRun.emit(str(runId))
 
-
         ## Update label
         self.signalSendStatusBarMessage.emit('Ready', 'green')
 
-        # If a double click is detected, we launch a plot of the first parameter
         if doubleClick:
-            # self.parameterCellClicked(0, self._columnIndexes['plotted'])
-            self.dataset =load_by_run_spec(databaseAbsPath, runId)
-            plotTitle   = getPlotTitle(databaseAbsPath, runId, self.dataset.name)
-            windowTitle = getWindowTitle(databaseAbsPath, runId, self.dataset.name)
-            plotParameters = self.getPlotDataParameters(databaseAbsPath, runId)
-
-            for dep_idx, (xParamName, xParamLabel, xParamUnit,
-                yParamName, yParamLabel, yParamUnit,
-                zParamName, zParamLabel, zParamUnit, plotRef, 
-                dialogX, dialogY, dialogWidth, 
-                dialogHeight, data, curveId) in list(enumerate(zip(*plotParameters))):
-                if zParamName == '':
-                    empty_data = (np.array([]),np.array([]))
-                else:
-                    empty_data = (np.array([0., 1.]), 
-                                  np.array([0., 1.]),
-                                  np.array([[0., 1.], [0., 1.]]))
-                # curveId = getCurveId(databaseAbsPath=databaseAbsPath,
-                #     name=yParamName,
-                #     runId=runId)
-                if not self.cellWidget(dep_idx, self._columnIndexes['plotted']).isChecked():
-                    self.signalAddPlot.emit(runId, # runId
-                                            curveId, # curveId
-                                            plotTitle, # plotTitle
-                                            windowTitle, # windowTitle
-                                            plotRef, # plotRef
-                                            databaseAbsPath, # databaseAbsPath
-                                            empty_data, # data
-                                            xParamLabel, # xLabelText
-                                            xParamUnit, # xLabelUnits
-                                            yParamLabel, # yLabelText
-                                            yParamUnit, # yLabelUnits
-                                            zParamLabel, # zLabelText
-                                            zParamUnit, # zLabelUnits
-                                            dialogX, # dialog position x
-                                            dialogY, # dialog position y
-                                            dialogWidth, # dialog width
-                                            dialogHeight) # dialog height
-                    self.cellWidget(dep_idx, self._columnIndexes['plotted']).setCheckable(False)
-                    self.cellWidget(dep_idx, self._columnIndexes['plotted']).setChecked(True)
-                    self.cellWidget(dep_idx, self._columnIndexes['plotted']).setCheckable(True)
-
-            for dep_idx, (xParamName, xParamLabel, xParamUnit,
-                yParamName, yParamLabel, yParamUnit,
-                zParamName, zParamLabel, zParamUnit, plotRef, 
-                dialogX, dialogY, dialogWidth, 
-                dialogHeight, data, curveId) in list(enumerate(zip(*plotParameters))):
-                # 1d plot
-                if len(data)==2:
-
-                    # curveId = getCurveId(databaseAbsPath=databaseAbsPath,
-                    #                      name=yParamName,
-                    #                      runId=runId)
-
-                    self.signalUpdate1d.emit(plotRef, # plotRef
-                                             curveId, # curveId
-                                             yParamName, # curveLegend
-                                             data[0], # x
-                                             data[1], # y
-                                             True, # autoRange
-                                             True)  # interactionUpdateAll
-                # 2d plot
-                elif len(data)==3:
-
-                    self.signalUpdate2d.emit(plotRef,
-                                             data[0],
-                                             data[1],
-                                             data[2])
-
-
-
+            if isLabradFolder(databaseAbsPath):
+                # launch a default plot of the Labrad Data (defined in "plot_dependents" parameter)
+                # To avoid displaying too many progress bar, user config['progressBarMaxNb'] default to 3
+                # See config.py for details -lxiang
+                self.dataset = LabradDataset(databaseAbsPath)
+                self.dataset.loadDataset(runId)
+                dep_indexes, _ = self.dataset.getPlotDependents()
+                for dep_i in dep_indexes:
+                    self.parameterCellClicked(dep_i, self._columnIndexes['plotted'])
+            else:
+                # launch the first dependent plot
+                self.parameterCellClicked(0, self._columnIndexes['plotted'])
 
     @QtCore.pyqtSlot(int, dict, str, str, str, str, str, str, str, str, int, bool)
     def slotAddRow(self, runId: int,

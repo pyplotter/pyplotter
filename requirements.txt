@@ -8,5 +8,5 @@ multiprocess
 qcodes>=0.26.0
 lmfit
 scikit-rf
-# to read the Labrad data
+# Optional: to read the Labrad data
 pylabrad

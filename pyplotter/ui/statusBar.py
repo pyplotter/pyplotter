@@ -221,7 +221,8 @@ class StatusBar(QtWidgets.QStatusBar):
         progressBar.setPalette(palette)
 
         self.setSizeGripEnabled(False)
-        self.addPermanentWidget(progressBar)
+        if len(self.progressBars.keys()) < config['progressBarMaxNb']:
+            self.addPermanentWidget(progressBar)
 
         # Determine the progress bar id
         if len(self.progressBars.keys())>0:

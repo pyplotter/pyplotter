@@ -13,10 +13,9 @@ from ..sources.functions import (
     isLabradFolder,
     isQcodesData,
     sizeof_fmt,
-    getDatabaseNameFromAbsPath,
-    getLabradDataVaultNameFromAbsPath
+    getDatabaseNameFromAbsPath
 )
-from ..sources.labradDatavault import getDatabaseInfos as getLabradDatabaseInfos
+from ..sources.labradDatavault import getLabradDatabaseInfos
 
 # Get the folder path for pictures
 PICTURESPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pictures')
@@ -216,11 +215,6 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
             # If it is a npz file
             elif nextPath[-3:].lower() in 'npz':
                 self.npzClick()
-            elif isinstance(b, QtCore.QPoint):
-                # Job done, we restor the usual cursor
-                QtWidgets.QApplication.restoreOverrideCursor()
-                # We open a homemade menu
-                MenuDb(self.databaseAbsPath)
             # If it is a QCoDeS database
             elif isQcodesData(currentItem):
                 self.databaseClick()
@@ -374,7 +368,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
         self._flagDatabaseClicking = True
 
-        row = self.rowNumberFromText(getLabradDataVaultNameFromAbsPath(self.databaseAbsPath))
+        row = self.rowNumberFromText(getDatabaseNameFromAbsPath(self.databaseAbsPath))
 
         # We show the database is now opened
         if self.properties.isDatabaseStared(self.databaseName):

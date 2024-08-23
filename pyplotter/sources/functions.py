@@ -1,6 +1,6 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 from math import log10
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Generator
 import os
 import numpy as np
 import pandas as pd
@@ -113,15 +113,20 @@ def isBlueForsFolder(folderName : str) -> bool:
     return len(folderName.split('-'))==3 and all([len(i)==2 for i in folderName.split('-')])
 
 
-def isQcodesData(folderName: str):
-    return '.db' in folderName
+def isQcodesData(folderName: str) -> bool:
+    """
+    Return True if a string follow Qcodes database name pattern.
+    """
+    baseName = os.path.split(folderName)[-1]
+    return '.db' in baseName
 
 
-def isLabradFolder(abs_folderName : str) -> bool:
+def isLabradFolder(folderName : str) -> bool:
     """
-    Return True if a string follow Labrad log folder name pattern.
+    Return True if a string follow Labrad data folder name pattern.
     """
-    return abs_folderName.split('.')[-1] == "dir"
+    baseName = os.path.split(folderName)[-1]
+    return baseName.split('.')[-1] == "dir"
 
 
 def sizeof_fmt(num: float, suffix: str='B') -> str:
@@ -205,6 +210,7 @@ def getPlotRef(databaseAbsPath: str,
     # If BlueFors log files
     if isBlueForsFolder(currentPath):
         dataPath = currentPath
+    # If Labrad data folder
     elif isLabradFolder(databaseAbsPath):
         dataPath = databaseAbsPath+str(runId)
     # If csv or s2p files we return the filename without the extension
@@ -251,10 +257,12 @@ def getPlotTitle(databaseAbsPath: str,
 
 
 def getDatabaseNameFromAbsPath(databaseAbsPath: str) -> str:
+    if isQcodesData(databaseAbsPath):
         return os.path.basename(databaseAbsPath)[:-3]
-
-def getLabradDataVaultNameFromAbsPath(databaseAbsPath: str) -> str:
+    elif isLabradFolder(databaseAbsPath):
         return os.path.basename(databaseAbsPath)[:-4]
+    else:
+        return os.path.basename(databaseAbsPath)
 
 
 def getWindowTitle(databaseAbsPath: str,
@@ -606,33 +614,62 @@ def getDialogWidthHeight(nbDialog: int) -> Tuple[List[int]]:
     return xs, ys, dialogWidths, dialogHeights
 
 
+####################################################################
+#                       Live plot window support                   #
+####################################################################
+
+
+# Set the maximum number of LIVE windows that tiled over the screen (split into two columns).
+# The oldest window will close automatically if a new window emerges.
 MAX_LIVE_PLOTS = config["livePlotWindowNumber"]
+
+# An "auto plot" dynamics window pops up if 1) a live plot is detected, 2) double click on a Labrad dataset
+# The size of the auto opened plot window, [width, height]
 LIVE_PLOT_WINDOW_SIZE = config["liveDialogWindowSize"]
+# On which screen you are intend to show the auto plot window, 0 to n-1
 LIVE_PLOT_SCREEN_INDEX = config["livePlotScreenIndex"]
+# offset of the plot windows, defaults to [0, 0]
 LIVE_PLOT_WINDOW_OFFSETS = config['liveDialogWindowOffsets']
 
 
-def getParallelDialogWidthHeight(nbDialog: int, plotId: int) -> Tuple[List[int]]:
+def plotIdGenerator() -> Generator:
     """
-    Return the dialog position (x, y) and size (width, height) with user configuration
+    circular generator for the live plot index
+    """
+    num = 0
+    while True:
+        yield num % MAX_LIVE_PLOTS
+        num += 1
+
+
+def getTiledWindowWidthHeight(nbSubWindows: int, plotId: int) -> Tuple[List[int]]:
+    """
+    Return the positions and sizes of indexed windows that will tile the screen
+
+    We want to create windows for live plot datasets, which currently tile over the screen by regions in two columns
+    each region is for a dataset, indexed by the 'plotID'.
+
+    For a 1D dataset, we just create a window that fill the region;
+    For a 2D dataset with dependents of 'nbSubWindows', we create two columns of small sub windows to tile over the region
 
     Args:
-        nbDialog: Number of dialog window we have to cover the screen
+        nbSubWindows: Number of tiled sub plot windows for the window of plotID
+        plotId: Index of the region that tiled the screen, an int value within [0, MAX_LIVE_PLOTS - 1]
 
     Returns:
         tuple: dialogXs, dialogYs, dialogWidths, dialogHeights
     """
 
-    # MAX_LIVE_PLOTS of windows
-
-    # screenSize = QtGui.QGuiApplication.primaryScreen().availableGeometry()
+    # get user screen layout
     desktop = QtWidgets.QDesktopWidget()
-    # screen_count = desktop.screenCount()
     live_screen = desktop.screen(LIVE_PLOT_SCREEN_INDEX)
     screenSize = live_screen.geometry()
-    screenWidth = LIVE_PLOT_WINDOW_SIZE[0]  # screenSize.width()
-    screenHeight = LIVE_PLOT_WINDOW_SIZE[1]  # screenSize.height()
+    screenWidth = LIVE_PLOT_WINDOW_SIZE[0]
+    screenHeight = LIVE_PLOT_WINDOW_SIZE[1]
     x_offset, y_offset = np.array(screenSize.getCoords()[:2]) + np.array(LIVE_PLOT_WINDOW_OFFSETS)
+
+
+    # for region of plotID
 
     _xs = [0] * MAX_LIVE_PLOTS
     _ys = [0] * MAX_LIVE_PLOTS
@@ -644,25 +681,25 @@ def getParallelDialogWidthHeight(nbDialog: int, plotId: int) -> Tuple[List[int]]
 
         _ys[i] = int(i // 2 * screenHeight) + y_offset
 
-    # small tiles
+    # for sub windows
 
-    if nbDialog == 1:
+    if nbSubWindows == 1:
         dialogWidth = screenWidth
         dialogHeight = screenHeight
     # if even number of dialog
-    elif nbDialog % 2 == 0:
+    elif nbSubWindows % 2 == 0:
         dialogWidth = screenWidth / 2
-        dialogHeight = screenHeight / (nbDialog // 2)
+        dialogHeight = screenHeight / (nbSubWindows // 2)
     # if odd number of dialog
     else:
         dialogWidth = screenWidth / 2
-        dialogHeight = screenHeight / (nbDialog // 2 + 1)
-    dialogWidths = [int(dialogWidth)] * nbDialog
-    dialogHeights = [int(dialogHeight)] * nbDialog
+        dialogHeight = screenHeight / (nbSubWindows // 2 + 1)
+    dialogWidths = [int(dialogWidth)] * nbSubWindows
+    dialogHeights = [int(dialogHeight)] * nbSubWindows
 
-    xs = [0] * nbDialog
-    ys = [0] * nbDialog
-    for i in range(nbDialog):
+    xs = [0] * nbSubWindows
+    ys = [0] * nbSubWindows
+    for i in range(nbSubWindows):
         if i % 2 == 0:
             xs[i] = 0
         else:
@@ -673,9 +710,7 @@ def getParallelDialogWidthHeight(nbDialog: int, plotId: int) -> Tuple[List[int]]
     ys = [y + _ys[plotId] for y in ys]
     return xs, ys, dialogWidths, dialogHeights
 
+####################################################################
+#                    End of Live plot window                       #
+####################################################################
 
-def plotIdGenerator():
-    num = 0
-    while True:
-        yield num % MAX_LIVE_PLOTS
-        num += 1

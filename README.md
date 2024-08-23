@@ -22,6 +22,8 @@ Currently the following packages are required:
 * qcodes>=0.26.0
 * scikit-rf
 * scipy
+
+Optional:
 * pylabrad (Labrad data support)
 
 ### Installation
@@ -48,24 +50,36 @@ cd pyplotter
 pip install -e .
 ```
 
-(Optional), Following the step 1 $ 2, you can also clone this repository, install required packages, and manually run pyplotter:
+
+### Debug setup
+
+You can also setup pyplotter and debug it as a local python module:
+
+First, repeat the first two installation steps, and clone this repository.
+
+
+Second, manually install packages
 ```bash
 cd ./pyplotter
 pip install -r requirements.txt
+```
+
+Third, run pyplotter
+```bash
 python -m pyplotter.pyplotter
 ```
 
 
-Note for Labrad users: 
+### Notes for Labrad users (Optional)
 
   - You can access the Labrad data in two ways, depending on whether you have a connection to the Labrad datavault server:
     1. Read Labrad datasets in local files (SWMR mode of hdf5 files).
-       However, this is not stable if the hdf5 file is busy! I strongly recommend "ONLY READ" the Labrad datasets that are not actively used by other users.
-    2. Support liveplot. Labrad data is accessed through the native RPC protocol
-       Pyplotter acts just like the normal Labrad Client. 
+       However, this is not stable if the `.hdf5` file is busy! I strongly recommend "ONLY READ" the Labrad datasets that are not actively used by other users.
+    2. Accessed the Labrad datasets using the native RPC protocol of `Labrad`(https://github.com/labrad). 
+       It is stable for live plot, because Pyplotter acts just like normal Labrad Client. 
 
   - Non-Labrad users should not be affected even if they do not have pylabrad. 
-  - To mimic the layout of Labrad Grapher, you could modify `ui/mainWindow.py` as:
+  - To mimic the layout of Labrad `Grapher`(https://github.com/labrad/labrad-manager-delphi/tree/master/Grapher), you could modify `ui/mainWindow.py`:
     ```
     # from .mainWindowui import Ui_MainWindow
     from .mainWindowui_r2c2 import Ui_MainWindow
@@ -210,7 +224,8 @@ pip install --upgrade qcodes
 ## 👷🏼 Authors
 
 * **Etienne Dumur** -*main developer*- etienne.dumur@cea.fr
-
+* **Liang Xiang** -*labrad support*- xlelephant@gmail.com
+  
 ## 🕹️ License
 
 MIT
@@ -221,3 +236,4 @@ MIT
 * [pyqtgraph](http://www.pyqtgraph.org/), for the amazing and **fast** plotting library.
 * [bokeh](https://github.com/bokeh/bokeh/blob/7cc500601cdb688c4b6b2153704097f3345dd91c/bokeh/palettes.py), for their work on the colormap palette reused here.
 * [qb style](https://github.com/quantumblacklabs/qbstyles), for its color codes of lines.
+* [labrad Grapher](https://github.com/labrad/labrad-manager-delphi/tree/master/Grapher), for the two-column layout.
