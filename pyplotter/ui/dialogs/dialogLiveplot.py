@@ -358,7 +358,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             return check_busy_datasets(None, [livePlotRunName])[0]
         else:
             return False
-        
+
 
     ###########################################################################
     #                           Qcodes plotting
@@ -366,7 +366,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
 
     @QtCore.pyqtSlot(str, tuple, str, bool)
-    def slotUpdatePlotData(self, 
+    def slotUpdatePlotData(self,
                            plotRef        : str,
                            data           : Tuple[np.ndarray, ...],
                            yParamName     : str,
@@ -586,15 +586,25 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
             # We access the db only once.
             # The next iteration will access the cache of the dataset.
             if not hasattr(self, '_livePlotDataSet'):
+                self.labelLivePlotInfoInfo.setText('<span style="color: green;">Load dataset</span>')
                 self._livePlotDataSet = self.loadDataset(captured_run_id=self._livePlotRunId)
+                return
+            else:
+                # Sometimes, the connection has to be done several times...
+                paramsIndependent = [i for i in self._livePlotDataSet.get_parameters() if len(i.depends_on)==0]
+                # If there is no paramsIndependent detected, we replace the connection
+                if len(paramsIndependent)==0:
+                    self.labelLivePlotInfoInfo.setText('<span style="color: orange;">Reload dataset</span>')
+                    self._livePlotDataSet = self.loadDataset(captured_run_id=self._livePlotRunId)
+                    return
             ## 2. If we do not see the attribute attached to the launched plot
             if not hasattr(self, '_livePlotGetPlotParameters'):
-
+                self.labelLivePlotInfoInfo.setText('<span style="color: green;">Launch liveplot</span>')
                 self.livePlotLaunchPlot()
-            ## 2. If the user closed some or every liveplot windows
+            # # 3. If the user closed some or every liveplot windows
             # elif len(self.getLivePlotRef())!=self._livePlotNbPlot:
             #     self.livePlotLaunchPlot()
-            ## 3. If an active livePlot window is detected
+            # 4. If an active livePlot window is detected
             else:
                 self.livePlotUpdatePlot()
 
@@ -675,7 +685,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
 
     @QtCore.pyqtSlot(str, tuple, str, bool, bool, int)
-    def slotUpdatePlotLabradData(self, 
+    def slotUpdatePlotLabradData(self,
                                  plotRef        : str,
                                  data           : Tuple[np.ndarray, ...],
                                  yParamName     : str,
@@ -860,10 +870,10 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
 
         # self.livePlotDataSets[plotId].data.dataset.refresh()
         d = self.livePlotDataSets[plotId].getPlotData()
-        
-        for dep_idx, [xParamName, xParamLabel, xParamUnit, 
-                      yParamName, yParamLabel, yParamUnit, 
-                      zParamName, zParamLabel, zParamUnit, 
+
+        for dep_idx, [xParamName, xParamLabel, xParamUnit,
+                      yParamName, yParamLabel, yParamUnit,
+                      zParamName, zParamLabel, zParamUnit,
                       plotRef] in enumerate(zip(*self.livePlotGetPlotParameterList[plotId])):
             self._updatingFlag.append(False)
 
@@ -879,7 +889,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                                         xParamName: dataDict[xParamName]}
             else:
                 raise ValueError
-            
+
             lastDependent = (dep_idx == len(self.livePlotGetPlotParameterList[plotId][0]) - 1)
             worker = LoadLabradDataFromCacheThread(plotRef,
                                                    dataDict,
@@ -912,7 +922,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         num_live_plots = min(self._livePlotRunId, MAX_LIVE_PLOTS)
         updateIds = np.arange(self.plotId, self.plotId + num_live_plots) % MAX_LIVE_PLOTS
         currPlotId = self.plotId
-        
+
         isBusy = self.isDataBusy(self._livePlotRunName)
         if isBusy:
             print(f'WARNING: dataset {self._livePlotRunName} is busy, please set swmr mode!')
@@ -952,7 +962,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 # plotRefs are the same in one live dataset
                 plotRefs = self.livePlotGetPlotParameterList[self.plotId][-1]
                 is2Dplot = self.is2dPlot(self.livePlotGetPlotParameterList[self.plotId])
-                curveIds = self.genCurveIds(self.livePlotGetPlotParameterList[self.plotId], 
+                curveIds = self.genCurveIds(self.livePlotGetPlotParameterList[self.plotId],
                                             self.livePlotRunIds[self.plotId])
                 self.signalCloseLivePlot.emit(tuple(plotRefs), is2Dplot, tuple(curveIds))
                 # remove old
@@ -969,67 +979,6 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
                 self.livePlotLaunchLabradPlot(self.plotId)
 
 
-    def livePlotPushButtonFolder(self) -> None:
-
-        """
-        Call when user click on the 'LivePlot' button.
-        Allow user to chose any available qcodes database in his computer.
-        This database will be monitored and any new run will be plotted.
-        """
-        self.pushButtonLivePlot.setText('Loading Labrad...')
-        self.pushButtonLivePlot.repaint()
-
-        QtCore.QThread.msleep(100)
-        self.pushButtonLivePlot.setText('Select database...')
-        fname = QtWidgets.QFileDialog.getExistingDirectory(self, 
-                                                           'Open Labrad database',
-                                                           self.config['livePlotDefaultFolder'])
-        if fname:
-            self._livePlotDatabaseAbsPath = fname
-            self._livePlotDataBaseName = os.path.split(fname)[-1]
-
-            self._livePlotPreviousDataLength = 0
-            self.plotIdGenerator = plotIdGenerator()
-            self.plotId = next(self.plotIdGenerator)  # the idx of live plot, changes to create new window
-            self.livePlotRunIds = [None] * MAX_LIVE_PLOTS
-            self.livePlotPreviousDataLengths = [None] * MAX_LIVE_PLOTS
-            self.livePlotRunNames = [None] * MAX_LIVE_PLOTS
-            self.livePlotDataSets = [None] * MAX_LIVE_PLOTS
-            self.livePlotGetPlotParameterList = [None] * MAX_LIVE_PLOTS
-
-            def load_by_run_spec(idx):
-                # noisy=false to turn off the open message
-                dataset = LabradDataset(self._livePlotDatabaseAbsPath, noisy=False)
-                return dataset.loadDataset(idx)  
-
-            self.loadDataset = load_by_run_spec
-
-            self.labelLivePlotDatabasePathInfo.setText('{}'.format(self._livePlotDatabaseAbsPath))
-            self.labelLivePlotDatabaseNameInfo.setText('{}'.format(self._livePlotDataBaseName))
-
-            # We call the liveplot function once manually to be sure it has been
-            # initialized properly
-            self.livePlotUpdateLabrad()
-
-            # Launch a Qt timer which will periodically check if a new run is
-            # launched
-            # If the user disable the livePlot previously
-            if self.spinBoxLivePlotRefreshRate.value()==0:
-                self.spinBoxLivePlotRefreshRate.setValue(1)
-
-            self._livePlotTimer = QtCore.QTimer()
-            self._livePlotTimer.timeout.connect(self.livePlotUpdateLabrad)
-            self._livePlotTimer.setInterval(self.spinBoxLivePlotRefreshRate.value()*1000)
-            self._livePlotTimer.start()
-
-            self._livePlotClockTimer = QtCore.QTimer()
-            self._livePlotClockTimer.timeout.connect(self.livePlotClockUpdate)
-            self._livePlotClockTimer.setInterval(1000)
-            self._livePlotClockTimer.start()
-
-        self.pushButtonLivePlot.setText('Modify database')
-
-
     def livePlotPushButtonFolder(self, fname=None) -> None:
 
         """
@@ -1043,7 +992,7 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         QtCore.QThread.msleep(100)
         self.pushButtonLivePlot.setText('Select database...')
         if fname is None:
-            fname = QtWidgets.QFileDialog.getExistingDirectory(self, 
+            fname = QtWidgets.QFileDialog.getExistingDirectory(self,
                                                            'Open Labrad database',
                                                            self.config['livePlotDefaultFolder'])
         if fname:
