@@ -1090,6 +1090,46 @@ Colorblind5 = Colorblind8[:5]
 Colorblind4 = Colorblind8[:4]
 Colorblind3 = Colorblind8[:3]
 
+Seismic3 = ('#00004D', '#FFFFFF', '#800000')
+Seismic4 = ('#00004D', '#FFFFFF', '#FF0000', '#800000')
+Seismic5 = ('#00004D', '#0000FF', '#FFFFFF', '#FF0000', '#800000')
+Seismic6 = ('#00004D', '#0000FF', '#FFFFFF', '#FF0000', '#CC0000', '#800000')
+Seismic7 = ('#00004D', '#0000B3', '#0000FF', '#FFFFFF', '#FF0000', '#CC0000', '#800000')
+Seismic8 = ('#00004D', '#0000B3', '#0000FF', '#FFFFFF', '#FF0000', '#FF8080', '#CC0000', '#800000')
+
+Wildfire3 = ('#93FD2A', '#000000', '#FCCF18')
+Wildfire4 = ('#93FD2A', '#164579', '#75104D', '#FCCF18')
+Wildfire5 = ('#93FD2A', '#157480', '#000000', '#A92843', '#FCCF18')
+Wildfire6 = ('#93FD2A', '#1E8D82', '#21234A', '#3E1433', '#C74B34', '#FCCF18')
+Wildfire7 = ('#93FD2A', '#23A081', '#144879', '#000000', '#6F124C', '#D2592E', '#FCCF18')
+Wildfire8 = ('#93FD2A', '#28AE7F', '#0E627D', '#1A1A34', '#240E1F', '#93154B', '#DB6928', '#FCCF18')
+Wildfire9 = ('#93FD2A', '#2FB97B', '#167680', '#22336C', '#020203', '#451537', '#A22146', '#DD6B26', '#FCCF18')
+Wildfire10 = ('#93FD2A', '#34C078', '#1B8281', '#144879', '#141326', '#190A15', '#6F124C', '#B8383C', '#E67E1E', '#FCCF18')
+Wildfire11 = ('#93FD2A', '#3AC774', '#1F8F82', '#0D5B7C', '#232652', '#010101', '#35132D', '#85104D', '#C04138', '#E8811D', '#FCCF18')
+Wildfire256 = (
+    '#93FD2A', '#8DFB30', '#88F935', '#84F73A', '#7FF53F', '#7AF343', '#76F147', '#72EF4B', '#6EED4E', '#6AEB52', '#66E855', '#62E658',
+    '#5FE45A', '#5BE25D', '#58DF60', '#54DD62', '#51DB64', '#4ED966', '#4BD668', '#48D46A', '#46D26C', '#43D06E', '#41CD70', '#3ECB71',
+    '#3CC973', '#3AC774', '#38C475', '#36C277', '#34C078', '#32BE79', '#30BB7A', '#2FB97B', '#2DB77C', '#2CB57C', '#2BB27D', '#29B07E',
+    '#28AE7F', '#27AC7F', '#26A980', '#26A780', '#25A581', '#24A381', '#23A081', '#239E81', '#229C82', '#219A82', '#219882', '#209682',
+    '#209382', '#1F9182', '#1F8F82', '#1E8D82', '#1D8B82', '#1D8982', '#1C8782', '#1C8582', '#1B8281', '#1A8081', '#197E81', '#197C81',
+    '#187A80', '#177880', '#167680', '#157480', '#14727F', '#14707F', '#136E7F', '#126C7F', '#116A7E', '#10687E', '#0F667E', '#0F647D',
+    '#0E627D', '#0E607D', '#0D5E7D', '#0D5B7C', '#0D597C', '#0D577C', '#0E557C', '#0E537B', '#0F517B', '#104F7B', '#114C7A', '#134A7A',
+    '#144879', '#164579', '#174378', '#194177', '#1B3E76', '#1D3C75', '#1E3A73', '#203771', '#21356E', '#22336C', '#233168', '#242F65',
+    '#242D61', '#242B5D', '#242959', '#232856', '#232652', '#22254E', '#21234A', '#202246', '#1F2042', '#1E1E3E', '#1D1D3B', '#1B1B37',
+    '#1A1A34', '#191830', '#17172D', '#161529', '#141326', '#121222', '#11101F', '#0F0E1C', '#0D0D19', '#0C0B16', '#0A0912', '#08080F',
+    '#06060C', '#050509', '#040306', '#030204', '#020203', '#010101', '#000000', '#000000', '#000000', '#000000', '#010101', '#020102',
+    '#040203', '#060305', '#080407', '#0B0509', '#0E060C', '#10070E', '#130810', '#160913', '#190A15', '#1C0B18', '#1E0C1A', '#210D1C',
+    '#240E1F', '#270F21', '#2A1023', '#2D1126', '#301228', '#32122A', '#35132D', '#38142F', '#3B1431', '#3E1433', '#411535', '#451537',
+    '#481539', '#4B153B', '#4E153D', '#51153F', '#541541', '#581543', '#5B1544', '#5E1446', '#611447', '#651349', '#68134A', '#6B124B',
+    '#6F124C', '#72114C', '#75104D', '#78104D', '#7C104E', '#7F0F4E', '#820F4E', '#85104D', '#88104D', '#8B114D', '#8E124C', '#90144B',
+    '#93154B', '#96174A', '#981949', '#9B1B48', '#9D1D47', '#A01F47', '#A22146', '#A52345', '#A72544', '#A92843', '#AB2A42', '#AE2C41',
+    '#B02E40', '#B2313F', '#B4333E', '#B6353D', '#B8383C', '#BA3A3B', '#BC3C3A', '#BE3F39', '#C04138', '#C24337', '#C44636', '#C64835',
+    '#C74B34', '#C94D33', '#CB5032', '#CD5231', '#CF5430', '#D0572F', '#D2592E', '#D45C2D', '#D55F2C', '#D7612B', '#D8642A', '#DA6629',
+    '#DB6928', '#DD6B26', '#DE6E25', '#E07124', '#E17323', '#E37622', '#E47921', '#E57B20', '#E67E1E', '#E8811D', '#E9841C', '#EA861B',
+    '#EB891A', '#EC8C18', '#ED8F17', '#EF9216', '#F09515', '#F19714', '#F19A13', '#F29D12', '#F3A011', '#F4A310', '#F5A610', '#F6A90F',
+    '#F6AC0F', '#F7AF0F', '#F8B20F', '#F8B60F', '#F9B910', '#F9BC10', '#FABF11', '#FAC212', '#FBC513', '#FBC815', '#FBCC16', '#FCCF18',
+    '#FCD21A', '#FCD51B', '#FCD91D', '#FCDC1F')
+
 YlGn     = { 3: YlGn3,     4: YlGn4,     5: YlGn5,     6: YlGn6,     7: YlGn7,     8: YlGn8,     9: YlGn9 }
 YlGnBu   = { 3: YlGnBu3,   4: YlGnBu4,   5: YlGnBu5,   6: YlGnBu6,   7: YlGnBu7,   8: YlGnBu8,   9: YlGnBu9 }
 GnBu     = { 3: GnBu3,     4: GnBu4,     5: GnBu5,     6: GnBu6,     7: GnBu7,     8: GnBu8,     9: GnBu9 }
@@ -1146,6 +1186,9 @@ Category20c = { 3:  Category20c_3,  4:  Category20c_4,  5:  Category20c_5,  6:  
                 13: Category20c_13, 14: Category20c_14, 15: Category20c_15, 16: Category20c_16, 17: Category20c_17,
                 18: Category20c_18, 19: Category20c_19, 20: Category20c_20 }
 Colorblind  = { 3: Colorblind3, 4: Colorblind4, 5: Colorblind5, 6: Colorblind6, 7: Colorblind7, 8: Colorblind8 }
+Seismic  = { 3: Seismic3,  4: Seismic4,  5: Seismic5,  6: Seismic6,  7: Seismic7,  8: Seismic8 }
+Wildfire = { 3: Wildfire3, 4: Wildfire4, 5: Wildfire5, 6: Wildfire6, 7: Wildfire7, 8: Wildfire8, 9: Wildfire9, 10: Wildfire10, 11: Wildfire11, 256: Wildfire256 }
+
 
 brewer = {
     "YlGn"     : YlGn,
@@ -1198,6 +1241,8 @@ mpl = {
     "Plasma"  : Plasma,
     "Viridis" : Viridis,
     "Cividis" : Cividis,
+    "Seismic" : Seismic,
+    "Wildfire": Wildfire,
 }
 
 colorblind = {
@@ -1213,6 +1258,8 @@ all_palettes["Plasma"]     = Plasma
 all_palettes["Viridis"]    = Viridis
 all_palettes["Cividis"]    = Cividis
 all_palettes["Turbo"]      = Turbo
+all_palettes["Seismic"]    = Seismic
+all_palettes["Wildfire"]   = Wildfire
 
 small_palettes = deepcopy(all_palettes)
 del small_palettes["Greys"][256]
@@ -1222,6 +1269,7 @@ del small_palettes["Plasma"][256]
 del small_palettes["Viridis"][256]
 del small_palettes["Cividis"][256]
 del small_palettes["Turbo"][256]
+del small_palettes["Wildfire"][256]
 
 def linear_palette(palette: Palette, n: int) -> Palette:
     ''' Generate a new palette as a subset of a given palette.
