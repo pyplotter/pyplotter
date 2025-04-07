@@ -1204,10 +1204,13 @@ class WidgetPlot2d(QtWidgets.QDialog):
             zData = (zData.T - np.nanmean(zData, axis=1)).T
 
         # Data unwrapping
+        mask = ~np.isnan(zData)
         if self.ui.checkBoxUnwrapX.isChecked():
-            zData[~np.isnan(zData)] = np.unwrap(np.ravel(zData[~np.isnan(zData)], order='F'))
+            for j in range(zData.shape[1]):
+                zData[:, j][mask[:, j]] = np.unwrap(zData[:, j][mask[:, j]])
         if self.ui.checkBoxUnwrapY.isChecked():
-            zData[~np.isnan(zData)] = np.unwrap(np.ravel(zData[~np.isnan(zData)], order='C'))
+            for i in range(zData.shape[0]):
+                zData[i, :][mask[i, :]] = np.unwrap(zData[i, :][mask[i, :]])
 
         # Polynomial fit removal
         if self.ui.spinBoxSubtractPolyX.value()>0:
