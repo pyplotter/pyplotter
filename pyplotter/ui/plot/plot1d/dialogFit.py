@@ -16,6 +16,7 @@ import os
 from scipy.signal import hilbert
 from typing import Tuple
 
+
 from ....sources.config import loadConfigCurrent
 config = loadConfigCurrent()
 from ....sources.functions import parse_number
@@ -36,7 +37,8 @@ class Fit1d(QtWidgets.QDialog):
                        xData: np.ndarray,
                        yData: np.ndarray,
                        xUnits: str='',
-                       yUnits: str='') -> None:
+                       yUnits: str='',
+                       method: str='lbfgsb') -> None:
 
         QtWidgets.QDialog.__init__(self, parent=parent)
 
@@ -45,6 +47,7 @@ class Fit1d(QtWidgets.QDialog):
         self.xUnits     = xUnits
         self.yUnits     = yUnits
 
+        self._method = method
 
         self.webView = QWebEngineView()
         self.webView.setHtml(self.defaultPageSource('1'),
@@ -138,7 +141,7 @@ class Fit1d(QtWidgets.QDialog):
             lmfit parameters.
         """
 
-        result = lmfit.minimize(self.residual, self.getInitialParams(), method="lbfgsb")
+        result = lmfit.minimize(self.residual, self.getInitialParams(), method=self._method)
         # dx = np.gradient(self.xData)/2.
         # x = np.sort(np.concatenate((self.xData, self.xData+dx)))
 
@@ -1205,3 +1208,124 @@ class GaussianPeak(Fit1d):
                                         parse_number(self.fwhm2sigma(p['fwhm'])/p['center'].value, config['fitParameterNbNumber'], unified=True),
                                         parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
                                         self.yUnits)
+
+class InterdotTunnelingFit(Fit1d):
+
+    displayedLabel = 'Interdot Tunneling fit'
+
+
+    def __init__(self, parent: QtWidgets.QDialog,
+                       xData: np.ndarray,
+                       yData: np.ndarray,
+                       xUnits: str='',
+                       yUnits: str='') -> None:
+
+
+        self.fitType = '1d'
+        self.getLatexEquation = r's = s_0 + A \frac{\epsilon-\epsilon_0}{\sqrt{(\epsilon-\epsilon_0)^2+4t^2}}\tanh \left( \frac{\sqrt{(\epsilon-\epsilon_0)^2+4t^2}}{2k_BT_e} \right)'
+        # Formula from DOI: 10.1103/PhysRevLett.92.226801
+        Fit1d.__init__(self, parent=parent,
+                             xData=xData,
+                             yData=yData,
+                             xUnits=xUnits,
+                             yUnits=yUnits,
+                             method = 'powell')
+
+
+    def getInitialParams(self) -> lmfit.parameter.Parameters:
+        """
+        Guess fit initial parameter from the selected x and y data.
+
+        Returns
+        -------
+        lmfit.parameter.Parameters
+            Guest fit parameters
+        """
+
+
+        # Guess initial value
+        background          = np.mean(self.yData)
+        center              = self.xData[round(len(self.xData)/2)] # interdot in the middle of the scan
+        amplitude           = (np.max(self.yData)-np.min(self.yData))*(1 if self.yData[5]<self.yData[-5] else -1)
+        lever_arm           = 0.2 # 0.2 Germanium lever
+        tunneling           = 8e-6 # 10GHz tunneling initial guess
+        temperature         = 50e-3 # 50mK effective temperature
+
+        params = lmfit.Parameters()
+        # add with tuples: (NAME VALUE VARY MIN  MAX  EXPR  BRUTE_STEP)
+        params.add('background', background, True, None, None)
+        params.add('center', center, True, None, None)
+        params.add('amplitude', amplitude, True, None, None)
+        params.add('tunneling', tunneling, True, 0, None)
+        params.add('temperature', temperature, False, 10e-3, 100e-3)
+        params.add('lever_arm', lever_arm, False, 0, 1) # lever arm bonding between 0 and 1
+
+        return params
+
+
+
+    def func(self, p: lmfit.parameter.Parameters,
+                   x: np.ndarray) -> np.ndarray:
+        """
+        Fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            Current lmfit parameters.
+        x : np.ndarray
+            Selected data from the x axis.
+
+        Returns
+        -------
+        y : np.ndarray
+            Fit model result.
+        """
+
+
+        a_0         = p['background']
+        a           = p['amplitude']
+        e0          = p['center']
+        t           = p['tunneling']
+        Te          = p['temperature']
+        alpha       = p['lever_arm']
+        dx          = (x - e0)*alpha
+        omega       = np.sqrt(dx**2+4*t**2)
+        k_b         = 8.617e-5 # eV/K
+        y = a_0 + a * dx/omega*np.tanh(omega/(2*k_b*Te))
+
+        return y
+
+
+
+    def displayedLegend(self, p: lmfit.parameter.Parameters) -> str:
+        """
+        Return the legend of the fit model
+
+        Parameters
+        ----------
+        p : lmfit.parameter.Parameters
+            lmfit parameters
+
+        Returns
+        -------
+        legend : str
+            Legend of the fit model
+        """
+
+        return 'background      ={}{}<br/>'\
+               'center          ={}{}<br/>'\
+               'amplitude       ={}{}<br/>'\
+               'tunneling       ={}{}<br/>'\
+               'temperature    ={}{}'.format(parse_number(p['background'].value, config['fitParameterNbNumber'], unified=True),
+                                        self.yUnits,
+                                        parse_number(p['center'].value, config['fitParameterNbNumber'], unified=True),
+                                        self.xUnits,
+                                        parse_number(p['amplitude'].value, config['fitParameterNbNumber'], unified=True),
+                                        self.yUnits,
+                                        # 1e6/4 used to convert eV --> GHz
+                                        parse_number(p['tunneling'].value*1e6/4, config['fitParameterNbNumber'], unified=True),
+                                        'GHz',
+                                        parse_number(p['temperature'].value, config['fitParameterNbNumber'], unified=True),
+                                        'K')
+
