@@ -1209,7 +1209,7 @@ class GaussianPeak(Fit1d):
                                         parse_number(p['height'].value, config['fitParameterNbNumber'], unified=True),
                                         self.yUnits)
 
-class Interdot_Tunneling_fit(Fit1d):
+class InterdotTunnelingFit(Fit1d):
 
     displayedLabel = 'Interdot Tunneling fit'
 
@@ -1222,7 +1222,7 @@ class Interdot_Tunneling_fit(Fit1d):
 
 
         self.fitType = '1d'
-        self.getLatexEquation = r's = s_0 + A \frac{\epsilon-\epsilon_0}{\sqrt{(\epsilon-\epsilon_0)^2+4t^2}}\tanh{\large (\frac{\sqrt{(\epsilon-\epsilon_0)^2+4t^2}}{2k_BT_e}\large)}+B(\epsilon-\epsilon_0)'
+        self.getLatexEquation = r's = s_0 + A \frac{\epsilon-\epsilon_0}{\sqrt{(\epsilon-\epsilon_0)^2+4t^2}}\tanh \left( \frac{\sqrt{(\epsilon-\epsilon_0)^2+4t^2}}{2k_BT_e} \right)'
         # Formula from DOI: 10.1103/PhysRevLett.92.226801
         Fit1d.__init__(self, parent=parent,
                              xData=xData,
@@ -1231,7 +1231,7 @@ class Interdot_Tunneling_fit(Fit1d):
                              yUnits=yUnits,
                              method = 'powell')
 
-    
+
     def getInitialParams(self) -> lmfit.parameter.Parameters:
         """
         Guess fit initial parameter from the selected x and y data.
@@ -1248,7 +1248,6 @@ class Interdot_Tunneling_fit(Fit1d):
         center              = self.xData[round(len(self.xData)/2)] # interdot in the middle of the scan
         amplitude           = (np.max(self.yData)-np.min(self.yData))*(1 if self.yData[5]<self.yData[-5] else -1)
         lever_arm           = 0.2 # 0.2 Germanium lever
-        slope               = 0 # Sensor with no cross-talk
         tunneling           = 8e-6 # 10GHz tunneling initial guess
         temperature         = 50e-3 # 50mK effective temperature
 
@@ -1257,7 +1256,6 @@ class Interdot_Tunneling_fit(Fit1d):
         params.add('background', background, True, None, None)
         params.add('center', center, True, None, None)
         params.add('amplitude', amplitude, True, None, None)
-        params.add('slope', slope, True, None, None)
         params.add('tunneling', tunneling, True, 0, None)
         params.add('temperature', temperature, False, 10e-3, 100e-3)
         params.add('lever_arm', lever_arm, False, 0, 1) # lever arm bonding between 0 and 1
@@ -1284,9 +1282,8 @@ class Interdot_Tunneling_fit(Fit1d):
             Fit model result.
         """
 
-        # Unsure about the FWHM
+
         a_0         = p['background']
-        da          = p['slope']
         a           = p['amplitude']
         e0          = p['center']
         t           = p['tunneling']
@@ -1295,7 +1292,7 @@ class Interdot_Tunneling_fit(Fit1d):
         dx          = (x - e0)*alpha
         omega       = np.sqrt(dx**2+4*t**2)
         k_b         = 8.617e-5 # eV/K
-        y = a_0 + da*dx + a * dx/omega*np.tanh(omega/(2*k_b*Te))
+        y = a_0 + a * dx/omega*np.tanh(omega/(2*k_b*Te))
 
         return y
 
@@ -1326,6 +1323,7 @@ class Interdot_Tunneling_fit(Fit1d):
                                         self.xUnits,
                                         parse_number(p['amplitude'].value, config['fitParameterNbNumber'], unified=True),
                                         self.yUnits,
+                                        # 1e6/4 used to convert eV --> GHz
                                         parse_number(p['tunneling'].value*1e6/4, config['fitParameterNbNumber'], unified=True),
                                         'GHz',
                                         parse_number(p['temperature'].value, config['fitParameterNbNumber'], unified=True),
