@@ -1,7 +1,9 @@
-from PyQt5 import QtCore, QtWidgets
 from typing import Union
 
+from PyQt5 import QtCore, QtWidgets
+
 from ...sources.pyqtgraph import pg
+
 
 class QButtonCopy(QtWidgets.QPushButton):
 
@@ -11,13 +13,13 @@ class QButtonCopy(QtWidgets.QPushButton):
 
         super(QButtonCopy, self).__init__(parent)
 
-        self._text = 'Copie figure to clipboard 📋'
+        self._text = 'Copy figure to clipboard 📋'
         self.setText(self._text)
 
 
     ####################################
     #
-    #           Copie plot to clipboard
+    #            Copy plot to clipboard
     #
     ####################################
 
@@ -51,7 +53,7 @@ class QButtonCopy(QtWidgets.QPushButton):
                                    height=plotWidget.frameGeometry().height())
         clipboard.setPixmap(pixmap)
 
-        self.setText('Copied to clipboard !')
+        self.setText('Copied to clipboard!')
 
         self._clipboardTimer = QtCore.QTimer()
         self._clipboardTimer.timeout.connect(self.updateButton)
