@@ -202,7 +202,7 @@
                   <item>
                    <widget class="QPushButton" name="pushButtonCopy">
                     <property name="text">
-                     <string>Click to copie</string>
+                     <string>Click to copy</string>
                     </property>
                    </widget>
                   </item>
