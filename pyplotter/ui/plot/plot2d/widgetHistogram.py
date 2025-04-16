@@ -137,12 +137,16 @@ class WidgetHistogram(QtWidgets.QWidget):
             colormap name
         """
 
-        rgba_colors = [hex_to_rgba(i) for i in palettes.all_palettes[cm][config['2dMapNbColorPoints']]]
+        if config['2dMapNbColorPoints'] in palettes.all_palettes[cm].keys():
+            rgba_colors = [hex_to_rgba(i) for i in palettes.all_palettes[cm][config['2dMapNbColorPoints']]]
+            pos = np.linspace(0, 1, config['2dMapNbColorPoints'])
+        else:
+            rgba_colors = [hex_to_rgba(i) for i in palettes.all_palettes[cm][5]]
+            pos = np.linspace(0, 1, 5)
 
         if self.colorMapInvertCheckBox.isChecked():
             rgba_colors = [i for i in reversed(rgba_colors)]
 
-        pos = np.linspace(0, 1, config['2dMapNbColorPoints'])
         # Set the colormap
         pgColormap =  pg.ColorMap(pos, rgba_colors)
         self.pgHist.item.gradient.setColorMap(pgColormap)

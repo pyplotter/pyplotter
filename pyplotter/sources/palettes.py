@@ -1091,11 +1091,7 @@ Colorblind4 = Colorblind8[:4]
 Colorblind3 = Colorblind8[:3]
 
 Seismic3 = ('#00004D', '#FFFFFF', '#800000')
-Seismic4 = ('#00004D', '#FFFFFF', '#FF0000', '#800000')
 Seismic5 = ('#00004D', '#0000FF', '#FFFFFF', '#FF0000', '#800000')
-Seismic6 = ('#00004D', '#0000FF', '#FFFFFF', '#FF0000', '#CC0000', '#800000')
-Seismic7 = ('#00004D', '#0000B3', '#0000FF', '#FFFFFF', '#FF0000', '#CC0000', '#800000')
-Seismic8 = ('#00004D', '#0000B3', '#0000FF', '#FFFFFF', '#FF0000', '#FF8080', '#CC0000', '#800000')
 
 Wildfire3 = ('#93FD2A', '#000000', '#FCCF18')
 Wildfire4 = ('#93FD2A', '#164579', '#75104D', '#FCCF18')
@@ -1186,7 +1182,7 @@ Category20c = { 3:  Category20c_3,  4:  Category20c_4,  5:  Category20c_5,  6:  
                 13: Category20c_13, 14: Category20c_14, 15: Category20c_15, 16: Category20c_16, 17: Category20c_17,
                 18: Category20c_18, 19: Category20c_19, 20: Category20c_20 }
 Colorblind  = { 3: Colorblind3, 4: Colorblind4, 5: Colorblind5, 6: Colorblind6, 7: Colorblind7, 8: Colorblind8 }
-Seismic  = { 3: Seismic3,  4: Seismic4,  5: Seismic5,  6: Seismic6,  7: Seismic7,  8: Seismic8 }
+Seismic  = { 3: Seismic3, 5: Seismic5 }
 Wildfire = { 3: Wildfire3, 4: Wildfire4, 5: Wildfire5, 6: Wildfire6, 7: Wildfire7, 8: Wildfire8, 9: Wildfire9, 10: Wildfire10, 11: Wildfire11, 256: Wildfire256 }
 
 
