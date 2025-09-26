@@ -230,6 +230,7 @@ class WidgetPlot2d(QtWidgets.QDialog):
         self.ui.checkBoxSubtractAverageY.clicked.connect(self.zDataTransformation)
         self.ui.spinBoxSubtractPolyX.valueChanged.connect(self.zDataTransformation)
         self.ui.spinBoxSubtractPolyY.valueChanged.connect(self.zDataTransformation)
+        self.ui.checkBoxHideOutliers.clicked.connect(self.zDataTransformation)
         self.ui.checkBoxUnwrapX.clicked.connect(self.zDataTransformation)
         self.ui.checkBoxUnwrapY.clicked.connect(self.zDataTransformation)
         self.ui.pushButton3d.clicked.connect(self.launched3d)
@@ -1196,6 +1197,11 @@ class WidgetPlot2d(QtWidgets.QDialog):
         """
 
         zData = np.copy(self.zDataRef)
+
+        # hide outliers
+        if self.ui.checkBoxHideOutliers.isChecked():
+            vmin, vmax = np.percentile(self.zData[~np.isnan(self.zData)], [1, 99])
+            zData[(zData<vmin) | (zData>vmax)] = np.nan
 
         # global average removal
         if self.ui.checkBoxSubtractAverageX.isChecked():

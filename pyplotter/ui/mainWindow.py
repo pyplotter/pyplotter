@@ -507,7 +507,7 @@ class MainApp(QtWidgets.QMainWindow):
                 curveIds.append(p.curveId)
             else:
                 curveIds.append(None)
-        
+
         for plotRef, plotType, curveId in zip(plotRefs, plotTypes, curveIds):
             if plotType == '1d' and curveId is not None:
                 self.slotClose1dPlot(plotRef)
