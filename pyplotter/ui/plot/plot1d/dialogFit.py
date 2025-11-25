@@ -790,16 +790,44 @@ class ResonanceDipdB(Fit1d):
         """
 
 
-        # Guess initial value
+        ## Guess initial value
+
+        # background in db
         background = np.mean(self.yData[-10:])
+
+
+        # Find resonance frequency, unit does not matter (Hz or GHz)
         f0 = self.xData[np.argmin(self.yData)]
+
+        ## Calculate Qi, Qc from f0, FWHM and height
+        # find fwhm for Qc
+        n0 = np.argmin(self.yData)
+        n1 =      np.abs(self.yData[:n0] - (background-3)).argmin()
+        n2 = n0 + np.abs(self.yData[n0:] - (background-3)).argmin()
+        fwhm = self.xData[n2] - self.xData[n1]
+
+        qc = np.sqrt(2)*f0/fwhm
+
+
+        # find fwhm for Qi
+        n0 = np.argmin(self.yData)
+        n1 =      np.abs(self.yData[:n0] - (self.yData.min()+3)).argmin()
+        n2 = n0 + np.abs(self.yData[n0:] - (self.yData.min()+3)).argmin()
+        fwhm = self.xData[n2] - self.xData[n1]
+
+        # Find height in linear scale for Qi
+        height_db = background-abs(self.yData.min())
+        height_lin = 10**(height_db/20)
+
+        qi = f0/fwhm*np.sqrt(2/(1-height_lin))
+
 
         params = lmfit.Parameters()
         # add with tuples: (NAME VALUE VARY MIN  MAX  EXPR  BRUTE_STEP)
         params.add('background', background, True, None, None)
         params.add('f0', f0, True, None, None)
-        params.add('qi', 1e3, True, None, None)
-        params.add('qc', 1e3, True, None, None)
+        params.add('qi', qi, True, None, None)
+        params.add('qc', qc, True, None, None)
         params.add('phi', 0., True, None, None)
 
         return params
