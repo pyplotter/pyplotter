@@ -67,19 +67,40 @@ class WidgetBlueFors(QtWidgets.QWidget):
                 # Maxigauges file (all pressure gauges)
                 if fileName=='maxigauge':
 
-                    df = pd.read_csv(filePath,
-                                     delimiter=',',
-                                     names=['date', 'time',
-                                         'ch1_name', 'ch1_void1', 'ch1_status', 'ch1_pressure', 'ch1_void2', 'ch1_void3',
-                                         'ch2_name', 'ch2_void1', 'ch2_status', 'ch2_pressure', 'ch2_void2', 'ch2_void3',
-                                         'ch3_name', 'ch3_void1', 'ch3_status', 'ch3_pressure', 'ch3_void2', 'ch3_void3',
-                                         'ch4_name', 'ch4_void1', 'ch4_status', 'ch4_pressure', 'ch4_void2', 'ch4_void3',
-                                         'ch5_name', 'ch5_void1', 'ch5_status', 'ch5_pressure', 'ch5_void2', 'ch5_void3',
-                                         'ch6_name', 'ch6_void1', 'ch6_status', 'ch6_pressure', 'ch6_void2', 'ch6_void3',
-                                         'void'],
-                                     header=None)
+                    # Due to BlueFors format change, we need to now the number of column
+                    with open(filePath) as f:
+                        line = f.readline()
+                    ncols = line.count(",") + 1
 
-                    x = pandasTimestamp2Int(pd.to_datetime(df['date']+'-'+df['time'], format='%d-%m-%y-%H:%M:%S'))
+                    if ncols==39:
+                        df = pd.read_csv(filePath,
+                                        delimiter=',',
+                                        names=['date', 'time',
+                                            'ch1_name', 'ch1_void1', 'ch1_status', 'ch1_pressure', 'ch1_void2', 'ch1_void3',
+                                            'ch2_name', 'ch2_void1', 'ch2_status', 'ch2_pressure', 'ch2_void2', 'ch2_void3',
+                                            'ch3_name', 'ch3_void1', 'ch3_status', 'ch3_pressure', 'ch3_void2', 'ch3_void3',
+                                            'ch4_name', 'ch4_void1', 'ch4_status', 'ch4_pressure', 'ch4_void2', 'ch4_void3',
+                                            'ch5_name', 'ch5_void1', 'ch5_status', 'ch5_pressure', 'ch5_void2', 'ch5_void3',
+                                            'ch6_name', 'ch6_void1', 'ch6_status', 'ch6_pressure', 'ch6_void2', 'ch6_void3',
+                                            'void'],
+                                        header=None)
+
+                    elif ncols==45:
+                        df = pd.read_csv(filePath,
+                                        delimiter=',',
+                                        names=['date', 'time',
+                                            'ch1_name', 'ch1_void1', 'ch1_status', 'ch1_channel', 'ch1_pressure', 'ch1_void2', 'ch1_void3',
+                                            'ch2_name', 'ch2_void1', 'ch2_status', 'ch2_channel', 'ch2_pressure', 'ch2_void2', 'ch2_void3',
+                                            'ch3_name', 'ch3_void1', 'ch3_status', 'ch3_channel', 'ch3_pressure', 'ch3_void2', 'ch3_void3',
+                                            'ch4_name', 'ch4_void1', 'ch4_status', 'ch4_channel', 'ch4_pressure', 'ch4_void2', 'ch4_void3',
+                                            'ch5_name', 'ch5_void1', 'ch5_status', 'ch5_channel', 'ch5_pressure', 'ch5_void2', 'ch5_void3',
+                                            'ch6_name', 'ch6_void1', 'ch6_status', 'ch6_channel', 'ch6_pressure', 'ch6_void2', 'ch6_void3',
+                                            'void'],
+                                        header=None)
+                    else:
+                        raise ValueError("Unknown BlueFors format for the maxigauge file.")
+
+                    x = pandasTimestamp2Int(pd.to_datetime(df['date'].astype(str)+'-'+df['time'].astype(str), format='%d-%m-%y-%H:%M:%S'))
 
                     for i in range(1, 7):
 
@@ -411,11 +432,25 @@ class WidgetBlueFors(QtWidgets.QWidget):
 
                 else:
 
+                    # Due to BlueFors format change, we need to now the number of column
+                    with open(filePath) as f:
+                        line = f.readline()
+                    ncols = line.count(",") + 1
+
                     # Thermometers files
-                    df = pd.read_csv(filePath,
-                                     delimiter = ',',
-                                     names     = ['date', 'time', 'y'],
-                                     header    = None)
+                    print(filePath)
+                    if ncols==3:
+                        df = pd.read_csv(filePath,
+                                        delimiter = ',',
+                                        names     = ['date', 'time', 'y'],
+                                        header    = None)
+                    elif ncols==4:
+                        df = pd.read_csv(filePath,
+                                        delimiter = ',',
+                                        names     = ['date', 'time', 'channel', 'y'],
+                                        header    = None)
+                    else:
+                        raise ValueError("Unknown BlueFors format for the flowmeter file.")
 
                     self.signalUpdateProgressBar.emit(progressBarId, progress, 'Downloading data: {:.0f}%'.format(progress*100))
                     progress += progressIteration
