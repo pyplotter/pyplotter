@@ -1,5 +1,5 @@
 # Inspired from: https://gist.github.com/markjay4k/da2f55e28514be7160a7c5fbf95bd243
-from pyqtgraph.Qt import QtGui
+from pyqtgraph.Qt import QtWidgets
 import pyqtgraph.opengl as gl
 import pyqtgraph as pg
 import numpy as np
@@ -10,7 +10,7 @@ pg.setConfigOption('background','white')
 class Visualizer(object):
     def __init__(self):
         self.traces = dict()
-        self.app = QtGui.QApplication(sys.argv)
+        self.app = QtWidgets.QApplication(sys.argv)
         self.w = gl.GLViewWidget()
         self.w.opts['distance'] = 25
 
@@ -31,7 +31,7 @@ class Visualizer(object):
                 (i, self.n * 1.3)), width=(i + 1) / 10, antialias=True)
             self.w.addItem(self.traces[i])
 
-        QtGui.QApplication.instance().exec_()
+        QtWidgets.QApplication.instance().exec_()
 
 
 # Start Qt event loop unless running in interactive mode.
