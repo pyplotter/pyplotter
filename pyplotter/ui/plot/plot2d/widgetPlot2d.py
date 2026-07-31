@@ -1103,13 +1103,24 @@ class WidgetPlot2d(QtWidgets.QDialog):
             if plotRef is None:
                 plotRef = self.plotRef+sliceOrientation
 
-            if sliceOrientation=='vertical':
-                xLabelText  = self._yLabelText
-                xLabelUnits = self._yLabelUnits
+            # get the xLabel and unit
+            # When the axis are swapped, the labels and units are too
+            if self._isAxesSwapped:
+                if sliceOrientation=='horizontal':
+                    xLabelText  = self._yLabelText
+                    xLabelUnits = self._yLabelUnits
 
-            elif sliceOrientation=='horizontal':
-                xLabelText  = self._xLabelText
-                xLabelUnits = self._xLabelUnits
+                elif sliceOrientation=='vertical':
+                    xLabelText  = self._xLabelText
+                    xLabelUnits = self._xLabelUnits
+            else:
+                if sliceOrientation=='vertical':
+                    xLabelText  = self._yLabelText
+                    xLabelUnits = self._yLabelUnits
+
+                elif sliceOrientation=='horizontal':
+                    xLabelText  = self._xLabelText
+                    xLabelUnits = self._xLabelUnits
 
             if sliceOrientation in self.interactionRefs.keys():
                 self.interactionRefs[sliceOrientation]['nbCurve'] += 1
