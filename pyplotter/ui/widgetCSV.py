@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, QtCore
 import os
 from typing import Union
 import pandas as pd
-from skrf import Touchstone # To easily read s2p file
+from skrf.io import Touchstone # To easily read s2p file
 import numpy as np
 
 
