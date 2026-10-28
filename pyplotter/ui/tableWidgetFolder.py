@@ -189,7 +189,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
         If it is a folder, we launched the folderClicked method.
         If it is a file, we launched the databaseClick method.
         """
-
+        
         # We check if the signal is effectively called by user
         if not self._folderUpdating and self._guiInitialized:
 
@@ -197,45 +197,42 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
 
             # Get current item
             currentRow  = self.currentIndex().row()
-            currentItem =  self.model().index(currentRow, 0).data()
+            currentItem = self.model().index(currentRow, 0).data()
 
-            nextPath = os.path.join(self.currentPath, currentItem)
-            self.databaseAbsPath = os.path.normpath(os.path.join(self.currentPath, currentItem)).replace("\\", "/")
-            # If the folder is a regulat folder):
-            if double_click and os.path.isdir(nextPath):
-                self.signalSendStatusBarMessage.emit('Updating', 'orange')
-                self.folderClicked(directory=nextPath)
-                self.signalSendStatusBarMessage.emit('Ready', 'green')
-            # If the folder is a BlueFors folder
-            elif isBlueForsFolder(currentItem):
-                self.blueForsClick()
-            # If it is a csv or a s2p file
-            elif nextPath[-3:].lower() in ['csv', 's2p']:
-                self.csvClick()
-            # If it is a npz file
-            elif nextPath[-3:].lower() in 'npz':
-                self.npzClick()
-            # If it is a QCoDeS database
-            elif isQcodesData(currentItem):
-                self.databaseClick()
-            # if it is a Labrad datavault folder
-            elif isLabradFolder(self.databaseAbsPath):
-                self.labradDatabaseClick()
-            # If the folder is a regulat folder
-            elif os.path.isdir(nextPath):
-                self.signalSendStatusBarMessage.emit('Updating', 'orange')
-                self.folderClicked(directory=nextPath)
-                self.signalSendStatusBarMessage.emit('Ready', 'green')
-            else:
-                # If right clicked
-                if isinstance(b, QtCore.QPoint):
-                    # Job done, we restor the usual cursor
-                    QtWidgets.QApplication.restoreOverrideCursor()
+            # check that user did not click on an empty zone of the widget
+            if currentItem is not None:
 
-                    # We open a homemade menu
-                    MenuDb(self.databaseAbsPath)
+                nextPath = os.path.join(self.currentPath, currentItem)
+                self.databaseAbsPath = os.path.normpath(os.path.join(self.currentPath, currentItem)).replace("\\", "/")
+
+                # if we left click on a folder
+                if os.path.isdir(nextPath):
+                    # If the folder is a BlueFors folder
+                    if isBlueForsFolder(currentItem):
+                        self.blueForsClick()
+                    else:
+                        self.signalSendStatusBarMessage.emit('Updating', 'orange')
+                        self.folderClicked(directory=nextPath)
+                        self.signalSendStatusBarMessage.emit('Ready', 'green')
+                # if we click on a file
                 else:
-                    print('file not recognized!')
+                    # If it is a QCoDeS database
+                    if isQcodesData(currentItem):
+                        # If we right right clicked on a database
+                        if isinstance(b, QtCore.QPoint):
+                            # We open a homemade menu
+                            MenuDb(self.databaseAbsPath)
+                        else:
+                            self.databaseClick()
+                    # If it is a csv or a s2p file
+                    elif nextPath[-3:].lower() in ['csv', 's2p']:
+                        self.csvClick()
+                    # If it is a npz file
+                    elif nextPath[-3:].lower() in 'npz':
+                        self.npzClick()
+                    # if it is a Labrad datavault folder
+                    elif isLabradFolder(self.databaseAbsPath):
+                        self.labradDatabaseClick()
 
             # Job done, we restor the usual cursor
             QtWidgets.QApplication.restoreOverrideCursor()
