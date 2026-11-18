@@ -221,6 +221,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
                         # If we right right clicked on a database
                         if isinstance(b, QtCore.QPoint):
                             # We open a homemade menu
+                            QtWidgets.QApplication.restoreOverrideCursor()
                             MenuDb(self.databaseAbsPath)
                         else:
                             self.databaseClick()
