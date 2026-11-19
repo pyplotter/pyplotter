@@ -249,7 +249,9 @@ class MenuBar(QtWidgets.QMenuBar):
 
 
     def menuOpenLiveplot(self):
+        self._createLivePlotDialog()
 
+    def _createLivePlotDialog(self):
         self.dialogLiveplot = DialogLiveplot(config)
 
         self.dialogLiveplot.signalAddLivePlot.connect(self.signalAddLivePlot.emit)
@@ -268,3 +270,19 @@ class MenuBar(QtWidgets.QMenuBar):
     def updateStyle(self, config: dict) -> None:
 
         self.signalUpdateStyle.emit(config)
+
+    @QtCore.pyqtSlot(str)
+    def openDatabaseInLivePlot(self, databaseAbsPath: str) -> None:
+        """
+        Open the liveplot dialog or create it if it does not exist
+        then open the database at `databaseAbsPath` in liveplot.
+        """
+
+        if hasattr(self, 'dialogLiveplot'):
+            self.dialogLiveplot.show()
+            self.dialogLiveplot.raise_()
+            self.dialogLiveplot.activateWindow()
+        else:
+            self._createLivePlotDialog()
+
+        self.dialogLiveplot.livePlotOpenDatabase(databaseAbsPath)

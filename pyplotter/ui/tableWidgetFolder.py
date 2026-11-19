@@ -38,6 +38,7 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
         list, list, list, list, list, list, list, list, list, list, list, int, str
     )
     signalLabradDataClickDone = QtCore.pyqtSignal(str, int)
+    signalOpenDatabaseInLivePlot = QtCore.pyqtSignal(str)
 
     def __init__(self, parent=None) -> None:
         super(TableWidgetFolder, self).__init__(parent)
@@ -221,7 +222,8 @@ class TableWidgetFolder(QtWidgets.QTableWidget):
                         # If we right right clicked on a database
                         if isinstance(b, QtCore.QPoint):
                             # We open a homemade menu
-                            MenuDb(self.databaseAbsPath)
+                            QtWidgets.QApplication.restoreOverrideCursor()
+                            MenuDb(self.databaseAbsPath, self.signalOpenDatabaseInLivePlot.emit)
                         else:
                             self.databaseClick()
                     # If it is a csv or a s2p file
