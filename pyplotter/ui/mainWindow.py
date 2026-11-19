@@ -138,6 +138,7 @@ class MainApp(QtWidgets.QMainWindow):
         self.ui.tableWidgetFolder.signalDatabaseClick.connect(self.ui.checkBoxStared.databaseClick)
         self.ui.tableWidgetFolder.signalUpdateLabelPath.connect(self.hBoxLayoutPath.updateLabelPath)
         self.ui.tableWidgetFolder.signalDatabasePathUpdate.connect(self.ui.tableWidgetDataBase.updateDatabasePath)
+        self.ui.tableWidgetFolder.signalOpenDatabaseInLivePlot.connect(self.ui.menuBarMain.openDatabaseInLivePlot)
         self.ui.tableWidgetFolder.first_call()
 
 

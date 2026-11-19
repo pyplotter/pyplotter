@@ -1,3 +1,4 @@
+from typing import Callable
 from PyQt5 import QtGui, QtWidgets
 
 from ..sources.functions import getDatabaseNameFromAbsPath
@@ -10,11 +11,12 @@ class MenuDb(QtWidgets.QMenu):
     """
 
 
-    def __init__(self, databaseAbsPath    : str) -> None:
+    def __init__(self, databaseAbsPath: str, openInLivePlotCallback: Callable[[str], None]) -> None:
 
         super(MenuDb, self).__init__()
 
         self.databaseAbsPath = databaseAbsPath
+        self.openInLivePlotCallback = openInLivePlotCallback
 
         self.menu = QtWidgets.QMenu()
 
@@ -29,6 +31,10 @@ class MenuDb(QtWidgets.QMenu):
         copyDbRePath = QtWidgets.QAction('Copy dataBase relative path', self)
         copyDbRePath.triggered.connect(self.clickTitleCopyDbRePath)
         self.menu.addAction(copyDbRePath)
+
+        openDbInLivePlot = QtWidgets.QAction("Open in liveplot", self)
+        openDbInLivePlot.triggered.connect(self.clickOpenDbInLivePlot)
+        self.menu.addAction(openDbInLivePlot)
 
         self.menu.exec(QtGui.QCursor.pos())
 
@@ -52,3 +58,7 @@ class MenuDb(QtWidgets.QMenu):
 
         cb = QtWidgets.QApplication.clipboard()
         cb.setText('../data/{}'.format(getDatabaseNameFromAbsPath(self.databaseAbsPath)), mode=cb.Clipboard)
+
+    def clickOpenDbInLivePlot(self) -> None:
+
+        self.openInLivePlotCallback(self.databaseAbsPath)
