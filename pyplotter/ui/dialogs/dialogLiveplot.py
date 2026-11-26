@@ -630,25 +630,33 @@ class DialogLiveplot(QtWidgets.QDialog, Ui_LivePlot):
         This database will be monitored and any new run will be plotted.
         """
 
-        self.pushButtonLivePlot.setText('Loading QCoDeS...')
-        self.pushButtonLivePlot.repaint()
-
-        QtCore.QThread.msleep(100)
-        from qcodes import initialise_or_create_database_at, load_by_run_spec
-        self.pushButtonLivePlot.setText('Select database...')
-        self.loadDataset = load_by_run_spec
-
-        qfd = QtWidgets.QFileDialog(self)
-        fname = qfd.getOpenFileName(
+        fname = QtWidgets.QFileDialog(self).getOpenFileName(
             self,
             "Open QCoDeS database",
             self.config["livePlotDefaultFolder"],
             "QCoDeS database (*.db).",
         )
+        if fname[0] != '':
+            self.livePlotOpenDatabase(fname[0])
+        else:
+            self.pushButtonLivePlot.setText('Modify database')
+    
+    def livePlotOpenDatabase(self, databaseAbsPath: str):
+        """
+        The database will be monitored ine liveplot and any new run will be plotted.
+        """
 
-        if fname[0]!='':
-            self._livePlotDatabaseAbsPath = os.path.abspath(fname[0])
-            self._livePlotDataBaseName = getDatabaseNameFromAbsPath(fname[0])
+        self.pushButtonLivePlot.setText('Loading QCoDeS...')
+        self.pushButtonLivePlot.repaint()
+
+        QtCore.QThread.msleep(100)
+        from qcodes.dataset import initialise_or_create_database_at, load_by_run_spec
+        self.pushButtonLivePlot.setText('Select database...')
+        self.loadDataset = load_by_run_spec
+
+        if databaseAbsPath != '':
+            self._livePlotDatabaseAbsPath = os.path.abspath(databaseAbsPath)
+            self._livePlotDataBaseName = getDatabaseNameFromAbsPath(databaseAbsPath)
 
             initialise_or_create_database_at(self._livePlotDatabaseAbsPath)
             self._livePlotPreviousDataLength = 0

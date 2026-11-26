@@ -262,6 +262,7 @@ Contributions are welcome! Please feel free to submit issues or pull requests on
 
 - **Etienne Dumur** - *Main developer* - [etienne.dumur@cea.fr](mailto:etienne.dumur@cea.fr)
 - **Liang Xiang** - *Labrad support* - [xlelephant@gmail.com](mailto:xlelephant@gmail.com)
+- **Louis Grandvaux** - [louis.grandvaux@espci.fr](mailto:louis.grandvaux@espci.fr)
 
 ## 📄 License
 
